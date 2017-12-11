@@ -8,13 +8,20 @@ import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PostRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 
+import java.beans.PropertyDescriptor;
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 @Service
 public class PostServiceImpl implements PostService {
+
+    private static Logger log = LoggerFactory.getLogger(PostServiceImpl.class);
 
     private PostRepository postRepository;
 
@@ -74,27 +81,17 @@ public class PostServiceImpl implements PostService {
     private Stats mergeStats(Stats origStats, Stats newStats) {
         Assert.notNull(origStats, "Orig stats must not be null");
         Assert.notNull(newStats, "New stats must not be null");
-        // TODO this can be better (reflection)
-        if (newStats.getExercise() != null) {
-            origStats.setExercise(newStats.getExercise());
-        }
-        if (newStats.getGtg() != null) {
-            origStats.setGtg(newStats.getGtg());
-        }
-        if (newStats.getMeditate() != null) {
-            origStats.setMeditate(newStats.getMeditate());
-        }
-        if (newStats.getMeetings() != null) {
-            origStats.setMeetings(newStats.getMeetings());
-        }
-        if (newStats.getPray() != null) {
-            origStats.setPray(newStats.getPray());
-        }
-        if (newStats.getRead() != null) {
-            origStats.setRead(newStats.getRead());
-        }
-        if (newStats.getSponsor() != null) {
-            origStats.setSponsor(newStats.getSponsor());
+        PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(Stats.class);
+        for (PropertyDescriptor pd : descriptors) {
+            if ("class".equals(pd.getName())) { continue; }
+            try {
+                Object getterResult = pd.getReadMethod().invoke(newStats);
+                if (getterResult != null) {
+                    pd.getWriteMethod().invoke(origStats, getterResult);
+                }
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
+            }
         }
         return origStats;
     }
