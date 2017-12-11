@@ -53,14 +53,17 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post updateStats(User user, Stats stats) {
         Post post = ensureOneInProgressPost(user);
-        stats = mergeStats(post.getStats(), stats);
+        stats = mergeReplace(post.getStats(), stats);
         post.setStats(stats);
         return postRepository.save(post);
     }
 
     @Override
-    public void updateIntro(User user, Intro intro) {
-
+    public Post updateIntro(User user, Intro intro) {
+        Post post = ensureOneInProgressPost(user);
+        intro = mergeReplace(post.getIntro(), intro);
+        post.setIntro(intro);
+        return postRepository.save(post);
     }
 
     @Override
@@ -78,22 +81,23 @@ public class PostServiceImpl implements PostService {
 
     }
 
-    private Stats mergeStats(Stats origStats, Stats newStats) {
-        Assert.notNull(origStats, "Orig stats must not be null");
-        Assert.notNull(newStats, "New stats must not be null");
-        PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(Stats.class);
+    private <T> T mergeReplace(T origOne, T newOne) {
+        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
+        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
+
+        PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
         for (PropertyDescriptor pd : descriptors) {
             if ("class".equals(pd.getName())) { continue; }
             try {
-                Object getterResult = pd.getReadMethod().invoke(newStats);
+                Object getterResult = pd.getReadMethod().invoke(newOne);
                 if (getterResult != null) {
-                    pd.getWriteMethod().invoke(origStats, getterResult);
+                    pd.getWriteMethod().invoke(origOne, getterResult);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {
                 log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
             }
         }
-        return origStats;
+        return origOne;
     }
 
     private void ensureNoInProgressPost(User user) {

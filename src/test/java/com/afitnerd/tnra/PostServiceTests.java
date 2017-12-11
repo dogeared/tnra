@@ -242,6 +242,22 @@ public class PostServiceTests {
         }
     }
 
+    @Test
+    public void testUpdateIntro_success() {
+        Post post = postService.startPost(user);
+
+        post.getIntro().setWidwytk("widwytk");
+        post.getIntro().setKryptonite("kryptonite");
+        post.getIntro().setWhatAndWhen("what and when");
+        postService.updateIntro(user, post.getIntro());
+
+        Post post2 = postService.getInProgressPost(user);
+
+        assertEquals("widwytk", post2.getIntro().getWidwytk());
+        assertEquals("kryptonite", post2.getIntro().getKryptonite());
+        assertEquals("what and when", post2.getIntro().getWhatAndWhen());
+    }
+
     private void testUpdateStats_success_merge(String stat1, String stat2) {
         try {
             Post post = postService.startPost(user);

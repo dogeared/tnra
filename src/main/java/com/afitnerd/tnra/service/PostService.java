@@ -13,7 +13,7 @@ public interface PostService {
     Post getInProgressPost(User user);
 
     Post updateStats(User user, Stats stats);
-    void updateIntro(User user, Intro intro);
+    Post updateIntro(User user, Intro intro);
     void updatePersonal(User user, Category personal);
     void updateFamnily(User user, Category personal);
     void updateWork(User user, Category personal);
