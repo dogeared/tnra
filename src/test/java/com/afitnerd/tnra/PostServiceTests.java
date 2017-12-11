@@ -257,6 +257,26 @@ public class PostServiceTests {
         assertEquals("kryptonite", post2.getIntro().getKryptonite());
         assertEquals("what and when", post2.getIntro().getWhatAndWhen());
     }
+    
+    @Test
+    public void testReplaceIntro_success_complex() {
+        Post post = postService.startPost(user);
+
+        post.getIntro().setWidwytk("widwytk");
+        post.getIntro().setKryptonite("kryptonite");
+        post.getIntro().setWhatAndWhen("what and when");
+        postService.replaceIntro(user, post.getIntro());
+
+        Post post2 = postService.getInProgressPost(user);
+        post2.getIntro().setKryptonite("kryptonite2");
+        postService.replaceIntro(user, post2.getIntro());
+        
+        Post post3 = postService.getInProgressPost(user);
+
+        assertEquals("widwytk", post3.getIntro().getWidwytk());
+        assertEquals("kryptonite2", post3.getIntro().getKryptonite());
+        assertEquals("what and when", post3.getIntro().getWhatAndWhen());
+    }
 
     private void testReplaceStats_success_merge(String stat1, String stat2) {
         try {
