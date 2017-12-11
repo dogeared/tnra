@@ -199,6 +199,49 @@ public class PostServiceTests {
         testUpdateStats_success_merge("exercise", "sponsor");
     }
 
+    @Test
+    public void testUpdateStats_success_complex() {
+        Post post = postService.startPost(user);
+
+        Stats stats = new Stats();
+        stats.setExercise(2);
+        stats.setGtg(3);
+        stats.setMeditate(4);
+        stats.setMeetings(5);
+
+        postService.updateStats(user, stats);
+
+        stats.setMeetings(6);
+        stats.setPray(7);
+
+        postService.updateStats(user, stats);
+
+        Post post2 = postService.getInProgressPost(user);
+        Stats stats2 = post2.getStats();
+
+        assertEquals(2, (int) stats2.getExercise());
+        assertEquals(3, (int) stats2.getGtg());
+        assertEquals(4, (int) stats2.getMeditate());
+        assertEquals(6, (int) stats2.getMeetings());
+        assertEquals(7, (int) stats2.getPray());
+        assertNull(stats2.getRead());
+        assertNull(stats2.getSponsor());
+    }
+
+    @Test
+    public void testUpdateStats_fail_noInProgressPost() {
+        Stats stats = new Stats();
+        stats.setExercise(2);
+        stats.setGtg(3);
+        stats.setMeditate(4);
+        try {
+            postService.updateStats(user, stats);
+            fail();
+        } catch (PostException p) {
+            assertEquals("Expected an in progress post for micah@afitnerd.com but found none.", p.getMessage());
+        }
+    }
+
     private void testUpdateStats_success_merge(String stat1, String stat2) {
         try {
             Post post = postService.startPost(user);
@@ -228,20 +271,6 @@ public class PostServiceTests {
             }
         } catch (Exception e) {
             fail(e.getMessage());
-        }
-    }
-
-    @Test
-    public void testUpdateStats_fail_noInProgressPost() {
-        Stats stats = new Stats();
-        stats.setExercise(2);
-        stats.setGtg(3);
-        stats.setMeditate(4);
-        try {
-            postService.updateStats(user, stats);
-            fail();
-        } catch (PostException p) {
-            assertEquals("Expected an in progress post for micah@afitnerd.com but found none.", p.getMessage());
         }
     }
 }
