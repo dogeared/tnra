@@ -15,11 +15,11 @@ public interface PostService {
     Post replaceStats(User user, Stats stats);
     Post replaceIntro(User user, Intro intro);
     Post replacePersonal(User user, Category personal);
-    Post replaceFamily(User user, Category personal);
-    Post replaceWork(User user, Category personal);
+    Post replaceFamily(User user, Category family);
+    Post replaceWork(User user, Category work);
 
     Post updateIntro(User user, Intro intro);
     Post updatePersonal(User user, Category personal);
-    Post updateFamily(User user, Category personal);
-    Post updateWork(User user, Category personal);
+    Post updateFamily(User user, Category family);
+    Post updateWork(User user, Category work);
 }

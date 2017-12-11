@@ -332,6 +332,68 @@ public class PostServiceTests {
         assertEquals("worst\nworst", post3.getPersonal().getWorst());
     }
 
+    @Test
+    public void testReplaceFamily_success() {
+        Post post = postService.startPost(user);
+
+        post.getFamily().setBest("best");
+        post.getFamily().setWorst("worst");
+        postService.replaceFamily(user, post.getFamily());
+
+        Post post2 = postService.getInProgressPost(user);
+
+        assertEquals("best", post2.getFamily().getBest());
+        assertEquals("worst", post2.getFamily().getWorst());
+    }
+
+    @Test
+    public void testUpdateFamily_success() {
+        Post post = postService.startPost(user);
+
+        post.getFamily().setBest("best");
+        post.getFamily().setWorst("worst");
+        postService.replaceFamily(user, post.getFamily());
+
+        Post post2 = postService.getInProgressPost(user);
+        postService.updateFamily(user, post2.getFamily());
+
+        Post post3 = postService.getInProgressPost(user);
+
+        assertEquals("best\nbest", post3.getFamily().getBest());
+        assertEquals("worst\nworst", post3.getFamily().getWorst());
+    }
+
+    @Test
+    public void testReplaceWork_success() {
+        Post post = postService.startPost(user);
+
+        post.getWork().setBest("best");
+        post.getWork().setWorst("worst");
+        postService.replaceWork(user, post.getWork());
+
+        Post post2 = postService.getInProgressPost(user);
+
+        assertEquals("best", post2.getWork().getBest());
+        assertEquals("worst", post2.getWork().getWorst());
+    }
+
+    @Test
+    public void testUpdateWork_success() {
+        Post post = postService.startPost(user);
+
+        post.getWork().setBest("best");
+        post.getWork().setWorst("worst");
+        postService.replaceWork(user, post.getWork());
+
+        Post post2 = postService.getInProgressPost(user);
+        postService.updateWork(user, post2.getWork());
+
+        Post post3 = postService.getInProgressPost(user);
+
+        assertEquals("best\nbest", post3.getWork().getBest());
+        assertEquals("worst\nworst", post3.getWork().getWorst());
+    }
+
     private void testReplaceStats_success_merge(String stat1, String stat2) {
         try {
             Post post = postService.startPost(user);

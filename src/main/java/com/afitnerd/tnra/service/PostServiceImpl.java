@@ -75,13 +75,19 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Post replaceFamily(User user, Category personal) {
-        return null;
+    public Post replaceFamily(User user, Category family) {
+        Post post = ensureOneInProgressPost(user);
+        family = mergeReplace(post.getFamily(), family);
+        post.setPersonal(family);
+        return postRepository.save(post);
     }
 
     @Override
-    public Post replaceWork(User user, Category personal) {
-        return null;
+    public Post replaceWork(User user, Category work) {
+        Post post = ensureOneInProgressPost(user);
+        work = mergeReplace(post.getWork(), work);
+        post.setPersonal(work);
+        return postRepository.save(post);
     }
 
     @Override
@@ -101,13 +107,19 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Post updateFamily(User user, Category personal) {
-        return null;
+    public Post updateFamily(User user, Category family) {
+        Post post = ensureOneInProgressPost(user);
+        family = mergeAppendString(post.getFamily(), family);
+        post.setPersonal(family);
+        return postRepository.save(post);
     }
 
     @Override
-    public Post updateWork(User user, Category personal) {
-        return null;
+    public Post updateWork(User user, Category work) {
+        Post post = ensureOneInProgressPost(user);
+        work = mergeAppendString(post.getWork(), work);
+        post.setPersonal(work);
+        return postRepository.save(post);
     }
 
     private <T> T mergeAppendString(T origOne, T newOne) {
