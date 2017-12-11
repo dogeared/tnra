@@ -53,8 +53,8 @@ public class Post {
     private User user;
 
     public Post() {
-        this.state = PostState.IN_PROGRESS;
-        this.start = new Date();
+        setState(PostState.IN_PROGRESS);
+        setStart(new Date());
     }
 
     public Post(User user) {

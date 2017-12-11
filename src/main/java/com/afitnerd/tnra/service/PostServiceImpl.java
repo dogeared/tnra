@@ -13,9 +13,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -46,8 +49,18 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Post finishPost(Post post) {
-        return null;
+    public Post finishPost(User user) {
+        Assert.notNull(user, "User cannot be null");
+        Post post = ensureCompletePost(user);
+        post.setState(PostState.COMPLETE);
+        post.setFinish(new Date());
+        return post;
+    }
+
+    @Override
+    public Post savePost(Post post) {
+        Assert.notNull(post, "Post cannot be null");
+        return postRepository.save(post);
     }
 
     @Override
@@ -160,6 +173,88 @@ public class PostServiceImpl implements PostService {
             }
         }
         return origOne;
+    }
+
+    private Post ensureCompletePost(User user) {
+        Post post = ensureOneInProgressPost(user);
+
+        String errorBase = "Post for " + user.getEmail() + "is not complete: ";
+
+        ensureIntro(errorBase, post);
+        ensurePersonal(errorBase, post);
+        ensureFamily(errorBase, post);
+        ensureWork(errorBase, post);
+        ensureStats(errorBase, post);
+
+        return post;
+    }
+
+    private void ensureIntro(String errorBase, Post post) {
+        String introBase = errorBase + "intro - ";
+        if (StringUtils.isEmpty(post.getIntro().getWidwytk())) {
+            throw new PostException(introBase + "widwytk");
+        }
+        if (StringUtils.isEmpty(post.getIntro().getKryptonite())) {
+            throw new PostException(introBase + "kryptonite");
+        }
+        if (StringUtils.isEmpty(post.getIntro().getWhatAndWhen())) {
+            throw new PostException(introBase + "what and when");
+        }
+    }
+
+    private void ensurePersonal(String errorBase, Post post) {
+        String personalBase = errorBase + "personal - ";
+        if (StringUtils.isEmpty(post.getPersonal().getBest())) {
+            throw new PostException(personalBase + "best");
+        }
+        if (StringUtils.isEmpty(post.getPersonal().getWorst())) {
+            throw new PostException(personalBase + "worst");
+        }
+    }
+
+    private void ensureFamily(String errorBase, Post post) {
+        String familyBase = errorBase + "family - ";
+        if (StringUtils.isEmpty(post.getFamily().getBest())) {
+            throw new PostException(familyBase + "best");
+        }
+        if (StringUtils.isEmpty(post.getFamily().getWorst())) {
+            throw new PostException(familyBase + "worst");
+        }
+    }
+
+    private void ensureWork(String errorBase, Post post) {
+        String workBase = errorBase + "work - ";
+        if (StringUtils.isEmpty(post.getWork().getBest())) {
+            throw new PostException(workBase + "best");
+        }
+        if (StringUtils.isEmpty(post.getWork().getWorst())) {
+            throw new PostException(workBase + "worst");
+        }
+    }
+
+    private void ensureStats(String errorBase, Post post) {
+        String statsBase = errorBase + "stats - ";
+        if (ObjectUtils.isEmpty(post.getStats().getExercise())) {
+            throw new PostException(statsBase + "exercise");
+        }
+        if (ObjectUtils.isEmpty(post.getStats().getGtg())) {
+            throw new PostException(statsBase + "gtg");
+        }
+        if (ObjectUtils.isEmpty(post.getStats().getMeditate())) {
+            throw new PostException(statsBase + "meditate");
+        }
+        if (ObjectUtils.isEmpty(post.getStats().getMeetings())) {
+            throw new PostException(statsBase + "meetings");
+        }
+        if (ObjectUtils.isEmpty(post.getStats().getPray())) {
+            throw new PostException(statsBase + "pray");
+        }
+        if (ObjectUtils.isEmpty(post.getStats().getRead())) {
+            throw new PostException(statsBase + "read");
+        }
+        if (ObjectUtils.isEmpty(post.getStats().getSponsor())) {
+            throw new PostException(statsBase + "sponsor");
+        }
     }
 
     private void ensureNoInProgressPost(User user) {
