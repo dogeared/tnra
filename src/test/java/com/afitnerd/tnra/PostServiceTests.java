@@ -18,8 +18,8 @@ import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.beans.PropertyDescriptor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.List;
 
 import static junit.framework.TestCase.fail;
 import static org.junit.Assert.assertEquals;
@@ -398,31 +398,15 @@ public class PostServiceTests {
 
     @Test
     public void testFinish_success() {
-        Post post = postService.startPost(user);
-
-        post.getIntro().setWidwytk("widwytk");
-        post.getIntro().setKryptonite("kryptonite");
-        post.getIntro().setWhatAndWhen("whatandwhen");
-
-        post.getPersonal().setBest("p best");
-        post.getPersonal().setWorst("p worst");
-
-        post.getFamily().setBest("f best");
-        post.getFamily().setWorst("f worst");
-
-        post.getWork().setBest("w best");
-        post.getWork().setWorst("w worst");
-
-        post.getStats().setExercise(7);
-        post.getStats().setGtg(7);
-        post.getStats().setMeditate(7);
-        post.getStats().setMeetings(7);
-        post.getStats().setPray(7);
-        post.getStats().setRead(7);
-        post.getStats().setSponsor(7);
-        postService.savePost(post);
-
-        post = postService.finishPost(user);
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS, Props.PRAY, Props.READ, Props.SPONSOR
+        };
+        setupPostProps(props, true);
+        Post post = postService.finishPost(user);
 
         assertEquals(PostState.COMPLETE, post.getState());
         assertNotNull(post.getFinish());
@@ -430,323 +414,363 @@ public class PostServiceTests {
 
     @Test
     public void testFinish_fail_intro_widwytk() {
-        Post post = postService.startPost(user);
+        Props[] props = {};
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "intro - widwytk");
     }
 
     @Test
-    public void testFinish_fail_intro_empty_widwytk() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "");
+    public void testFinish_fail_intro_empty_widwytk() {
+        Props[] props = {};
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "intro - widwytk");
     }
 
     @Test
-    public void testFinish_fail_intro_kryptonite() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
+    public void testFinish_fail_intro_kryptonite() {
+        Props[] props = { Props.INTRO_WIDWYTK };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "intro - kryptonite");
     }
 
     @Test
-    public void testFinish_fail_intro_empty_kryptonite() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "");
+    public void testFinish_fail_intro_empty_kryptonite() {
+        Props[] props = { Props.INTRO_WIDWYTK };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "intro - kryptonite");
     }
 
     @Test
-    public void testFinish_fail_intro_whatandwhen() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
+    public void testFinish_fail_intro_whatandwhen() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "intro - what and when");
     }
 
     @Test
-    public void testFinish_fail_intro_empty_whatandwhen() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "");
+    public void testFinish_fail_intro_empty_whatandwhen() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "intro - what and when");
     }
 
     @Test
-    public void testFinish_fail_personal_best() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
+    public void testFinish_fail_personal_best() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "personal - best");
     }
 
     @Test
-    public void testFinish_fail_personal_empty_best() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "");
+    public void testFinish_fail_personal_empty_best() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "personal - best");
     }
 
     @Test
-    public void testFinish_fail_personal_worst() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
+    public void testFinish_fail_personal_worst() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "personal - worst");
     }
 
     @Test
-    public void testFinish_fail_personal_empty_worst() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "");
+    public void testFinish_fail_personal_empty_worst() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "personal - worst");
     }
 
     @Test
-    public void testFinish_fail_family_best() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
+    public void testFinish_fail_family_best() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "family - best");
     }
 
     @Test
-    public void testFinish_fail_family_empty_best() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "");
+    public void testFinish_fail_family_empty_best() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "family - best");
     }
 
     @Test
-    public void testFinish_fail_family_worst() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
+    public void testFinish_fail_family_worst() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "family - worst");
     }
 
     @Test
-    public void testFinish_fail_family_empty_worst() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "");
+    public void testFinish_fail_family_empty_worst() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "family - worst");
     }
 
     @Test
-    public void testFinish_fail_work_best() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
+    public void testFinish_fail_work_best() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "work - best");
     }
 
     @Test
-    public void testFinish_fail_work_empty_best() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "");
+    public void testFinish_fail_work_empty_best() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "work - best");
     }
 
     @Test
-    public void testFinish_fail_work_worst() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
+    public void testFinish_fail_work_worst() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST
+        };
+        Post post = setupPostProps(props, false);
         finishFailAssert(post, "work - worst");
     }
 
     @Test
-    public void testFinish_fail_work_empty_worst() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "");
+    public void testFinish_fail_work_empty_worst() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "work - worst");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_exercise() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
+    public void testFinish_fail_stats_empty_exercise() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - exercise");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_gtg() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
-        post.getStats().setExercise(7);
-        postService.savePost(post);
+    public void testFinish_fail_stats_empty_gtg() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - gtg");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_meditate() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
-        post.getStats().setExercise(7);
-        post.getStats().setGtg(7);
-        postService.savePost(post);
+    public void testFinish_fail_stats_empty_meditate() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.GTG
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - meditate");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_meetings() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
-        post.getStats().setExercise(7);
-        post.getStats().setGtg(7);
-        post.getStats().setMeditate(7);
-        postService.savePost(post);
+    public void testFinish_fail_stats_empty_meetings() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.GTG, Props.MEDITATE
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - meetings");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_pray() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
-        post.getStats().setExercise(7);
-        post.getStats().setGtg(7);
-        post.getStats().setMeditate(7);
-        post.getStats().setMeetings(7);
-        postService.savePost(post);
+    public void testFinish_fail_stats_empty_pray() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - pray");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_read() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
-        post.getStats().setExercise(7);
-        post.getStats().setGtg(7);
-        post.getStats().setMeditate(7);
-        post.getStats().setMeetings(7);
-        post.getStats().setPray(7);
-        postService.savePost(post);
+    public void testFinish_fail_stats_empty_read() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS, Props.PRAY
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - read");
     }
 
     @Test
-    public void testFinish_fail_stats_empty_sponsor() throws NoSuchMethodException {
-        Post post = postService.startPost(user);
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWidwytk", String.class), "widwytk");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setKryptonite", String.class), "kryptonite");
-        setStringMethod(post, post.getIntro(), post.getIntro().getClass().getMethod("setWhatAndWhen", String.class), "whatandwhen");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setBest", String.class), "p best");
-        setStringMethod(post, post.getPersonal(), post.getPersonal().getClass().getMethod("setWorst", String.class), "p worst");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setBest", String.class), "f best");
-        setStringMethod(post, post.getFamily(), post.getFamily().getClass().getMethod("setWorst", String.class), "f worst");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setBest", String.class), "w best");
-        setStringMethod(post, post.getWork(), post.getWork().getClass().getMethod("setWorst", String.class), "w worst");
-        post.getStats().setExercise(7);
-        post.getStats().setGtg(7);
-        post.getStats().setMeditate(7);
-        post.getStats().setMeetings(7);
-        post.getStats().setPray(7);
-        post.getStats().setRead(7);
-        postService.savePost(post);
+    public void testFinish_fail_stats_empty_sponsor() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS, Props.PRAY, Props.READ
+        };
+        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - sponsor");
+    }
+
+    private enum Props {
+        INTRO_WIDWYTK, INTRO_KRYPTONITE, INTRO_WHAT_AND_WHEN,
+        PERSONAL_BEST, PERSONAL_WORST,
+        FAMILY_BEST, FAMILY_WORST,
+        WORK_BEST, WORK_WORST,
+        EXERCISE, GTG, MEDITATE, MEETINGS, PRAY, READ, SPONSOR
+    }
+
+    private Post setupPostProps(Props[] propsAry, boolean empties) {
+        List<Props> props = Arrays.asList(propsAry);
+        Post post = postService.startPost(user);
+
+        String introWid = null;
+        if (props.contains(Props.INTRO_WIDWYTK)) {
+            post.getIntro().setWidwytk("widwytk");
+        } else if (empties) {
+            post.getIntro().setWidwytk("");
+        }
+
+        if (props.contains(Props.INTRO_KRYPTONITE)) {
+            post.getIntro().setKryptonite("kryptonite");
+        } else if (empties) {
+            post.getIntro().setKryptonite("");
+        }
+
+        if (props.contains(Props.INTRO_WHAT_AND_WHEN)) {
+            post.getIntro().setWhatAndWhen("whatandwhen");
+        } else if (empties) {
+            post.getIntro().setWhatAndWhen("");
+        }
+
+        if (props.contains(Props.PERSONAL_BEST)) {
+            post.getPersonal().setBest("p best");
+        } else if (empties) {
+            post.getPersonal().setBest("");
+        }
+
+        if (props.contains(Props.PERSONAL_WORST)) {
+            post.getPersonal().setWorst("p worst");
+        } else if (empties) {
+            post.getPersonal().setWorst("");
+        }
+
+        if (props.contains(Props.FAMILY_BEST)) {
+            post.getFamily().setBest("f best");
+        } else if (empties) {
+            post.getFamily().setBest("");
+        }
+
+        if (props.contains(Props.FAMILY_WORST)) {
+            post.getFamily().setWorst("f worst");
+        } else if (empties) {
+            post.getFamily().setWorst("");
+        }
+
+        if (props.contains(Props.WORK_BEST)) {
+            post.getWork().setBest("w best");
+        } else if (empties) {
+            post.getWork().setBest("");
+        }
+
+        if (props.contains(Props.WORK_WORST)) {
+            post.getWork().setWorst("w worst");
+        } else if (empties) {
+            post.getWork().setWorst("");
+        }
+
+        if (props.contains(Props.EXERCISE)) {
+            post.getStats().setExercise(7);
+        }
+
+        if (props.contains(Props.GTG)) {
+            post.getStats().setGtg(7);
+        }
+
+        if (props.contains(Props.MEDITATE)) {
+            post.getStats().setMeditate(7);
+        }
+
+        if (props.contains(Props.MEETINGS)) {
+            post.getStats().setMeetings(7);
+        }
+
+        if (props.contains(Props.PRAY)) {
+            post.getStats().setPray(7);
+        }
+
+        if (props.contains(Props.READ)) {
+            post.getStats().setRead(7);
+        }
+
+        if (props.contains(Props.SPONSOR)) {
+            post.getStats().setSponsor(7);
+        }
+
+        postService.savePost(post);
+        return post;
     }
 
     private void finishFailAssert(Post post, String expectedMessage) {
@@ -755,15 +779,6 @@ public class PostServiceTests {
             fail();
         } catch (PostException p) {
             assertEquals("Post for " + user.getEmail() + "is not complete: " + expectedMessage, p.getMessage());
-        }
-    }
-
-    private void setStringMethod(Post post, Object obj, Method method, String param) {
-        try {
-            method.invoke(obj, param);
-            postService.savePost(post);
-        } catch (IllegalAccessException | InvocationTargetException e) {
-            fail("Couldn't invoke: " + method.getName() + " on: " + obj.getClass().getName());
         }
     }
 
