@@ -9,12 +9,12 @@ import com.afitnerd.tnra.model.User;
 public interface PostService {
 
     Post startPost(User user);
-    void finishPost(Post post);
+    Post finishPost(Post post);
     Post getInProgressPost(User user);
 
-    Post updateStats(User user, Stats stats);
-    Post updateIntro(User user, Intro intro);
-    void updatePersonal(User user, Category personal);
-    void updateFamnily(User user, Category personal);
-    void updateWork(User user, Category personal);
+    Post replaceStats(User user, Stats stats);
+    Post replaceIntro(User user, Intro intro);
+    Post replacePersonal(User user, Category personal);
+    Post replaceFamily(User user, Category personal);
+    Post replaceWork(User user, Category personal);
 }

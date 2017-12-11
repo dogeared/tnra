@@ -46,12 +46,12 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public void finishPost(Post post) {
-
+    public Post finishPost(Post post) {
+        return null;
     }
 
     @Override
-    public Post updateStats(User user, Stats stats) {
+    public Post replaceStats(User user, Stats stats) {
         Post post = ensureOneInProgressPost(user);
         stats = mergeReplace(post.getStats(), stats);
         post.setStats(stats);
@@ -59,7 +59,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Post updateIntro(User user, Intro intro) {
+    public Post replaceIntro(User user, Intro intro) {
         Post post = ensureOneInProgressPost(user);
         intro = mergeReplace(post.getIntro(), intro);
         post.setIntro(intro);
@@ -67,18 +67,18 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public void updatePersonal(User user, Category personal) {
-
+    public Post replacePersonal(User user, Category personal) {
+        return null;
     }
 
     @Override
-    public void updateFamnily(User user, Category personal) {
-
+    public Post replaceFamily(User user, Category personal) {
+        return null;
     }
 
     @Override
-    public void updateWork(User user, Category personal) {
-
+    public Post replaceWork(User user, Category personal) {
+        return null;
     }
 
     private <T> T mergeReplace(T origOne, T newOne) {

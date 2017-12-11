@@ -144,14 +144,14 @@ public class PostServiceTests {
     }
 
     @Test
-    public void testUpdateStats_success_partial() {
+    public void testReplaceStats_success_partial() {
         Post post = postService.startPost(user);
 
         Stats stats = new Stats();
         stats.setExercise(2);
         stats.setGtg(3);
         stats.setMeditate(4);
-        postService.updateStats(user, stats);
+        postService.replaceStats(user, stats);
 
         Post post2 = postService.getInProgressPost(user);
         Stats stats2 = post2.getStats();
@@ -165,42 +165,42 @@ public class PostServiceTests {
     }
     
     @Test
-    public void testUpdateStats_success_mergeExercise() {
-        testUpdateStats_success_merge("gtg", "exercise");
+    public void testReplaceStats_success_mergeExercise() {
+        testReplaceStats_success_merge("gtg", "exercise");
     }
 
     @Test
-    public void testUpdateStats_success_mergeGtg() {
-        testUpdateStats_success_merge("exercise", "gtg");
+    public void testReplaceStats_success_mergeGtg() {
+        testReplaceStats_success_merge("exercise", "gtg");
     }
 
     @Test
-    public void testUpdateStats_success_mergeMeditation() {
-        testUpdateStats_success_merge("exercise", "meditate");
+    public void testReplaceStats_success_mergeMeditation() {
+        testReplaceStats_success_merge("exercise", "meditate");
     }
 
     @Test
-    public void testUpdateStats_success_mergeMeetings() {
-        testUpdateStats_success_merge("exercise", "meetings");
+    public void testReplaceStats_success_mergeMeetings() {
+        testReplaceStats_success_merge("exercise", "meetings");
     }
 
     @Test
-    public void testUpdateStats_success_mergePray() {
-        testUpdateStats_success_merge("exercise", "pray");
+    public void testReplaceStats_success_mergePray() {
+        testReplaceStats_success_merge("exercise", "pray");
     }
 
     @Test
-    public void testUpdateStats_success_mergeRead() {
-        testUpdateStats_success_merge("exercise", "read");
+    public void testReplaceStats_success_mergeRead() {
+        testReplaceStats_success_merge("exercise", "read");
     }
 
     @Test
-    public void testUpdateStats_success_mergeSponsor() {
-        testUpdateStats_success_merge("exercise", "sponsor");
+    public void testReplaceStats_success_mergeSponsor() {
+        testReplaceStats_success_merge("exercise", "sponsor");
     }
 
     @Test
-    public void testUpdateStats_success_complex() {
+    public void testReplaceStats_success_complex() {
         Post post = postService.startPost(user);
 
         Stats stats = new Stats();
@@ -209,12 +209,12 @@ public class PostServiceTests {
         stats.setMeditate(4);
         stats.setMeetings(5);
 
-        postService.updateStats(user, stats);
+        postService.replaceStats(user, stats);
 
         stats.setMeetings(6);
         stats.setPray(7);
 
-        postService.updateStats(user, stats);
+        postService.replaceStats(user, stats);
 
         Post post2 = postService.getInProgressPost(user);
         Stats stats2 = post2.getStats();
@@ -229,13 +229,13 @@ public class PostServiceTests {
     }
 
     @Test
-    public void testUpdateStats_fail_noInProgressPost() {
+    public void testReplaceStats_fail_noInProgressPost() {
         Stats stats = new Stats();
         stats.setExercise(2);
         stats.setGtg(3);
         stats.setMeditate(4);
         try {
-            postService.updateStats(user, stats);
+            postService.replaceStats(user, stats);
             fail();
         } catch (PostException p) {
             assertEquals("Expected an in progress post for micah@afitnerd.com but found none.", p.getMessage());
@@ -243,13 +243,13 @@ public class PostServiceTests {
     }
 
     @Test
-    public void testUpdateIntro_success() {
+    public void testReplaceIntro_success() {
         Post post = postService.startPost(user);
 
         post.getIntro().setWidwytk("widwytk");
         post.getIntro().setKryptonite("kryptonite");
         post.getIntro().setWhatAndWhen("what and when");
-        postService.updateIntro(user, post.getIntro());
+        postService.replaceIntro(user, post.getIntro());
 
         Post post2 = postService.getInProgressPost(user);
 
@@ -258,19 +258,19 @@ public class PostServiceTests {
         assertEquals("what and when", post2.getIntro().getWhatAndWhen());
     }
 
-    private void testUpdateStats_success_merge(String stat1, String stat2) {
+    private void testReplaceStats_success_merge(String stat1, String stat2) {
         try {
             Post post = postService.startPost(user);
             Stats stats = new Stats();
 
             PropertyDescriptor pd1 = new PropertyDescriptor(stat1, Stats.class);
             pd1.getWriteMethod().invoke(stats, 2);
-            postService.updateStats(user, stats);
+            postService.replaceStats(user, stats);
 
             Stats stats2 = new Stats();
             PropertyDescriptor pd2 = new PropertyDescriptor(stat2, Stats.class);
             pd2.getWriteMethod().invoke(stats2, 3);
-            postService.updateStats(user, stats2);
+            postService.replaceStats(user, stats2);
 
             Post post2 = postService.getInProgressPost(user);
             Stats stats3 = post2.getStats();
