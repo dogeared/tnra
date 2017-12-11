@@ -81,6 +81,50 @@ public class PostServiceImpl implements PostService {
         return null;
     }
 
+    @Override
+    public Post updateIntro(User user, Intro intro) {
+        Post post = ensureOneInProgressPost(user);
+        intro = mergeAppendString(post.getIntro(), intro);
+        post.setIntro(intro);
+        return postRepository.save(post);
+    }
+
+    @Override
+    public Post updatePersonal(User user, Category personal) {
+        return null;
+    }
+
+    @Override
+    public Post updateFamily(User user, Category personal) {
+        return null;
+    }
+
+    @Override
+    public Post updateWork(User user, Category personal) {
+        return null;
+    }
+
+    private <T> T mergeAppendString(T origOne, T newOne) {
+        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
+        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
+
+        PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
+        for (PropertyDescriptor pd : descriptors) {
+            if ("class".equals(pd.getName())) { continue; }
+            try {
+                String newGetterResult = (String) pd.getReadMethod().invoke(newOne);
+                if (newGetterResult != null) {
+                    String origGetterResult = pd.getReadMethod().invoke(origOne) == null ? "" :
+                            "" + pd.getReadMethod().invoke(origOne) + "\n";
+                    pd.getWriteMethod().invoke(origOne, origGetterResult + newGetterResult);
+                }
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
+            }
+        }
+        return origOne;
+    }
+
     private <T> T mergeReplace(T origOne, T newOne) {
         Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
         Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );

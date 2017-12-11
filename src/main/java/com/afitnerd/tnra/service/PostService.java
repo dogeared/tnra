@@ -17,4 +17,9 @@ public interface PostService {
     Post replacePersonal(User user, Category personal);
     Post replaceFamily(User user, Category personal);
     Post replaceWork(User user, Category personal);
+
+    Post updateIntro(User user, Intro intro);
+    Post updatePersonal(User user, Category personal);
+    Post updateFamily(User user, Category personal);
+    Post updateWork(User user, Category personal);
 }
