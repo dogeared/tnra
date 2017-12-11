@@ -279,7 +279,7 @@ public class PostServiceTests {
     }
 
     @Test
-    public void testUpdateInto_success() {
+    public void testUpdateIntro_success() {
         Post post = postService.startPost(user);
 
         post.getIntro().setWidwytk("widwytk");
@@ -299,6 +299,37 @@ public class PostServiceTests {
         assertEquals("widwytk\nwidwytk", post3.getIntro().getWidwytk());
         assertEquals("kryptonite\nkryptonite", post3.getIntro().getKryptonite());
         assertEquals("what and when\nwhat and when", post3.getIntro().getWhatAndWhen());
+    }
+
+    @Test
+    public void testReplacePersonal_success() {
+        Post post = postService.startPost(user);
+
+        post.getPersonal().setBest("best");
+        post.getPersonal().setWorst("worst");
+        postService.replacePersonal(user, post.getPersonal());
+
+        Post post2 = postService.getInProgressPost(user);
+
+        assertEquals("best", post2.getPersonal().getBest());
+        assertEquals("worst", post2.getPersonal().getWorst());
+    }
+
+    @Test
+    public void testUpdatePersonal_success() {
+        Post post = postService.startPost(user);
+
+        post.getPersonal().setBest("best");
+        post.getPersonal().setWorst("worst");
+        postService.replacePersonal(user, post.getPersonal());
+
+        Post post2 = postService.getInProgressPost(user);
+        postService.updatePersonal(user, post2.getPersonal());
+
+        Post post3 = postService.getInProgressPost(user);
+
+        assertEquals("best\nbest", post3.getPersonal().getBest());
+        assertEquals("worst\nworst", post3.getPersonal().getWorst());
     }
 
     private void testReplaceStats_success_merge(String stat1, String stat2) {

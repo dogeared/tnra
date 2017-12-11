@@ -68,7 +68,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Post replacePersonal(User user, Category personal) {
-        return null;
+        Post post = ensureOneInProgressPost(user);
+        personal = mergeReplace(post.getPersonal(), personal);
+        post.setPersonal(personal);
+        return postRepository.save(post);
     }
 
     @Override
@@ -91,7 +94,10 @@ public class PostServiceImpl implements PostService {
 
     @Override
     public Post updatePersonal(User user, Category personal) {
-        return null;
+        Post post = ensureOneInProgressPost(user);
+        personal = mergeAppendString(post.getPersonal(), personal);
+        post.setPersonal(personal);
+        return postRepository.save(post);
     }
 
     @Override
