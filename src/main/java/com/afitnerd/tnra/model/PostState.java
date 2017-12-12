@@ -5,7 +5,7 @@ public enum PostState {
 
     private String value;
 
-    private PostState(String value) {
+    PostState(String value) {
         this.value = value;
     }
 
