@@ -19,29 +19,24 @@ public class CommandParser {
         String[] parts = beginParse(argString);
         dealWithAction(command, parts);
 
-        // start and finish have no section, subsection, or value
+        // standalone actions may have a param, but otherwise, we're done
         if (Action.standaloneActions().contains(command.getAction())) {
-            // some commands can have a param like: show <email address>
-            // but, only ever one param
-            if (parts.length > 1 && parts[1] != null) { command.setParam(parts[1]); }
-            return command;
+            dealWithParam(command, parts);
         } else {
             // now we know we need a section
             dealWithSection(command, parts);
 
             if (Section.STATS.equals(command.getSection())) {
                 dealWithStats(command, parts);
-                return command;
+            } else {
+                // now we know need a subsection
+                dealWithSubSection(command, parts);
+
+                // no we know we need a param
+                dealWithParam(command, parts);
             }
-
-            // now we know need a subsection
-            dealWithSubSection(command, parts);
-
-            // no we know we need a param
-            dealWithParam(command, parts);
-            
-            return command;
         }
+        return command;
     }
 
     private static String[] beginParse(String argString) {
@@ -110,6 +105,16 @@ public class CommandParser {
     }
 
     private static void dealWithParam(Command command, String[] parts) {
+
+        if (Action.standaloneActions().contains(command.getAction())) {
+            // some commands can have a param like: show <email address>
+            // but, only ever one param
+            if (parts.length > 1 && parts[1] != null) {
+                command.setParam(parts[1]);
+            }
+            return;
+        }
+
         SubSection subSection = command.getSubSection();
         Assert.isTrue(
             parts.length > 3 && parts[3] != null,
