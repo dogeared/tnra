@@ -43,9 +43,9 @@ public class CommandParser {
         StringBuilder sb = new StringBuilder();
 
         sb.append("Here are the commands you can use to post:\n\n");
-        sb.append("\tstart\n\t\tstart a new post\n");
-        sb.append("\tfinish\n\t\tfinish a post\n");
-        sb.append("\tshow [<username>]\n\t\tshow current state of post OR someone else's last complete post\n");
+        sb.append("\tstart\n\t\tstart a new post\n\n");
+        sb.append("\tfinish\n\t\tfinish a post\n\n");
+        sb.append("\tshow [<username>]\n\t\tshow your in-progress post OR your or someone else's last finished post\n\n");
         sb.append("\tupdate <section> [<subsection>] <text>\n\t\tupdate a section of a post\n\n");
         sb.append("\t\tupdate intro widwytk <text>\n");
         sb.append("\t\tupdate intro kryptonite <text>\n");
@@ -57,7 +57,7 @@ public class CommandParser {
         sb.append("\t\tupdate work best <text>\n");
         sb.append("\t\tupdate work worst <text>\n");
         sb.append("\t\tupdate stats exercise:<num> gtg:<num> meditate:<num> meetings:<num> pray:<num> read:<num> sponsor:<num>\n\n");
-        sb.append("\treplace <section> [<subsection>] <text>\n\t\treplace a section of a post (same as update, but overwrites anything there)\n");
+        sb.append("\treplace <section> [<subsection>] <text>\n\t\treplace a section of a post (same as update, but overwrites anything there)\n\n");
         sb.append("\tappend <section> [<subsection>] <text>\n\t\tappend to a section of a post (same as update)\n\n");
         sb.append("Notes:\n\n");
         sb.append("\t* any keyword can be shortened to its first three letters. For example\n");
