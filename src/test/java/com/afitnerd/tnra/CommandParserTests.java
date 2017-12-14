@@ -91,6 +91,15 @@ public class CommandParserTests {
     }
 
     @Test
+    public void testCommandParser_success_help() {
+        Command command = CommandParser.parse("help");
+        assertEquals(Action.HELP, command.getAction());
+        assertNull(command.getSection());
+        assertNull(command.getSubSection());
+        assertNull(command.getParam());
+    }
+
+    @Test
     public void testCommandParser_fail_upd_empty_section() {
         try {
             CommandParser.parse("update");

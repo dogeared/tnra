@@ -57,4 +57,12 @@ public class Command {
     public void setStats(Map<Stat, Integer> stats) {
         this.stats = stats;
     }
+
+    public String toString() {
+        return "" + action +
+            ((section != null) ? ", " + section : "") +
+            ((subSection != null) ? ", " + subSection : "") +
+            ((param != null) ? ", " + param : "") +
+            ((stats != null) ? ", " + stats : "");
+    }
 }

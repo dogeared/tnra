@@ -9,7 +9,8 @@ public enum Action {
     SHOW("sho"),
     UPDATE("upd"),
     REPLACE("rep"),
-    APPEND("app");
+    APPEND("app"),
+    HELP("hel");
 
     private String value;
 
@@ -39,6 +40,8 @@ public enum Action {
                 return Action.REPLACE;
             case "app":
                 return Action.APPEND;
+            case "hel":
+                return Action.HELP;
             default:
                 throw new IllegalArgumentException("No Action named: " + value);
         }
@@ -52,6 +55,6 @@ public enum Action {
     }
 
     public static List<Action> standaloneActions() {
-        return Arrays.asList(Action.START, Action.FINISH, Action.SHOW);
+        return Arrays.asList(Action.START, Action.FINISH, Action.SHOW, Action.HELP);
     }
 }
