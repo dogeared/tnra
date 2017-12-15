@@ -1,16 +1,22 @@
 package com.afitnerd.tnra.model.command;
 
 public enum SubSection {
-    WIDWYTK("wid"),
-    KRYPTONITE("kry"),
-    WHATANDWHEN("wha"),
-    BEST("bes"),
-    WORST("wor");
+    WIDWYTK("wid", "widwytk"),
+    KRYPTONITE("kry", "kryptonite"),
+    WHATANDWHEN("wha", "whatAndWhen"),
+    BEST("bes", "best"),
+    WORST("wor", "worst");
 
     private String value;
+    private String property;
 
-    SubSection(String value) {
+    SubSection(String value, String property) {
         this.value = value;
+        this.property = property;
+    }
+
+    public String getProperty() {
+        return property;
     }
 
     public static SubSection fromValue(String value) {

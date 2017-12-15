@@ -44,7 +44,8 @@ public class PostServiceTests {
 
     @Before
     public void setup() {
-        user = new User("Micah", "Silverman", "micah@afitnerd.com");
+        //user = new User("Micah", "Silverman", "micah@afitnerd.com");
+        user = new User("abc123", "afitnerd");
         user = userRepository.save(user);
     }
 
@@ -75,7 +76,7 @@ public class PostServiceTests {
             fail();
         } catch (PostException p) {
             assertEquals(
-                "Can't start new post for micah@afitnerd.com. Existing post already in progress.",
+                "Can't start new post for afitnerd. Existing post already in progress.",
                 p.getMessage()
             );
         }
@@ -93,7 +94,7 @@ public class PostServiceTests {
             fail();
         } catch (PostException p) {
             assertEquals(
-              "micah@afitnerd.com is in an indeterminate state with 3 posts in progress.",
+              "afitnerd is in an indeterminate state with 3 posts in progress.",
               p.getMessage()
             );
         }
@@ -127,7 +128,7 @@ public class PostServiceTests {
             postService.getInProgressPost(user);
             fail();
         } catch (PostException p) {
-            assertEquals("Expected an in progress post for micah@afitnerd.com but found none.", p.getMessage());
+            assertEquals("Expected an in progress post for afitnerd but found none.", p.getMessage());
         }
     }
 
@@ -141,7 +142,7 @@ public class PostServiceTests {
             postService.getInProgressPost(user);
             fail();
         } catch (PostException p) {
-            assertEquals("micah@afitnerd.com is in an indeterminate state with 3 posts in progress.", p.getMessage());
+            assertEquals("afitnerd is in an indeterminate state with 3 posts in progress.", p.getMessage());
         }
     }
 
@@ -240,7 +241,7 @@ public class PostServiceTests {
             postService.replaceStats(user, stats);
             fail();
         } catch (PostException p) {
-            assertEquals("Expected an in progress post for micah@afitnerd.com but found none.", p.getMessage());
+            assertEquals("Expected an in progress post for afitnerd but found none.", p.getMessage());
         }
     }
 
@@ -778,7 +779,7 @@ public class PostServiceTests {
             post = postService.finishPost(user);
             fail();
         } catch (PostException p) {
-            assertEquals("Post for " + user.getEmail() + "is not complete: " + expectedMessage, p.getMessage());
+            assertEquals("Post for " + user.getSlackUserName() + " is not complete: " + expectedMessage, p.getMessage());
         }
     }
 

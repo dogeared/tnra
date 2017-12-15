@@ -18,9 +18,14 @@ public class User {
 
     private String firstName;
     private String lastName;
+    private String email;
+
+    // TODO - need to uncouple this from slack
+    @Column(nullable = false)
+    private String slackUserName;
 
     @Column(nullable = false)
-    private String email;
+    private String slackUserId;
 
     public User() {}
 
@@ -28,6 +33,11 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
+    }
+
+    public User(String slackUserId, String slackUserName) {
+        this.slackUserId = slackUserId;
+        this.slackUserName = slackUserName;
     }
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
@@ -71,5 +81,21 @@ public class User {
 
     public void setPosts(List<Post> posts) {
         this.posts = posts;
+    }
+
+    public String getSlackUserName() {
+        return slackUserName;
+    }
+
+    public void setSlackUserName(String slackUserName) {
+        this.slackUserName = slackUserName;
+    }
+
+    public String getSlackUserId() {
+        return slackUserId;
+    }
+
+    public void setSlackUserId(String slackUserId) {
+        this.slackUserId = slackUserId;
     }
 }

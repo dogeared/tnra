@@ -54,7 +54,7 @@ public class PostServiceImpl implements PostService {
         Post post = ensureCompletePost(user);
         post.setState(PostState.COMPLETE);
         post.setFinish(new Date());
-        return post;
+        return postRepository.save(post);
     }
 
     @Override
@@ -178,7 +178,7 @@ public class PostServiceImpl implements PostService {
     private Post ensureCompletePost(User user) {
         Post post = ensureOneInProgressPost(user);
 
-        String errorBase = "Post for " + user.getEmail() + "is not complete: ";
+        String errorBase = "Post for " + user.getSlackUserName() + " is not complete: ";
 
         ensureIntro(errorBase, post);
         ensurePersonal(errorBase, post);
@@ -263,7 +263,7 @@ public class PostServiceImpl implements PostService {
         if (posts != null && !posts.isEmpty()) {
             ensureDeterminateState(posts, user);
             throw new PostException(
-                "Can't start new post for " + user.getEmail() + ". Existing post already in progress."
+                "Can't start new post for " + user.getSlackUserName() + ". Existing post already in progress."
             );
         }
     }
@@ -272,7 +272,7 @@ public class PostServiceImpl implements PostService {
         // check to see if there's already post in progress
         List<Post> posts = postRepository.findByUserAndState(user, PostState.IN_PROGRESS);
         if (posts == null || posts.isEmpty()) {
-            throw new PostException("Expected an in progress post for " + user.getEmail() + " but found none.");
+            throw new PostException("Expected an in progress post for " + user.getSlackUserName() + " but found none.");
         }
         ensureDeterminateState(posts, user);
         return posts.get(0);
@@ -281,7 +281,7 @@ public class PostServiceImpl implements PostService {
     private void ensureDeterminateState(List<Post> posts, User user) {
         if (posts != null && posts.size() > 1) {
             throw new PostException(
-                user.getEmail() + " is in an indeterminate state with " + posts.size() + " posts in progress."
+                user.getSlackUserName() + " is in an indeterminate state with " + posts.size() + " posts in progress."
             );
         }
     }

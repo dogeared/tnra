@@ -1,5 +1,7 @@
 package com.afitnerd.tnra.slack.controller;
 
+import com.afitnerd.tnra.exception.PostException;
+import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackSlashCommandService;
@@ -18,7 +20,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class SlackController {
 
     private static final Logger log = LoggerFactory.getLogger(SlackController.class);
-
 
     private SlackSlashCommandService slackSlashCommandService;
 
@@ -41,8 +42,9 @@ public class SlackController {
         return slackSlashCommandService.process(slackSlashCommandRequest);
     }
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public SlackSlashCommandResponse handleException(IllegalArgumentException e) {
+    // TODO - need to update so response includes original command
+    @ExceptionHandler({IllegalArgumentException.class, PostException.class})
+    public SlackSlashCommandResponse handleException(Exception e) {
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
         response.setText(e.getMessage());
         return response;
