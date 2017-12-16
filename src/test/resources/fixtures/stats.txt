@@ -1,0 +1,12 @@
+Intro not set
+
+Personal not set
+
+Family not set
+
+Work not set
+
+Stats:
+
+	exercise: 1, gtg: 2, meditate: 3, meetings: 4, pray: 5, read: 6, sponsor: 7
+

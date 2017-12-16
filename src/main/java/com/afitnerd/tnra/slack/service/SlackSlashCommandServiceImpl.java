@@ -14,6 +14,8 @@ import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.model.attachment.Attachment;
 import com.afitnerd.tnra.slack.model.attachment.BasicAttachment;
 import com.afitnerd.tnra.util.CommandParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -31,6 +33,8 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
 
     private PostService postService;
     private UserRepository userRepository;
+
+    private static final Logger log = LoggerFactory.getLogger(SlackSlashCommandServiceImpl.class);
 
     public SlackSlashCommandServiceImpl(PostService postService, UserRepository userRepository) {
         this.postService = postService;
@@ -73,6 +77,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 responseText += "`post started:` " + post.getStart() + "\n";
                 responseText += "`post finished:` " + post.getFinish() + "\n";
                 responseText += "```" + post + "```";
+                response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
                 break;
             case UPDATE:
             case APPEND:
@@ -85,7 +90,11 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 break;
             case SHOW:
                 // TODO - handle param
-                post = postService.getInProgressPost(user);
+                if (command.getParam() == null) {
+                    post = postService.getInProgressPost(user);
+                } else {
+                    post = postService.getLastFinishedPost(user);
+                }
                 responseText += "`post started:` " + post.getStart() + "\n";
                 responseText += "```" + post + "```";
                 break;
@@ -146,7 +155,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
             PropertyDescriptor pd = new PropertyDescriptor(command.getSubSection().getProperty(), Intro.class);
             pd.getWriteMethod().invoke(intro, command.getParam());
         } catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
+            log.error("Couldn't setup intro for: {}", command.getSubSection().getProperty(), e);
         }
         return intro;
     }
@@ -157,7 +166,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
             PropertyDescriptor pd = new PropertyDescriptor(command.getSubSection().getProperty(), Category.class);
             pd.getWriteMethod().invoke(category, command.getParam());
         } catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
-            e.printStackTrace();
+            log.error("Couldn't setup category for: {}", command.getSubSection().getProperty(), e);
         }
         return category;
     }
@@ -169,17 +178,9 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 PropertyDescriptor pd = new PropertyDescriptor(stat.name().toLowerCase(), Stats.class);
                 pd.getWriteMethod().invoke(stats, val);
             } catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
+                log.error("Couldn't setup stats for: {}", stat.name().toLowerCase(), e);
             }
         });
         return stats;
-    }
-
-    private SlackSlashCommandResponse help() {
-        SlackSlashCommandResponse response = new SlackSlashCommandResponse();
-        response.setText("Help:");
-        BasicAttachment attachment = new BasicAttachment(null, null, "placeholder", Attachment.MarkdownIn.TEXT);
-        response.addAttachment(attachment);
-        return response;
     }
 }

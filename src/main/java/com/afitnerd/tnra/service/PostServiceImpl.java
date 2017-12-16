@@ -49,6 +49,12 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public Post getLastFinishedPost(User user) {
+        Assert.notNull(user, "User cannot be null");
+        return ensureOneFinished(user);
+    }
+
+    @Override
     public Post finishPost(User user) {
         Assert.notNull(user, "User cannot be null");
         Post post = ensureCompletePost(user);
@@ -255,6 +261,14 @@ public class PostServiceImpl implements PostService {
         if (ObjectUtils.isEmpty(post.getStats().getSponsor())) {
             throw new PostException(statsBase + "sponsor");
         }
+    }
+
+    private Post ensureOneFinished(User user) {
+        List<Post> posts = postRepository.findByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE);
+        if (posts == null || posts.isEmpty()) {
+            throw new PostException(user.getSlackUserName() + " has no finished posts.");
+        }
+        return posts.get(0);
     }
 
     private void ensureNoInProgressPost(User user) {

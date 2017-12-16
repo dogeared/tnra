@@ -11,6 +11,7 @@ public interface PostService {
     Post startPost(User user);
     Post finishPost(User user);
     Post getInProgressPost(User user);
+    Post getLastFinishedPost(User user);
     Post savePost(Post post);
 
     Post replaceStats(User user, Stats stats);

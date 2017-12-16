@@ -44,7 +44,6 @@ public class PostServiceTests {
 
     @Before
     public void setup() {
-        //user = new User("Micah", "Silverman", "micah@afitnerd.com");
         user = new User("abc123", "afitnerd");
         user = userRepository.save(user);
     }
@@ -411,6 +410,24 @@ public class PostServiceTests {
 
         assertEquals(PostState.COMPLETE, post.getState());
         assertNotNull(post.getFinish());
+    }
+
+    @Test
+    public void testGetLastFinishedPost_success() {
+        testFinish_success();
+        Post post = postService.getLastFinishedPost(user);
+        assertEquals(PostState.COMPLETE, post.getState());
+        assertNotNull(post.getFinish());
+    }
+
+    @Test
+    public void testGetLastFinishedPost_fail() {
+        try {
+            postService.getLastFinishedPost(user);
+            fail();
+        } catch (PostException p) {
+            assertEquals("afitnerd has no finished posts.", p.getMessage());
+        }
     }
 
     @Test

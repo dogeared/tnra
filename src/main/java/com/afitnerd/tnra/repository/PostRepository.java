@@ -11,4 +11,5 @@ public interface PostRepository extends CrudRepository<Post, Long> {
 
     public List<Post> findByUser(User user);
     public List<Post> findByUserAndState(User user, PostState state);
+    public List<Post> findByUserAndStateOrderByFinishDesc(User user, PostState state);
 }

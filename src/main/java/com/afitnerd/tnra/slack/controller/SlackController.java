@@ -42,7 +42,7 @@ public class SlackController {
         return slackSlashCommandService.process(slackSlashCommandRequest);
     }
 
-    // TODO - need to update so response includes original command
+    // TODO - need to update so response includes original command; use HttpServletRequest
     @ExceptionHandler({IllegalArgumentException.class, PostException.class})
     public SlackSlashCommandResponse handleException(Exception e) {
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
