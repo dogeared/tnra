@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.model;
 
+import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 @Embeddable
@@ -10,7 +11,11 @@ public class Stats {
     private Integer meditate;
     private Integer meetings;
     private Integer pray;
+
+    // naming column to avoid keywords with mysql
+    @Column(name="_read")
     private Integer read;
+
     private Integer sponsor;
 
     public Integer getExercise() {
