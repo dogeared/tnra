@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.slack.service;
 
+import com.afitnerd.tnra.exception.PostException;
 import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
@@ -58,11 +59,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         String responseText = request.commandString();
 
         // look up the user
-        User user = userRepository.findBySlackUserId(request.getUserId());
-        if (user == null) {
-            user = new User(request.getUserId(), request.getUserName());
-            userRepository.save(user);
-        }
+        User user = findOrCreateUser(request);
 
         Assert.notNull(user, "Cannot find or create user: " + user);
 
@@ -74,8 +71,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 break;
             case FINISH:
                 post = postService.finishPost(user);
-                responseText += "`post started:` " + post.getStart() + "\n";
-                responseText += "`post finished:` " + post.getFinish() + "\n";
+                responseText += "`post started:` " + post.getStart() + ", `post finished:` " + post.getFinish() + "\n";
                 responseText += "```" + post + "```";
                 response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
                 break;
@@ -89,13 +85,16 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 responseText += "```" + post + "```";
                 break;
             case SHOW:
-                // TODO - handle param
                 if (command.getParam() == null) {
                     post = postService.getInProgressPost(user);
                 } else {
-                    post = postService.getLastFinishedPost(user);
+                    String slackUsername = command.getParam();
+                    post = postService.getLastFinishedPost(findOtherUser(slackUsername));
                 }
-                responseText += "`post started:` " + post.getStart() + "\n";
+                responseText +=
+                    "`post started:` " + post.getStart() +
+                    ((command.getParam() == null) ? "" : ", `post finished:` " + post.getFinish()) +
+                    "\n";
                 responseText += "```" + post + "```";
                 break;
             case HELP:
@@ -104,6 +103,30 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
 
         response.setText(responseText);
         return response;
+    }
+
+    private User findOrCreateUser(SlackSlashCommandRequest request) {
+        User user = userRepository.findBySlackUserId(request.getUserId());
+        if (user == null) {
+            user = new User(request.getUserId(), request.getUserName());
+            userRepository.save(user);
+        }
+        return user;
+    }
+
+    private User findOtherUser(String slackUsername) {
+        if (slackUsername.startsWith("@")) {
+            slackUsername = slackUsername.substring(1);
+        } else if (slackUsername.startsWith("<")) {
+            int begIndex = slackUsername.indexOf("|") + 1;
+            int endIndex = slackUsername.indexOf(">");
+            slackUsername = slackUsername.substring(begIndex, endIndex);
+        }
+        User user = userRepository.findBySlackUsername(slackUsername);
+        if (user == null) {
+            throw new PostException("No user: " + slackUsername);
+        }
+        return user;
     }
 
     private Post handleReplace(User user , Command command) {

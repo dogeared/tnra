@@ -796,7 +796,7 @@ public class PostServiceTests {
             post = postService.finishPost(user);
             fail();
         } catch (PostException p) {
-            assertEquals("Post for " + user.getSlackUserName() + " is not complete: " + expectedMessage, p.getMessage());
+            assertEquals("Post for " + user.getSlackUsername() + " is not complete: " + expectedMessage, p.getMessage());
         }
     }
 
