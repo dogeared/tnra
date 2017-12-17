@@ -46,7 +46,7 @@ public class SlackController {
 
         return slackSlashCommandService.process(slackSlashCommandRequest);
     }
-    
+
     @ExceptionHandler({IllegalArgumentException.class, PostException.class})
     public SlackSlashCommandResponse handleException(Exception e, HttpServletRequest httpServletRequest) {
         String msg = e.getMessage();
