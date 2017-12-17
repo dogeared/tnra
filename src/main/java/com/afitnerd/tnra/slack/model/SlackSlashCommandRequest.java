@@ -126,4 +126,8 @@ public class SlackSlashCommandRequest {
             getChannelId() + "|" + getChannelName() + "|" + getUserId() + "|" + getUserName() + "|" +
             getResponseUrl();
     }
+
+    public String commandString() {
+        return "`" + command + " " + text + "`\n";
+    }
 }

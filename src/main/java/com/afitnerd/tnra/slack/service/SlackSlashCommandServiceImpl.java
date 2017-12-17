@@ -55,7 +55,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
         Command command = CommandParser.parse(request.getText());
 
-        String responseText = "`command:` /post " + request.getText() + "\n";
+        String responseText = request.commandString();
 
         // look up the user
         User user = userRepository.findBySlackUserId(request.getUserId());
