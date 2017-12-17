@@ -31,11 +31,11 @@ public class SlackController {
     }
 
     @RequestMapping(
-        value = "/slack", method = RequestMethod.POST,
+        value = "/post", method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse slack(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+    SlackSlashCommandResponse post(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
         log.debug("slackSlashCommandRequest: {}", slackSlashCommandRequest);
 
         httpServletRequest.setAttribute(SLACK_COMMAND_ATTRIBUTE, slackSlashCommandRequest);
@@ -45,6 +45,59 @@ public class SlackController {
         }
 
         return slackSlashCommandService.process(slackSlashCommandRequest);
+    }
+
+    @RequestMapping(
+        value = {"/wid", "/kry", "/wha"}, method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse wid(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+        String introSection = httpServletRequest.getRequestURI().substring(httpServletRequest.getRequestURI().lastIndexOf("/") + 1);
+        slackSlashCommandRequest.setText("upd int " + introSection + " " + slackSlashCommandRequest.getText());
+        return post(slackSlashCommandRequest, httpServletRequest);
+    }
+
+    @RequestMapping(
+        value = {"/per", "/fam", "/wor"}, method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse per(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+        String categorySection = httpServletRequest.getRequestURI().substring(httpServletRequest.getRequestURI().lastIndexOf("/") + 1);
+        slackSlashCommandRequest.setText("upd " + categorySection + " " + slackSlashCommandRequest.getText());
+        return post(slackSlashCommandRequest, httpServletRequest);
+    }
+
+    @RequestMapping(
+        value = "/sta", method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse sta(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+        slackSlashCommandRequest.setText("upd sta " + slackSlashCommandRequest.getText());
+        return post(slackSlashCommandRequest, httpServletRequest);
+    }
+
+    @RequestMapping(
+        value = {"/exe", "/gtg", "/med", "/mee", "/pra", "/rea", "/spo"}, method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse staSpecific(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+        String stat = httpServletRequest.getRequestURI().substring(httpServletRequest.getRequestURI().lastIndexOf("/") + 1);
+        slackSlashCommandRequest.setText("upd sta " + stat + ":" + slackSlashCommandRequest.getText());
+        return post(slackSlashCommandRequest, httpServletRequest);
+    }
+
+    @RequestMapping(
+        value = "/sho", method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse sho(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+        slackSlashCommandRequest.setText("sho " + slackSlashCommandRequest.getText());
+        return post(slackSlashCommandRequest, httpServletRequest);
     }
 
     @ExceptionHandler({IllegalArgumentException.class, PostException.class})

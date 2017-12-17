@@ -11,8 +11,20 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     public void configure(HttpSecurity http) throws Exception {
         http
             .authorizeRequests()
-            .antMatchers("/api/v1/slack").permitAll()
+            .antMatchers(
+                "/api/v1/post",
+                "/api/v1/wid", "/api/v1/kry", "/api/v1/wha",
+                "/api/v1/per", "/api/v1/fam", "/api/v1/wor",
+                "/api/v1/sta", "/api/v1/sho",
+                "/api/v1/exe", "/api/v1/gtg", "/api/v1/med", "/api/v1/mee", "/api/v1/pra", "/api/v1/rea", "/api/v1/spo"
+            ).permitAll()
             .and()
-            .csrf().ignoringAntMatchers("/api/v1/slack");
+            .csrf().ignoringAntMatchers(
+                "/api/v1/post",
+                "/api/v1/wid", "/api/v1/kry", "/api/v1/wha",
+                "/api/v1/per", "/api/v1/fam", "/api/v1/wor",
+                "/api/v1/sta", "/api/v1/sho",
+                "/api/v1/exe", "/api/v1/gtg", "/api/v1/med", "/api/v1/mee", "/api/v1/pra", "/api/v1/rea", "/api/v1/spo"
+            );
     }
 }
