@@ -1,10 +1,12 @@
 package com.afitnerd.tnra.slack.controller;
 
 import com.afitnerd.tnra.exception.PostException;
-import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackSlashCommandService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.client.fluent.Request;
+import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
@@ -16,33 +18,51 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 
 @RestController
 @RequestMapping("/api/v1")
 public class SlackController {
 
-    private static final String SLACK_COMMAND_ATTRIBUTE = "slack-command";
-
     private SlackSlashCommandService slackSlashCommandService;
+
+    private static final String POST_COMMAND = "/post";
+
+    private final ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(SlackController.class);
+
+    private void echoCommand(SlackSlashCommandRequest slackSlashCommandRequest) {
+        String command = slackSlashCommandRequest.commandString();
+        try {
+            SlackSlashCommandResponse slackSlashCommandResponse = new SlackSlashCommandResponse();
+            slackSlashCommandResponse.setText(command);
+            StringEntity body = new StringEntity(mapper.writeValueAsString(slackSlashCommandResponse));
+
+            Request.Post(slackSlashCommandRequest.getResponseUrl())
+                .body(body)
+                .execute();
+        } catch (IOException e) {
+            log.error("Couldn't POST to: {} with {}", slackSlashCommandRequest.getResponseUrl(), command, e);
+        }
+    }
 
     public SlackController(SlackSlashCommandService slackSlashCommandService) {
         this.slackSlashCommandService = slackSlashCommandService;
     }
 
     @RequestMapping(
-        value = "/post", method = RequestMethod.POST,
+        value = POST_COMMAND, method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse post(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+    SlackSlashCommandResponse post(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
         log.debug("slackSlashCommandRequest: {}", slackSlashCommandRequest);
-
-        httpServletRequest.setAttribute(SLACK_COMMAND_ATTRIBUTE, slackSlashCommandRequest);
 
         if (!slackSlashCommandService.isValidToken(slackSlashCommandRequest)) {
             throw new IllegalArgumentException("Slack token is incorrect.");
         }
+
+        echoCommand(slackSlashCommandRequest);
 
         return slackSlashCommandService.process(slackSlashCommandRequest);
     }
@@ -52,10 +72,11 @@ public class SlackController {
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse wid(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
-        String introSection = httpServletRequest.getRequestURI().substring(httpServletRequest.getRequestURI().lastIndexOf("/") + 1);
+    SlackSlashCommandResponse wid(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        String introSection = slackSlashCommandRequest.getCommand().substring(1);
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
         slackSlashCommandRequest.setText("upd int " + introSection + " " + slackSlashCommandRequest.getText());
-        return post(slackSlashCommandRequest, httpServletRequest);
+        return post(slackSlashCommandRequest);
     }
 
     @RequestMapping(
@@ -63,10 +84,11 @@ public class SlackController {
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse per(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
-        String categorySection = httpServletRequest.getRequestURI().substring(httpServletRequest.getRequestURI().lastIndexOf("/") + 1);
+    SlackSlashCommandResponse per(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        String categorySection = slackSlashCommandRequest.getCommand().substring(1);
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
         slackSlashCommandRequest.setText("upd " + categorySection + " " + slackSlashCommandRequest.getText());
-        return post(slackSlashCommandRequest, httpServletRequest);
+        return post(slackSlashCommandRequest);
     }
 
     @RequestMapping(
@@ -74,9 +96,10 @@ public class SlackController {
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse sta(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+    SlackSlashCommandResponse sta(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
         slackSlashCommandRequest.setText("upd sta " + slackSlashCommandRequest.getText());
-        return post(slackSlashCommandRequest, httpServletRequest);
+        return post(slackSlashCommandRequest);
     }
 
     @RequestMapping(
@@ -84,10 +107,11 @@ public class SlackController {
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse staSpecific(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
-        String stat = httpServletRequest.getRequestURI().substring(httpServletRequest.getRequestURI().lastIndexOf("/") + 1);
+    SlackSlashCommandResponse staSpecific(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        String stat = slackSlashCommandRequest.getCommand().substring(1);
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
         slackSlashCommandRequest.setText("upd sta " + stat + ":" + slackSlashCommandRequest.getText());
-        return post(slackSlashCommandRequest, httpServletRequest);
+        return post(slackSlashCommandRequest);
     }
 
     @RequestMapping(
@@ -95,21 +119,16 @@ public class SlackController {
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
-    SlackSlashCommandResponse sho(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest, HttpServletRequest httpServletRequest) {
+    SlackSlashCommandResponse sho(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
         slackSlashCommandRequest.setText("sho " + slackSlashCommandRequest.getText());
-        return post(slackSlashCommandRequest, httpServletRequest);
+        return post(slackSlashCommandRequest);
     }
 
     @ExceptionHandler({IllegalArgumentException.class, PostException.class})
     public SlackSlashCommandResponse handleException(Exception e, HttpServletRequest httpServletRequest) {
         String msg = e.getMessage();
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
-        // try to retrieve original slack request
-        SlackSlashCommandRequest slackSlashCommandRequest =
-            (SlackSlashCommandRequest) httpServletRequest.getAttribute(SLACK_COMMAND_ATTRIBUTE);
-        if (slackSlashCommandRequest != null) {
-            msg = slackSlashCommandRequest.commandString() + msg;
-        }
         response.setText(msg);
         return response;
     }

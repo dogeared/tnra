@@ -56,7 +56,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
         Command command = CommandParser.parse(request.getText());
 
-        String responseText = request.commandString();
+        String responseText = "";
 
         // look up the user
         User user = findOrCreateUser(request);

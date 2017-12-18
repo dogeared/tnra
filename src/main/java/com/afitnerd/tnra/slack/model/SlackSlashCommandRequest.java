@@ -128,6 +128,6 @@ public class SlackSlashCommandRequest {
     }
 
     public String commandString() {
-        return "`" + command + " " + text + "`\n";
+        return command + " " + text + "\n";
     }
 }
