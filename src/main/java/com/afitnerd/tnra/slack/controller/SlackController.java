@@ -68,6 +68,18 @@ public class SlackController {
     }
 
     @RequestMapping(
+        value = {"/sho", "/show", "/start", "/finish"}, method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse sho(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        String command = slackSlashCommandRequest.getCommand().substring(1);
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
+        slackSlashCommandRequest.setText(command + " " + slackSlashCommandRequest.getText());
+        return post(slackSlashCommandRequest);
+    }
+
+    @RequestMapping(
         value = {"/wid", "/kry", "/wha"}, method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
@@ -111,17 +123,6 @@ public class SlackController {
         String stat = slackSlashCommandRequest.getCommand().substring(1);
         slackSlashCommandRequest.setCommand(POST_COMMAND);
         slackSlashCommandRequest.setText("upd sta " + stat + ":" + slackSlashCommandRequest.getText());
-        return post(slackSlashCommandRequest);
-    }
-
-    @RequestMapping(
-        value = "/sho", method = RequestMethod.POST,
-        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
-    )
-    public @ResponseBody
-    SlackSlashCommandResponse sho(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
-        slackSlashCommandRequest.setCommand(POST_COMMAND);
-        slackSlashCommandRequest.setText("sho " + slackSlashCommandRequest.getText());
         return post(slackSlashCommandRequest);
     }
 

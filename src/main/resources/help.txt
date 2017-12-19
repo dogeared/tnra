@@ -1,0 +1,68 @@
+Here are the commands you can use to post:
+
+    /sta
+        start a new post
+
+    /fin
+        finish a post
+
+    /sho [<username>]
+        show your in-progress post OR your or someone else's last finished post
+
+    /wid <text>
+        update WIDWYTK
+
+    /kry <text>
+        update Kryptonite
+
+    /wha
+        update What and When
+
+    /per [bes|wor] <text>
+        update personal best or worst
+
+    /fam [bes|wor] <text>
+        update family best or worst
+
+    /wor [bes|wor] <text>
+        update work best or worst
+
+    /sta [exe:<num>] [gtg:<num>] [med:<num>] [mee:<num>] [pra:<num>] [rea:<num>] [spo:<num>]
+        update stats. Each available stat can be listed in any combination and in any order
+
+    /exe <num>
+        update exercise stat
+
+    /gtg <num>
+        update go-to-guy stat
+
+    /med <num>
+        update meditation stat
+
+    /mee <num>
+        update meeting stat
+
+    /pra <num>
+        update pray stat
+
+    /rea <num>
+        update read stat
+
+    /spo <num>
+        update sponsor stat
+
+
+    Commands long forms:
+
+    /post [start|finish]
+    /post show <@user>
+    /post [update|replace|append] intro [widwytk|kryptonite|whatandwhen] <text>
+    /post [update|replace|append] [personal|family|work] [best|work] <text>
+    /post update stats [exercise:<num>] [gtg:<num>] [meditate:<num>] [meetings:<num>] [pray:<num>] [read:<num>] [sponsor:<num>]
+
+Notes:
+
+    * you can only have one in-progress post at a time
+    * when you finish a post, all sections and stats must be complete or you will get an error
+    * the date and time is recorded when you start a post
+    * the date and time is recorded when you finish a post

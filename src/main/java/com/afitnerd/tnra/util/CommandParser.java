@@ -5,13 +5,22 @@ import com.afitnerd.tnra.model.command.Command;
 import com.afitnerd.tnra.model.command.Section;
 import com.afitnerd.tnra.model.command.Stat;
 import com.afitnerd.tnra.model.command.SubSection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
+import org.springframework.util.ResourceUtils;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class CommandParser {
+
+    public static final Logger log = LoggerFactory.getLogger(CommandParser.class);
 
     public static Command parse(String argString) {
         Command command = new Command();
@@ -40,43 +49,16 @@ public class CommandParser {
     }
 
     public static String help() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append("Here are the commands you can use to post:\n\n");
-        sb.append("\tstart\n\t\tstart a new post\n\n");
-        sb.append("\tfinish\n\t\tfinish a post\n\n");
-        sb.append("\tshow [<username>]\n\t\tshow your in-progress post OR your or someone else's last finished post\n\n");
-        sb.append("\tupdate <section> [<subsection>] <text>\n\t\tupdate a section of a post\n\n");
-        sb.append("\t\tupdate intro widwytk <text>\n");
-        sb.append("\t\tupdate intro kryptonite <text>\n");
-        sb.append("\t\tupdate intro whatandwhen <text>\n");
-        sb.append("\t\tupdate personal best <text>\n");
-        sb.append("\t\tupdate personal worst <text>\n");
-        sb.append("\t\tupdate family best <text>\n");
-        sb.append("\t\tupdate family worst <text>\n");
-        sb.append("\t\tupdate work best <text>\n");
-        sb.append("\t\tupdate work worst <text>\n");
-        sb.append("\t\tupdate stats exercise:<num> gtg:<num> meditate:<num> meetings:<num> pray:<num> read:<num> sponsor:<num>\n\n");
-        sb.append("\treplace <section> [<subsection>] <text>\n\t\treplace a section of a post (same as update, but overwrites anything there)\n\n");
-        sb.append("\tappend <section> [<subsection>] <text>\n\t\tappend to a section of a post (same as update)\n\n");
-        sb.append("Notes:\n\n");
-        sb.append("\t* any keyword can be shortened to its first three letters. For example\n");
-        sb.append("\t\tupdate intro whatandwhen I will read one book this week\n");
-        sb.append("\t\tis the same as\n");
-        sb.append("\t\tupd int wha I will read one book this week\n");
-        sb.append("\t* you can update stats in any order and in any combination of stats. For example\n");
-        sb.append("\t\tupd sta exe:4 rea:3 mee:2\n");
-        sb.append("\t\twould set exercise to 4, read to 3 and meetings to 2 in the current post.\n");
-        sb.append("\t* stats updates always replace existing values. For example\n");
-        sb.append("\t\tupd sta exe:4 rea:3 mee:2\n");
-        sb.append("\t\tupd sta exe:5 rea:4 mee:3\n");
-        sb.append("\t\twould set exercise to 5, read to 4 and meetings to 3 in the current post.\n");
-        sb.append("\t* you can only have one in-progress post at a time\n");
-        sb.append("\t* when you finish a post, all sections and stats must be complete or you will get an error\n");
-        sb.append("\t* the date and time is recorded when you start a post\n");
-        sb.append("\t* the date and time is recorded when you finish a post");
-
-        return sb.toString();
+        StringBuilder data = new StringBuilder();
+        try {
+            File file = ResourceUtils.getFile("classpath:help.txt");
+            Stream<String> lines = Files.lines(file.toPath());
+            lines.forEach(line -> data.append(line).append("\n"));
+            lines.close();
+        } catch (IOException e) {
+            log.error("Could not read help file: {}", e.getMessage(), e);
+        }
+        return data.toString();
     }
 
     private static String[] beginParse(String argString) {
