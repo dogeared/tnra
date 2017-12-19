@@ -1,5 +1,8 @@
 Here are the commands you can use to post:
 
+    /tnra
+        show this help text
+
     /start
         start a new post
 

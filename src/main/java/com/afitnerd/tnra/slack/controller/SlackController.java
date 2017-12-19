@@ -68,7 +68,18 @@ public class SlackController {
     }
 
     @RequestMapping(
-        value = {"/help", "/show", "/start", "/finish"}, method = RequestMethod.POST,
+        value = "/tnra", method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse help(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        slackSlashCommandRequest.setCommand(POST_COMMAND);
+        slackSlashCommandRequest.setText("help");
+        return post(slackSlashCommandRequest);
+    }
+
+    @RequestMapping(
+        value = {"/show", "/start", "/finish"}, method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
