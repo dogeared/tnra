@@ -1,12 +1,12 @@
 Here are the commands you can use to post:
 
-    /sta
+    /start
         start a new post
 
-    /fin
+    /finish
         finish a post
 
-    /sho [<username>]
+    /show [<username>]
         show your in-progress post OR your or someone else's last finished post
 
     /wid <text>
@@ -54,7 +54,7 @@ Here are the commands you can use to post:
 
     Commands long forms:
 
-    /post [start|finish]
+    /post [help|start|finish]
     /post show <@user>
     /post [update|replace|append] intro [widwytk|kryptonite|whatandwhen] <text>
     /post [update|replace|append] [personal|family|work] [best|work] <text>

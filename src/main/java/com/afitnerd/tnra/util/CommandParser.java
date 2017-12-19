@@ -7,11 +7,14 @@ import com.afitnerd.tnra.model.command.Stat;
 import com.afitnerd.tnra.model.command.SubSection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.Assert;
 import org.springframework.util.ResourceUtils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,10 +54,13 @@ public class CommandParser {
     public static String help() {
         StringBuilder data = new StringBuilder();
         try {
-            File file = ResourceUtils.getFile("classpath:help.txt");
-            Stream<String> lines = Files.lines(file.toPath());
-            lines.forEach(line -> data.append(line).append("\n"));
-            lines.close();
+            ClassPathResource cp = new ClassPathResource("help.txt");
+            BufferedReader br = new BufferedReader(new InputStreamReader(cp.getInputStream()));
+            String line;
+            while ((line = br.readLine()) != null) {
+                data.append(line).append("\n");
+            }
+            br.close();
         } catch (IOException e) {
             log.error("Could not read help file: {}", e.getMessage(), e);
         }

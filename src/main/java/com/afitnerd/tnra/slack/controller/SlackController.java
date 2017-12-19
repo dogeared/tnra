@@ -68,7 +68,7 @@ public class SlackController {
     }
 
     @RequestMapping(
-        value = {"/sho", "/show", "/start", "/finish"}, method = RequestMethod.POST,
+        value = {"/help", "/show", "/start", "/finish"}, method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
