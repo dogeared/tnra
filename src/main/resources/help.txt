@@ -61,7 +61,9 @@ Here are the commands you can use to post:
     /post show <@user>
     /post [update|replace|append] intro [widwytk|kryptonite|whatandwhen] <text>
     /post [update|replace|append] [personal|family|work] [best|work] <text>
-    /post update stats [exercise:<num>] [gtg:<num>] [meditate:<num>] [meetings:<num>] [pray:<num>] [read:<num>] [sponsor:<num>]
+    /post update stats
+        [exercise:<num>] [gtg:<num>] [meditate:<num>] [meetings:<num>]
+        [pray:<num>] [read:<num>] [sponsor:<num>]
 
 Notes:
 
