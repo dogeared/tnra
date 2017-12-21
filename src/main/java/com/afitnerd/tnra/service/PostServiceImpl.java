@@ -72,40 +72,35 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post replaceStats(User user, Stats stats) {
         Post post = ensureOneInProgressPost(user);
-        stats = mergeReplace(post.getStats(), stats);
-        post.setStats(stats);
+        mergeReplace(post.getStats(), stats);
         return postRepository.save(post);
     }
 
     @Override
     public Post replaceIntro(User user, Intro intro) {
         Post post = ensureOneInProgressPost(user);
-        intro = mergeReplace(post.getIntro(), intro);
-        post.setIntro(intro);
+        mergeReplace(post.getIntro(), intro);
         return postRepository.save(post);
     }
 
     @Override
     public Post replacePersonal(User user, Category personal) {
         Post post = ensureOneInProgressPost(user);
-        personal = mergeReplace(post.getPersonal(), personal);
-        post.setPersonal(personal);
+        mergeReplace(post.getPersonal(), personal);
         return postRepository.save(post);
     }
 
     @Override
     public Post replaceFamily(User user, Category family) {
         Post post = ensureOneInProgressPost(user);
-        family = mergeReplace(post.getFamily(), family);
-        post.setPersonal(family);
+        mergeReplace(post.getFamily(), family);
         return postRepository.save(post);
     }
 
     @Override
     public Post replaceWork(User user, Category work) {
         Post post = ensureOneInProgressPost(user);
-        work = mergeReplace(post.getWork(), work);
-        post.setPersonal(work);
+        mergeReplace(post.getWork(), work);
         return postRepository.save(post);
     }
 
@@ -113,7 +108,6 @@ public class PostServiceImpl implements PostService {
     public Post updateIntro(User user, Intro intro) {
         Post post = ensureOneInProgressPost(user);
         intro = mergeAppendString(post.getIntro(), intro);
-        post.setIntro(intro);
         return postRepository.save(post);
     }
 
@@ -121,7 +115,6 @@ public class PostServiceImpl implements PostService {
     public Post updatePersonal(User user, Category personal) {
         Post post = ensureOneInProgressPost(user);
         personal = mergeAppendString(post.getPersonal(), personal);
-        post.setPersonal(personal);
         return postRepository.save(post);
     }
 
@@ -129,7 +122,6 @@ public class PostServiceImpl implements PostService {
     public Post updateFamily(User user, Category family) {
         Post post = ensureOneInProgressPost(user);
         family = mergeAppendString(post.getFamily(), family);
-        post.setPersonal(family);
         return postRepository.save(post);
     }
 
@@ -137,7 +129,6 @@ public class PostServiceImpl implements PostService {
     public Post updateWork(User user, Category work) {
         Post post = ensureOneInProgressPost(user);
         work = mergeAppendString(post.getWork(), work);
-        post.setPersonal(work);
         return postRepository.save(post);
     }
 

@@ -23,26 +23,31 @@ public class Post {
     private PostState state;
 
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "widwytk", column = @Column(columnDefinition = "TEXT")),
+        @AttributeOverride(name = "kryptonite", column = @Column(columnDefinition = "TEXT")),
+        @AttributeOverride(name = "whatAndWhen", column = @Column(columnDefinition = "TEXT"))
+    })
     private Intro intro;
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "best", column = @Column(name = "personal_best")),
-        @AttributeOverride(name = "worst", column = @Column(name = "personal_worst"))
+        @AttributeOverride(name = "best", column = @Column(name = "personal_best", columnDefinition = "TEXT")),
+        @AttributeOverride(name = "worst", column = @Column(name = "personal_worst", columnDefinition = "TEXT"))
     })
     private Category personal;
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "best", column = @Column(name = "family_best")),
-        @AttributeOverride(name = "worst", column = @Column(name = "family_worst"))
+        @AttributeOverride(name = "best", column = @Column(name = "family_best", columnDefinition = "TEXT")),
+        @AttributeOverride(name = "worst", column = @Column(name = "family_worst", columnDefinition = "TEXT"))
     })
     private Category family;
 
     @Embedded
     @AttributeOverrides({
-        @AttributeOverride(name = "best", column = @Column(name = "work_best")),
-        @AttributeOverride(name = "worst", column = @Column(name = "work_worst"))
+        @AttributeOverride(name = "best", column = @Column(name = "work_best", columnDefinition = "TEXT")),
+        @AttributeOverride(name = "worst", column = @Column(name = "work_worst", columnDefinition = "TEXT"))
     })
     private Category work;
 
