@@ -315,6 +315,7 @@ public class PostServiceTests {
 
         assertEquals("best", post2.getPersonal().getBest());
         assertEquals("worst", post2.getPersonal().getWorst());
+        confirmNullOtherCategories(post2, CategorType.PERSONAL);
     }
 
     @Test
@@ -332,6 +333,7 @@ public class PostServiceTests {
 
         assertEquals("best\nbest", post3.getPersonal().getBest());
         assertEquals("worst\nworst", post3.getPersonal().getWorst());
+        confirmNullOtherCategories(post3, CategorType.PERSONAL);
     }
 
     @Test
@@ -346,6 +348,7 @@ public class PostServiceTests {
 
         assertEquals("best", post2.getFamily().getBest());
         assertEquals("worst", post2.getFamily().getWorst());
+        confirmNullOtherCategories(post2, CategorType.FAMILY);
     }
 
     @Test
@@ -363,6 +366,7 @@ public class PostServiceTests {
 
         assertEquals("best\nbest", post3.getFamily().getBest());
         assertEquals("worst\nworst", post3.getFamily().getWorst());
+        confirmNullOtherCategories(post3, CategorType.FAMILY);
     }
 
     @Test
@@ -377,6 +381,7 @@ public class PostServiceTests {
 
         assertEquals("best", post2.getWork().getBest());
         assertEquals("worst", post2.getWork().getWorst());
+        confirmNullOtherCategories(post2, CategorType.WORK);
     }
 
     @Test
@@ -394,6 +399,7 @@ public class PostServiceTests {
 
         assertEquals("best\nbest", post3.getWork().getBest());
         assertEquals("worst\nworst", post3.getWork().getWorst());
+        confirmNullOtherCategories(post3, CategorType.WORK);
     }
 
     @Test
@@ -698,6 +704,32 @@ public class PostServiceTests {
         FAMILY_BEST, FAMILY_WORST,
         WORK_BEST, WORK_WORST,
         EXERCISE, GTG, MEDITATE, MEETINGS, PRAY, READ, SPONSOR
+    }
+
+    private enum CategorType {
+        PERSONAL, FAMILY, WORK
+    }
+
+    private void confirmNullOtherCategories(Post post, CategorType focus) {
+        switch (focus) {
+            case PERSONAL:
+                assertNull(post.getFamily().getBest());
+                assertNull(post.getFamily().getWorst());
+                assertNull(post.getWork().getBest());
+                assertNull(post.getWork().getWorst());
+                break;
+            case FAMILY:
+                assertNull(post.getPersonal().getBest());
+                assertNull(post.getPersonal().getWorst());
+                assertNull(post.getWork().getBest());
+                assertNull(post.getWork().getWorst());
+                break;
+            case WORK:
+                assertNull(post.getPersonal().getBest());
+                assertNull(post.getPersonal().getWorst());
+                assertNull(post.getFamily().getBest());
+                assertNull(post.getFamily().getWorst());
+        }
     }
 
     private Post setupPostProps(Props[] propsAry, boolean empties) {
