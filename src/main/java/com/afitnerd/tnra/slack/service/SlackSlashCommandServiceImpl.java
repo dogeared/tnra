@@ -25,6 +25,12 @@ import javax.annotation.PostConstruct;
 import java.beans.IntrospectionException;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.TimeZone;
 
 @Service
 public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
@@ -67,22 +73,22 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         switch (command.getAction()) {
             case START:
                 post = postService.startPost(user);
-                responseText += "```" + post + "```";
+                responseText += post;
                 break;
             case FINISH:
                 post = postService.finishPost(user);
-                responseText += "`post started:` " + post.getStart() + ", `post finished:` " + post.getFinish() + "\n";
-                responseText += "```" + post + "```";
+                responseText += "`post started:` " + formatDate(post.getStart()) + ", `post finished:` " + formatDate(post.getFinish()) + "\n";
+                responseText += post;
                 response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
                 break;
             case UPDATE:
             case APPEND:
                 post = handleUpdate(user, command);
-                responseText += "```" + post + "```";
+                responseText += post;
                 break;
             case REPLACE:
                 post = handleReplace(user, command);
-                responseText += "```" + post + "```";
+                responseText += post;
                 break;
             case SHOW:
                 if (command.getParam() == null) {
@@ -92,10 +98,10 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                     post = postService.getLastFinishedPost(findOtherUser(slackUsername));
                 }
                 responseText +=
-                    "`post started:` " + post.getStart() +
-                    ((command.getParam() == null) ? "" : ", `post finished:` " + post.getFinish()) +
+                    "`post started:` " + formatDate(post.getStart()) +
+                    ((command.getParam() == null) ? "" : ", `post finished:` " + formatDate(post.getFinish())) +
                     "\n";
-                responseText += "```" + post + "```";
+                responseText += post;
                 break;
             case HELP:
                 responseText += "```" + CommandParser.help() + "```";
@@ -103,6 +109,16 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
 
         response.setText(responseText);
         return response;
+    }
+
+    private String formatDate(Date date) {
+        TimeZone est = TimeZone.getTimeZone("US/Eastern");
+        GregorianCalendar cal = new GregorianCalendar(est);
+        cal.setTime(date);
+        ZonedDateTime zdt = cal.toZonedDateTime();
+        LocalDateTime dateTime = zdt.toLocalDateTime();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a");
+        return dateTime.format(formatter);
     }
 
     private User findOrCreateUser(SlackSlashCommandRequest request) {
