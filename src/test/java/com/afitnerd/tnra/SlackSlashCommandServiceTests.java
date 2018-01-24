@@ -82,7 +82,7 @@ public class SlackSlashCommandServiceTests {
             request.setText(command);
             response = slackSlashCommandService.process(request);
         }
-        assertTrue(response.getText().contains("exercise: 1, gtg: 2, meditate: 3, meetings: 4, pray: 5, read: 6, sponsor: 7"));
+        assertTrue(response.getText().contains("*exercise:* 1, *gtg:* 2, *meditate:* 3, *meetings:* 4, *pray:* 5, *read:* 6, *sponsor:* 7"));
         assertTrue(response.getText().contains("post started"));
         assertTrue(response.getText().contains("post finished"));
     }

@@ -1,12 +1,12 @@
-Intro not set
+*Intro not set*
 
-Personal not set
+*Personal not set*
 
-Family not set
+*Family not set*
 
-Work not set
+*Work not set*
 
-Stats:
+*Stats:*
 
-	exercise: 1, gtg: 2, meditate: 3, meetings: 4, pray: 5, read: 6, sponsor: 7
+	*exercise:* 1, *gtg:* 2, *meditate:* 3, *meetings:* 4, *pray:* 5, *read:* 6, *sponsor:* 7
 

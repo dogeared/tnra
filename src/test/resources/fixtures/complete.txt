@@ -1,33 +1,33 @@
-Intro:
+*Intro:*
 
-WIDWYTK:
+*WIDWYTK:*
 	wid
 
-Kryptonite:
+*Kryptonite:*
 	kry
 
-What and When
+*What and When:*
 	wha
 
-Personal:
+*Personal:*
 
-	Best: bes
+	*Best:* bes
 
-	Worst: wor
+	*Worst:* wor
 
-Family:
+*Family:*
 
-	Best: bes
+	*Best:* bes
 
-	Worst: wor
+	*Worst:* wor
 
-Work:
+*Work:*
 
-	Best: bes
+	*Best:* bes
 
-	Worst: wor
+	*Worst:* wor
 
-Stats:
+*Stats:*
 
-	exercise: 1, gtg: 2, meditate: 3, meetings: 4, pray: 5, read: 6, sponsor: 7
+	*exercise:* 1, *gtg:* 2, *meditate:* 3, *meetings:* 4, *pray:* 5, *read:* 6, *sponsor:* 7
 
