@@ -77,7 +77,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 break;
             case FINISH:
                 post = postService.finishPost(user);
-                responseText += "`post started:` " + formatDate(post.getStart()) + ", `post finished:` " + formatDate(post.getFinish()) + "\n";
+                responseText += "`user:` " + user.getSlackUsername() + ", `post started:` " + formatDate(post.getStart()) + ", `post finished:` " + formatDate(post.getFinish()) + "\n";
                 responseText += post;
                 response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
                 break;
@@ -98,7 +98,8 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                     post = postService.getLastFinishedPost(findOtherUser(slackUsername));
                 }
                 responseText +=
-                    "`post started:` " + formatDate(post.getStart()) +
+                    "`user:` " + user.getSlackUsername() +
+                    ", `post started:` " + formatDate(post.getStart()) +
                     ((command.getParam() == null) ? "" : ", `post finished:` " + formatDate(post.getFinish())) +
                     "\n";
                 responseText += post;
