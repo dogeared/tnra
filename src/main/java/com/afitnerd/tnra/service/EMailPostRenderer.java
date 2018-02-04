@@ -40,7 +40,7 @@ public class EMailPostRenderer implements PostRenderer {
         Category personal = post.getPersonal();
         sb.append("<h2>Personal:</h2>\n\n");
 
-        sb.append("<h3>Best:<h3>\n").append(doAppend(personal.getBest())).append("\n\n");
+        sb.append("<h3>Best:</h3>\n").append(doAppend(personal.getBest())).append("\n\n");
         sb.append("<h3>Worst:</h3>\n").append(doAppend(personal.getWorst())).append("\n\n");
 
         Category family = post.getFamily();
@@ -58,19 +58,19 @@ public class EMailPostRenderer implements PostRenderer {
         Stats stats = post.getStats();
         sb.append("<h2>Stats:</h2>\n\n");
 
-        sb.append("<p><strong>exercise:<strong> ")
+        sb.append("<p><strong>exercise:</strong> ")
             .append(((stats.getExercise() != null) ? stats.getExercise() : "not set"));
-        sb.append(", <strong>gtg:<strong> ")
+        sb.append(", <strong>gtg:</strong> ")
             .append(((stats.getGtg() != null) ? stats.getGtg() : "not set"));
-        sb.append(", <strong>meditate:<strong> ")
+        sb.append(", <strong>meditate:</strong> ")
             .append(((stats.getMeditate() != null) ? stats.getMeditate() : "not set"));
-        sb.append(", <strong>meetings:<strong> ")
+        sb.append(", <strong>meetings:</strong> ")
             .append(((stats.getMeetings() != null) ? stats.getMeetings() : "not set"));
-        sb.append(", <strong>pray:<strong> ")
+        sb.append(", <strong>pray:</strong> ")
             .append(((stats.getPray() != null) ? stats.getPray() : "not set"));
-        sb.append(", <strong>read:<strong> ")
+        sb.append(", <strong>read:</strong> ")
             .append(((stats.getRead() != null) ? stats.getRead() : "not set"));
-        sb.append(", <strong>sponsor:<strong> ")
+        sb.append(", <strong>sponsor:</strong> ")
             .append(((stats.getSponsor() != null) ? stats.getSponsor() : "not set")).append("</p>\n");
 
         return sb.toString();

@@ -14,7 +14,7 @@
 
 <h2>Personal:</h2>
 
-<h3>Best:<h3>
+<h3>Best:</h3>
 <p>bes</p>
 
 <h3>Worst:</h3>
@@ -38,4 +38,4 @@
 
 <h2>Stats:</h2>
 
-<p><strong>exercise:<strong> 1, <strong>gtg:<strong> 2, <strong>meditate:<strong> 3, <strong>meetings:<strong> 4, <strong>pray:<strong> 5, <strong>read:<strong> 6, <strong>sponsor:<strong> 7</p>
+<p><strong>exercise:</strong> 1, <strong>gtg:</strong> 2, <strong>meditate:</strong> 3, <strong>meetings:</strong> 4, <strong>pray:</strong> 5, <strong>read:</strong> 6, <strong>sponsor:</strong> 7</p>
