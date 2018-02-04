@@ -1,0 +1,41 @@
+<strong>Post From:</strong> Timmy - timmy@timmyco.com<br/>
+<strong>Post Started:</strong> {{start_date}}, <strong>Post Finished:</strong> {{finish_date}}<p/><br/><p/>
+
+<h2>Intro:</h2>
+
+<h3>WIDWYTK:</h3>
+<p>wid</p>
+
+<h3>Kryptonite:</h3>
+<p>kry</p>
+
+<h3>What and When:</h3>
+<p>wha</p>
+
+<h2>Personal:</h2>
+
+<h3>Best:<h3>
+<p>bes</p>
+
+<h3>Worst:</h3>
+<p>wor</p>
+
+<h2>Family:</h2>
+
+<h3>Best:</h3>
+<p>bes</p>
+
+<h3>Worst:</h3>
+<p>wor</p>
+
+<h2>Work:</h2>
+
+<h3>Best:</h3>
+<p>bes</p>
+
+<h3>Worst:</h3>
+<p>wor</p>
+
+<h2>Stats:</h2>
+
+<p><strong>exercise:<strong> 1, <strong>gtg:<strong> 2, <strong>meditate:<strong> 3, <strong>meetings:<strong> 4, <strong>pray:<strong> 5, <strong>read:<strong> 6, <strong>sponsor:<strong> 7</p>

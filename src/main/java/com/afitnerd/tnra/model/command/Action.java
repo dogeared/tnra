@@ -7,6 +7,7 @@ public enum Action {
     START("sta"),
     FINISH("fin"),
     SHOW("sho"),
+    EMAIL("ema"),
     UPDATE("upd"),
     REPLACE("rep"),
     APPEND("app"),
@@ -34,6 +35,8 @@ public enum Action {
                 return Action.FINISH;
             case "sho":
                 return Action.SHOW;
+            case "ema":
+                return Action.EMAIL;
             case "upd":
                 return Action.UPDATE;
             case "rep":
@@ -55,6 +58,6 @@ public enum Action {
     }
 
     public static List<Action> standaloneActions() {
-        return Arrays.asList(Action.START, Action.FINISH, Action.SHOW, Action.HELP);
+        return Arrays.asList(Action.START, Action.FINISH, Action.SHOW, Action.EMAIL, Action.HELP);
     }
 }

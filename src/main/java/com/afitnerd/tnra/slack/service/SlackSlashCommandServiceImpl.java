@@ -8,6 +8,7 @@ import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.model.command.Command;
 import com.afitnerd.tnra.repository.UserRepository;
+import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.PostRenderer;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
@@ -40,16 +41,19 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
     private PostService postService;
     private UserRepository userRepository;
     private PostRenderer slackPostRenderer;
+    private EMailService eMailService;
 
     private static final Logger log = LoggerFactory.getLogger(SlackSlashCommandServiceImpl.class);
 
     public SlackSlashCommandServiceImpl(
         PostService postService, UserRepository userRepository,
-        @Qualifier("slackPostRenderer") PostRenderer slackPostRenderer
+        @Qualifier("slackPostRenderer") PostRenderer slackPostRenderer,
+        EMailService eMailService
     ) {
         this.postService = postService;
         this.userRepository = userRepository;
         this.slackPostRenderer = slackPostRenderer;
+        this.eMailService = eMailService;
     }
 
     @PostConstruct
@@ -99,6 +103,16 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                     post = postService.getLastFinishedPost(findOtherUser(slackUsername));
                 }
                 response.setText(slackPostRenderer.render(post));
+                break;
+            case EMAIL:
+                if (command.getParam() == null) {
+                    post = postService.getLastFinishedPost(user);
+                } else {
+                    String slackUsername = command.getParam();
+                    post = postService.getLastFinishedPost(findOtherUser(slackUsername));
+                }
+                eMailService.sendMailToMe(user, post);
+                response.setText("Last finished post for: " + post.getUser().getSlackUsername() + " sent to " + user.getEmail());
                 break;
             case HELP:
                 response.setText("```" + CommandParser.help() + "```");

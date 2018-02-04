@@ -6,19 +6,14 @@ import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.PostRenderer;
 import com.afitnerd.tnra.service.SlackPostRenderer;
+import com.afitnerd.tnra.utils.FixtureUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.core.io.ClassPathResource;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 public class SlackPostRendererTests {
 
@@ -53,70 +48,70 @@ public class SlackPostRendererTests {
 
     @Test
     public void testToString_Empty() {
-        compare(loadFixture("empty"));
+        compare(FixtureUtils.loadFixture("slack", "empty", post));
     }
 
     @Test
     public void testToString_Wid() {
         intro.setWidwytk("wid");
         post.setIntro(intro);
-        compare(loadFixture("wid"));
+        compare(FixtureUtils.loadFixture("slack", "wid", post));
     }
 
     @Test
     public void testToString_Kry() {
         intro.setKryptonite("kry");
         post.setIntro(intro);
-        compare(loadFixture("kry"));
+        compare(FixtureUtils.loadFixture("slack", "kry", post));
     }
 
     @Test
     public void testToString_Wha() {
         intro.setWhatAndWhen("wha");
         post.setIntro(intro);
-        compare(loadFixture("wha"));
+        compare(FixtureUtils.loadFixture("slack", "wha", post));
     }
 
     @Test
     public void testToString_Per_Bes() {
         personal.setBest("bes");
         post.setPersonal(personal);
-        compare(loadFixture("per_bes"));
+        compare(FixtureUtils.loadFixture("slack", "per_bes", post));
     }
 
     @Test
     public void testToString_Per_Wor() {
         personal.setWorst("wor");
         post.setPersonal(personal);
-        compare(loadFixture("per_wor"));
+        compare(FixtureUtils.loadFixture("slack", "per_wor", post));
     }
 
     @Test
     public void testToString_Fam_Bes() {
         family.setBest("bes");
         post.setFamily(family);
-        compare(loadFixture("fam_bes"));
+        compare(FixtureUtils.loadFixture("slack", "fam_bes", post));
     }
 
     @Test
     public void testToString_Fam_Wor() {
         family.setWorst("wor");
         post.setFamily(family);
-        compare(loadFixture("fam_wor"));
+        compare(FixtureUtils.loadFixture("slack", "fam_wor", post));
     }
 
     @Test
     public void testToString_Wor_Bes() {
         work.setBest("bes");
         post.setWork(work);
-        compare(loadFixture("wor_bes"));
+        compare(FixtureUtils.loadFixture("slack", "wor_bes", post));
     }
 
     @Test
     public void testToString_Wor_Wor() {
         work.setWorst("wor");
         post.setWork(work);
-        compare(loadFixture("wor_wor"));
+        compare(FixtureUtils.loadFixture("slack", "wor_wor", post));
     }
 
     @Test
@@ -129,7 +124,7 @@ public class SlackPostRendererTests {
         stats.setRead(6);
         stats.setSponsor(7);
         post.setStats(stats);
-        compare(loadFixture("stats"));
+        compare(FixtureUtils.loadFixture("slack", "stats", post));
     }
 
     @Test
@@ -163,34 +158,7 @@ public class SlackPostRendererTests {
         post.setFinish(new Date());
         post.setState(PostState.COMPLETE);
 
-        compare(loadFixture("complete"));
-    }
-
-    private String loadFixture(String filename) {
-
-        StringBuffer sb = new StringBuffer();
-        try {
-            ClassPathResource resource = new ClassPathResource("/fixtures/" + filename + ".txt");
-            BufferedReader reader = new BufferedReader(new InputStreamReader(resource.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                sb.append(line).append("\n");
-            }
-        } catch (IOException e) {
-            fail(e.getMessage());
-        }
-
-        String ret = sb.toString();
-
-        if (post.getStart() != null) {
-            ret = ret.replace("{{start_date}}", PostRenderer.formatDate(post.getStart()));
-        }
-
-        if (post.getFinish() != null) {
-            ret = ret.replace("{{finish_date}}", PostRenderer.formatDate(post.getFinish()));
-        }
-
-        return ret;
+        compare(FixtureUtils.loadFixture("slack", "complete", post));
     }
 
     private void compare(String fixture) {
