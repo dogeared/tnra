@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Base64;
@@ -41,8 +42,12 @@ public class EmailServiceImpl implements EMailService {
         this.emailPostRenderer = eMailPostRenderer;
     }
 
+    @PostConstruct
+    public void setup() {
+        log.info("Mailgun - public key: {}, url: {}", mailgunPublicKey, mailgunUrl);
+    }
+
     public void sendMailToMe(User user, Post post) {
-        user.setEmail("micah@afitnerd.com");
         try {
             InputStream responseStream = Request.Post(mailgunUrl)
                 .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
