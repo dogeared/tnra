@@ -1,3 +1,4 @@
+`user:` timmy, `post started:` {{start_date}}, `post finished:` {{finish_date}}
 *Intro:*
 
 *WIDWYTK:*

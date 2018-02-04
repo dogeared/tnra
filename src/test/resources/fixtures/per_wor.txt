@@ -1,4 +1,14 @@
-*Intro not set*
+`user:` timmy, `post started:` {{start_date}}
+*Intro:*
+
+*WIDWYTK:*
+	not set
+
+*Kryptonite:*
+	not set
+
+*What and When:*
+	not set
 
 *Personal:*
 
@@ -6,9 +16,19 @@
 
 	*Worst:* wor
 
-*Family not set*
+*Family:*
 
-*Work not set*
+	*Best:* not set
 
-*Stats not set*
+	*Worst:* not set
+
+*Work:*
+
+	*Best:* not set
+
+	*Worst:* not set
+
+*Stats:*
+
+	*exercise:* not set, *gtg:* not set, *meditate:* not set, *meetings:* not set, *pray:* not set, *read:* not set, *sponsor:* not set
 

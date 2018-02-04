@@ -1,4 +1,4 @@
-package com.afitnerd.tnra;
+package com.afitnerd.tnra.slack;
 
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;

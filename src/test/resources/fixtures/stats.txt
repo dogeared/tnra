@@ -1,10 +1,32 @@
-*Intro not set*
+`user:` timmy, `post started:` {{start_date}}
+*Intro:*
 
-*Personal not set*
+*WIDWYTK:*
+	not set
 
-*Family not set*
+*Kryptonite:*
+	not set
 
-*Work not set*
+*What and When:*
+	not set
+
+*Personal:*
+
+	*Best:* not set
+
+	*Worst:* not set
+
+*Family:*
+
+	*Best:* not set
+
+	*Worst:* not set
+
+*Work:*
+
+	*Best:* not set
+
+	*Worst:* not set
 
 *Stats:*
 

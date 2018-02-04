@@ -4,19 +4,18 @@ import com.afitnerd.tnra.exception.PostException;
 import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
-import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.model.command.Command;
 import com.afitnerd.tnra.repository.UserRepository;
+import com.afitnerd.tnra.service.PostRenderer;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
-import com.afitnerd.tnra.slack.model.attachment.Attachment;
-import com.afitnerd.tnra.slack.model.attachment.BasicAttachment;
 import com.afitnerd.tnra.util.CommandParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
@@ -40,12 +39,17 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
 
     private PostService postService;
     private UserRepository userRepository;
+    private PostRenderer slackPostRenderer;
 
     private static final Logger log = LoggerFactory.getLogger(SlackSlashCommandServiceImpl.class);
 
-    public SlackSlashCommandServiceImpl(PostService postService, UserRepository userRepository) {
+    public SlackSlashCommandServiceImpl(
+        PostService postService, UserRepository userRepository,
+        @Qualifier("slackPostRenderer") PostRenderer slackPostRenderer
+    ) {
         this.postService = postService;
         this.userRepository = userRepository;
+        this.slackPostRenderer = slackPostRenderer;
     }
 
     @PostConstruct
@@ -62,8 +66,6 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
         Command command = CommandParser.parse(request.getText());
 
-        String responseText = "";
-
         // look up the user
         User user = findOrCreateUser(request);
 
@@ -73,24 +75,21 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         switch (command.getAction()) {
             case START:
                 post = postService.startPost(user);
-                responseText += post;
+                response.setText(slackPostRenderer.render(post));
                 break;
             case FINISH:
                 post = postService.finishPost(user);
-                responseText += "`user:` " + post.getUser().getSlackUsername() +
-                    ", `post started:` " + formatDate(post.getStart()) +
-                    ", `post finished:` " + formatDate(post.getFinish()) + "\n";
-                responseText += post;
                 response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
+                response.setText(slackPostRenderer.render(post));
                 break;
             case UPDATE:
             case APPEND:
                 post = handleUpdate(user, command);
-                responseText += post;
+                response.setText(slackPostRenderer.render(post));
                 break;
             case REPLACE:
                 post = handleReplace(user, command);
-                responseText += post;
+                response.setText(slackPostRenderer.render(post));
                 break;
             case SHOW:
                 if (command.getParam() == null) {
@@ -99,29 +98,13 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                     String slackUsername = command.getParam();
                     post = postService.getLastFinishedPost(findOtherUser(slackUsername));
                 }
-                responseText +=
-                    "`user:` " + post.getUser().getSlackUsername() +
-                    ", `post started:` " + formatDate(post.getStart()) +
-                    ((command.getParam() == null) ? "" : ", `post finished:` " + formatDate(post.getFinish())) +
-                    "\n";
-                responseText += post;
+                response.setText(slackPostRenderer.render(post));
                 break;
             case HELP:
-                responseText += "```" + CommandParser.help() + "```";
+                response.setText("```" + CommandParser.help() + "```");
         }
 
-        response.setText(responseText);
         return response;
-    }
-
-    private String formatDate(Date date) {
-        TimeZone est = TimeZone.getTimeZone("US/Eastern");
-        GregorianCalendar cal = new GregorianCalendar(est);
-        cal.setTime(date);
-        ZonedDateTime zdt = cal.toZonedDateTime();
-        LocalDateTime dateTime = zdt.toLocalDateTime();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM/dd/yyyy hh:mm:ss a");
-        return dateTime.format(formatter);
     }
 
     private User findOrCreateUser(SlackSlashCommandRequest request) {
