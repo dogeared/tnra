@@ -83,6 +83,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 break;
             case FINISH:
                 post = postService.finishPost(user);
+                eMailService.sendMailToAll(post);
                 response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
                 response.setText(slackPostRenderer.render(post));
                 break;

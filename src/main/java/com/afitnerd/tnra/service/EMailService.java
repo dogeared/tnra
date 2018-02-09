@@ -5,5 +5,6 @@ import com.afitnerd.tnra.model.User;
 
 public interface EMailService {
 
-    public void sendMailToMe(User user, Post post);
+    void sendMailToMe(User user, Post post);
+    void sendMailToAll(Post post);
 }
