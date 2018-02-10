@@ -15,6 +15,8 @@ public class EMailPostRenderer implements PostRenderer {
     public String render(Post post) {
 
         StringBuilder sb = new StringBuilder();
+        sb.append("<html>");
+        sb.append("<head>\n<meta charset=\"UTF-8\">\n</head>");
 
         User user = post.getUser();
         sb.append("<strong>Post From:</strong> ")
@@ -72,6 +74,8 @@ public class EMailPostRenderer implements PostRenderer {
             .append(((stats.getRead() != null) ? stats.getRead() : "not set"));
         sb.append(", <strong>sponsor:</strong> ")
             .append(((stats.getSponsor() != null) ? stats.getSponsor() : "not set")).append("</p>\n");
+
+        sb.append("</html>");
 
         return sb.toString();
     }
