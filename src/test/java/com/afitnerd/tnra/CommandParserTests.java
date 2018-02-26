@@ -210,4 +210,32 @@ public class CommandParserTests {
             assertEquals("Bad stats String: exe:g", e.getMessage());
         }
     }
+
+    @Test
+    public void testCommandParser_fail_upd_sta_bad_sta() {
+        try {
+            CommandParser.parse("upd stat blarg: 1");
+            fail();
+        } catch (IllegalArgumentException e) {
+            assertEquals("No Stat named: blarg", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testCommandParser_success_upd_sta_no_value() {
+        Command command = CommandParser.parse("upd stat exe");
+        assertEquals(Action.UPDATE, command.getAction());
+        assertEquals(Section.STATS, command.getSection());
+        assertNull(command.getSubSection());
+        assertNull(command.getStats().get(Stat.EXERCISE));
+    }
+
+    @Test
+    public void testCommandParser_success_upd_sta_colon_no_value() {
+        Command command = CommandParser.parse("upd stat exe:");
+        assertEquals(Action.UPDATE, command.getAction());
+        assertEquals(Section.STATS, command.getSection());
+        assertNull(command.getSubSection());
+        assertNull(command.getStats().get(Stat.EXERCISE));
+    }
 }

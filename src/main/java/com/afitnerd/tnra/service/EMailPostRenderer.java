@@ -75,7 +75,7 @@ public class EMailPostRenderer implements PostRenderer {
         sb.append(", <strong>sponsor:</strong> ")
             .append(((stats.getSponsor() != null) ? stats.getSponsor() : "not set")).append("</p>\n");
 
-        sb.append("</html>");
+        sb.append("</html>\n");
 
         return sb.toString();
     }

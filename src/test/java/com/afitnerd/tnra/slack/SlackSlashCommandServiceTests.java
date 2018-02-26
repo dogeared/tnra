@@ -62,6 +62,21 @@ public class SlackSlashCommandServiceTests {
         updateOrReplace("rep");
     }
 
+    @Test
+    public void testProcesss_update_stat() {
+        SlackSlashCommandResponse response = null;
+
+        request.setText("sta");
+        response = slackSlashCommandService.process(request);
+        request.setText("upd stat exe:");
+        response = slackSlashCommandService.process(request);
+        assertTrue(response.getText().contains("*exercise:* 1"));
+        response = slackSlashCommandService.process(request);
+        assertTrue(response.getText().contains("*exercise:* 2"));
+        response = slackSlashCommandService.process(request);
+        assertTrue(response.getText().contains("*exercise:* 3"));
+    }
+
     private void updateOrReplace(String updateOrReplace) {
         SlackSlashCommandResponse response = null;
         List<String> commands = Arrays.asList(

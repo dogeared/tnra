@@ -161,7 +161,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 Category work = makeCategory(command);
                 return postService.replaceWork(user, work);
             case STATS:
-                Stats stats = makeStats(command);
+                Stats stats = makeStats(user, command);
                 return postService.replaceStats(user, stats);
         }
         return null;
@@ -183,7 +183,7 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
                 Category work = makeCategory(command);
                 return postService.updateWork(user, work);
             case STATS:
-                Stats stats = makeStats(command);
+                Stats stats = makeStats(user, command);
                 return postService.replaceStats(user, stats);
         }
         return null;
@@ -211,11 +211,17 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
         return category;
     }
 
-    private Stats makeStats(Command command) {
+    private Stats makeStats(User user, Command command) {
         Stats stats = new Stats();
         command.getStats().forEach((stat, val) -> {
             try {
                 PropertyDescriptor pd = new PropertyDescriptor(stat.name().toLowerCase(), Stats.class);
+                if (val == null) {
+                    Post post = postService.getInProgressPost(user);
+                    Stats curStats = post.getStats();
+                    val = (Integer) pd.getReadMethod().invoke(curStats);
+                    val = (val == null) ? 1 : val+1;
+                }
                 pd.getWriteMethod().invoke(stats, val);
             } catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
                 log.error("Couldn't setup stats for: {}", stat.name().toLowerCase(), e);

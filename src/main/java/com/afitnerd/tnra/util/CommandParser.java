@@ -109,7 +109,8 @@ public class CommandParser {
         try {
             for (String statPart : statParts) {
                 String[] statsParts = statPart.split(":");
-                command.addStat(Stat.fromValue(statsParts[0]), Integer.parseInt(statsParts[1]));
+                Integer num = (statsParts.length > 1) ? Integer.parseInt(statsParts[1]) : null;
+                command.addStat(Stat.fromValue(statsParts[0]), num);
             }
         } catch (NumberFormatException n) {
             throw new IllegalArgumentException("Bad stats String: " + statsString);

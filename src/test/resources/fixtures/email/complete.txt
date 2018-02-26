@@ -1,4 +1,6 @@
-<strong>Post From:</strong> Timmy - timmy@timmyco.com<br/>
+<html><head>
+<meta charset="UTF-8">
+</head><strong>Post From:</strong> Timmy - timmy@timmyco.com<br/>
 <strong>Post Started:</strong> {{start_date}}, <strong>Post Finished:</strong> {{finish_date}}<p/><br/><p/>
 
 <h2>Intro:</h2>
@@ -39,3 +41,4 @@
 <h2>Stats:</h2>
 
 <p><strong>exercise:</strong> 1, <strong>gtg:</strong> 2, <strong>meditate:</strong> 3, <strong>meetings:</strong> 4, <strong>pray:</strong> 5, <strong>read:</strong> 6, <strong>sponsor:</strong> 7</p>
+</html>
