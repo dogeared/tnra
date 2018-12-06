@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -28,21 +30,26 @@ public class SlackController {
 
     private static final String POST_COMMAND = "/post";
 
+    private final static ExecutorService executor = Executors.newFixedThreadPool(10);
     private final ObjectMapper mapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(SlackController.class);
 
-    private void echoCommand(SlackSlashCommandRequest slackSlashCommandRequest) {
-        String command = slackSlashCommandRequest.commandString();
+    private void doCommandAsync(SlackSlashCommandRequest request) {
+        SlackSlashCommandResponse response;
         try {
-            SlackSlashCommandResponse slackSlashCommandResponse = new SlackSlashCommandResponse();
-            slackSlashCommandResponse.setText(command);
-            StringEntity body = new StringEntity(mapper.writeValueAsString(slackSlashCommandResponse));
+            response = slackSlashCommandService.process(request);
+        } catch (PostException | IllegalArgumentException e) {
+            response = new SlackSlashCommandResponse();
+            response.setText(e.getMessage());
+        }
 
-            Request.Post(slackSlashCommandRequest.getResponseUrl())
+        try {
+            StringEntity body = new StringEntity(mapper.writeValueAsString(response));
+            Request.Post(request.getResponseUrl())
                 .body(body)
                 .execute();
         } catch (IOException e) {
-            log.error("Couldn't POST to: {} with {}", slackSlashCommandRequest.getResponseUrl(), command, e);
+            log.error("Couldn't POST to: {} with {}", request.getResponseUrl(), request.commandString(), e);
         }
     }
 
@@ -62,9 +69,15 @@ public class SlackController {
             throw new IllegalArgumentException("Slack token is incorrect.");
         }
 
-        echoCommand(slackSlashCommandRequest);
+        executor.execute(() -> {
+            doCommandAsync(slackSlashCommandRequest);
+        });
 
-        return slackSlashCommandService.process(slackSlashCommandRequest);
+        String command = slackSlashCommandRequest.commandString();
+        SlackSlashCommandResponse slackSlashCommandResponse = new SlackSlashCommandResponse();
+        slackSlashCommandResponse.setText("Command received: " + command);
+
+        return slackSlashCommandResponse;
     }
 
     @RequestMapping(

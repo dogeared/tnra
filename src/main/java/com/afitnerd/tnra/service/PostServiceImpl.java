@@ -16,6 +16,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 
+import javax.transaction.Transactional;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Date;
@@ -33,6 +34,7 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    @Transactional
     public Post startPost(User user) {
         Assert.notNull(user, "User cannot be null");
         ensureNoInProgressPost(user);
