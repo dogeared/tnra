@@ -44,7 +44,7 @@ public class SlackController {
         }
 
         try {
-            StringEntity body = new StringEntity(mapper.writeValueAsString(response));
+            StringEntity body = new StringEntity(mapper.writeValueAsString(response), "utf-8");
             Request.Post(request.getResponseUrl())
                 .body(body)
                 .execute();
