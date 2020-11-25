@@ -10,8 +10,11 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(HttpSecurity http) throws Exception {
         http
+            .headers().frameOptions().sameOrigin()
+            .and()
             .authorizeRequests()
             .antMatchers(
+                "/h2-console/**",
                 "/api/v1/post",
                 "/api/v1/wid", "/api/v1/kry", "/api/v1/wha",
                 "/api/v1/per", "/api/v1/fam", "/api/v1/wor",
@@ -20,6 +23,7 @@ public class SpringSecurityConfig extends WebSecurityConfigurerAdapter {
             ).permitAll()
             .and()
             .csrf().ignoringAntMatchers(
+                "/h2-console/**",
                 "/api/v1/post",
                 "/api/v1/wid", "/api/v1/kry", "/api/v1/wha",
                 "/api/v1/per", "/api/v1/fam", "/api/v1/wor",

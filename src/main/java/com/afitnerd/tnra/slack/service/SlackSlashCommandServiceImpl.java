@@ -25,12 +25,8 @@ import javax.annotation.PostConstruct;
 import java.beans.IntrospectionException;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.TimeZone;
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
@@ -42,18 +38,20 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
     private UserRepository userRepository;
     private PostRenderer slackPostRenderer;
     private EMailService eMailService;
+    private SlackAPIService slackAPIService;
 
     private static final Logger log = LoggerFactory.getLogger(SlackSlashCommandServiceImpl.class);
 
     public SlackSlashCommandServiceImpl(
         PostService postService, UserRepository userRepository,
         @Qualifier("slackPostRenderer") PostRenderer slackPostRenderer,
-        EMailService eMailService
+        EMailService eMailService, SlackAPIService slackAPIService
     ) {
         this.postService = postService;
         this.userRepository = userRepository;
         this.slackPostRenderer = slackPostRenderer;
         this.eMailService = eMailService;
+        this.slackAPIService = slackAPIService;
     }
 
     @PostConstruct
@@ -84,8 +82,10 @@ public class SlackSlashCommandServiceImpl implements SlackSlashCommandService {
             case FINISH:
                 post = postService.finishPost(user);
                 eMailService.sendMailToAll(post);
-                response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
+                response.setResponseType(SlackSlashCommandResponse.ResponseType.EPHEMERAL);
                 response.setText(slackPostRenderer.render(post));
+                // use chat api to send to general
+                Map<String, Object> charRes = slackAPIService.chat(slackPostRenderer.render(post));
                 break;
             case UPDATE:
             case APPEND:
