@@ -16,6 +16,7 @@ function doIt {
   trigger_id=1553333092576.47705974756.7e452cdd0aab5a165b1b7dfdd3f9dba5 \
   command=/post_test \
   text="$1"
+  sleep 1
 }
 
 doIt start
