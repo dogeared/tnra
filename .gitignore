@@ -24,3 +24,8 @@ nbdist/
 .nb-gradle/
 
 application.yml
+application.properties
+
+.DS_Store
+node_modules
+node
