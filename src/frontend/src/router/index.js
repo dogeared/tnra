@@ -5,6 +5,7 @@ import 'semantic-ui-css/semantic.min.css'
 
 import HomeComponent from '@/components/Home'
 import ProfileComponent from '@/components/Profile'
+import PostComponent from '@/components/Post'
 
 import { OktaAuth } from '@okta/okta-auth-js'
 import OktaVue, { LoginCallback } from '@okta/okta-vue'
@@ -28,6 +29,13 @@ const router = new Router({
     {
       path: '/',
       component: HomeComponent
+    },
+    {
+      path: '/post',
+      component: PostComponent,
+      meta: {
+        requiresAuth: true
+      }
     },
     {
       path: '/profile',

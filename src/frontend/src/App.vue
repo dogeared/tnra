@@ -21,6 +21,14 @@
         Login
         </a>
         <router-link
+          to="/post"
+          class="item"
+          id="post-button"
+          v-if="authState.isAuthenticated"
+        >
+          Post
+        </router-link>
+        <router-link
           to="/profile"
           class="item"
           id="profile-button"
