@@ -48,49 +48,92 @@
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Stats">
-<!--            exercise: not set, gtg: not set, meditate: not set, meetings: not set, pray: not set, read: not set, sponsor: not set-->
-            <sui-dropdown
-                placeholder="Exercise"
-                selection
-                :options="options"
-                v-model="exe"
-            />
-            <sui-dropdown
-                placeholder="Go-to-Guy"
-                selection
-                :options="options"
-                v-model="gtg"
-            />
-          <sui-dropdown
-              placeholder="Read"
-              selection
-              :options="options"
-              v-model="rea"
-          />
-          <sui-dropdown
-              placeholder="Pray"
-              selection
-              :options="options"
-              v-model="pra"
-          />
-          <sui-dropdown
-              placeholder="Meditate"
-              selection
-              :options="options"
-              v-model="med"
-          />
-          <sui-dropdown
-              placeholder="Sponsor"
-              selection
-              :options="options"
-              v-model="spo"
-          />
-          <sui-dropdown
-              placeholder="Meetings"
-              selection
-              :options="options"
-              v-model="mee"
-          />
+          <sui-grid :columns="4">
+            <sui-grid-row>
+              <sui-grid-column>
+                Exercise
+              </sui-grid-column>
+              <sui-grid-column>
+                GTG
+              </sui-grid-column>
+              <sui-grid-column>
+                Sponsor
+              </sui-grid-column>
+              <sui-grid-column>
+                Meetings
+              </sui-grid-column>
+            </sui-grid-row>
+            <sui-grid-row>
+              <sui-grid-column>
+                <sui-dropdown
+                    selection
+                    :options="options"
+                    v-model="exe"
+                />
+              </sui-grid-column>
+              <sui-grid-column>
+                <sui-dropdown
+                    placeholder=""
+                    selection
+                    :options="options"
+                    v-model="gtg"
+                />
+              </sui-grid-column>
+              <sui-grid-column>
+                <sui-dropdown
+                    placeholder=""
+                    selection
+                    :options="options"
+                    v-model="spo"
+                />
+              </sui-grid-column>
+              <sui-grid-column>
+                <sui-dropdown
+                    placeholder=""
+                    selection
+                    :options="options"
+                    v-model="mee"
+                />
+              </sui-grid-column>
+            </sui-grid-row>
+            <sui-grid-row>
+              <sui-grid-column>
+                Read
+              </sui-grid-column>
+              <sui-grid-column>
+                Pray
+              </sui-grid-column>
+              <sui-grid-column>
+                Meditate
+              </sui-grid-column>
+            </sui-grid-row>
+            <sui-grid-row>
+              <sui-grid-column>
+                <sui-dropdown
+                    placeholder=""
+                    selection
+                    :options="options"
+                    v-model="rea"
+                />
+              </sui-grid-column>
+              <sui-grid-column>
+                <sui-dropdown
+                    placeholder=""
+                    selection
+                    :options="options"
+                    v-model="pra"
+                />
+              </sui-grid-column>
+              <sui-grid-column>
+                <sui-dropdown
+                    placeholder=""
+                    selection
+                    :options="options"
+                    v-model="med"
+                />
+              </sui-grid-column>
+            </sui-grid-row>
+          </sui-grid>
         </sui-tab-pane>
       </sui-tab>
       <p/>
@@ -149,3 +192,12 @@ export default {
   },
 };
 </script>
+<style>
+.ui.selection.dropdown {
+  min-width: 1em;
+}
+.ui.grid>.row {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+</style>
