@@ -30,3 +30,5 @@ application.properties
 node_modules
 node
 *.sql
+
+public
