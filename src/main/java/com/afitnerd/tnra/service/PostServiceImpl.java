@@ -21,6 +21,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class PostServiceImpl implements PostService {
@@ -257,11 +258,8 @@ public class PostServiceImpl implements PostService {
     }
 
     private Post ensureOneFinished(User user) {
-        List<Post> posts = postRepository.findByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE);
-        if (posts == null || posts.isEmpty()) {
-            throw new PostException(user.getSlackUsername() + " has no finished posts.");
-        }
-        return posts.get(0);
+        Optional<Post> post = postRepository.findFirstByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE);
+        return post.orElseThrow(() -> new PostException(user.getSlackUsername() + " has no finished posts."));
     }
 
     private void ensureNoInProgressPost(User user) {
