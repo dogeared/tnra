@@ -2,12 +2,7 @@
   <div id="home">
     <h1 class="ui header">Taking the Next Right Action</h1>
     <div v-if="!authState.isAuthenticated">
-      <sui-button primary animated v-on:click="login()">
-        <sui-button-content visible>Login</sui-button-content>
-        <sui-button-content hidden>
-          <sui-icon name="right arrow" />
-        </sui-button-content>
-      </sui-button>
+      <sui-button primary v-on:click="login()">Login</sui-button>
     </div>
 
     <div v-if="authState.isAuthenticated">
