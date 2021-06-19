@@ -23,7 +23,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>11</java.version>
         <node.version>v14.16.1</node.version>
-        <npm.version>7.17.0</npm.version>
+        <npm.version>7.18.1</npm.version>
     </properties>
 
     <dependencies>
