@@ -134,7 +134,7 @@
                 <executions>
                     <execution>
                         <id>Copy Vue frontend into Spring Boot target static folder</id>
-                        <phase>process-resources</phase>
+                        <phase>generate-resources</phase>
                         <goals>
                             <goal>copy-resources</goal>
                         </goals>
