@@ -302,7 +302,6 @@ export default {
     },
     updatePost(mutator, key, value) {
       this.$store.commit(mutator, {key: key, value: value})
-      console.log(this.getPostPart('completedPost', key))
     },
     authConfig() {
       const accessToken = this.$auth.getAccessToken()
