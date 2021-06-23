@@ -144,30 +144,10 @@
 </template>
 
 <script>
-import axios from 'axios';
-
 export default {
   name: 'FormFieldsAccordion',
   data() {
     return {
-      exe: null,
-      gtg: null,
-      med: null,
-      rea: null,
-      pra: null,
-      mee: null,
-      spo: null,
-      wid: '',
-      kry: '',
-      wha: '',
-      perBes: '',
-      perWor: '',
-      famBes: '',
-      famWor: '',
-      worBes: '',
-      worWor: '',
-      started: '',
-      finished: '',
       options: [
         { text: '0', value: 0 },
         { text: '1', value: 1 },
@@ -180,9 +160,152 @@ export default {
       ],
     };
   },
+  computed: {
+    started() {
+      return this.formatTime(this.getPostPart('completedPost', 'start'))
+    },
+    finished() {
+      return this.formatTime(this.getPostPart('completedPost', 'finish'))
+    },
+    wid: {
+      get() {
+        return this.getPostPart('completedPost', 'intro.widwytk')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'intro.widwytk', value)
+      }
+    },
+    kry: {
+      get() {
+        return this.getPostPart('completedPost', 'intro.kryptonite')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'intro.kryptonite', value)
+      }
+    },
+    wha: {
+      get() {
+        return this.getPostPart('completedPost', 'intro.whatAndWhen')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'intro.whatAndWhen', value)
+      }
+    },
+    perBes: {
+      get() {
+        return this.getPostPart('completedPost', 'personal.best')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'personal.best', value)
+      }
+    },
+    perWor: {
+      get() {
+        return this.getPostPart('completedPost', 'personal.worst')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'personal.word', value)
+      }
+    },
+    famBes: {
+      get() {
+        return this.getPostPart('completedPost', 'family.best')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'family.best', value)
+      }
+    },
+    famWor: {
+      get() {
+        return this.getPostPart('completedPost', 'family.worst')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'family.worst', value)
+      }
+    },
+    worBes: {
+      get() {
+        return this.getPostPart('completedPost', 'work.best')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'work.best', value)
+      }
+    },
+    worWor: {
+      get() {
+        return this.getPostPart('completedPost', 'work.worst')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'work.worst', value)
+      }
+    },
+    exe: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.exercise')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.exercise', value)
+      }
+    },
+    gtg: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.gtg')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.gtg', value)
+      }
+    },
+    med: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.meditate')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.meditate', value)
+      }
+    },
+    rea: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.read')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.read', value)
+      }
+    },
+    pra: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.pray')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.pray', value)
+      }
+    },
+    mee: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.meetings')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.meetings', value)
+      }
+    },
+    spo: {
+      get() {
+        return this.getPostPart('completedPost', 'stats.sponsor')
+      },
+      set(value) {
+        this.updatePost('patchCompletePost', 'stats.sponsor', value)
+      }
+    }
+  },
   methods: {
-    async authConfig() {
-      const accessToken = await this.$auth.getAccessToken()
+    getPostPart(name, key) {
+      return this.$store.getters.getProperty(name, key)
+    },
+    updatePost(mutator, key, value) {
+      this.$store.commit(mutator, {key: key, value: value})
+      console.log(this.getPostPart('completedPost', key))
+    },
+    authConfig() {
+      const accessToken = this.$auth.getAccessToken()
       return {
         headers: {
           Authorization: `Bearer ${accessToken}`
@@ -191,36 +314,10 @@ export default {
     },
     formatTime(timeStr) {
       return new Date(timeStr).toLocaleString();
-    },
-    async getLatestPost() {
-      axios.get("/api/v1/my_last_post", await this.authConfig())
-        .then((response) => {
-          let post = response.data
-          this.started = this.formatTime(post.start)
-          this.finished = this.formatTime(post.finish)
-          this.wid = post.intro.widwytk
-          this.kry = post.intro.kryptonite
-          this.wha = post.intro.whatAndWhen
-          this.perBes = post.personal.best
-          this.perWor = post.personal.worst
-          this.famBes = post.family.best
-          this.famWor = post.family.worst
-          this.worBes = post.work.best
-          this.worWor = post.work.worst
-          this.exe = post.stats.exercise
-          this.gtg = post.stats.gtg
-          this.med = post.stats.meditate
-          this.pra = post.stats.pray
-          this.rea = post.stats.read
-          this.spo = post.stats.sponsor
-          this.mee = post.stats.meetings
-
-          console.log(post)
-        })
     }
   },
-  mounted() {
-    this.getLatestPost()
+  beforeMount() {
+    this.$store.dispatch('getLastestCompletedPost', { authHeader:  this.authConfig() })
   }
 };
 </script>

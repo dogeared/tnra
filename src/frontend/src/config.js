@@ -8,9 +8,7 @@ export default {
     scopes: ['openid', 'profile', 'email']
   },
   resourceServer: {
-    location: '/api/v1/location',
     me: '/api/v1/me',
-    everyone: '/api/v1/everyone',
-    offices: '/api/v1/offices'
+    my_last_post: '/api/v1/my_last_post'
   }
 }
