@@ -39,4 +39,10 @@ public class APIController {
         User user = userRepository.findByEmail(me.getName());
         return postService.getOptionalCompletePost(user);
     }
+
+    @GetMapping("/start")
+    Post startPost(Principal me) {
+        User user = userRepository.findByEmail(me.getName());
+        return postService.startPost(user);
+    }
 }

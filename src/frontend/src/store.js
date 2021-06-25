@@ -50,6 +50,12 @@ export default new Vuex.Store({
                 .then((response) => {
                     commit('setInProgressPost', response.data)
                 })
+        },
+        startPost: ({ commit }, payload) => {
+            axios.get(config.resourceServer.start, payload.authHeader)
+                .then((response) => {
+                    commit('setInProgressPost', response.data)
+                })
         }
     }
 })

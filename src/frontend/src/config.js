@@ -10,6 +10,7 @@ export default {
   resourceServer: {
     me: '/api/v1/me',
     complete: '/api/v1/complete',
-    in_progress: '/api/v1/in_progress'
+    in_progress: '/api/v1/in_progress',
+    start: '/api/v1/start'
   }
 }

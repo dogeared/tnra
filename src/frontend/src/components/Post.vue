@@ -2,9 +2,9 @@
   <div>
     <h2>Post</h2>
     <sui-form>
-      <sui-button primary :disabled="!startEnabled">Start New Post</sui-button>
+      <sui-button primary :disabled="!startEnabled" v-on:click.prevent="doStart">Start New Post</sui-button>
       <sui-button primary :disabled="!finishEnabled">Finish Post</sui-button>
-      <h3>started: {{started}}, finished: {{finished}}</h3>
+      <h3>started: {{started}}<span v-if="finished">, finished: {{finished}}</span></h3>
       <sui-tab>
         <sui-tab-pane title="Intro">
           <sui-form-field>
@@ -313,7 +313,16 @@ export default {
       return { headers: { Authorization: `Bearer ${accessToken}` } }
     },
     formatTime(timeStr) {
-      return new Date(timeStr).toLocaleString();
+      return (timeStr) ? new Date(timeStr).toLocaleString() : null;
+    },
+    doStart() {
+      this.$store.dispatch('startPost', { authHeader: this.authConfig() })
+        .then(() => {
+          this.$store.commit('setCompletedPost', null)
+          this.postName = 'inProgressPost'
+          this.mutatorName = 'patchInProgressPost'
+          this.startEnabled = false
+        })
     }
   },
   beforeMount() {
