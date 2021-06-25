@@ -46,6 +46,18 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public Optional<Post> getOptionalInProgressPost(User user) {
+        Assert.notNull(user, "User cannot be null");
+        return postRepository.findFirstByUserAndStateOrderByFinishDesc(user, PostState.IN_PROGRESS);
+    }
+
+    @Override
+    public Optional<Post> getOptionalCompletePost(User user) {
+        Assert.notNull(user, "User cannot be null");
+        return postRepository.findFirstByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE);
+    }
+
+    @Override
     public Post getInProgressPost(User user) {
         Assert.notNull(user, "User cannot be null");
         return ensureOneInProgressPost(user);

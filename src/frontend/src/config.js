@@ -9,6 +9,7 @@ export default {
   },
   resourceServer: {
     me: '/api/v1/me',
-    my_last_post: '/api/v1/my_last_post'
+    complete: '/api/v1/complete',
+    in_progress: '/api/v1/in_progress'
   }
 }

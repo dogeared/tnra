@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -27,11 +28,15 @@ public class APIController {
         return me;
     }
 
-    @GetMapping("/my_last_post")
-    Post getMyLastPost(Principal me) {
+    @GetMapping("/in_progress")
+    Optional<Post> getInProgressPost(Principal me) {
         User user = userRepository.findByEmail(me.getName());
-        Post post = postService.getLastFinishedPost(user);
-        post.getUser().setPosts(null);
-        return post;
+        return postService.getOptionalInProgressPost(user);
+    }
+
+    @GetMapping("/complete")
+    Optional<Post> getCompletePost(Principal me) {
+        User user = userRepository.findByEmail(me.getName());
+        return postService.getOptionalCompletePost(user);
     }
 }

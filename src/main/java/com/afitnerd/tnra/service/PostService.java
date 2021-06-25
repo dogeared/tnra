@@ -6,10 +6,16 @@ import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 
+import java.util.Optional;
+
 public interface PostService {
 
     Post startPost(User user);
     Post finishPost(User user);
+
+    Optional<Post> getOptionalInProgressPost(User user);
+    Optional<Post> getOptionalCompletePost(User user);
+
     Post getInProgressPost(User user);
     Post getLastFinishedPost(User user);
     Post savePost(Post post);

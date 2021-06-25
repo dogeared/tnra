@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.AttributeOverride;
@@ -58,6 +59,7 @@ public class Post {
     private Stats stats;
 
     @ManyToOne(optional = false)
+    @JsonIgnoreProperties("posts")
     private User user;
 
     public Post() {

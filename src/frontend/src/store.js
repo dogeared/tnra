@@ -14,8 +14,8 @@ let debouncedUpdatePost = _.debounce(updatePost, 1500, { maxWait: 1500 })
 
 export default new Vuex.Store({
     state: {
-        completedPost: {},
-        inProgressPost: {}
+        completedPost: null,
+        inProgressPost: null
     },
     getters: {
         getProperty: (state) =>  (name, key) => {
@@ -33,13 +33,22 @@ export default new Vuex.Store({
         },
         setCompletedPost: (state, post) => {
             state.completedPost = post
+        },
+        setInProgressPost: (state, post) => {
+            state.inProgressPost = post
         }
     },
     actions: {
-        getLastestCompletedPost: ({ commit }, payload) => {
-            axios.get(config.resourceServer.my_last_post, payload.authHeader)
+        getOptionalCompletedPost: ({ commit }, payload) => {
+            axios.get(config.resourceServer.complete, payload.authHeader)
                 .then((response) => {
                     commit('setCompletedPost', response.data)
+                })
+        },
+        getOptionalInProgressPost: ({ commit }, payload) => {
+            axios.get(config.resourceServer.in_progress, payload.authHeader)
+                .then((response) => {
+                    commit('setInProgressPost', response.data)
                 })
         }
     }

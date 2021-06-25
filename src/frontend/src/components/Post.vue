@@ -1,8 +1,10 @@
 <template lang="html">
   <div>
     <h2>Post</h2>
-    <h3>started: {{started}}, finished: {{finished}}</h3>
     <sui-form>
+      <sui-button primary :disabled="!startEnabled">Start New Post</sui-button>
+      <sui-button primary :disabled="!finishEnabled">Finish Post</sui-button>
+      <h3>started: {{started}}, finished: {{finished}}</h3>
       <sui-tab>
         <sui-tab-pane title="Intro">
           <sui-form-field>
@@ -138,7 +140,6 @@
         </sui-tab-pane>
       </sui-tab>
       <p/>
-<!--      <sui-button type="submit">Submit</sui-button>-->
     </sui-form>
   </div>
 </template>
@@ -148,6 +149,10 @@ export default {
   name: 'FormFieldsAccordion',
   data() {
     return {
+      startEnabled: false,
+      finishEnabled: false,
+      postName: 'completedPost',
+      mutatorName: 'patchCompletePost',
       options: [
         { text: '0', value: 0 },
         { text: '1', value: 1 },
@@ -162,137 +167,137 @@ export default {
   },
   computed: {
     started() {
-      return this.formatTime(this.getPostPart('completedPost', 'start'))
+      return this.formatTime(this.getPostPart(this.postName, 'start'))
     },
     finished() {
-      return this.formatTime(this.getPostPart('completedPost', 'finish'))
+      return this.formatTime(this.getPostPart(this.postName, 'finish'))
     },
     wid: {
       get() {
-        return this.getPostPart('completedPost', 'intro.widwytk')
+        return this.getPostPart(this.postName, 'intro.widwytk')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'intro.widwytk', value)
+        this.updatePost(this.mutatorName, 'intro.widwytk', value)
       }
     },
     kry: {
       get() {
-        return this.getPostPart('completedPost', 'intro.kryptonite')
+        return this.getPostPart(this.postName, 'intro.kryptonite')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'intro.kryptonite', value)
+        this.updatePost(this.mutatorName, 'intro.kryptonite', value)
       }
     },
     wha: {
       get() {
-        return this.getPostPart('completedPost', 'intro.whatAndWhen')
+        return this.getPostPart(this.postName, 'intro.whatAndWhen')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'intro.whatAndWhen', value)
+        this.updatePost(this.mutatorName, 'intro.whatAndWhen', value)
       }
     },
     perBes: {
       get() {
-        return this.getPostPart('completedPost', 'personal.best')
+        return this.getPostPart(this.postName, 'personal.best')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'personal.best', value)
+        this.updatePost(this.mutatorName, 'personal.best', value)
       }
     },
     perWor: {
       get() {
-        return this.getPostPart('completedPost', 'personal.worst')
+        return this.getPostPart(this.postName, 'personal.worst')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'personal.word', value)
+        this.updatePost(this.mutatorName, 'personal.word', value)
       }
     },
     famBes: {
       get() {
-        return this.getPostPart('completedPost', 'family.best')
+        return this.getPostPart(this.postName, 'family.best')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'family.best', value)
+        this.updatePost(this.mutatorName, 'family.best', value)
       }
     },
     famWor: {
       get() {
-        return this.getPostPart('completedPost', 'family.worst')
+        return this.getPostPart(this.postName, 'family.worst')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'family.worst', value)
+        this.updatePost(this.mutatorName, 'family.worst', value)
       }
     },
     worBes: {
       get() {
-        return this.getPostPart('completedPost', 'work.best')
+        return this.getPostPart(this.postName, 'work.best')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'work.best', value)
+        this.updatePost(this.mutatorName, 'work.best', value)
       }
     },
     worWor: {
       get() {
-        return this.getPostPart('completedPost', 'work.worst')
+        return this.getPostPart(this.postName, 'work.worst')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'work.worst', value)
+        this.updatePost(this.mutatorName, 'work.worst', value)
       }
     },
     exe: {
       get() {
-        return this.getPostPart('completedPost', 'stats.exercise')
+        return this.getPostPart(this.postName, 'stats.exercise')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.exercise', value)
+        this.updatePost(this.mutatorName, 'stats.exercise', value)
       }
     },
     gtg: {
       get() {
-        return this.getPostPart('completedPost', 'stats.gtg')
+        return this.getPostPart(this.postName, 'stats.gtg')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.gtg', value)
+        this.updatePost(this.mutatorName, 'stats.gtg', value)
       }
     },
     med: {
       get() {
-        return this.getPostPart('completedPost', 'stats.meditate')
+        return this.getPostPart(this.postName, 'stats.meditate')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.meditate', value)
+        this.updatePost(this.mutatorName, 'stats.meditate', value)
       }
     },
     rea: {
       get() {
-        return this.getPostPart('completedPost', 'stats.read')
+        return this.getPostPart(this.postName, 'stats.read')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.read', value)
+        this.updatePost(this.mutatorName, 'stats.read', value)
       }
     },
     pra: {
       get() {
-        return this.getPostPart('completedPost', 'stats.pray')
+        return this.getPostPart(this.postName, 'stats.pray')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.pray', value)
+        this.updatePost(this.mutatorName, 'stats.pray', value)
       }
     },
     mee: {
       get() {
-        return this.getPostPart('completedPost', 'stats.meetings')
+        return this.getPostPart(this.postName, 'stats.meetings')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.meetings', value)
+        this.updatePost(this.mutatorName, 'stats.meetings', value)
       }
     },
     spo: {
       get() {
-        return this.getPostPart('completedPost', 'stats.sponsor')
+        return this.getPostPart(this.postName, 'stats.sponsor')
       },
       set(value) {
-        this.updatePost('patchCompletePost', 'stats.sponsor', value)
+        this.updatePost(this.mutatorName, 'stats.sponsor', value)
       }
     }
   },
@@ -305,18 +310,24 @@ export default {
     },
     authConfig() {
       const accessToken = this.$auth.getAccessToken()
-      return {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      }
+      return { headers: { Authorization: `Bearer ${accessToken}` } }
     },
     formatTime(timeStr) {
       return new Date(timeStr).toLocaleString();
     }
   },
   beforeMount() {
-    this.$store.dispatch('getLastestCompletedPost', { authHeader:  this.authConfig() })
+    this.$store.dispatch('getOptionalInProgressPost', { authHeader: this.authConfig() })
+    if (this.$store.state.inProgressPost) {
+      this.postName = 'inProgressPost'
+      this.mutatorName = 'patchInProgressPost'
+    } else {
+      // TODO - need to deal wih situation where there are no in progress nor completed posts
+      this.$store.dispatch('getOptionalCompletedPost', { authHeader:  this.authConfig() })
+      this.postName = 'completedPost'
+      this.mutatorName = 'patchCompletedPost'
+      this.startEnabled = true
+    }
   }
 };
 </script>
