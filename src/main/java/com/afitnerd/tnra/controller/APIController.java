@@ -47,9 +47,15 @@ public class APIController {
         return postService.getOptionalCompletePost(user);
     }
 
-    @GetMapping("/start")
+    @GetMapping("/start_from_app")
     Post startPost(Principal me) {
         User user = userRepository.findByEmail(me.getName());
         return postService.startPost(user);
+    }
+
+    @PostMapping("/finish_from_app")
+    Post finishPost(Principal me) {
+        User user = userRepository.findByEmail(me.getName());
+        return postService.finishPost(user);
     }
 }

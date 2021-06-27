@@ -11,6 +11,7 @@ export default {
     me: '/api/v1/me',
     complete: '/api/v1/complete',
     in_progress: '/api/v1/in_progress',
-    start: '/api/v1/start'
+    start: '/api/v1/start_from_app',
+    finish: '/api/v1/finish_from_app'
   }
 }

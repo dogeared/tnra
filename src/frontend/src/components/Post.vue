@@ -3,7 +3,7 @@
     <h2>Post</h2>
     <sui-form>
       <sui-button primary :disabled="!startEnabled" v-on:click.prevent="doStart">Start New Post</sui-button>
-      <sui-button primary :disabled="!finishEnabled">Finish Post</sui-button>
+      <sui-button primary :disabled="!finishEnabled" v-on:click.prevent="doFinish">Finish Post</sui-button>
       <h3>started: {{started}}<span v-if="finished">, finished: {{finished}}</span></h3>
       <sui-tab>
         <sui-tab-pane title="Intro">
@@ -321,7 +321,8 @@ export default {
     },
     doStart() {
       this.$store.dispatch('startPost', { authHeader: this.authConfig() })
-          .then(() => {
+          .then((response) => {
+            this.$store.commit('setInProgressPost', response.data)
             this.$store.commit('setCompletedPost', null)
             this.postName = 'inProgressPost'
             this.mutatorName = 'patchInProgressPost'
@@ -329,7 +330,15 @@ export default {
           })
     },
     doFinish() {
-
+      this.$store.dispatch('finishPost', { authHeader: this.authConfig() })
+          .then((response) => {
+            this.$store.commit('setInProgressPost', null)
+            this.$store.commit('setCompletedPost', response.data)
+            this.postName = 'completedPost'
+            this.mutatorName = 'patchCompletePost'
+            this.startEnabled = true
+            this.finishEnabled = this.checkFinished()
+          })
     }
   },
   created() {
@@ -355,7 +364,8 @@ export default {
       })
       numParts.forEach((partName) => {
         if (
-            this.$store.state.inProgressPost && this.$store.getters.getProperty('inProgressPost', partName) &&
+            this.$store.state.inProgressPost &&
+            this.$store.getters.getProperty('inProgressPost', partName) !== null &&
             this.$store.getters.getProperty('inProgressPost', partName) >= 0
         ) {
           partsWithDataScore++;
@@ -369,11 +379,11 @@ export default {
     // TODO - need to deal wih situation where there are no in progress nor completed posts
     let inProgressPostResponse = await this.$store.dispatch('getOptionalInProgressPost', { authHeader: this.authConfig() })
     let completePostResponse = await this.$store.dispatch('getOptionalCompletedPost', { authHeader:  this.authConfig() })
-    if (inProgressPostResponse) {
+    if (inProgressPostResponse && inProgressPostResponse.data) {
       this.$store.commit('setInProgressPost', inProgressPostResponse.data)
       this.postName = 'inProgressPost'
       this.mutatorName = 'patchInProgressPost'
-    } else if (completePostResponse) {
+    } else if (completePostResponse && completePostResponse.data) {
       this.$store.commit('setCompletedPost', completePostResponse.data)
       this.postName = 'completedPost'
       this.mutatorName = 'patchCompletedPost'

@@ -56,12 +56,12 @@ export default new Vuex.Store({
         async getOptionalInProgressPost({ commit }, payload) {
             return await axios.get(config.resourceServer.in_progress, payload.authHeader)
         },
-        /* eslint-enable no-unused-vars */
-        startPost: ({ commit }, payload) => {
-            axios.get(config.resourceServer.start, payload.authHeader)
-                .then((response) => {
-                    commit('setInProgressPost', response.data)
-                })
+        async startPost({ commit }, payload) {
+            return await axios.get(config.resourceServer.start, payload.authHeader)
+        },
+        async finishPost({ commit }, payload) {
+            return await axios.post(config.resourceServer.finish, {}, payload.authHeader)
         }
+        /* eslint-enable no-unused-vars */
     }
 })
