@@ -145,10 +145,13 @@
 </template>
 
 <script>
+import _ from 'lodash'
+
 export default {
   name: 'FormFieldsAccordion',
   data() {
     return {
+      checkFinished: null,
       startEnabled: false,
       finishEnabled: false,
       postName: 'completedPost',
@@ -209,7 +212,7 @@ export default {
         return this.getPostPart(this.postName, 'personal.worst')
       },
       set(value) {
-        this.updatePost(this.mutatorName, 'personal.word', value)
+        this.updatePost(this.mutatorName, 'personal.worst', value)
       }
     },
     famBes: {
@@ -302,41 +305,81 @@ export default {
     }
   },
   methods: {
+    authConfig() {
+      const accessToken = this.$auth.getAccessToken()
+      return { headers: { Authorization: `Bearer ${accessToken}` } }
+    },
     getPostPart(name, key) {
       return this.$store.getters.getProperty(name, key)
     },
     updatePost(mutator, key, value) {
-      this.$store.commit(mutator, {key: key, value: value})
-    },
-    authConfig() {
-      const accessToken = this.$auth.getAccessToken()
-      return { headers: { Authorization: `Bearer ${accessToken}` } }
+      this.$store.commit(mutator, {key: key, value: value, authHeader: this.authConfig()})
+      this.finishEnabled = this.checkFinished()
     },
     formatTime(timeStr) {
       return (timeStr) ? new Date(timeStr).toLocaleString() : null;
     },
     doStart() {
       this.$store.dispatch('startPost', { authHeader: this.authConfig() })
-        .then(() => {
-          this.$store.commit('setCompletedPost', null)
-          this.postName = 'inProgressPost'
-          this.mutatorName = 'patchInProgressPost'
-          this.startEnabled = false
-        })
+          .then(() => {
+            this.$store.commit('setCompletedPost', null)
+            this.postName = 'inProgressPost'
+            this.mutatorName = 'patchInProgressPost'
+            this.startEnabled = false
+          })
+    },
+    doFinish() {
+
     }
   },
-  beforeMount() {
-    this.$store.dispatch('getOptionalInProgressPost', { authHeader: this.authConfig() })
-    if (this.$store.state.inProgressPost) {
+  created() {
+    this.checkFinished = _.throttle(() => {
+      let stringParts = [
+        'intro.widwytk', 'intro.kryptonite', 'intro.whatAndWhen',
+        'personal.best', 'personal.worst',
+        'family.best', 'family.worst',
+        'work.best', 'work.worst'
+      ]
+      let numParts = [
+        'stats.exercise', 'stats.gtg', 'stats.meditate', 'stats.meetings',
+        'stats.pray', 'stats.read', 'stats.sponsor'
+      ]
+      let partsWithDataScore = 0;
+      stringParts.forEach((partName) => {
+        if (
+            this.$store.state.inProgressPost && this.$store.getters.getProperty('inProgressPost', partName) &&
+            this.$store.getters.getProperty('inProgressPost', partName).length > 0
+        ) {
+          partsWithDataScore++;
+        }
+      })
+      numParts.forEach((partName) => {
+        if (
+            this.$store.state.inProgressPost && this.$store.getters.getProperty('inProgressPost', partName) &&
+            this.$store.getters.getProperty('inProgressPost', partName) >= 0
+        ) {
+          partsWithDataScore++;
+        }
+      })
+      return (partsWithDataScore === (stringParts.length + numParts.length))
+    }, 1500)
+    this.checkFinished.bind(this);
+  },
+  async beforeMount() {
+    // TODO - need to deal wih situation where there are no in progress nor completed posts
+    let inProgressPostResponse = await this.$store.dispatch('getOptionalInProgressPost', { authHeader: this.authConfig() })
+    let completePostResponse = await this.$store.dispatch('getOptionalCompletedPost', { authHeader:  this.authConfig() })
+    if (inProgressPostResponse) {
+      this.$store.commit('setInProgressPost', inProgressPostResponse.data)
       this.postName = 'inProgressPost'
       this.mutatorName = 'patchInProgressPost'
-    } else {
-      // TODO - need to deal wih situation where there are no in progress nor completed posts
-      this.$store.dispatch('getOptionalCompletedPost', { authHeader:  this.authConfig() })
+    } else if (completePostResponse) {
+      this.$store.commit('setCompletedPost', completePostResponse.data)
       this.postName = 'completedPost'
       this.mutatorName = 'patchCompletedPost'
       this.startEnabled = true
     }
+    this.finishEnabled = this.checkFinished()
   }
 };
 </script>
