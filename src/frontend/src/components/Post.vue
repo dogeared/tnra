@@ -9,45 +9,45 @@
         <sui-tab-pane title="Intro">
           <sui-form-field>
             <label>What I Don't Want you to Know</label>
-            <textarea v-model="wid" :disabled="startEnabled"></textarea>
+            <textarea v-model="wid" :readonly="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Kryptonite</label>
-            <input v-model="kry" :disabled="startEnabled"/>
+            <input v-model="kry" :readonly="startEnabled"/>
           </sui-form-field>
           <sui-form-field>
             <label>What and When</label>
-            <textarea v-model="wha" :disabled="startEnabled"></textarea>
+            <textarea v-model="wha" :readonly="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Personal">
           <sui-form-field>
             <label>Best</label>
-            <textarea v-model="perBes" :disabled="startEnabled"></textarea>
+            <textarea v-model="perBes" :readonly="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Worst</label>
-            <textarea v-model="perWor" :disabled="startEnabled"></textarea>
+            <textarea v-model="perWor" :readonly="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Family">
           <sui-form-field>
             <label>Best</label>
-            <textarea v-model="famBes" :disabled="startEnabled"></textarea>
+            <textarea v-model="famBes" :readonly="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Worst</label>
-            <textarea v-model="famWor" :disabled="startEnabled"></textarea>
+            <textarea v-model="famWor" :readonly="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Work">
           <sui-form-field>
             <label>Best</label>
-            <textarea v-model="worBes" :disabled="startEnabled"></textarea>
+            <textarea v-model="worBes" :readonly="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Worst</label>
-            <textarea v-model="worWor" :disabled="startEnabled"></textarea>
+            <textarea v-model="worWor" :readonly="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Stats">
@@ -72,7 +72,7 @@
                     selection
                     :options="options"
                     v-model="exe"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -81,7 +81,7 @@
                     selection
                     :options="options"
                     v-model="gtg"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -90,7 +90,7 @@
                     selection
                     :options="options"
                     v-model="spo"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -99,7 +99,7 @@
                     selection
                     :options="options"
                     v-model="mee"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
             </sui-grid-row>
@@ -121,7 +121,7 @@
                     selection
                     :options="options"
                     v-model="rea"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -130,7 +130,7 @@
                     selection
                     :options="options"
                     v-model="pra"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -139,7 +139,7 @@
                     selection
                     :options="options"
                     v-model="med"
-                    :disabled="startEnabled"
+                    :readonly="startEnabled"
                 />
               </sui-grid-column>
             </sui-grid-row>
