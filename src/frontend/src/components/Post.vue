@@ -9,45 +9,45 @@
         <sui-tab-pane title="Intro">
           <sui-form-field>
             <label>What I Don't Want you to Know</label>
-            <textarea v-model="wid"></textarea>
+            <textarea v-model="wid" :disabled="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Kryptonite</label>
-            <input v-model="kry"/>
+            <input v-model="kry" :disabled="startEnabled"/>
           </sui-form-field>
           <sui-form-field>
             <label>What and When</label>
-            <textarea v-model="wha"></textarea>
+            <textarea v-model="wha" :disabled="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Personal">
           <sui-form-field>
             <label>Best</label>
-            <textarea v-model="perBes"></textarea>
+            <textarea v-model="perBes" :disabled="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Worst</label>
-            <textarea v-model="perWor"></textarea>
+            <textarea v-model="perWor" :disabled="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Family">
           <sui-form-field>
             <label>Best</label>
-            <textarea v-model="famBes"></textarea>
+            <textarea v-model="famBes" :disabled="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Worst</label>
-            <textarea v-model="famWor"></textarea>
+            <textarea v-model="famWor" :disabled="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Work">
           <sui-form-field>
             <label>Best</label>
-            <textarea v-model="worBes"></textarea>
+            <textarea v-model="worBes" :disabled="startEnabled"></textarea>
           </sui-form-field>
           <sui-form-field>
             <label>Worst</label>
-            <textarea v-model="worWor"></textarea>
+            <textarea v-model="worWor" :disabled="startEnabled"></textarea>
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Stats">
@@ -72,6 +72,7 @@
                     selection
                     :options="options"
                     v-model="exe"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -80,6 +81,7 @@
                     selection
                     :options="options"
                     v-model="gtg"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -88,6 +90,7 @@
                     selection
                     :options="options"
                     v-model="spo"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -96,6 +99,7 @@
                     selection
                     :options="options"
                     v-model="mee"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
             </sui-grid-row>
@@ -117,6 +121,7 @@
                     selection
                     :options="options"
                     v-model="rea"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -125,6 +130,7 @@
                     selection
                     :options="options"
                     v-model="pra"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
               <sui-grid-column>
@@ -133,6 +139,7 @@
                     selection
                     :options="options"
                     v-model="med"
+                    :disabled="startEnabled"
                 />
               </sui-grid-column>
             </sui-grid-row>
