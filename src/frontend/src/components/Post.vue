@@ -1,6 +1,6 @@
 <template lang="html">
   <div>
-    <h2>Post</h2>
+    <h2>POST - <span v-if="finished">COMPLETE</span><span v-else>IN PROGRESS</span></h2>
     <sui-form>
       <sui-button primary :disabled="!startEnabled" v-on:click.prevent="doStart">Start New Post</sui-button>
       <sui-button primary :disabled="!finishEnabled" v-on:click.prevent="doFinish">Finish Post</sui-button>
@@ -145,8 +145,6 @@
 </template>
 
 <script>
-import _ from 'lodash'
-
 export default {
   name: 'FormFieldsAccordion',
   data() {
