@@ -151,7 +151,6 @@ export default {
   name: 'FormFieldsAccordion',
   data() {
     return {
-      checkFinished: null,
       startEnabled: false,
       finishEnabled: false,
       postName: 'completedPost',
@@ -314,7 +313,7 @@ export default {
     },
     updatePost(mutator, key, value) {
       this.$store.commit(mutator, {key: key, value: value, authHeader: this.authConfig()})
-      this.finishEnabled = this.checkFinished()
+      this.finishEnabled = this.$store.getters.checkFinished()
     },
     formatTime(timeStr) {
       return (timeStr) ? new Date(timeStr).toLocaleString() : null;
@@ -337,43 +336,9 @@ export default {
             this.postName = 'completedPost'
             this.mutatorName = 'patchCompletePost'
             this.startEnabled = true
-            this.finishEnabled = this.checkFinished()
+            this.finishEnabled = this.$store.getters.checkFinished()
           })
     }
-  },
-  created() {
-    this.checkFinished = _.throttle(() => {
-      let stringParts = [
-        'intro.widwytk', 'intro.kryptonite', 'intro.whatAndWhen',
-        'personal.best', 'personal.worst',
-        'family.best', 'family.worst',
-        'work.best', 'work.worst'
-      ]
-      let numParts = [
-        'stats.exercise', 'stats.gtg', 'stats.meditate', 'stats.meetings',
-        'stats.pray', 'stats.read', 'stats.sponsor'
-      ]
-      let partsWithDataScore = 0;
-      stringParts.forEach((partName) => {
-        if (
-            this.$store.state.inProgressPost && this.$store.getters.getProperty('inProgressPost', partName) &&
-            this.$store.getters.getProperty('inProgressPost', partName).length > 0
-        ) {
-          partsWithDataScore++;
-        }
-      })
-      numParts.forEach((partName) => {
-        if (
-            this.$store.state.inProgressPost &&
-            this.$store.getters.getProperty('inProgressPost', partName) !== null &&
-            this.$store.getters.getProperty('inProgressPost', partName) >= 0
-        ) {
-          partsWithDataScore++;
-        }
-      })
-      return (partsWithDataScore === (stringParts.length + numParts.length))
-    }, 1500)
-    this.checkFinished.bind(this);
   },
   async beforeMount() {
     // TODO - need to deal wih situation where there are no in progress nor completed posts
@@ -389,7 +354,7 @@ export default {
       this.mutatorName = 'patchCompletedPost'
       this.startEnabled = true
     }
-    this.finishEnabled = this.checkFinished()
+    this.finishEnabled = this.$store.getters.checkFinished()
   }
 };
 </script>

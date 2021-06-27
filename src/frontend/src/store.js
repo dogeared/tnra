@@ -20,9 +20,44 @@ let updatePost = (postObj, payload) => {
 }
 /* eslint-enable no-unused-vars */
 
+const stringParts = [
+    'intro.widwytk', 'intro.kryptonite', 'intro.whatAndWhen',
+    'personal.best', 'personal.worst',
+    'family.best', 'family.worst',
+    'work.best', 'work.worst'
+]
+const numParts = [
+    'stats.exercise', 'stats.gtg', 'stats.meditate', 'stats.meetings',
+    'stats.pray', 'stats.read', 'stats.sponsor'
+]
+
+let checkFinished = (state) => {
+    let partsWithDataScore = 0;
+    stringParts.forEach((partName) => {
+        if (
+            state.inProgressPost && store.getters.getProperty('inProgressPost', partName) &&
+            store.getters.getProperty('inProgressPost', partName).length > 0
+        ) {
+            partsWithDataScore++;
+        }
+    })
+    numParts.forEach((partName) => {
+        if (
+            state.inProgressPost &&
+            store.getters.getProperty('inProgressPost', partName) !== null &&
+            store.getters.getProperty('inProgressPost', partName) >= 0
+        ) {
+            partsWithDataScore++;
+        }
+    })
+    return (partsWithDataScore === (stringParts.length + numParts.length))
+}
+
 let debouncedUpdatePost = _.debounce(updatePost, 1500, { maxWait: 1500 })
 
-export default new Vuex.Store({
+let throttledCheckFinished = _.throttle(checkFinished, 1500)
+
+const store = new Vuex.Store({
     state: {
         completedPost: null,
         inProgressPost: null
@@ -30,6 +65,9 @@ export default new Vuex.Store({
     getters: {
         getProperty: (state) =>  (name, key) => {
             return _.get(state[name], key)
+        },
+        checkFinished: (state) => () => {
+            return throttledCheckFinished(state)
         }
     },
     mutations: {
@@ -65,3 +103,5 @@ export default new Vuex.Store({
         /* eslint-enable no-unused-vars */
     }
 })
+
+export default store
