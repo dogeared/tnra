@@ -3,7 +3,11 @@ package com.afitnerd.tnra.controller;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.UserRepository;
+import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.PostService;
+import com.afitnerd.tnra.service.SlackPostRenderer;
+import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
+import com.afitnerd.tnra.slack.service.SlackAPIService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -18,10 +23,21 @@ import java.util.Optional;
 public class APIController {
 
     private PostService postService;
+    private EMailService eMailService;
+    private SlackAPIService slackAPIService;
+    private SlackPostRenderer slackPostRenderer;
+
     private UserRepository userRepository;
 
-    public APIController(PostService postService, UserRepository userRepository) {
+    public APIController(
+            PostService postService, EMailService eMailService,
+            SlackAPIService slackAPIService, SlackPostRenderer slackPostRenderer,
+            UserRepository userRepository
+    ) {
         this.postService = postService;
+        this.eMailService = eMailService;
+        this.slackAPIService = slackAPIService;
+        this.slackPostRenderer = slackPostRenderer;
         this.userRepository = userRepository;
     }
 
@@ -56,6 +72,11 @@ public class APIController {
     @PostMapping("/finish_from_app")
     Post finishPost(Principal me) {
         User user = userRepository.findByEmail(me.getName());
-        return postService.finishPost(user);
+        Post post = postService.finishPost(user);
+        eMailService.sendMailToAll(post);
+        // use chat api to send to general
+        Map<String, Object> charRes = slackAPIService.chat(slackPostRenderer.render(post));
+
+        return post;
     }
 }
