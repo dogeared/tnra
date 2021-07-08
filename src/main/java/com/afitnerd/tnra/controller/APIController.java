@@ -30,9 +30,9 @@ public class APIController {
     private UserRepository userRepository;
 
     public APIController(
-            PostService postService, EMailService eMailService,
-            SlackAPIService slackAPIService, SlackPostRenderer slackPostRenderer,
-            UserRepository userRepository
+        PostService postService, EMailService eMailService,
+        SlackAPIService slackAPIService, SlackPostRenderer slackPostRenderer,
+        UserRepository userRepository
     ) {
         this.postService = postService;
         this.eMailService = eMailService;

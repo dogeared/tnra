@@ -51,96 +51,49 @@
           </sui-form-field>
         </sui-tab-pane>
         <sui-tab-pane title="Stats">
-          <sui-grid :columns="4">
-            <sui-grid-row>
+          <h4>NOTE: You must set a value for each stat, even if 0</h4>
+          <sui-grid>
+            <sui-grid-row :columns="2">
               <sui-grid-column>
-                Exercise
+                <vue-slider v-model="exe" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="exeFormatter"
+                            style="padding: 45px 10px 30px 40px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
               <sui-grid-column>
-                GTG
-              </sui-grid-column>
-              <sui-grid-column>
-                Sponsor
-              </sui-grid-column>
-              <sui-grid-column>
-                Meetings
-              </sui-grid-column>
-            </sui-grid-row>
-            <sui-grid-row>
-              <sui-grid-column>
-                <sui-dropdown
-                    selection
-                    :options="options"
-                    v-model="exe"
-                    :readonly="startEnabled"
-                />
-              </sui-grid-column>
-              <sui-grid-column>
-                <sui-dropdown
-                    placeholder=""
-                    selection
-                    :options="options"
-                    v-model="gtg"
-                    :readonly="startEnabled"
-                />
-              </sui-grid-column>
-              <sui-grid-column>
-                <sui-dropdown
-                    placeholder=""
-                    selection
-                    :options="options"
-                    v-model="spo"
-                    :readonly="startEnabled"
-                />
-              </sui-grid-column>
-              <sui-grid-column>
-                <sui-dropdown
-                    placeholder=""
-                    selection
-                    :options="options"
-                    v-model="mee"
-                    :readonly="startEnabled"
-                />
+                <vue-slider v-model="gtg" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="gtgFormatter"
+                            style="padding: 45px 35px 30px 50px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
             </sui-grid-row>
-            <sui-grid-row>
+            <sui-grid-row :columns="2">
               <sui-grid-column>
-                Read
+                <vue-slider v-model="spo" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="spoFormatter"
+                            style="padding: 30px 10px 30px 40px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
               <sui-grid-column>
-                Pray
-              </sui-grid-column>
-              <sui-grid-column>
-                Meditate
+                <vue-slider v-model="mee" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="meeFormatter"
+                            style="padding: 30px 35px 30px 50px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
             </sui-grid-row>
-            <sui-grid-row>
+            <sui-grid-row :columns="2">
               <sui-grid-column>
-                <sui-dropdown
-                    placeholder=""
-                    selection
-                    :options="options"
-                    v-model="rea"
-                    :readonly="startEnabled"
-                />
+                <vue-slider v-model="rea" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="reaFormatter"
+                            style="padding: 30px 10px 30px 40px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
               <sui-grid-column>
-                <sui-dropdown
-                    placeholder=""
-                    selection
-                    :options="options"
-                    v-model="pra"
-                    :readonly="startEnabled"
-                />
+                <vue-slider v-model="pra" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="praFormatter"
+                            style="padding: 30px 35px 30px 50px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
+            </sui-grid-row>
+            <sui-grid-row :columns="2">
               <sui-grid-column>
-                <sui-dropdown
-                    placeholder=""
-                    selection
-                    :options="options"
-                    v-model="med"
-                    :readonly="startEnabled"
-                />
+                <vue-slider v-model="med" :max="7" :dot-options="dotOptions"
+                            :tooltip="'always'" :tooltip-formatter="medFormatter"
+                            style="padding: 30px 10px 30px 40px; width: auto; height: 4px;"></vue-slider>
               </sui-grid-column>
             </sui-grid-row>
           </sui-grid>
@@ -152,27 +105,33 @@
 </template>
 
 <script>
+import VueSlider from 'vue-slider-component'
+import 'vue-slider-component/theme/default.css'
+
 export default {
   name: 'FormFieldsAccordion',
+  components: {
+    VueSlider
+  },
   data() {
     return {
       startEnabled: false,
       finishEnabled: false,
       postName: 'completedPost',
       mutatorName: 'patchCompletePost',
-      options: [
-        { text: '0', value: 0 },
-        { text: '1', value: 1 },
-        { text: '2', value: 2 },
-        { text: '3', value: 3 },
-        { text: '4', value: 4 },
-        { text: '5', value: 5 },
-        { text: '6', value: 6 },
-        { text: '7', value: 7 },
-      ],
+      exeFormatter: v => v === null ? 'Exercise' : `Exercise: ${v}`,
+      gtgFormatter: v => v === null ? 'Go-to-Guy' : `Go-to-Guy: ${v}`,
+      spoFormatter: v => v === null ? 'Sponsor' : `Sponsor: ${v}`,
+      meeFormatter: v => v === null ? 'Meetings' : `Meetings: ${v}`,
+      praFormatter: v => v === null ? 'Pray' : `Pray: ${v}`,
+      reaFormatter: v => v === null ? 'Read' : `Read: ${v}`,
+      medFormatter: v => v === null ? 'Meditate' : `Meditate: ${v}`
     };
   },
   computed: {
+    dotOptions() {
+      return [{disabled: this.startEnabled}]
+    },
     started() {
       return this.formatTime(this.getPostPart(this.postName, 'start'))
     },
