@@ -8,6 +8,7 @@ import PostComponent from '@/components/Post'
 import { OktaAuth } from '@okta/okta-auth-js'
 import OktaVue, { LoginCallback } from '@okta/okta-vue'
 import authConfig from '@/config'
+import store from '@/store'
 
 Vue.use(Router)
 
@@ -43,5 +44,32 @@ const router = new Router({
     }
   ]
 })
+
+const onAuthRequired = async (from, to, next) => {
+  if (!from.matched.some(record => record.meta.requiresAuth)) {
+    next()
+    return
+  }
+
+  Vue.prototype.$auth.session.get()
+    .then(session => {
+      if (!store.state.sessionExpiresAt) {
+        store.commit('setSessionExpiresAt', new Date(session.expiresAt))
+        // TODO temp - get rid of
+        // var t = new Date();
+        // t.setSeconds(t.getSeconds() + 60);
+        // store.commit('setSessionExpiresAt', t)
+      }
+      console.log(`Session expires at: ${store.state.sessionExpiresAt}`)
+    })
+    .catch(err => {
+      // TODO handle error
+      store.commit('setSessionExpiresAt', new Date())
+      console.log(err);
+    })
+  next()
+}
+
+router.beforeEach(onAuthRequired)
 
 export default router
