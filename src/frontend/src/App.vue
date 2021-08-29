@@ -84,8 +84,10 @@ export default {
   },
   mounted() {
     this.interval = setInterval(async function () {
-      console.log(`Session expires at: ${this.$store.state.sessionExpiresAt}`)
-      this.$store.dispatch('sessionWarnCheck')
+      if (this.$store.state.sessionExpiresAt) {
+        console.log(`Session expires at: ${this.$store.state.sessionExpiresAt}`)
+      }
+      await this.$store.dispatch('sessionWarnCheck')
       if (this.$store.state.sessionWarning && !this.$store.state.sessionWarningSeen) {
         this.$store.commit('setSessionWarningSeen', true)
         this.open = true
