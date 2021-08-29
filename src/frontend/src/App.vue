@@ -96,7 +96,6 @@ export default {
           this.$store.state.sessionExpiresAt &&
           this.$store.state.sessionExpiresAt.getTime() - new Date().getTime() < 1000*20
       ) {
-        clearInterval(this.interval)
         this.logout()
       }
     }.bind(this), 30000)
@@ -109,6 +108,7 @@ export default {
       this.$auth.signInWithRedirect('/')
     },
     async logout () {
+      clearInterval(this.interval)
       await this.$auth.signOut()
     }
   }
