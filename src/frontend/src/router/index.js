@@ -60,7 +60,6 @@ const onAuthRequired = async (from, to, next) => {
         // t.setSeconds(t.getSeconds() + 60);
         // store.commit('setSessionExpiresAt', t)
       }
-      console.log(`Session expires at: ${store.state.sessionExpiresAt}`)
     })
     .catch(err => {
       // TODO handle error

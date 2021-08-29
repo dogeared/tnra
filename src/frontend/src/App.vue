@@ -74,6 +74,8 @@
 </template>
 
 <script>
+import store from "@/store";
+
 export default {
   name: 'app',
   data() {
@@ -84,6 +86,7 @@ export default {
   },
   mounted() {
     this.interval = setInterval(async function () {
+      console.log(`Session expires at: ${this.$store.state.sessionExpiresAt}`)
       this.$store.dispatch('sessionWarnCheck')
       if (this.$store.state.sessionWarning && !this.$store.state.sessionWarningSeen) {
         this.$store.commit('setSessionWarningSeen', true)
@@ -96,7 +99,7 @@ export default {
         clearInterval(this.interval)
         this.logout()
       }
-    }.bind(this), 10000)
+    }.bind(this), 30000)
   },
   methods: {
     closeSessionModal () {
