@@ -74,6 +74,8 @@
 </template>
 
 <script>
+import store from "@/store";
+
 export default {
   name: 'app',
   data() {
@@ -82,23 +84,8 @@ export default {
       interval: undefined
     }
   },
-  mounted() {
-    this.interval = setInterval(async function () {
-      if (this.$store.state.sessionExpiresAt) {
-        console.log(`Session expires at: ${this.$store.state.sessionExpiresAt}`)
-      }
-      await this.$store.dispatch('sessionWarnCheck')
-      if (this.$store.state.sessionWarning && !this.$store.state.sessionWarningSeen) {
-        this.$store.commit('setSessionWarningSeen', true)
-        this.open = true
-      }
-      if (
-          this.$store.state.sessionExpiresAt &&
-          this.$store.state.sessionExpiresAt.getTime() - new Date().getTime() < 1000*20
-      ) {
-        this.logout()
-      }
-    }.bind(this), 30000)
+  async mounted() {
+    await this.sessionCheckStart()
   },
   methods: {
     closeSessionModal () {
@@ -110,6 +97,30 @@ export default {
     async logout () {
       clearInterval(this.interval)
       await this.$auth.signOut()
+    },
+    async sessionCheckStart () {
+      // TODO - make this event driven
+      this.interval = setInterval(async function () {
+        let token = await this.$auth.tokenManager.get('accessToken')
+        if (token && token.claims && !store.state.sessionExpiresAt) {
+          store.commit('setSessionExpiresAt', new Date(token.claims.exp*1000))
+        }
+
+        if (store.state.sessionExpiresAt) {
+          console.log(`Session expires at: ${store.state.sessionExpiresAt}`)
+        }
+        await store.dispatch('sessionWarnCheck')
+        if (store.state.sessionWarning && !store.state.sessionWarningSeen) {
+          store.commit('setSessionWarningSeen', true)
+          this.open = true
+        }
+        if (
+            store.state.sessionExpiresAt &&
+            store.state.sessionExpiresAt.getTime() - new Date().getTime() < 1000*20
+        ) {
+          this.logout()
+        }
+      }.bind(this), 30000)
     }
   }
 }

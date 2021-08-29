@@ -8,7 +8,6 @@ import PostComponent from '@/components/Post'
 import { OktaAuth } from '@okta/okta-auth-js'
 import OktaVue, { LoginCallback } from '@okta/okta-vue'
 import authConfig from '@/config'
-import store from '@/store'
 
 Vue.use(Router)
 
@@ -44,37 +43,5 @@ const router = new Router({
     }
   ]
 })
-
-const onAuthRequired = async (from, to, next) => {
-  if (!from.matched.some(record => record.meta.requiresAuth)) {
-    next()
-    return
-  }
-
-  Vue.prototype.$auth.session.get()
-    .then(session => {
-      if (!store.state.sessionExpiresAt) {
-        // TODO something weird with session in deploy environ. need to investigate
-        let exp = new Date()
-        exp.setSeconds(exp.getSeconds() + 60*60*2);
-        if (session.expiresAt) {
-          exp = new Date(session.expiresAt)
-        }
-        store.commit('setSessionExpiresAt', exp)
-        // TODO temp - get rid of
-        // var t = new Date();
-        // t.setSeconds(t.getSeconds() + 60);
-        // store.commit('setSessionExpiresAt', t)
-      }
-    })
-    .catch(err => {
-      // TODO handle error
-      store.commit('setSessionExpiresAt', new Date())
-      console.log(err);
-    })
-  next()
-}
-
-router.beforeEach(onAuthRequired)
 
 export default router
