@@ -60,7 +60,8 @@ let throttledCheckFinished = _.throttle(checkFinished, 1500)
 const store = new Vuex.Store({
     state: {
         completedPost: null,
-        inProgressPost: null
+        inProgressPost: null,
+        sessionExpiresAt: null
     },
     getters: {
         getProperty: (state) =>  (name, key) => {
@@ -68,6 +69,9 @@ const store = new Vuex.Store({
         },
         checkFinished: (state) => () => {
             return throttledCheckFinished(state)
+        },
+        getSessionExpiresAt: (state) => {
+            return state.sessionExpiresAt
         }
     },
     mutations: {
@@ -84,6 +88,9 @@ const store = new Vuex.Store({
         },
         setInProgressPost: (state, post) => {
             state.inProgressPost = post
+        },
+        setSessionExpiresAt: (state, expiresAt) => {
+            state.sessionExpiresAt = expiresAt
         }
     },
     actions: {
