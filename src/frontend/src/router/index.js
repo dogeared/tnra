@@ -53,6 +53,7 @@ const onAuthRequired = async (from, to, next) => {
 
   Vue.prototype.$auth.session.get()
     .then(session => {
+      console.log(session)
       if (!store.state.sessionExpiresAt) {
         store.commit('setSessionExpiresAt', new Date(session.expiresAt))
         // TODO temp - get rid of
