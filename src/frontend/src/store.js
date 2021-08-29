@@ -61,7 +61,9 @@ const store = new Vuex.Store({
     state: {
         completedPost: null,
         inProgressPost: null,
-        sessionExpiresAt: null
+        sessionExpiresAt: null,
+        sessionWarning: false,
+        sessionWarningSeen: false
     },
     getters: {
         getProperty: (state) =>  (name, key) => {
@@ -69,9 +71,6 @@ const store = new Vuex.Store({
         },
         checkFinished: (state) => () => {
             return throttledCheckFinished(state)
-        },
-        getSessionExpiresAt: (state) => {
-            return state.sessionExpiresAt
         }
     },
     mutations: {
@@ -91,6 +90,12 @@ const store = new Vuex.Store({
         },
         setSessionExpiresAt: (state, expiresAt) => {
             state.sessionExpiresAt = expiresAt
+        },
+        setSessionWarning: (state, shouldWarn) => {
+            state.sessionWarning = shouldWarn
+        },
+        setSessionWarningSeen: (state, seen) => {
+            state.sessionWarningSeen = seen
         }
     },
     actions: {
@@ -106,6 +111,14 @@ const store = new Vuex.Store({
         },
         async finishPost({ commit }, payload) {
             return await axios.post(config.resourceServer.finish, {}, payload.authHeader)
+        },
+        sessionWarnCheck({ commit, state }) {
+            if (
+                state.sessionExpiresAt &&
+                state.sessionExpiresAt.getTime() - new Date().getTime() < 1000*60*5
+            ) {
+                commit('setSessionWarning', true)
+            }
         }
         /* eslint-enable no-unused-vars */
     }

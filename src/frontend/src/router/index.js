@@ -55,8 +55,12 @@ const onAuthRequired = async (from, to, next) => {
     .then(session => {
       if (!store.state.sessionExpiresAt) {
         store.commit('setSessionExpiresAt', new Date(session.expiresAt))
+        // TODO temp - get rid of
+        // var t = new Date();
+        // t.setSeconds(t.getSeconds() + 60);
+        // store.commit('setSessionExpiresAt', t)
       }
-      console.log(store.state.sessionExpiresAt)
+      console.log(`Session expires at: ${store.state.sessionExpiresAt}`)
     })
     .catch(err => {
       // TODO handle error

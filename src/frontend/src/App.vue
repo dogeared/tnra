@@ -50,6 +50,24 @@
       class="ui text container"
       style="margin-top: 7em;max-width: 1024px!important;"
     >
+      <sui-modal v-model="open">
+        <sui-modal-header>Session Warning</sui-modal-header>
+        <sui-modal-content>
+          <sui-modal-description>
+            <sui-header>Your session will expire soon</sui-header>
+            <p>
+              When the session expires, you will be logged out.
+              You will not lose any work. You can logout now and
+              login to continue where you left off.
+            </p>
+          </sui-modal-description>
+        </sui-modal-content>
+        <sui-modal-actions>
+          <sui-button positive @click.native="closeSessionModal()">
+            OK
+          </sui-button>
+        </sui-modal-actions>
+      </sui-modal>
       <router-view/>
     </div>
   </div>
@@ -58,7 +76,32 @@
 <script>
 export default {
   name: 'app',
+  data() {
+    return {
+      open: false,
+      interval: undefined
+    }
+  },
+  mounted() {
+    this.interval = setInterval(async function () {
+      this.$store.dispatch('sessionWarnCheck')
+      if (this.$store.state.sessionWarning && !this.$store.state.sessionWarningSeen) {
+        this.$store.commit('setSessionWarningSeen', true)
+        this.open = true
+      }
+      if (
+          this.$store.state.sessionExpiresAt &&
+          this.$store.state.sessionExpiresAt.getTime() - new Date().getTime() < 1000*20
+      ) {
+        clearInterval(this.interval)
+        this.logout()
+      }
+    }.bind(this), 10000)
+  },
   methods: {
+    closeSessionModal () {
+      this.open = false
+    },
     login () {
       this.$auth.signInWithRedirect('/')
     },
