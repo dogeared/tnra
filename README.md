@@ -59,3 +59,11 @@ You can also use the `local_post_test.sh` script as:
 The first param is the slack token and the second param is the url
 
 to do a complete test post locally
+
+## Helpful info
+
+To dump the database:
+
+```
+mysqldump -h <host> -u<username> -p --skip-column-statistics  --no-tablespaces <database name> > ~/tnra.sql
+```

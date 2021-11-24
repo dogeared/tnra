@@ -31,6 +31,12 @@ public class User {
     @Column(nullable = false)
     private String slackUserId;
 
+    @Column(length = 4000)
+    private String pqAccessToken;
+
+    @Column(length = 4000)
+    private String pqRefreshToken;
+
     public User() {}
 
     public User(String firstName, String lastName, String email) {
@@ -102,5 +108,21 @@ public class User {
 
     public void setSlackUserId(String slackUserId) {
         this.slackUserId = slackUserId;
+    }
+
+    public String getPqAccessToken() {
+        return pqAccessToken;
+    }
+
+    public void setPqAccessToken(String pqAccessToken) {
+        this.pqAccessToken = pqAccessToken;
+    }
+
+    public String getPqRefreshToken() {
+        return pqRefreshToken;
+    }
+
+    public void setPqRefreshToken(String pqRefreshToken) {
+        this.pqRefreshToken = pqRefreshToken;
     }
 }
