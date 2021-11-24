@@ -3,15 +3,13 @@ package com.afitnerd.tnra.controller;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.model.pq.PQAuthenticationRequest;
 import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
+import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.pq.PQService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.Principal;
@@ -46,5 +44,14 @@ public class PQController {
         user.setPqRefreshToken(response.getRefreshToken());
         userRepository.save(user);
         return Map.of("status", "SUCCESS");
+    }
+
+    @GetMapping("/pq_metrics")
+    public PQMeResponse pqMe(Principal me) throws IOException {
+        User user = userRepository.findByEmail(me.getName());
+        if (user.getPqAccessToken() != null) {
+            return pqService.metrics(user.getPqAccessToken());
+        }
+        return null;
     }
 }

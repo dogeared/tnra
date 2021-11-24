@@ -1,7 +1,7 @@
 package com.afitnerd.tnra.service.pq;
 
 import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.fluent.Request;
 import org.apache.http.entity.ContentType;
@@ -28,5 +28,23 @@ public class PQServiceImpl implements PQService {
             .execute()
             .returnContent().asStream();
         return mapper.readValue(responseStream, PQAuthenticationResponse.class);
+    }
+
+    @Override
+    public PQMeResponse me(String accessToken) throws IOException {
+        InputStream responseStream = Request.Get(PQ_BASE_API_URL + PQ_ME_URI)
+            .addHeader("x-access-token", accessToken)
+            .execute()
+            .returnContent().asStream();
+        return mapper.readValue(responseStream, PQMeResponse.class);
+    }
+
+    @Override
+    public PQMeResponse metrics(String accessToken) throws IOException {
+        InputStream responseStream = Request.Get(PQ_BASE_API_URL + PQ_METRICS_URI)
+                .addHeader("x-access-token", accessToken)
+                .execute()
+                .returnContent().asStream();
+        return mapper.readValue(responseStream, PQMeResponse.class);
     }
 }
