@@ -14,6 +14,8 @@ public interface PQService {
     String PQ_METRICS_URI = PQ_ME_URI + "/metrics";
 
     PQAuthenticationResponse authenticate(String email, String password) throws IOException;
+    PQAuthenticationResponse refresh(String refreshToken) throws IOException;
+
     PQMeResponse me(String accessToken) throws IOException;
     PQMeResponse metrics(String accessToken) throws IOException;
 }

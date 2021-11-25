@@ -52,6 +52,7 @@ public class PQController {
         if (user.getPqAccessToken() != null) {
             return pqService.metrics(user.getPqAccessToken());
         }
+        log.info("No PQ access token found for user: {} {}", user.getFirstName(), user.getLastName());
         return null;
     }
 }

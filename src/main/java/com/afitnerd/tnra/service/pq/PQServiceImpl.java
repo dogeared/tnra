@@ -16,6 +16,14 @@ public class PQServiceImpl implements PQService {
 
     ObjectMapper mapper = new ObjectMapper();
 
+    private PQAuthenticationResponse doAuthOperation(String json) throws IOException {
+        InputStream responseStream = Request.Post(PQ_BASE_API_URL + PQ_TOKENS_URI)
+                .bodyString(json, ContentType.APPLICATION_JSON)
+                .execute()
+                .returnContent().asStream();
+        return mapper.readValue(responseStream, PQAuthenticationResponse.class);
+    }
+
     @Override
     public PQAuthenticationResponse authenticate(String email, String password) throws IOException {
         String json = mapper.writeValueAsString(Map.of(
@@ -23,11 +31,15 @@ public class PQServiceImpl implements PQService {
             "password", password,
             "accept_terms_and_conditions", true
         ));
-        InputStream responseStream = Request.Post(PQ_BASE_API_URL + PQ_TOKENS_URI)
-            .bodyString(json, ContentType.APPLICATION_JSON)
-            .execute()
-            .returnContent().asStream();
-        return mapper.readValue(responseStream, PQAuthenticationResponse.class);
+        return doAuthOperation(json);
+    }
+
+    @Override
+    public PQAuthenticationResponse refresh(String refreshToken) throws IOException {
+        String json = mapper.writeValueAsString(Map.of(
+           "refresh_token", refreshToken
+        ));
+        return doAuthOperation(json);
     }
 
     @Override
