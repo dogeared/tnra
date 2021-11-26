@@ -66,7 +66,7 @@ export default {
   data() {
     return {
       stats: [],
-      isAuthenticated: false,
+      isAuthenticated: true,
       authError: false,
       pqEmail: '',
       pqPassword: ''
