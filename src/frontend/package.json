@@ -11,7 +11,7 @@
   "dependencies": {
     "@okta/okta-auth-js": "^4.9.2",
     "@okta/okta-vue": "^3.1.0",
-    "axios": "^0.21.1",
+    "axios": "^0.21.3",
     "core-js": "^3.14.0",
     "google-maps-api-loader": "1.1.1",
     "lodash": "^4.17.21",

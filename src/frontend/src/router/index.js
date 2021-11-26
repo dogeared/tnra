@@ -4,6 +4,7 @@ import Router from 'vue-router'
 import HomeComponent from '@/components/Home'
 import ProfileComponent from '@/components/Profile'
 import PostComponent from '@/components/Post'
+import StatsComponent from '@/components/Stats'
 
 import { OktaAuth } from '@okta/okta-auth-js'
 import OktaVue, { LoginCallback } from '@okta/okta-vue'
@@ -30,6 +31,13 @@ const router = new Router({
     {
       path: '/post',
       component: PostComponent,
+      meta: {
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/stats',
+      component: StatsComponent,
       meta: {
         requiresAuth: true
       }

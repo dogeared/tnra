@@ -7,12 +7,18 @@ import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.pq.PQService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.client.HttpResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -32,6 +38,12 @@ public class PQController {
         this.userRepository = userRepository;
     }
 
+    @ExceptionHandler({HttpResponseException.class})
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, Object> handleException(HttpResponseException exception) {
+        return Map.of("status", "FAILURE");
+    }
+
     @PostMapping("/pq_authenticate")
     public Map<String, String> pqAuthenticate(
         Principal me, @RequestBody PQAuthenticationRequest request
@@ -46,13 +58,39 @@ public class PQController {
         return Map.of("status", "SUCCESS");
     }
 
-    @GetMapping("/pq_metrics")
+    @GetMapping("/pq_is_authenticated")
+    public Map<String, Object> isAuthenticated(Principal me) throws IOException {
+        User user = userRepository.findByEmail(me.getName());
+        return Map.of("is_authenticated", user.getPqAccessToken() != null);
+    }
+
+    @GetMapping("/pq_metrics_me")
     public PQMeResponse pqMe(Principal me) throws IOException {
         User user = userRepository.findByEmail(me.getName());
         if (user.getPqAccessToken() != null) {
             return pqService.metrics(user.getPqAccessToken());
         }
-        log.info("No PQ access token found for user: {} {}", user.getFirstName(), user.getLastName());
+        log.info("No PQ access token found for user id: {}", user.getId());
         return null;
+    }
+
+    @GetMapping("/pq_metrics_all")
+    Map<String, PQMeResponse> pqMetricsAll(Principal me) throws IOException {
+        Map<String, PQMeResponse> ret = new HashMap<>();
+        userRepository.findAll().forEach(user -> {
+            try {
+                String accessToken = user.getPqAccessToken();
+                if (accessToken != null) {
+                    ret.put(user.getFirstName() + " " + user.getLastName(), pqService.metrics(accessToken));
+                } else {
+                    log.info("No PQ access token found for user id: {}", user.getId());
+                }
+            } catch(IOException e) {
+                log.error(
+                    "Failed to retrieve pq metrics for user id: {}, Message: {}", user.getId(), e.getMessage(), e
+                );
+            }
+        });
+        return ret;
     }
 }

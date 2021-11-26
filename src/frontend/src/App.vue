@@ -29,6 +29,14 @@
           Post
         </router-link>
         <router-link
+          to="/stats"
+          class="item"
+          id="post-button"
+          v-if="authState.isAuthenticated"
+        >
+          Stats
+        </router-link>
+        <router-link
           to="/profile"
           class="item"
           id="profile-button"
