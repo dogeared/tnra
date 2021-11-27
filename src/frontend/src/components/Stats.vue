@@ -87,7 +87,8 @@ export default {
     calculateCharge(charge, updatedAt) {
       let now = Date.now()
       let adj = (now - updatedAt)/1000/60/4;
-      return Number(charge-adj).toFixed(0)
+      let finalCharge = (charge-adj) < 0 ? 0 : (charge-adj);
+      return Number(finalCharge).toFixed(0)
     },
     processPQ() {
       axios.post(
