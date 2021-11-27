@@ -27,6 +27,9 @@ public class PQMeResponse {
         @JsonProperty("reps_day")
         private Integer repsToday;
 
+        @JsonProperty("updated_at")
+        private Long updatedAt;
+
         public BigDecimal getCharge() {
             return charge;
         }
@@ -49,6 +52,14 @@ public class PQMeResponse {
 
         public void setRepsToday(Integer repsToday) {
             this.repsToday = repsToday;
+        }
+
+        public Long getUpdatedAt() {
+            return updatedAt;
+        }
+
+        public void setUpdatedAt(Long updatedAt) {
+            this.updatedAt = updatedAt;
         }
     }
 }

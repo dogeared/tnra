@@ -34,7 +34,7 @@
           id="post-button"
           v-if="authState.isAuthenticated"
         >
-          Stats
+          PQ Stats
         </router-link>
         <router-link
           to="/profile"

@@ -48,7 +48,7 @@
           :key="key"
       >
         <td>{{key}}</td>
-        <td>{{Number(value.pq.charge).toFixed(0)}}</td>
+        <td>{{calculateCharge(value.pq.charge, value.pq.updated_at)}}</td>
         <td>{{Number(value.pq.muscle).toFixed(0)}}</td>
         <td>{{value.pq.reps_day}}</td>
       </tr>
@@ -83,6 +83,11 @@ export default {
     authConfig() {
       const accessToken = this.$auth.getAccessToken()
       return { headers: { Authorization: `Bearer ${accessToken}` } }
+    },
+    calculateCharge(charge, updatedAt) {
+      let now = Date.now()
+      let adj = (now - updatedAt)/1000/60/4;
+      return Number(charge-adj).toFixed(0)
     },
     processPQ() {
       axios.post(
