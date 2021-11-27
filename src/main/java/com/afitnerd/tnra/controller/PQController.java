@@ -5,20 +5,18 @@ import com.afitnerd.tnra.model.pq.PQAuthenticationRequest;
 import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
 import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.repository.UserRepository;
+import com.afitnerd.tnra.service.pq.PQRefreshService;
 import com.afitnerd.tnra.service.pq.PQService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.HttpResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.core.parameters.P;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -26,6 +24,7 @@ import java.util.Map;
 public class PQController {
 
     private PQService pqService;
+    private PQRefreshService pqRefreshService;
 
     private UserRepository userRepository;
 
@@ -33,8 +32,9 @@ public class PQController {
 
     private static Logger log = LoggerFactory.getLogger(PQController.class);
 
-    public PQController(PQService pqService, UserRepository userRepository) {
+    public PQController(PQService pqService, PQRefreshService pqRefreshService, UserRepository userRepository) {
         this.pqService = pqService;
+        this.pqRefreshService = pqRefreshService;
         this.userRepository = userRepository;
     }
 
@@ -74,21 +74,34 @@ public class PQController {
         return null;
     }
 
+    private PQMeResponse getMetrics(User user, boolean retry) {
+        String accessToken = user.getPqAccessToken();
+        try {
+            return pqService.metrics(accessToken);
+        } catch (IOException e) {
+            log.error(
+                "Failed to retrieve pq metrics for user id: {}, Message: {}. Will refresh and retry once.",
+                user.getId(), e.getMessage(), e
+            );
+            if (retry) {
+                pqRefreshService.refreshAuth(user);
+                return getMetrics(user, false);
+            }
+        }
+        return null;
+    }
+
     @GetMapping("/pq_metrics_all")
-    Map<String, PQMeResponse> pqMetricsAll(Principal me) throws IOException {
+    Map<String, PQMeResponse> pqMetricsAll() {
         Map<String, PQMeResponse> ret = new HashMap<>();
         userRepository.findAll().forEach(user -> {
-            try {
-                String accessToken = user.getPqAccessToken();
-                if (accessToken != null) {
-                    ret.put(user.getFirstName() + " " + user.getLastName(), pqService.metrics(accessToken));
-                } else {
-                    log.info("No PQ access token found for user id: {}", user.getId());
-                }
-            } catch(IOException e) {
-                log.error(
-                    "Failed to retrieve pq metrics for user id: {}, Message: {}", user.getId(), e.getMessage(), e
-                );
+            if (user.getPqAccessToken() == null) {
+                log.info("No PQ access token found for user id: {}", user.getId());
+                return;
+            }
+            PQMeResponse metrics = getMetrics(user, true);
+            if (metrics != null) {
+                ret.put(user.getFirstName() + " " + user.getLastName(), metrics);
             }
         });
         return ret;

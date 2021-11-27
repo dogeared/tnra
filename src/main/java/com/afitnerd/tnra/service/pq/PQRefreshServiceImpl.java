@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.service.pq;
 
+import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
 import com.afitnerd.tnra.repository.UserRepository;
 import org.slf4j.Logger;
@@ -26,24 +27,28 @@ public class PQRefreshServiceImpl implements PQRefreshService {
     }
 
     @Override
+    public void refreshAuth(User user) {
+        String refreshToken = user.getPqRefreshToken();
+        if (refreshToken == null) {
+            log.info("No refresh token for user with id: {}", user.getId());
+            return;
+        }
+        try {
+            PQAuthenticationResponse response = pqService.refresh(refreshToken);
+            user.setPqAccessToken(response.getAccessToken());
+            user.setPqRefreshToken(response.getRefreshToken());
+            userRepository.save(user);
+        } catch (IOException e) {
+            log.error(
+                    "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
+            );
+        }
+
+    }
+
+    @Override
     @Scheduled(cron = "${pq.refresh.schedule}")
     public void refreshAuthAll() {
-        userRepository.findAll().forEach(user -> {
-            String refreshToken = user.getPqRefreshToken();
-            if (refreshToken == null) {
-                log.info("No refresh token for user with id: {}", user.getId());
-                return;
-            }
-            try {
-                PQAuthenticationResponse response = pqService.refresh(refreshToken);
-                user.setPqAccessToken(response.getAccessToken());
-                user.setPqRefreshToken(response.getRefreshToken());
-                userRepository.save(user);
-            } catch (IOException e) {
-                log.error(
-                    "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
-                );
-            }
-        });
+        userRepository.findAll().forEach(this::refreshAuth);
     }
 }
