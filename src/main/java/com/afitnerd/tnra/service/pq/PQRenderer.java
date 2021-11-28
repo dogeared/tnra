@@ -1,7 +1,12 @@
 package com.afitnerd.tnra.service.pq;
 
 import com.afitnerd.tnra.model.pq.PQMeResponse;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.math.BigDecimal;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.Map;
@@ -33,6 +38,13 @@ public interface PQRenderer {
     }
 
     static String render(Map<String, PQMeResponse> metricsAll) {
+
+        metricsAll.entrySet().stream().forEach(entry -> {
+            PQMeResponse.Pq pq = entry.getValue().getPq();
+            pq.setCharge(new BigDecimal(calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt())));
+            pq.setMuscle(new BigDecimal(Math.round(pq.getMuscle().doubleValue())));
+        });
+
         final StringBuffer ret = new StringBuffer();
         ret.append("```\n")
             .append(padRight("Name", 20)).append(padLeft("Charge", 10))
@@ -51,16 +63,14 @@ public interface PQRenderer {
         String repsWinName = metricsAll.entrySet().stream()
             .max(Comparator.comparing(e -> e.getValue().getPq().getRepsToday()))
             .orElseThrow(NoSuchElementException::new).getKey();
+
         metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
             String name = entry.getKey();
             PQMeResponse.Pq pq = entry.getValue().getPq();
             ret.append(padRight(name, 20))
-                .append(padLeft((name.equals(chargeWinName))?"*":"" +
-                    calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt()), 10))
-                .append(padLeft((name.equals(muscleWinName))?"*":"" +
-                    Math.round(pq.getMuscle().doubleValue()), 9))
-                .append(padLeft((name.equals(repsWinName))?"*":"" +
-                    pq.getRepsToday(), 12))
+                .append(padLeft(((name.equals(chargeWinName))?"*":"") + Math.round(pq.getCharge().doubleValue()), 10))
+                .append(padLeft(((name.equals(muscleWinName))?"*":"") + Math.round(pq.getMuscle().doubleValue()), 9))
+                .append(padLeft(((name.equals(repsWinName))?"*":"") + pq.getRepsToday(), 12))
                 .append("\n");
         });
         return ret.append("```").toString();
