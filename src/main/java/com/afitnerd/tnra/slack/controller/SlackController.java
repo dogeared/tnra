@@ -122,11 +122,13 @@ public class SlackController {
             .append(padRight("----", 20)).append(padLeft("------", 10))
             .append(padLeft("------", 9)).append(padLeft("----------", 12))
             .append("\n");
-        metricsAll.forEach((k, v) -> {
-            ret.append(padRight(k, 20))
-                .append(padLeft("" + calcCharge(v.getPq().getCharge().doubleValue(), v.getPq().getUpdatedAt()), 10))
-                .append(padLeft("" + Math.round(v.getPq().getMuscle().doubleValue()), 9))
-                .append(padLeft("" + v.getPq().getRepsToday(), 12))
+        metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+            String name = entry.getKey();
+            PQMeResponse.Pq pq = entry.getValue().getPq();
+            ret.append(padRight(name, 20))
+                .append(padLeft("" + calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt()), 10))
+                .append(padLeft("" + Math.round(pq.getMuscle().doubleValue()), 9))
+                .append(padLeft("" + pq.getRepsToday(), 12))
                 .append("\n");
         });
         return ret.append("```").toString();
