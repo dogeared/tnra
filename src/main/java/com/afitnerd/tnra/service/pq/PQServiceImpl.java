@@ -52,6 +52,7 @@ public class PQServiceImpl implements PQService {
             user.setPqAccessToken(response.getAccessToken());
             user.setPqRefreshToken(response.getRefreshToken());
             userRepository.save(user);
+            log.info("Refreshed tokens for user: {}", user.getId());
         } catch (IOException e) {
             log.error(
                 "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
