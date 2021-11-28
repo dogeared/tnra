@@ -2,8 +2,10 @@ package com.afitnerd.tnra.service.pq;
 
 import com.afitnerd.tnra.model.pq.PQMeResponse;
 
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public interface PQRenderer {
 
@@ -40,13 +42,25 @@ public interface PQRenderer {
             .append(padRight("----", 20)).append(padLeft("------", 10))
             .append(padLeft("------", 9)).append(padLeft("----------", 12))
             .append("\n");
+        String chargeWinName = metricsAll.entrySet().stream()
+            .max(Comparator.comparing(e -> e.getValue().getPq().getCharge()))
+            .orElseThrow(NoSuchElementException::new).getKey();
+        String muscleWinName = metricsAll.entrySet().stream()
+            .max(Comparator.comparing(e -> e.getValue().getPq().getMuscle()))
+            .orElseThrow(NoSuchElementException::new).getKey();
+        String repsWinName = metricsAll.entrySet().stream()
+            .max(Comparator.comparing(e -> e.getValue().getPq().getRepsToday()))
+            .orElseThrow(NoSuchElementException::new).getKey();
         metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
             String name = entry.getKey();
             PQMeResponse.Pq pq = entry.getValue().getPq();
             ret.append(padRight(name, 20))
-                .append(padLeft("" + calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt()), 10))
-                .append(padLeft("" + Math.round(pq.getMuscle().doubleValue()), 9))
-                .append(padLeft("" + pq.getRepsToday(), 12))
+                .append(padLeft((name.equals(chargeWinName))?"*":"" +
+                    calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt()), 10))
+                .append(padLeft((name.equals(muscleWinName))?"*":"" +
+                    Math.round(pq.getMuscle().doubleValue()), 9))
+                .append(padLeft((name.equals(repsWinName))?"*":"" +
+                    pq.getRepsToday(), 12))
                 .append("\n");
         });
         return ret.append("```").toString();
