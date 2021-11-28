@@ -1,9 +1,9 @@
 package com.afitnerd.tnra.slack.controller;
 
-import com.afitnerd.tnra.controller.PQController;
 import com.afitnerd.tnra.exception.PostException;
 import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.service.pq.PQRenderer;
+import com.afitnerd.tnra.service.pq.PQService;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
@@ -14,12 +14,7 @@ import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
@@ -33,7 +28,7 @@ public class SlackController {
 
     private SlackSlashCommandService slackSlashCommandService;
     private SlackAPIService slackAPIService;
-    private PQController pqController;
+    private PQService pqService;
 
     private static final String POST_COMMAND = "/post";
 
@@ -63,11 +58,11 @@ public class SlackController {
     public SlackController(
         SlackSlashCommandService slackSlashCommandService,
         SlackAPIService slackAPIService,
-        PQController pqController
+        PQService pqService
     ) {
         this.slackSlashCommandService = slackSlashCommandService;
         this.slackAPIService = slackAPIService;
-        this.pqController = pqController;
+        this.pqService = pqService;
     }
 
     @RequestMapping(
@@ -93,51 +88,6 @@ public class SlackController {
         return slackSlashCommandResponse;
     }
 
-//    private Long calcCharge(Double charge, Long updatedAt) {
-//        Long now = new Date().getTime();
-//        Long adj = (now - updatedAt)/1000/60/4;
-//        Double finalCharge = (charge - adj) < 0 ? 0 : (charge - adj);
-//        return Math.round(finalCharge);
-//    }
-//
-//    private String pad(String str, Integer length, String padDir) {
-//        if (length < str.length()) {
-//            return str;
-//        }
-//        return String.format("%1$" + padDir + length + "s", str);
-//
-//    }
-//
-//    private String padLeft(String str, Integer length) {
-//        return pad(str, length, "");
-//    }
-//
-//    private String padRight(String str, Integer length) {
-//        return pad(str, length, "-");
-//    }
-//
-//    private String renderPQ(Map<String, PQMeResponse> metricsAll) {
-//        final StringBuffer ret = new StringBuffer();
-//        ret.append("```\n")
-//            .append(padRight("Name", 20)).append(padLeft("Charge", 10))
-//            .append(padLeft("Muscle", 9)).append(padLeft("Reps Today", 12))
-//            .append("\n");
-//        ret
-//            .append(padRight("----", 20)).append(padLeft("------", 10))
-//            .append(padLeft("------", 9)).append(padLeft("----------", 12))
-//            .append("\n");
-//        metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
-//            String name = entry.getKey();
-//            PQMeResponse.Pq pq = entry.getValue().getPq();
-//            ret.append(padRight(name, 20))
-//                .append(padLeft("" + calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt()), 10))
-//                .append(padLeft("" + Math.round(pq.getMuscle().doubleValue()), 9))
-//                .append(padLeft("" + pq.getRepsToday(), 12))
-//                .append("\n");
-//        });
-//        return ret.append("```").toString();
-//    }
-
     @RequestMapping(
         value = "/pq", method = RequestMethod.POST,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
@@ -151,7 +101,7 @@ public class SlackController {
         }
 
         executor.execute(() -> {
-            Map<String, PQMeResponse> metricsAll = pqController.pqMetricsAll();
+            Map<String, PQMeResponse> metricsAll = pqService.pqMetricsAll();
             slackAPIService.chat(PQRenderer.render(metricsAll));
         });
 
