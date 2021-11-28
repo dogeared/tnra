@@ -40,7 +40,7 @@ public class PQRefreshServiceImpl implements PQRefreshService {
             userRepository.save(user);
         } catch (IOException e) {
             log.error(
-                    "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
+                "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
             );
         }
 
