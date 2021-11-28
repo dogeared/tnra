@@ -80,14 +80,12 @@ export default {
       },
       cellStyleOption: {
         bodyCellClass: ({column, rowIndex}) => {
-          let winRepsRow = this.calcRepsWinRow('reps')
-          let winMuscleRow = this.calcRepsWinRow('muscle')
-          let winChargeRow = this.calcRepsWinRow('charge')
-          if (column.field === 'reps' && rowIndex === winRepsRow) {
+          let winRows = this.calcWinRows()
+          if (column.field === 'reps' && rowIndex === winRows.reps) {
             return 'table-body-cell-class-reps'
-          } else if (column.field === 'muscle' && rowIndex === winMuscleRow) {
+          } else if (column.field === 'muscle' && rowIndex === winRows.muscle) {
             return 'table-body-cell-class-muscle'
-          } else if (column.field === 'charge' && rowIndex === winChargeRow) {
+          } else if (column.field === 'charge' && rowIndex === winRows.charge) {
             return 'table-body-cell-class-charge'
           }
         }
@@ -106,17 +104,18 @@ export default {
       const accessToken = this.$auth.getAccessToken()
       return { headers: { Authorization: `Bearer ${accessToken}` } }
     },
-    calcRepsWinRow(elem) {
-      // return Math.max.apply(Math, this.tableData.map((o) => { console.log(o.reps); return o.reps }))
-      let winVal = 0;
-      let winRow = 0;
+    calcWinRows() {
+      let winVals = {reps: 0, muscle: 0, charge: 0}
+      let winRows = {reps: 0, muscle: 0, charge: 0}
       for (let i = 0; i<this.tableData.length; i++) {
-        if (this.tableData[i][elem] > winVal) {
-          winVal = this.tableData[i][elem]
-          winRow = i
-        }
+        ['reps', 'muscle', 'charge'].forEach(elem => {
+          if (Number(this.tableData[i][elem]) > winVals[elem]) {
+            winVals[elem] = Number(this.tableData[i][elem])
+            winRows[elem] = i
+          }
+        })
       }
-      return winRow
+      return winRows
     },
     calculateCharge(charge, updatedAt) {
       let now = Date.now()
