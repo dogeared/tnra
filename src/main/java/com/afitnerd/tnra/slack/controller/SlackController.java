@@ -5,6 +5,7 @@ import com.afitnerd.tnra.exception.PostException;
 import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
+import com.afitnerd.tnra.slack.service.SlackAPIService;
 import com.afitnerd.tnra.slack.service.SlackSlashCommandService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.client.fluent.Request;
@@ -31,6 +32,7 @@ import java.util.concurrent.Executors;
 public class SlackController {
 
     private SlackSlashCommandService slackSlashCommandService;
+    private SlackAPIService slackAPIService;
     private PQController pqController;
 
     private static final String POST_COMMAND = "/post";
@@ -60,9 +62,11 @@ public class SlackController {
 
     public SlackController(
         SlackSlashCommandService slackSlashCommandService,
+        SlackAPIService slackAPIService,
         PQController pqController
     ) {
         this.slackSlashCommandService = slackSlashCommandService;
+        this.slackAPIService = slackAPIService;
         this.pqController = pqController;
     }
 
@@ -146,10 +150,14 @@ public class SlackController {
             throw new IllegalArgumentException("Slack token is incorrect.");
         }
 
-        Map<String, PQMeResponse> metricsAll = pqController.pqMetricsAll();
+        executor.execute(() -> {
+            Map<String, PQMeResponse> metricsAll = pqController.pqMetricsAll();
+            slackAPIService.chat(renderPQ(metricsAll));
+        });
+
         SlackSlashCommandResponse response = new SlackSlashCommandResponse();
-        response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
-        response.setText(renderPQ(metricsAll));
+        response.setResponseType(SlackSlashCommandResponse.ResponseType.EPHEMERAL);
+        response.setText("PQ stats are on the way...");
         return response;
     }
 
