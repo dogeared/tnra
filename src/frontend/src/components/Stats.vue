@@ -33,28 +33,7 @@
         <sui-button type="submit">Submit PQ Credentials</sui-button>
       </sui-form>
     </div>
-    <table class="ui table" v-if="isAuthenticated">
-      <thead>
-      <tr>
-        <th>Name</th>
-        <th>Charge</th>
-        <th>Muscle</th>
-        <th>Reps Today</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr
-          v-for="(value, key) in stats"
-          :key="key"
-      >
-        <td>{{key}}</td>
-        <td>{{calculateCharge(value.pq.charge, value.pq.updated_at)}}</td>
-        <td>{{Number(value.pq.muscle).toFixed(0)}}</td>
-        <td>{{value.pq.reps_day}}</td>
-      </tr>
-      </tbody>
-    </table>
-
+    <ve-table v-if="isAuthenticated" :columns="columns" :table-data="tableData" :sort-option="sortOption" />
   </div>
 </template>
 <script>
@@ -65,11 +44,22 @@ export default {
   name: 'FormFieldsAccordion',
   data() {
     return {
-      stats: [],
       isAuthenticated: true,
       authError: false,
       pqEmail: '',
-      pqPassword: ''
+      pqPassword: '',
+      columns: [
+        { field: "name", key: "a", title: "Name", align: "left", sortBy: "asc" },
+        { field: "charge", key: "b", title: "Charge", align: "right", sortBy: "" },
+        { field: "muscle", key: "c", title: "Muscle", align: "right", sortBy: "" },
+        { field: "reps", key: "d", title: "Reps Today", align: "right", sortBy: "" },
+      ],
+      tableData: [],
+      sortOption: {
+        sortChange: (params) => {
+          this.sortChange(params);
+        }
+      }
     }
   },
   mounted() {
@@ -104,12 +94,62 @@ export default {
         this.authError = true
       })
     },
+    transformPQData(data) {
+      let ret = []
+      for (let name in data) {
+        let pq = data[name].pq
+        ret.push({
+          name: name, charge: this.calculateCharge(pq.charge, pq.updated_at),
+          muscle: Number(pq.muscle).toFixed(0), reps: pq.reps_day
+        })
+      }
+      return ret.sort((a,b) => {
+        return a.name.localeCompare(b.name)
+      })
+    },
     getAllStats() {
       axios.get(
           config.resourceServer.pq_metrics_all, this.authConfig()
       )
       .then(result => {
-        this.stats = result.data
+        this.tableData = this.transformPQData(result.data)
+      })
+    },
+    sortChange(params) {
+      this.tableData.sort((a, b) => {
+        if (params.name) {
+          if (params.name === 'asc') {
+            return a.name.localeCompare(b.name)
+          } else if (params.name === 'desc') {
+            return b.name.localeCompare(a.name)
+          } else {
+            return 0
+          }
+        } else if (params.charge) {
+          if (params.charge === 'asc') {
+            return a.charge - b.charge
+          } else if (params.charge === 'desc') {
+            return b.charge - a.charge
+          } else {
+            return 0
+          }
+        } else if (params.muscle) {
+          if (params.muscle === 'asc') {
+            return a.muscle - b.muscle
+          } else if (params.muscle === 'desc') {
+            return b.muscle - a.muscle
+          } else {
+            return 0
+          }
+        } else if (params.reps) {
+          if (params.reps === 'asc') {
+            return a.reps - b.reps
+          } else if (params.reps === 'desc') {
+            return b.reps - a.reps
+          } else {
+            return 0
+          }
+        }
       })
     }
   }
