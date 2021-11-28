@@ -1,6 +1,8 @@
 package com.afitnerd.tnra.slack.controller;
 
+import com.afitnerd.tnra.controller.PQController;
 import com.afitnerd.tnra.exception.PostException;
+import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackSlashCommandService;
@@ -19,6 +21,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.util.Date;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -27,6 +31,7 @@ import java.util.concurrent.Executors;
 public class SlackController {
 
     private SlackSlashCommandService slackSlashCommandService;
+    private PQController pqController;
 
     private static final String POST_COMMAND = "/post";
 
@@ -53,8 +58,12 @@ public class SlackController {
         }
     }
 
-    public SlackController(SlackSlashCommandService slackSlashCommandService) {
+    public SlackController(
+        SlackSlashCommandService slackSlashCommandService,
+        PQController pqController
+    ) {
         this.slackSlashCommandService = slackSlashCommandService;
+        this.pqController = pqController;
     }
 
     @RequestMapping(
@@ -78,6 +87,68 @@ public class SlackController {
         slackSlashCommandResponse.setText("Command received: " + command);
 
         return slackSlashCommandResponse;
+    }
+
+    private Long calcCharge(Double charge, Long updatedAt) {
+        Long now = new Date().getTime();
+        Long adj = (now - updatedAt)/1000/60/4;
+        Double finalCharge = (charge - adj) < 0 ? 0 : (charge - adj);
+        return Math.round(finalCharge);
+    }
+
+    private String pad(String str, Integer length, String padDir) {
+        if (length < str.length()) {
+            return str;
+        }
+        return String.format("%1$" + padDir + length + "s", str);
+
+    }
+
+    private String padLeft(String str, Integer length) {
+        return pad(str, length, "");
+    }
+
+    private String padRight(String str, Integer length) {
+        return pad(str, length, "-");
+    }
+
+    private String renderPQ(Map<String, PQMeResponse> metricsAll) {
+        final StringBuffer ret = new StringBuffer();
+        ret.append("```\n")
+            .append(padRight("Name", 20)).append(padLeft("Charge", 10))
+            .append(padLeft("Muscle", 9)).append(padLeft("Reps Today", 12))
+            .append("\n");
+        ret
+            .append(padRight("----", 20)).append(padLeft("------", 10))
+            .append(padLeft("------", 9)).append(padLeft("----------", 12))
+            .append("\n");
+        metricsAll.forEach((k, v) -> {
+            ret.append(padRight(k, 20))
+                .append(padLeft("" + calcCharge(v.getPq().getCharge().doubleValue(), v.getPq().getUpdatedAt()), 10))
+                .append(padLeft("" + Math.round(v.getPq().getMuscle().doubleValue()), 9))
+                .append(padLeft("" + v.getPq().getRepsToday(), 12))
+                .append("\n");
+        });
+        return ret.append("```").toString();
+    }
+
+    @RequestMapping(
+        value = "/pq", method = RequestMethod.POST,
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public @ResponseBody
+    SlackSlashCommandResponse pq(@RequestBody SlackSlashCommandRequest slackSlashCommandRequest) {
+        log.debug("slackSlashCommandRequest: {}", slackSlashCommandRequest);
+
+        if (!slackSlashCommandService.isValidToken(slackSlashCommandRequest)) {
+            throw new IllegalArgumentException("Slack token is incorrect.");
+        }
+
+        Map<String, PQMeResponse> metricsAll = pqController.pqMetricsAll();
+        SlackSlashCommandResponse response = new SlackSlashCommandResponse();
+        response.setResponseType(SlackSlashCommandResponse.ResponseType.IN_CHANNEL);
+        response.setText(renderPQ(metricsAll));
+        return response;
     }
 
     @RequestMapping(

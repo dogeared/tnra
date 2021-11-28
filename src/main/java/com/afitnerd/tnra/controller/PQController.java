@@ -92,7 +92,7 @@ public class PQController {
     }
 
     @GetMapping("/pq_metrics_all")
-    Map<String, PQMeResponse> pqMetricsAll() {
+    public Map<String, PQMeResponse> pqMetricsAll() {
         Map<String, PQMeResponse> ret = new HashMap<>();
         userRepository.findAll().forEach(user -> {
             if (user.getPqAccessToken() == null) {
