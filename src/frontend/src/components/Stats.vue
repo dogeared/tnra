@@ -33,9 +33,27 @@
         <sui-button type="submit">Submit PQ Credentials</sui-button>
       </sui-form>
     </div>
-    <ve-table v-if="isAuthenticated" :columns="columns" :table-data="tableData" :sort-option="sortOption" />
+    <ve-table v-if="isAuthenticated" :columns="columns" :table-data="tableData" :sort-option="sortOption" :cell-style-option="cellStyleOption" />
   </div>
 </template>
+
+<style>
+.table-body-cell-class-reps {
+  background: #91d5ff !important;
+  color: #fff !important;
+}
+
+.table-body-cell-class-muscle {
+  background: #91b5ff !important;
+  color: #fff !important;
+}
+
+.table-body-cell-class-charge {
+  background: #9195ff !important;
+  color: #fff !important;
+}
+</style>
+
 <script>
 import config from '@/config';
 import axios from 'axios';
@@ -59,6 +77,20 @@ export default {
         sortChange: (params) => {
           this.sortChange(params);
         }
+      },
+      cellStyleOption: {
+        bodyCellClass: ({column, rowIndex}) => {
+          let winRepsRow = this.calcRepsWinRow('reps')
+          let winMuscleRow = this.calcRepsWinRow('muscle')
+          let winChargeRow = this.calcRepsWinRow('charge')
+          if (column.field === 'reps' && rowIndex === winRepsRow) {
+            return 'table-body-cell-class-reps'
+          } else if (column.field === 'muscle' && rowIndex === winMuscleRow) {
+            return 'table-body-cell-class-muscle'
+          } else if (column.field === 'charge' && rowIndex === winChargeRow) {
+            return 'table-body-cell-class-charge'
+          }
+        }
       }
     }
   },
@@ -73,6 +105,18 @@ export default {
     authConfig() {
       const accessToken = this.$auth.getAccessToken()
       return { headers: { Authorization: `Bearer ${accessToken}` } }
+    },
+    calcRepsWinRow(elem) {
+      // return Math.max.apply(Math, this.tableData.map((o) => { console.log(o.reps); return o.reps }))
+      let winVal = 0;
+      let winRow = 0;
+      for (let i = 0; i<this.tableData.length; i++) {
+        if (this.tableData[i][elem] > winVal) {
+          winVal = this.tableData[i][elem]
+          winRow = i
+        }
+      }
+      return winRow
     },
     calculateCharge(charge, updatedAt) {
       let now = Date.now()
