@@ -140,11 +140,19 @@ export default {
     transformPQData(data) {
       let ret = []
       for (let name in data) {
-        let pq = data[name].pq
-        ret.push({
-          name: name, charge: this.calculateCharge(pq.charge, pq.updated_at),
-          muscle: Number(pq.muscle).toFixed(0), reps: pq.reps_day
-        })
+        let val = data[name]
+        let newVal = {name: name}
+        if (val === null) {
+          newVal.charge = 'no data, please re-authenticate'
+          newVal.muscle = ''
+          newVal.reps = ''
+        } else {
+          let pq = val.pq
+          newVal.charge = this.calculateCharge(pq.charge, pq.updated_at)
+          newVal.muscle = Number(pq.muscle).toFixed(0)
+          newVal.reps = pq.reps_day
+        }
+        ret.push(newVal)
       }
       return ret.sort((a,b) => {
         return a.name.localeCompare(b.name)

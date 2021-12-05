@@ -45,6 +45,7 @@ public class PQServiceImpl implements PQService {
         String refreshToken = user.getPqRefreshToken();
         if (refreshToken == null) {
             log.info("No refresh token for user with id: {}", user.getId());
+            // TODO - make sure tokens are deleted from the database
             return;
         }
         try {
@@ -57,6 +58,7 @@ public class PQServiceImpl implements PQService {
             log.error(
                 "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
             );
+            // TODO - make sure tokens are deleted from the database
         }
     }
 
@@ -114,6 +116,8 @@ public class PQServiceImpl implements PQService {
             if (retry) {
                 refreshAuth(user);
                 return getMetrics(user, false);
+            } else {
+                // TODO - delete tokens in DB so user can re-auth
             }
         }
         return null;
@@ -123,14 +127,13 @@ public class PQServiceImpl implements PQService {
     public Map<String, PQMeResponse> pqMetricsAll() {
         Map<String, PQMeResponse> ret = new HashMap<>();
         userRepository.findAll().forEach(user -> {
+            PQMeResponse metrics = null;
             if (user.getPqAccessToken() == null) {
                 log.info("No PQ access token found for user id: {}", user.getId());
-                return;
+            } else {
+                metrics = getMetrics(user, true);
             }
-            PQMeResponse metrics = getMetrics(user, true);
-            if (metrics != null) {
-                ret.put(user.getFirstName() + " " + user.getLastName(), metrics);
-            }
+            ret.put(user.getFirstName() + " " + user.getLastName(), metrics);
         });
         return ret;
     }
