@@ -32,8 +32,9 @@
         </sui-form-field>
         <sui-button type="submit">Submit PQ Credentials</sui-button>
       </sui-form>
+      <hr>
     </div>
-    <ve-table v-if="isAuthenticated" :columns="columns" :table-data="tableData" :sort-option="sortOption" :cell-style-option="cellStyleOption" />
+    <ve-table :columns="columns" :table-data="tableData" :sort-option="sortOption" :cell-style-option="cellStyleOption" />
   </div>
 </template>
 

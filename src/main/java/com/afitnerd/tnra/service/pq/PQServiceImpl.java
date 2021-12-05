@@ -32,6 +32,12 @@ public class PQServiceImpl implements PQService {
         this.userRepository = userRepository;
     }
 
+    private void clobberPQAuth(User user) {
+        user.setPqAccessToken(null);
+        user.setPqRefreshToken(null);
+        userRepository.save(user);
+    }
+
     private PQAuthenticationResponse doAuthOperation(String json) throws IOException {
         InputStream responseStream = Request.Post(PQ_BASE_API_URL + PQ_TOKENS_URI)
                 .bodyString(json, ContentType.APPLICATION_JSON)
@@ -45,7 +51,7 @@ public class PQServiceImpl implements PQService {
         String refreshToken = user.getPqRefreshToken();
         if (refreshToken == null) {
             log.info("No refresh token for user with id: {}", user.getId());
-            // TODO - make sure tokens are deleted from the database
+            clobberPQAuth(user);
             return;
         }
         try {
@@ -58,7 +64,7 @@ public class PQServiceImpl implements PQService {
             log.error(
                 "Unable to refresh tokens for user id: {}. Message: {}", user.getId(), e.getMessage(), e
             );
-            // TODO - make sure tokens are deleted from the database
+            clobberPQAuth(user);
         }
     }
 
@@ -117,7 +123,7 @@ public class PQServiceImpl implements PQService {
                 refreshAuth(user);
                 return getMetrics(user, false);
             } else {
-                // TODO - delete tokens in DB so user can re-auth
+                clobberPQAuth(user);
             }
         }
         return null;
