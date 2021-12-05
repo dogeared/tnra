@@ -17,13 +17,16 @@ public class SlackAPIServiceImpl implements SlackAPIService {
     @Value("#{ @environment['tnra.slack.access_token'] ?: '' }")
     private String slackAccessToken;
 
+    @Value("#{ @environment['tnra.slack.broadcast_channel'] ?: 'general' }")
+    private String broadcastChannel;
+
     ObjectMapper mapper = new ObjectMapper();
 
     @Override
     public Map<String, Object> chat(String text) {
 
         Map<String, Object> request = Map.of(
-            "channel", "#general",
+            "channel", "#" + broadcastChannel,
             "text", text
         );
 

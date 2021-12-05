@@ -40,9 +40,13 @@ public interface PQRenderer {
     static String render(Map<String, PQMeResponse> metricsAll) {
 
         metricsAll.entrySet().stream().forEach(entry -> {
-            PQMeResponse.Pq pq = entry.getValue().getPq();
-            pq.setCharge(new BigDecimal(calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt())));
-            pq.setMuscle(new BigDecimal(Math.round(pq.getMuscle().doubleValue())));
+            PQMeResponse response = entry.getValue();
+            PQMeResponse.Pq pq = null;
+            if (response != null) {
+                pq = entry.getValue().getPq();
+                pq.setCharge(new BigDecimal(calcCharge(pq.getCharge().doubleValue(), pq.getUpdatedAt())));
+                pq.setMuscle(new BigDecimal(Math.round(pq.getMuscle().doubleValue())));
+            }
         });
 
         final StringBuffer ret = new StringBuffer();
@@ -55,23 +59,30 @@ public interface PQRenderer {
             .append(padLeft("------", 9)).append(padLeft("----------", 12))
             .append("\n");
         String chargeWinName = metricsAll.entrySet().stream()
-            .max(Comparator.comparing(e -> e.getValue().getPq().getCharge()))
+            .max(Comparator.comparing(e -> (e.getValue() == null) ? new BigDecimal(0) : e.getValue().getPq().getCharge()))
             .orElseThrow(NoSuchElementException::new).getKey();
         String muscleWinName = metricsAll.entrySet().stream()
-            .max(Comparator.comparing(e -> e.getValue().getPq().getMuscle()))
+            .max(Comparator.comparing(e -> (e.getValue() == null) ? new BigDecimal(0) : e.getValue().getPq().getMuscle()))
             .orElseThrow(NoSuchElementException::new).getKey();
         String repsWinName = metricsAll.entrySet().stream()
-            .max(Comparator.comparing(e -> e.getValue().getPq().getRepsToday()))
+            .max(Comparator.comparing(e -> (e.getValue() == null) ? 0 : e.getValue().getPq().getRepsToday()))
             .orElseThrow(NoSuchElementException::new).getKey();
 
         metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
             String name = entry.getKey();
-            PQMeResponse.Pq pq = entry.getValue().getPq();
-            ret.append(padRight(name, 20))
-                .append(padLeft(((name.equals(chargeWinName))?"*":"") + Math.round(pq.getCharge().doubleValue()), 10))
-                .append(padLeft(((name.equals(muscleWinName))?"*":"") + Math.round(pq.getMuscle().doubleValue()), 9))
-                .append(padLeft(((name.equals(repsWinName))?"*":"") + pq.getRepsToday(), 12))
-                .append("\n");
+            ret.append(padRight(name, 20));
+            PQMeResponse response = entry.getValue();
+            if (response != null) {
+                PQMeResponse.Pq pq = entry.getValue().getPq();
+                ret
+                    .append(padLeft(((name.equals(chargeWinName))?"*":"") + Math.round(pq.getCharge().doubleValue()), 10))
+                    .append(padLeft(((name.equals(muscleWinName))?"*":"") + Math.round(pq.getMuscle().doubleValue()), 9))
+                    .append(padLeft(((name.equals(repsWinName))?"*":"") + pq.getRepsToday(), 12));
+            } else {
+                ret
+                    .append(padLeft("no data, please re-authenticate", 10));
+            }
+            ret.append("\n");
         });
         return ret.append("```").toString();
     }
