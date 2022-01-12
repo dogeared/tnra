@@ -68,7 +68,9 @@ public interface PQRenderer {
             .max(Comparator.comparing(e -> (e.getValue() == null) ? 0 : e.getValue().getPq().getRepsToday()))
             .orElseThrow(NoSuchElementException::new).getKey();
 
-        metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey()).forEach(entry -> {
+        metricsAll.entrySet().stream().sorted(Map.Entry.comparingByKey())
+        .filter(entry -> entry.getValue() != null)
+        .forEach(entry -> {
             String name = entry.getKey();
             ret.append(padRight(name, 20));
             PQMeResponse response = entry.getValue();
