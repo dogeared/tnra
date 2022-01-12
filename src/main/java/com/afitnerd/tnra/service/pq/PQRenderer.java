@@ -78,9 +78,6 @@ public interface PQRenderer {
                     .append(padLeft(((name.equals(chargeWinName))?"*":"") + Math.round(pq.getCharge().doubleValue()), 10))
                     .append(padLeft(((name.equals(muscleWinName))?"*":"") + Math.round(pq.getMuscle().doubleValue()), 9))
                     .append(padLeft(((name.equals(repsWinName))?"*":"") + pq.getRepsToday(), 12));
-            } else {
-                ret
-                    .append(padLeft("no data, please re-authenticate", 10));
             }
             ret.append("\n");
         });

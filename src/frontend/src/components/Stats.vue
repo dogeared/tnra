@@ -142,18 +142,14 @@ export default {
       let ret = []
       for (let name in data) {
         let val = data[name]
-        let newVal = {name: name}
-        if (val === null) {
-          newVal.charge = 'no data, please re-authenticate'
-          newVal.muscle = ''
-          newVal.reps = ''
-        } else {
+        if (val !== null) {
+          let newVal = {name: name}
           let pq = val.pq
           newVal.charge = this.calculateCharge(pq.charge, pq.updated_at)
           newVal.muscle = Number(pq.muscle).toFixed(0)
           newVal.reps = pq.reps_day
+          ret.push(newVal)
         }
-        ret.push(newVal)
       }
       return ret.sort((a,b) => {
         return a.name.localeCompare(b.name)
