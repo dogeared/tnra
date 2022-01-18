@@ -305,7 +305,6 @@ export default {
     }
   },
   async beforeMount() {
-    // TODO - need to deal wih situation where there are no in progress nor completed posts
     let inProgressPostResponse = await this.$store.dispatch('getOptionalInProgressPost', { authHeader: this.authConfig() })
     let completePostResponse = await this.$store.dispatch('getOptionalCompletedPost', { authHeader:  this.authConfig() })
     if (inProgressPostResponse && inProgressPostResponse.data) {
@@ -314,6 +313,11 @@ export default {
       this.mutatorName = 'patchInProgressPost'
     } else if (completePostResponse && completePostResponse.data) {
       this.$store.commit('setCompletedPost', completePostResponse.data)
+      this.postName = 'completedPost'
+      this.mutatorName = 'patchCompletedPost'
+      this.startEnabled = true
+    } else if (inProgressPostResponse && completePostResponse && !inProgressPostResponse.data && !completePostResponse.data) {
+      this.$store.commit('setCompletedPost', {})
       this.postName = 'completedPost'
       this.mutatorName = 'patchCompletedPost'
       this.startEnabled = true
