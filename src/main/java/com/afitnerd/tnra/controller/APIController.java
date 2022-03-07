@@ -1,13 +1,14 @@
 package com.afitnerd.tnra.controller;
 
+import com.afitnerd.tnra.model.JsonViews;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.SlackPostRenderer;
-import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -44,6 +45,12 @@ public class APIController {
     @GetMapping("/me")
     Principal me(Principal me) {
         return me;
+    }
+
+    @JsonView(JsonViews.Sparse.class)
+    @GetMapping("/users")
+    public  Iterable<User> users() {
+        return userRepository.findByActiveTrue();
     }
 
     @GetMapping("/in_progress")

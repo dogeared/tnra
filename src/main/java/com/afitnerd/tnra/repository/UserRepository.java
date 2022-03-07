@@ -9,4 +9,5 @@ public interface UserRepository extends CrudRepository<User, Long> {
     User findBySlackUserId(String slackUserId);
     User findBySlackUsername(String slackUsername);
     User findByEmail(String email);
+    Iterable<User> findByActiveTrue();
 }

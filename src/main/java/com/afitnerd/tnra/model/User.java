@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonView;
 import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.CascadeType;
@@ -15,27 +16,51 @@ import java.util.List;
 @Entity
 public class User {
 
+    @JsonView(JsonViews.Sparse.class)
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="native")
     @GenericGenerator(name = "native", strategy = "native")
     private Long id;
 
+    @JsonView(JsonViews.Sparse.class)
     private String firstName;
+
+    @JsonView(JsonViews.Sparse.class)
     private String lastName;
+
+    @JsonView(JsonViews.Sparse.class)
     private String email;
 
+    @JsonView(JsonViews.Sparse.class)
+    private String profileImage;
+
+    @JsonView(JsonViews.Sparse.class)
+    private String phoneNumber;
+
+    @JsonView(JsonViews.Full.class)
+    private Boolean active;
+
     // TODO - need to uncouple this from slack
+    @JsonView(JsonViews.Full.class)
     @Column(nullable = false)
     private String slackUsername;
 
+    @JsonView(JsonViews.Full.class)
     @Column(nullable = false)
     private String slackUserId;
 
+    @JsonView(JsonViews.Full.class)
     @Column(length = 4000)
     private String pqAccessToken;
 
+    @JsonView(JsonViews.Full.class)
     @Column(length = 4000)
     private String pqRefreshToken;
+
+    @JsonView(JsonViews.Full.class)
+    @JsonIgnoreProperties("user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Post> posts;
 
     public User() {}
 
@@ -49,10 +74,6 @@ public class User {
         this.slackUserId = slackUserId;
         this.slackUsername = slackUsername;
     }
-
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    @JsonIgnoreProperties("user")
-    private List<Post> posts;
 
     public Long getId() {
         return id;
@@ -84,6 +105,30 @@ public class User {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public Boolean getActive() {
+        return active;
+    }
+
+    public void setActive(Boolean active) {
+        this.active = active;
     }
 
     public List<Post> getPosts() {
