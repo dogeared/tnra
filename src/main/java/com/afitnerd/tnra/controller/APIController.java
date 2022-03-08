@@ -1,8 +1,11 @@
 package com.afitnerd.tnra.controller;
 
+import com.afitnerd.tnra.model.GoToGuyPair;
+import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.JsonViews;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.GoToGuySetRepository;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.PostService;
@@ -16,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,23 +29,25 @@ import java.util.Optional;
 @RequestMapping("/api/v1")
 public class APIController {
 
-    private PostService postService;
-    private EMailService eMailService;
-    private SlackAPIService slackAPIService;
-    private SlackPostRenderer slackPostRenderer;
+    private final PostService postService;
+    private final EMailService eMailService;
+    private final SlackAPIService slackAPIService;
+    private final SlackPostRenderer slackPostRenderer;
 
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+    private final GoToGuySetRepository gtgSetRepository;
 
     public APIController(
         PostService postService, EMailService eMailService,
         SlackAPIService slackAPIService, SlackPostRenderer slackPostRenderer,
-        UserRepository userRepository
+        UserRepository userRepository, GoToGuySetRepository gtgSetRepository
     ) {
         this.postService = postService;
         this.eMailService = eMailService;
         this.slackAPIService = slackAPIService;
         this.slackPostRenderer = slackPostRenderer;
         this.userRepository = userRepository;
+        this.gtgSetRepository = gtgSetRepository;
     }
 
     @GetMapping("/me")
@@ -52,6 +60,35 @@ public class APIController {
     public  Iterable<User> users() {
         return userRepository.findByActiveTrue();
     }
+
+    @JsonView(JsonViews.Sparse.class)
+    @GetMapping("/gtg_latest")
+    public GoToGuySet gtgLatest() {
+        return gtgSetRepository.findTopByOrderByStartDateDesc();
+    }
+
+//    @JsonView(JsonViews.Sparse.class)
+//    @GetMapping("/gtg_test")
+//    public GoToGuySet gtg() {
+//        GoToGuySet gtgSet = new GoToGuySet();
+//        List<GoToGuyPair> gtgPairs = new ArrayList<>();
+//        gtgSet.setGoToGuyPairs(gtgPairs);
+//        gtgSet.setStartDate(new Date());
+//        users().forEach(user -> {
+//            GoToGuyPair gtgPair = new GoToGuyPair();
+//            gtgPair.setCallee(user);
+//            gtgPair.setGoToGuySet(gtgSet);
+//            gtgPairs.add(gtgPair);
+//        });
+//        for (int i=0; i<gtgPairs.size(); i++) {
+//            int j = (i == gtgPairs.size()-1) ? 0 : (i+1);
+//            gtgPairs.get(i).setCaller(gtgPairs.get(j).getCallee());
+//        }
+//
+//        gtgSetRepository.save(gtgSet);
+//
+//        return gtgSet;
+//    }
 
     @GetMapping("/in_progress")
     Optional<Post> getInProgressPost(Principal me) {
