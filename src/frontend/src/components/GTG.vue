@@ -62,12 +62,10 @@ export default {
     }
   },
   async beforeMount() {
-    this.$store.dispatch('getLatestGTG', { authHeader: this.authConfig() })
-    .then((response) => {
-      response.data.goToGuyPairs =
-          response.data.goToGuyPairs.sort((a, b) => (a.caller.firstName > b.caller.firstName)?1:-1)
-      this.$store.commit('setGTG', response.data)
-    })
+    var response = await this.$store.dispatch('getLatestGTG', { authHeader: this.authConfig() });
+    response.data.goToGuyPairs =
+        response.data.goToGuyPairs.sort((a, b) => (a.caller.firstName > b.caller.firstName)?1:-1)
+    this.$store.commit('setGTG', response.data)
   }
 }
 </script>
