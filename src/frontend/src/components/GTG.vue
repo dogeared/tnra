@@ -18,7 +18,7 @@
               <sui-image
                   :src="'static/images/' + row.caller.profileImage"
                   shape="rounded"
-                  size="large"
+                  size="huge"
               />
               <sui-header-content>
                 {{ row.caller.firstName }}
@@ -31,7 +31,7 @@
               <sui-image
                   :src="'static/images/' + row.callee.profileImage"
                   shape="rounded"
-                  size="large"
+                  size="huge"
               />
               <sui-header-content>
                 {{ row.callee.firstName }}
@@ -58,14 +58,16 @@ export default {
   },
   computed: {
     gtg() {
-        return this.$store.state.gtg
+        return (this.$store.state.gtg) ? this.$store.state.gtg : {}
     }
   },
   async beforeMount() {
-    var response = await this.$store.dispatch('getLatestGTG', { authHeader: this.authConfig() });
-    response.data.goToGuyPairs =
-        response.data.goToGuyPairs.sort((a, b) => (a.caller.firstName > b.caller.firstName)?1:-1)
-    this.$store.commit('setGTG', response.data)
+    this.$store.dispatch('getLatestGTG', { authHeader: this.authConfig() })
+      .then((response) => {
+        response.data.goToGuyPairs =
+          response.data.goToGuyPairs.sort((a, b) => (a.caller.firstName > b.caller.firstName)?1:-1)
+        this.$store.commit('setGTG', response.data)
+      })
   }
 }
 </script>
