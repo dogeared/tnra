@@ -29,6 +29,14 @@
           Post
         </router-link>
         <router-link
+            to="/gtg"
+            class="item"
+            id="gtg"
+            v-if="authState.isAuthenticated"
+        >
+          GTG
+        </router-link>
+        <router-link
           to="/stats"
           class="item"
           id="post-button"

@@ -5,6 +5,7 @@ import HomeComponent from '@/components/Home'
 import ProfileComponent from '@/components/Profile'
 import PostComponent from '@/components/Post'
 import StatsComponent from '@/components/Stats'
+import GTGComponent from '@/components/GTG'
 
 import { OktaAuth } from '@okta/okta-auth-js'
 import OktaVue, { LoginCallback } from '@okta/okta-vue'
@@ -27,6 +28,13 @@ const router = new Router({
     {
       path: '/',
       component: HomeComponent
+    },
+    {
+      path: '/gtg',
+      component: GTGComponent,
+      meta: {
+        requiresAuth: true
+      }
     },
     {
       path: '/post',

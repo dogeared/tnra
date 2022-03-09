@@ -9,6 +9,7 @@ export default {
   },
   resourceServer: {
     me: '/api/v1/me',
+    gtg: '/api/v1/gtg_latest',
     complete: '/api/v1/complete',
     in_progress: '/api/v1/in_progress',
     start: '/api/v1/start_from_app',

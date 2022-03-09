@@ -63,7 +63,8 @@ const store = new Vuex.Store({
         inProgressPost: null,
         sessionExpiresAt: null,
         sessionWarning: false,
-        sessionWarningSeen: false
+        sessionWarningSeen: false,
+        gtg: null
     },
     getters: {
         getProperty: (state) =>  (name, key) => {
@@ -96,10 +97,16 @@ const store = new Vuex.Store({
         },
         setSessionWarningSeen: (state, seen) => {
             state.sessionWarningSeen = seen
+        },
+        setGTG: (state, gtg) => {
+            state.gtg = gtg
         }
     },
     actions: {
         /* eslint-disable no-unused-vars */
+        async getLatestGTG({ commit }, payload) {
+          return await axios.get(config.resourceServer.gtg, payload.authHeader)
+        },
         async getOptionalCompletedPost({ commit }, payload) {
             return await axios.get(config.resourceServer.complete, payload.authHeader)
         },
