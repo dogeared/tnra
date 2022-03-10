@@ -31,4 +31,4 @@ node_modules
 node
 *.sql
 
-public
+src/main/resources/public
