@@ -47,6 +47,11 @@
 <script>
 export default {
   name: 'gtg',
+  data() {
+    return {
+      gtg: {}
+    }
+  },
   methods: {
     authConfig() {
       const accessToken = this.$auth.getAccessToken()
@@ -56,18 +61,12 @@ export default {
       return phoneNumber.slice(0,3) + '-' + phoneNumber.slice(3,6) + '-' + phoneNumber.slice(6)
     }
   },
-  computed: {
-    gtg() {
-        return (this.$store.state.gtg) ? this.$store.state.gtg : {}
-    }
-  },
   async beforeMount() {
-    this.$store.dispatch('getLatestGTG', { authHeader: this.authConfig() })
-      .then((response) => {
-        response.data.goToGuyPairs =
-          response.data.goToGuyPairs.sort((a, b) => (a.caller.firstName > b.caller.firstName)?1:-1)
-        this.$store.commit('setGTG', response.data)
-      })
+    var response = await this.$store.dispatch('getLatestGTG', { authHeader: this.authConfig() });
+    response.data.goToGuyPairs =
+        response.data.goToGuyPairs.sort((a, b) => (a.caller.firstName > b.caller.firstName)?1:-1)
+    this.$store.commit('setGTG', response.data)
+    this.gtg = response.data
   }
 }
 </script>
