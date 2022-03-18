@@ -1,6 +1,5 @@
 package com.afitnerd.tnra.controller;
 
-import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.JsonViews;
 import com.afitnerd.tnra.model.Post;
@@ -19,9 +18,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -65,6 +61,17 @@ public class APIController {
     @GetMapping("/gtg_latest")
     public GoToGuySet gtgLatest() {
         return gtgSetRepository.findTopByOrderByStartDateDesc();
+    }
+
+    @JsonView(JsonViews.Sparse.class)
+    @GetMapping("/notify_what_and_whens")
+    public GoToGuySet notifyWhatAndWhens() {
+        GoToGuySet goToGuySet = gtgLatest();
+        goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
+            Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
+            eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+        });
+        return goToGuySet;
     }
 
 //    @JsonView(JsonViews.Sparse.class)

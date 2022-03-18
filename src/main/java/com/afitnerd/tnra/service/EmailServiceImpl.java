@@ -85,7 +85,10 @@ public class EmailServiceImpl implements EMailService {
                     .body(entity)
                     .execute().returnContent().asStream();
                 Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
-                log.info("Sent email to {}. Got Mailgun response: {}", user.getEmail(), mapper.writeValueAsString(response));
+                log.info(
+                    "Sent email to {}. Got Mailgun response: {}",
+                    user.getEmail(), mapper.writeValueAsString(response)
+                );
             } catch (IOException e) {
                 log.error("Error sending Mailgun email: {}", e.getMessage(), e);
             }
@@ -99,5 +102,36 @@ public class EmailServiceImpl implements EMailService {
         userRepository.findAll().forEach(user -> {
             sendMailToMe(user, post);
         });
+    }
+
+    @Override
+    public void sendTextViaMail(User user, Post post) {
+        Runnable runnableTask = () -> {
+            try {
+                User postUser = post.getUser();
+                HttpEntity entity = MultipartEntityBuilder
+                    .create()
+                    .addTextBody("from", "bot@tnra.afitnerd.com")
+                    .addTextBody("to", user.getPhoneNumber() + "@" + user.getTextEmailSuffix())
+                    .addTextBody(
+                        "subject",
+                        postUser.getFirstName() + " " + postUser.getLastName()
+                    )
+                    .addTextBody("text", "\n" + post.getIntro().getWhatAndWhen())
+                    .build();
+                InputStream responseStream = Request.Post(mailgunUrl)
+                    .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
+                    .body(entity)
+                    .execute().returnContent().asStream();
+                Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
+                log.info(
+                    "Sent text to {}@{}. Got Mailgun response: {}",
+                    user.getPhoneNumber(), user.getTextEmailSuffix(), mapper.writeValueAsString(response)
+                );
+            } catch (IOException e) {
+                log.error("Error sending Mailgun email: {}", e.getMessage(), e);
+            }
+        };
+        executor.execute(runnableTask);
     }
 }
