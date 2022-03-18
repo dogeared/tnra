@@ -37,6 +37,9 @@ public class User {
     @JsonView(JsonViews.Sparse.class)
     private String phoneNumber;
 
+    @JsonView(JsonViews.Sparse.class)
+    private String textEmailSuffix;
+
     @JsonView(JsonViews.Full.class)
     private Boolean active;
 
@@ -121,6 +124,14 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getTextEmailSuffix() {
+        return textEmailSuffix;
+    }
+
+    public void setTextEmailSuffix(String textEmailSuffix) {
+        this.textEmailSuffix = textEmailSuffix;
     }
 
     public Boolean getActive() {
