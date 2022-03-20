@@ -117,7 +117,7 @@ public class EmailServiceImpl implements EMailService {
                         "subject",
                         postUser.getFirstName() + " " + postUser.getLastName()
                     )
-                    .addTextBody("text", "\n" + post.getIntro().getWhatAndWhen())
+                    .addTextBody("text", "\n" + PostRenderer.utf8ToAscii(post.getIntro().getWhatAndWhen()))
                     .build();
                 InputStream responseStream = Request.Post(mailgunUrl)
                     .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))

@@ -13,6 +13,12 @@ public interface PostRenderer {
 
     String render(Post post);
 
+    static String utf8ToAscii(String input) {
+        return input
+            .replaceAll("’", "'").replaceAll("‛", "'")
+            .replaceAll("‟", "\"").replaceAll("”", "\"");
+    }
+
     static String formatDate(Date date) {
         TimeZone est = TimeZone.getTimeZone("US/Eastern");
         GregorianCalendar cal = new GregorianCalendar(est);

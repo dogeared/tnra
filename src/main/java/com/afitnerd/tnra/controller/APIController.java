@@ -68,8 +68,10 @@ public class APIController {
     public GoToGuySet notifyWhatAndWhens() {
         GoToGuySet goToGuySet = gtgLatest();
         goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
+//            if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
             eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+//            }
         });
         return goToGuySet;
     }
