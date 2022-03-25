@@ -11,6 +11,7 @@ import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.SlackPostRenderer;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
 import com.fasterxml.jackson.annotation.JsonView;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -68,13 +69,25 @@ public class APIController {
     public GoToGuySet notifyWhatAndWhens() {
         GoToGuySet goToGuySet = gtgLatest();
         goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
-//            if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
+            //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
             eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
-//            }
+            //}
         });
         return goToGuySet;
     }
+
+    @Scheduled(cron = "${tnra.notify.schedule}")
+    public void notifyWhatAndWhensOnSchedule() {
+        GoToGuySet goToGuySet = gtgLatest();
+        goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
+            //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
+            Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
+            eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+            //}
+        });
+    }
+
 
 //    @JsonView(JsonViews.Sparse.class)
 //    @GetMapping("/gtg_test")

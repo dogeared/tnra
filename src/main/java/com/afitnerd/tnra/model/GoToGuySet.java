@@ -5,6 +5,7 @@ import org.hibernate.annotations.GenericGenerator;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -25,7 +26,7 @@ public class GoToGuySet {
     private Date startDate;
 
     @JsonView(JsonViews.Sparse.class)
-    @OneToMany(mappedBy = "goToGuySet", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "goToGuySet", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<GoToGuyPair> goToGuyPairs;
 
     public Long getId() {
