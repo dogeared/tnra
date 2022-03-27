@@ -99,7 +99,7 @@ public class EmailServiceImpl implements EMailService {
 
     @Override
     public void sendMailToAll(Post post) {
-        userRepository.findAll().forEach(user -> {
+        userRepository.findByActiveTrue().forEach(user -> {
             sendMailToMe(user, post);
         });
     }
