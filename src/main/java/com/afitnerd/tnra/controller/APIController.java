@@ -71,7 +71,7 @@ public class APIController {
         goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
             //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
             // send caller what and when
-            Post calleePost = postService.getLastFinishedPost(gtgPair.getCaller());
+            Post calleePost = postService.getLastFinishedPost(gtgPair.getCallee());
             eMailService.sendTextViaMail(gtgPair.getCallee(), calleePost);
             // send callee what and when
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
