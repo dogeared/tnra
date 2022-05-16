@@ -70,6 +70,10 @@ public class APIController {
         GoToGuySet goToGuySet = gtgLatest();
         goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
             //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
+            // send caller what and when
+            Post calleePost = postService.getLastFinishedPost(gtgPair.getCaller());
+            eMailService.sendTextViaMail(gtgPair.getCallee(), calleePost);
+            // send callee what and when
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
             eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
             //}
@@ -79,13 +83,7 @@ public class APIController {
 
     @Scheduled(cron = "${tnra.notify.schedule}")
     public void notifyWhatAndWhensOnSchedule() {
-        GoToGuySet goToGuySet = gtgLatest();
-        goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
-            //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
-            Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
-            eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
-            //}
-        });
+        notifyWhatAndWhens();
     }
 
 
