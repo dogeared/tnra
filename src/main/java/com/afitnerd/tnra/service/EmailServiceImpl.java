@@ -20,8 +20,10 @@ import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,6 +39,9 @@ public class EmailServiceImpl implements EMailService {
 
     @Value("#{ @environment['mailgun.url'] }")
     private String mailgunUrl;
+
+    @Value("#{ @environment['mailgun.max-email-to-sms-length'] ?: 140 }")
+    private Integer maxEmailToSmsLength;
 
     private PostRenderer emailPostRenderer;
     private UserRepository userRepository;
@@ -104,32 +109,60 @@ public class EmailServiceImpl implements EMailService {
         });
     }
 
+    private void sendTextChunkViaMail(User user, String text, int chunkNum, int totChunks) {
+        try {
+            HttpEntity entity = MultipartEntityBuilder
+                .create()
+                .addTextBody("from", "bot@tnra.afitnerd.com")
+                .addTextBody("to", user.getPhoneNumber() + "@" + user.getTextEmailSuffix())
+                .addTextBody(
+                    "subject",
+                    user.getFirstName() + " " + user.getLastName() + ((chunkNum > 0) ? ": " + chunkNum + " of " + totChunks : "")
+                )
+                .addTextBody("text", "\n" + text)
+                .build();
+            InputStream responseStream = Request.Post(mailgunUrl)
+                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
+                .body(entity)
+                .execute().returnContent().asStream();
+            Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
+            log.info(
+                "Sent text to {}@{}. Got Mailgun response: {}",
+                user.getPhoneNumber(), user.getTextEmailSuffix(), mapper.writeValueAsString(response)
+            );
+        } catch (IOException e) {
+            log.error("Error sending Mailgun email: {}", e.getMessage(), e);
+        }
+    }
+
+    private List<String> split(String s) {
+        List<String> chunks = new ArrayList<>();
+        for (int i = 0; i < s.length(); i += maxEmailToSmsLength) {
+            chunks.add(s.substring(i, Math.min(s.length(), i + maxEmailToSmsLength)));
+        }
+        return chunks;
+    }
+
     @Override
     public void sendTextViaMail(User user, Post post) {
         Runnable runnableTask = () -> {
-            try {
-                User postUser = post.getUser();
-                HttpEntity entity = MultipartEntityBuilder
-                    .create()
-                    .addTextBody("from", "bot@tnra.afitnerd.com")
-                    .addTextBody("to", user.getPhoneNumber() + "@" + user.getTextEmailSuffix())
-                    .addTextBody(
-                        "subject",
-                        postUser.getFirstName() + " " + postUser.getLastName()
-                    )
-                    .addTextBody("text", "\n" + PostRenderer.utf8ToAscii(post.getIntro().getWhatAndWhen()))
-                    .build();
-                InputStream responseStream = Request.Post(mailgunUrl)
-                    .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
-                    .body(entity)
-                    .execute().returnContent().asStream();
-                Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
-                log.info(
-                    "Sent text to {}@{}. Got Mailgun response: {}",
-                    user.getPhoneNumber(), user.getTextEmailSuffix(), mapper.writeValueAsString(response)
-                );
-            } catch (IOException e) {
-                log.error("Error sending Mailgun email: {}", e.getMessage(), e);
+            User postUser = post.getUser();
+            String waw = PostRenderer.utf8ToAscii(post.getIntro().getWhatAndWhen());
+            if ("vtext.com".equals(user.getTextEmailSuffix().toLowerCase().trim())) {
+                // TODO - hardcoded - gross
+                List<String> chunks = split(waw);
+                for (int i=0; i<chunks.size(); i++) {
+                    String chunk = chunks.get(i).trim();
+                    sendTextChunkViaMail(postUser, chunk, i+1, chunks.size());
+                    try {
+                        // TODO - gross
+                        Thread.sleep(1000);
+                    } catch (InterruptedException e) {
+                        log.error("Unable to sleep: {}", e.getMessage(), e);
+                    }
+                }
+            } else {
+                sendTextChunkViaMail(postUser, waw, 0, 0);
             }
         };
         executor.execute(runnableTask);
