@@ -109,16 +109,13 @@ public class EmailServiceImpl implements EMailService {
         });
     }
 
-    private void sendTextChunkViaMail(User user, String text, int chunkNum, int totChunks) {
+    private void sendTextChunkViaMail(String to, String subject, String text) {
         try {
             HttpEntity entity = MultipartEntityBuilder
                 .create()
                 .addTextBody("from", "bot@tnra.afitnerd.com")
-                .addTextBody("to", user.getPhoneNumber() + "@" + user.getTextEmailSuffix())
-                .addTextBody(
-                    "subject",
-                    user.getFirstName() + " " + user.getLastName() + ((chunkNum > 0) ? ": " + chunkNum + " of " + totChunks : "")
-                )
+                .addTextBody("to", to)
+                .addTextBody("subject", subject)
                 .addTextBody("text", "\n" + text)
                 .build();
             InputStream responseStream = Request.Post(mailgunUrl)
@@ -126,19 +123,16 @@ public class EmailServiceImpl implements EMailService {
                 .body(entity)
                 .execute().returnContent().asStream();
             Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
-            log.info(
-                "Sent text to {}@{}. Got Mailgun response: {}",
-                user.getPhoneNumber(), user.getTextEmailSuffix(), mapper.writeValueAsString(response)
-            );
+            log.info("Sent text to {}. Got Mailgun response: {}", to, mapper.writeValueAsString(response));
         } catch (IOException e) {
             log.error("Error sending Mailgun email: {}", e.getMessage(), e);
         }
     }
 
-    private List<String> split(String s) {
+    private List<String> split(String prefix, String s) {
         List<String> chunks = new ArrayList<>();
-        for (int i = 0; i < s.length(); i += maxEmailToSmsLength) {
-            chunks.add(s.substring(i, Math.min(s.length(), i + maxEmailToSmsLength)));
+        for (int i = 0; i < s.length(); i += (maxEmailToSmsLength-prefix.length())) {
+            chunks.add(s.substring(i, Math.min(s.length(), i + (maxEmailToSmsLength-prefix.length()))));
         }
         return chunks;
     }
@@ -148,21 +142,22 @@ public class EmailServiceImpl implements EMailService {
         Runnable runnableTask = () -> {
             User postUser = post.getUser();
             String waw = PostRenderer.utf8ToAscii(post.getIntro().getWhatAndWhen());
+            String prefix = postUser.getFirstName() + " " + postUser.getLastName() + " (%d of %d)";
+            String to = user.getPhoneNumber() + "@" + user.getTextEmailSuffix();
             if ("vtext.com".equals(user.getTextEmailSuffix().toLowerCase().trim())) {
-                // TODO - hardcoded - gross
-                List<String> chunks = split(waw);
+                List<String> chunks = split(prefix, waw);
                 for (int i=0; i<chunks.size(); i++) {
                     String chunk = chunks.get(i).trim();
-                    sendTextChunkViaMail(postUser, chunk, i+1, chunks.size());
+                    sendTextChunkViaMail(to, String.format(prefix, (i+1), chunks.size()), chunk);
                     try {
                         // TODO - gross
-                        Thread.sleep(1000);
+                        Thread.sleep(10000);
                     } catch (InterruptedException e) {
                         log.error("Unable to sleep: {}", e.getMessage(), e);
                     }
                 }
             } else {
-                sendTextChunkViaMail(postUser, waw, 0, 0);
+                sendTextChunkViaMail(to, postUser.getFirstName() + " " + postUser.getLastName(), waw);
             }
         };
         executor.execute(runnableTask);
