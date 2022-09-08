@@ -10,8 +10,8 @@ import java.util.Map;
 
 public interface PQService {
 
-    String PQ_API_VERSION = "v1.4";
-    String PQ_BASE_API_URL = "https://api.positiveintelligence.com/" + PQ_API_VERSION;
+    String PQ_API_VERSION = "/v2.1";
+    String PQ_BASE_API_URL = "https://api-v2.positiveintelligence.com/" + PQ_API_VERSION;
     String PQ_TOKENS_URI = "/auth/tokens";
     String PQ_ME_URI = "/users/me";
     String PQ_METRICS_URI = PQ_ME_URI + "/metrics";
