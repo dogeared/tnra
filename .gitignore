@@ -32,3 +32,6 @@ node
 *.sql
 
 src/main/resources/public
+
+tnra.sh
+nginx/.cert
