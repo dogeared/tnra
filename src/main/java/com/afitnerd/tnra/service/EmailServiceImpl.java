@@ -31,7 +31,7 @@ import java.util.concurrent.Executors;
 @Service
 public class EmailServiceImpl implements EMailService {
 
-            @Value("#{ @environment['mailgun.key.private'] }")
+    @Value("#{ @environment['mailgun.key.private'] }")
     private String mailgunPrivateKey;
 
     @Value("#{ @environment['mailgun.key.public'] }")
