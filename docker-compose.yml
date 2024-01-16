@@ -2,18 +2,6 @@
 # temporarily disable until moved to entering environment variables for this
 ---
 services:
-  proxy:
-    container_name: proxy
-    image: nginx:latest
-    environment:
-      # requests will be forwarded to http://<DOCKER_HOST>:<TARGET_PORT>
-      # This will be similar to accessing: http://localhost:8080
-      - APP_PORT=8080
-    volumes:
-      - './nginx/templates:/etc/nginx/templates'
-      - './nginx/.cert:/etc/nginx/certs'
-    ports:
-      - '443:443'
   server:
     container_name: tnra
     image: tnra
@@ -45,7 +33,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tnra
       SPRING_JPA_HIBERNATE_DDL-AUTO: update
       TNRA_NOTIFY_SCHEDULE: ${TNRA_NOTIFY_SCHEDULE}
-      TNRA_SLACK_ACCESS_TOKEN: ${TNRA_NOTIFY_SCHEDULE}
+      TNRA_SLACK_ACCESS_TOKEN: ${TNRA_SLACK_ACCESS_TOKEN}
       TNRA_SLACK_BROADCAST_CHANNEL: ${TNRA_SLACK_BROADCAST_CHANNEL}
       TNRA_SLACK_TOKEN: ${TNRA_SLACK_TOKEN}
     depends_on:
@@ -67,5 +55,19 @@ services:
       - '3307:3306'
     volumes:
       - 'mysql-db:/var/lib/mysql'
+  proxy:
+    container_name: proxy
+    image: nginx:latest
+    environment:
+      # requests will be forwarded to http://<DOCKER_HOST>:<TARGET_PORT>
+      # This will be similar to accessing: http://localhost:8080
+      - APP_PORT=8080
+    volumes:
+      - './nginx/templates:/etc/nginx/templates'
+      - './nginx/.cert:/etc/nginx/certs'
+    ports:
+      - '443:443'
+    links:
+      - server
 volumes:
   mysql-db:

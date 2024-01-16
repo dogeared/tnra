@@ -7,7 +7,7 @@ server {
   server_name _;
 
   location / {
-    proxy_pass http://host.docker.internal:${APP_PORT}; 
+    proxy_pass http://server:${APP_PORT}; 
 
     proxy_buffering off;
     proxy_cache off;
