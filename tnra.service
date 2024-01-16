@@ -1,0 +1,15 @@
+[Unit]
+Description=TNRA service
+After=network.target
+
+[Service]
+Type=forking
+
+ExecStart=/home/tnra/tnra/tnra.start.sh
+
+User=tnra
+Group=tnra
+UMask=0007
+
+[Install]
+WantedBy=network.target

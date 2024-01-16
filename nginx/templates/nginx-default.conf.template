@@ -1,0 +1,28 @@
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    '' close;
+}
+
+server {
+  server_name _;
+
+  location / {
+    proxy_pass http://server:${APP_PORT}; 
+
+    proxy_buffering off;
+    proxy_cache off;
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host:443;
+    proxy_set_header X-Forwarded-Port 443;
+    proxy_set_header X-Forwarded-Server $host;
+    proxy_set_header X-Forwarded-Proto https;
+  }
+
+  listen 443 ssl;
+  ssl_certificate /etc/nginx/certs/cert.pem;
+  ssl_certificate_key /etc/nginx/certs/key.pem;
+}
+
