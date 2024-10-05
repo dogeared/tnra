@@ -19,11 +19,11 @@ run from IntelliJ or command line and the app will listen on port 8080.
 run ngrok to setup public url:
 
 ```
-ngrok http -subdomain=micah-local 8080
+ngrok http --domain=micah-silverman.ngrok.io 8080
 ```
 
 navigate to the slack app settings: `https://api.slack.com/apps/A5GLLLLG6/slash-commands`. Update the `post_test` slash
-command to point to your local instance: `https://micah-local.ngrok.io/api/v1/post`
+command to point to your local instance: `https://micah-silverman.ngrok.io/api/v1/post`
 
 You can now issue commands in slack and they will be sent to your locally running instance:
 
@@ -59,6 +59,41 @@ You can also use the `local_post_test.sh` script as:
 The first param is the slack token and the second param is the url
 
 to do a complete test post locally
+
+## Vultr Configuration
+
+```
+systemctl status tnra.service
+```
+
+/etc/systemd/system/tnra.service
+
+docker-compose logs tnra
+docker-compose logs -f server
+
+## Refresh the SSL cert
+
+### On local machine
+
+```
+certbot certonly \
+  --config-dir ~/letsencrypt/config \
+  --work-dir ~/letsencrypt/work \
+  --logs-dir ~/letsencrypt/logs \
+  --dns-cloudflare --dns-cloudflare-credentials ~/cloudflare-creds.ini \
+  -d tnra.afitnerd.com
+scp \
+  /Users/micahsilverman/letsencrypt/config/live/tnra.afitnerd.com/fullchain.pem \
+  /Users/micahsilverman/letsencrypt/config/live/tnra.afitnerd.com/privkey.pem \
+  tnra@108.61.192.65:~/
+```
+
+## On Vultr
+
+```
+mv privkey.pem tnra/nginx/.cert/key.pem
+mv fullchain.pem tnra/nginx/.cert/cert.pem
+```
 
 ## Helpful info
 
