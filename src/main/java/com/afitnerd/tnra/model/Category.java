@@ -1,6 +1,6 @@
 package com.afitnerd.tnra.model;
 
-import javax.persistence.Embeddable;
+import jakarta.persistence.Embeddable;
 
 @Embeddable
 public class Category {

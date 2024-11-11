@@ -5,18 +5,17 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.HttpEntity;
-import org.apache.http.client.fluent.Form;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder;
+import org.apache.hc.core5.http.HttpEntity;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.client5.http.fluent.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -85,7 +84,7 @@ public class EmailServiceImpl implements EMailService {
                     )
                     .build();
 
-                InputStream responseStream = Request.Post(mailgunUrl)
+                InputStream responseStream = Request.post(mailgunUrl)
                     .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
                     .body(entity)
                     .execute().returnContent().asStream();
@@ -118,7 +117,7 @@ public class EmailServiceImpl implements EMailService {
                 .addTextBody("subject", subject)
                 .addTextBody("text", "\n" + text)
                 .build();
-            InputStream responseStream = Request.Post(mailgunUrl)
+            InputStream responseStream = Request.post(mailgunUrl)
                 .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
                 .body(entity)
                 .execute().returnContent().asStream();
@@ -148,7 +147,7 @@ public class EmailServiceImpl implements EMailService {
                 List<String> chunks = split(prefix, waw);
                 for (int i=0; i<chunks.size(); i++) {
                     String chunk = chunks.get(i).trim();
-                    sendTextChunkViaMail(to, String.format(prefix, (i+1), chunks.size()), chunk);
+                    sendTextChunkViaMail(to, prefix.formatted((i + 1), chunks.size()), chunk);
                     try {
                         // TODO - gross
                         Thread.sleep(10000);

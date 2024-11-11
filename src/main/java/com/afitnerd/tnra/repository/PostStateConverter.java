@@ -2,8 +2,8 @@ package com.afitnerd.tnra.repository;
 
 import com.afitnerd.tnra.model.PostState;
 
-import javax.persistence.AttributeConverter;
-import javax.persistence.Converter;
+import jakarta.persistence.AttributeConverter;
+import jakarta.persistence.Converter;
 
 @Converter(autoApply = true)
 public class PostStateConverter implements AttributeConverter<PostState, String> {

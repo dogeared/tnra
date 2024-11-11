@@ -9,14 +9,15 @@ import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
 import com.afitnerd.tnra.slack.service.SlackSlashCommandService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.StringEntity;
+import org.apache.hc.client5.http.fluent.Request;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -46,8 +47,8 @@ public class SlackController {
         }
 
         try {
-            StringEntity body = new StringEntity(mapper.writeValueAsString(response), "utf-8");
-            Request.Post(request.getResponseUrl())
+            StringEntity body = new StringEntity(mapper.writeValueAsString(response), ContentType.parse("utf-8"));
+            Request.post(request.getResponseUrl())
                 .body(body)
                 .execute();
         } catch (IOException e) {
@@ -65,8 +66,8 @@ public class SlackController {
         this.pqService = pqService;
     }
 
-    @RequestMapping(
-        value = POST_COMMAND, method = RequestMethod.POST,
+    @PostMapping(
+        value = POST_COMMAND,
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -88,8 +89,8 @@ public class SlackController {
         return slackSlashCommandResponse;
     }
 
-    @RequestMapping(
-        value = "/pq", method = RequestMethod.POST,
+    @PostMapping(
+        value = "/pq",
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -111,8 +112,8 @@ public class SlackController {
         return response;
     }
 
-    @RequestMapping(
-        value = "/tnra", method = RequestMethod.POST,
+    @PostMapping(
+        value = "/tnra",
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -122,8 +123,8 @@ public class SlackController {
         return post(slackSlashCommandRequest);
     }
 
-    @RequestMapping(
-        value = {"/show", "/start", "/finish", "/email"}, method = RequestMethod.POST,
+    @PostMapping(
+        value = {"/show", "/start", "/finish", "/email"},
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -134,8 +135,8 @@ public class SlackController {
         return post(slackSlashCommandRequest);
     }
 
-    @RequestMapping(
-        value = {"/wid", "/kry", "/wha"}, method = RequestMethod.POST,
+    @PostMapping(
+        value = {"/wid", "/kry", "/wha"},
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -146,8 +147,8 @@ public class SlackController {
         return post(slackSlashCommandRequest);
     }
 
-    @RequestMapping(
-        value = {"/per", "/fam", "/wor"}, method = RequestMethod.POST,
+    @PostMapping(
+        value = {"/per", "/fam", "/wor"},
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -158,8 +159,8 @@ public class SlackController {
         return post(slackSlashCommandRequest);
     }
 
-    @RequestMapping(
-        value = "/sta", method = RequestMethod.POST,
+    @PostMapping(
+        value = "/sta",
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody
@@ -169,8 +170,8 @@ public class SlackController {
         return post(slackSlashCommandRequest);
     }
 
-    @RequestMapping(
-        value = {"/exe", "/gtg", "/med", "/mee", "/pra", "/rea", "/spo"}, method = RequestMethod.POST,
+    @PostMapping(
+        value = {"/exe", "/gtg", "/med", "/mee", "/pra", "/rea", "/spo"},
         consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE, produces = MediaType.APPLICATION_JSON_VALUE
     )
     public @ResponseBody

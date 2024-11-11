@@ -3,21 +3,18 @@ package com.afitnerd.tnra.slack;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandRequest;
 import com.afitnerd.tnra.slack.model.SlackSlashCommandResponse;
 import com.afitnerd.tnra.slack.service.SlackSlashCommandService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 public class SlackSlashCommandServiceTests {
 
@@ -26,7 +23,7 @@ public class SlackSlashCommandServiceTests {
 
     SlackSlashCommandRequest request;
 
-    @Before
+    @BeforeEach
     public void before() {
         request = new SlackSlashCommandRequest();
         request.setUserId("abc123-" + UUID.randomUUID());

@@ -1,12 +1,12 @@
 package com.afitnerd.tnra.slack.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.client5.http.fluent.Request;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Map;
@@ -31,7 +31,7 @@ public class SlackAPIServiceImpl implements SlackAPIService {
         );
 
         try {
-            InputStream is = Request.Post(SLACK_BASE_URL + SLACK_CHAT_POST_MESSAGE)
+            InputStream is = Request.post(SLACK_BASE_URL + SLACK_CHAT_POST_MESSAGE)
                 .addHeader("Authorization", "Bearer " + slackAccessToken)
                 .bodyString(mapper.writeValueAsString(request), ContentType.APPLICATION_JSON)
                 .execute()

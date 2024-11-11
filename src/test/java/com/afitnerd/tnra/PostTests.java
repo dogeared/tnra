@@ -6,12 +6,12 @@ import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class PostTests {
 
@@ -22,7 +22,7 @@ public class PostTests {
     private Category work;
     private Stats stats;
 
-    @Before
+    @BeforeEach
     public void before() {
         post = new Post();
         intro = new Intro();

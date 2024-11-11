@@ -7,7 +7,7 @@ import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.pq.PQService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.client.HttpResponseException;
+import org.apache.hc.client5.http.HttpResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;

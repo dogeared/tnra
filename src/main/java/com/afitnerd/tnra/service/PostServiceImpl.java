@@ -14,9 +14,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
-import javax.transaction.Transactional;
+import jakarta.transaction.Transactional;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Date;
@@ -203,43 +202,43 @@ public class PostServiceImpl implements PostService {
 
     private void ensureIntro(String errorBase, Post post) {
         String introBase = errorBase + "intro - ";
-        if (StringUtils.isEmpty(post.getIntro().getWidwytk())) {
+        if (ObjectUtils.isEmpty(post.getIntro().getWidwytk())) {
             throw new PostException(introBase + "widwytk");
         }
-        if (StringUtils.isEmpty(post.getIntro().getKryptonite())) {
+        if (ObjectUtils.isEmpty(post.getIntro().getKryptonite())) {
             throw new PostException(introBase + "kryptonite");
         }
-        if (StringUtils.isEmpty(post.getIntro().getWhatAndWhen())) {
+        if (ObjectUtils.isEmpty(post.getIntro().getWhatAndWhen())) {
             throw new PostException(introBase + "what and when");
         }
     }
 
     private void ensurePersonal(String errorBase, Post post) {
         String personalBase = errorBase + "personal - ";
-        if (StringUtils.isEmpty(post.getPersonal().getBest())) {
+        if (ObjectUtils.isEmpty(post.getPersonal().getBest())) {
             throw new PostException(personalBase + "best");
         }
-        if (StringUtils.isEmpty(post.getPersonal().getWorst())) {
+        if (ObjectUtils.isEmpty(post.getPersonal().getWorst())) {
             throw new PostException(personalBase + "worst");
         }
     }
 
     private void ensureFamily(String errorBase, Post post) {
         String familyBase = errorBase + "family - ";
-        if (StringUtils.isEmpty(post.getFamily().getBest())) {
+        if (ObjectUtils.isEmpty(post.getFamily().getBest())) {
             throw new PostException(familyBase + "best");
         }
-        if (StringUtils.isEmpty(post.getFamily().getWorst())) {
+        if (ObjectUtils.isEmpty(post.getFamily().getWorst())) {
             throw new PostException(familyBase + "worst");
         }
     }
 
     private void ensureWork(String errorBase, Post post) {
         String workBase = errorBase + "work - ";
-        if (StringUtils.isEmpty(post.getWork().getBest())) {
+        if (ObjectUtils.isEmpty(post.getWork().getBest())) {
             throw new PostException(workBase + "best");
         }
-        if (StringUtils.isEmpty(post.getWork().getWorst())) {
+        if (ObjectUtils.isEmpty(post.getWork().getWorst())) {
             throw new PostException(workBase + "worst");
         }
     }

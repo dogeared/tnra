@@ -25,7 +25,7 @@ public interface PQRenderer {
         if (length < str.length()) {
             return str;
         }
-        return String.format("%1$" + padDir + length + "s", str);
+        return ("%1$" + padDir + length + "s").formatted(str);
 
     }
 
