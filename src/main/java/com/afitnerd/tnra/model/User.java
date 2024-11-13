@@ -2,6 +2,7 @@ package com.afitnerd.tnra.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
+import jakarta.persistence.Table;
 import org.hibernate.annotations.GenericGenerator;
 
 import jakarta.persistence.CascadeType;
