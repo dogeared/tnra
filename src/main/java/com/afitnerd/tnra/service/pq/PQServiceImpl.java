@@ -69,7 +69,7 @@ public class PQServiceImpl implements PQService {
     }
 
     @Override
-    @Scheduled(cron = "${pq.refresh.schedule:0 0 22 * * ?}")
+    @Scheduled(cron = "${pq.refresh.schedule}")
     public void refreshAuthAll() {
         userRepository.findAll().forEach(this::refreshAuth);
     }

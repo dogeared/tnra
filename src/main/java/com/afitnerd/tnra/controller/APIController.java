@@ -81,7 +81,7 @@ public class APIController {
         return goToGuySet;
     }
 
-    @Scheduled(cron = "${tnra.notify.schedule:0 0 12 * * ?}")
+    @Scheduled(cron = "${tnra.notify.schedule}")
     public void notifyWhatAndWhensOnSchedule() {
         notifyWhatAndWhens();
     }
