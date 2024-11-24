@@ -3,15 +3,17 @@ package com.afitnerd.tnra.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableWebSecurity
 public class    SpringSecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         String[] allowedPaths = {
-            "/", "/login/callback", "/h2-console/**", "/api/v1/pq", "/api/v1/post",
+            "/", "/index.html", "/login/callback", "/h2-console/**", "/api/v1/pq", "/api/v1/post",
             "/api/v1/start", "/api/v1/finish", "/api/v1/tnra", "/api/v1/email", "/api/v1/show",
             "/api/v1/wid", "/api/v1/kry", "/api/v1/wha",
             "/api/v1/per", "/api/v1/fam", "/api/v1/wor",
