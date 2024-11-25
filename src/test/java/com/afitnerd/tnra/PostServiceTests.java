@@ -8,26 +8,23 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.PostService;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.beans.PropertyDescriptor;
 import java.util.Arrays;
 import java.util.List;
 
-import static junit.framework.TestCase.fail;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
-@RunWith(SpringRunner.class)
 @SpringBootTest
 public class PostServiceTests {
 
@@ -42,7 +39,7 @@ public class PostServiceTests {
 
     User user;
 
-    @Before
+    @BeforeEach
     public void setup() {
         user = new User("abc123", "afitnerd");
         user = userRepository.save(user);

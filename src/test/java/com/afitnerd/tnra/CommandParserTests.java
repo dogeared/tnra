@@ -6,11 +6,11 @@ import com.afitnerd.tnra.model.command.Section;
 import com.afitnerd.tnra.model.command.Stat;
 import com.afitnerd.tnra.model.command.SubSection;
 import com.afitnerd.tnra.util.CommandParser;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class CommandParserTests {
 

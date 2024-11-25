@@ -5,8 +5,8 @@ import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
 import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.apache.http.client.fluent.Request;
-import org.apache.http.entity.ContentType;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.client5.http.fluent.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -39,7 +39,7 @@ public class PQServiceImpl implements PQService {
     }
 
     private PQAuthenticationResponse doAuthOperation(String json) throws IOException {
-        InputStream responseStream = Request.Post(PQ_BASE_API_URL + PQ_TOKENS_URI)
+        InputStream responseStream = Request.post(PQ_BASE_API_URL + PQ_TOKENS_URI)
                 .bodyString(json, ContentType.APPLICATION_JSON)
                 .execute()
                 .returnContent().asStream();
@@ -94,7 +94,7 @@ public class PQServiceImpl implements PQService {
 
     @Override
     public PQMeResponse me(String accessToken) throws IOException {
-        InputStream responseStream = Request.Get(PQ_BASE_API_URL + PQ_ME_URI)
+        InputStream responseStream = Request.get(PQ_BASE_API_URL + PQ_ME_URI)
             .addHeader("x-access-token", accessToken)
             .execute()
             .returnContent().asStream();
@@ -103,7 +103,7 @@ public class PQServiceImpl implements PQService {
 
     @Override
     public PQMeResponse metrics(String accessToken) throws IOException {
-        InputStream responseStream = Request.Get(PQ_BASE_API_URL + PQ_METRICS_URI)
+        InputStream responseStream = Request.get(PQ_BASE_API_URL + PQ_METRICS_URI)
                 .addHeader("x-access-token", accessToken)
                 .execute()
                 .returnContent().asStream();
