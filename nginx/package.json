@@ -1,0 +1,10 @@
+{
+  "name": "tnra-nginx",
+  "version": "0.0.0",
+  "scripts": {
+    "cert": "rm -rf ./.cert && mkdir -p ./.cert && mkcert -key-file ./.cert/key.pem -cert-file ./.cert/cert.pem '*.afitnerd.local' 'afitnerd.local'",
+    "start": "docker-compose up --build"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

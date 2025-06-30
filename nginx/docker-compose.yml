@@ -1,0 +1,13 @@
+version: '2'
+services:
+  proxy:
+    network_mode: bridge
+    image: nginx:latest
+    environment:
+      # requests will be forwarded to http://<DOCKER_HOST>:<TARGET_PORT>
+      - APP_PORT=8080
+    volumes:
+      - './templates/nginx-local.conf.template:/etc/nginx/templates/default.conf.template'
+      - './.cert:/etc/nginx/certs'
+    ports:
+      - '443:443'
