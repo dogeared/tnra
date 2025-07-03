@@ -6,16 +6,20 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import com.vaadin.flow.theme.lumo.LumoUtility;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -30,13 +34,6 @@ public class StatsView extends VerticalLayout {
     private final PostService postService;
     private final UserService userService;
     private Post currentPost;
-    private IntegerField exerciseField;
-    private IntegerField gtgField;
-    private IntegerField meditateField;
-    private IntegerField meetingsField;
-    private IntegerField prayField;
-    private IntegerField readField;
-    private IntegerField sponsorField;
     private boolean isUpdatingFromButton = false;
 
     public StatsView(PostService postService, UserService userService) {
@@ -69,75 +66,137 @@ public class StatsView extends VerticalLayout {
     }
 
     private void createStatsView() {
-        H1 title = new H1("Stats");
-        title.getStyle().set("color", "var(--lumo-primary-color)");
-        title.getStyle().set("margin-bottom", "0.25rem");
+        // Header section
+        VerticalLayout headerSection = createHeaderSection();
         
-        // Show post start date and time
-        String startDate = "Post started: " + formatDateTime(currentPost.getStart());
-        H3 dateSubtitle = new H3(startDate);
-        dateSubtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        dateSubtitle.getStyle().set("margin-bottom", "0.25rem");
-        dateSubtitle.getStyle().set("font-size", "var(--lumo-font-size-s)");
+        // Stats grid
+        HorizontalLayout statsGrid = createStatsGrid();
         
-        H3 subtitle = new H3("Track your daily activities");
-        subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        subtitle.getStyle().set("margin-bottom", "0.5rem");
-
-        VerticalLayout statsContainer = new VerticalLayout();
-        statsContainer.setAlignItems(Alignment.CENTER);
-        statsContainer.setWidth("400px");
-        statsContainer.setSpacing(false);
-
-        // Create stat controls
-        exerciseField = createStatControl("Exercise", currentPost.getStats().getExercise(), statsContainer);
-        gtgField = createStatControl("GTG (Go To Guy)", currentPost.getStats().getGtg(), statsContainer);
-        meditateField = createStatControl("Meditate", currentPost.getStats().getMeditate(), statsContainer);
-        meetingsField = createStatControl("Meetings", currentPost.getStats().getMeetings(), statsContainer);
-        prayField = createStatControl("Pray", currentPost.getStats().getPray(), statsContainer);
-        readField = createStatControl("Read", currentPost.getStats().getRead(), statsContainer);
-        sponsorField = createStatControl("Sponsor", currentPost.getStats().getSponsor(), statsContainer);
-
-        add(title, dateSubtitle, subtitle, statsContainer);
+        add(headerSection, statsGrid);
     }
 
-    private IntegerField createStatControl(String label, Integer initialValue, VerticalLayout container) {
-        // Create up/down buttons
-        Button upButton = new Button(new Icon(VaadinIcon.ARROW_UP));
-        Button downButton = new Button(new Icon(VaadinIcon.ARROW_DOWN));
+    private VerticalLayout createHeaderSection() {
+        VerticalLayout header = new VerticalLayout();
+        header.setAlignItems(Alignment.CENTER);
+        header.setSpacing(false);
+        header.setPadding(false);
+        header.setWidth("100%");
+        header.getStyle().set("margin-bottom", "1rem");
+
+        H1 title = new H1("Daily Stats");
+        title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD);
+        title.getStyle().set("color", "var(--lumo-primary-color)");
+        title.getStyle().set("margin", "0");
+
+        String startDate = "Session started " + formatDateTime(currentPost.getStart());
+        Span dateSpan = new Span(startDate);
+        dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
+        dateSpan.getStyle().set("margin-top", "0.25rem");
+
+        header.add(title, dateSpan);
+        return header;
+    }
+
+    private HorizontalLayout createStatsGrid() {
+        HorizontalLayout grid = new HorizontalLayout();
+        grid.setWidth("100%");
+        grid.setMaxWidth("600px");
+        grid.setSpacing(false);
+        grid.setPadding(false);
+        grid.setAlignItems(Alignment.START);
+        grid.setJustifyContentMode(JustifyContentMode.CENTER);
+        grid.getStyle().set("flex-wrap", "wrap");
+
+        // Add all stats in a single row that wraps
+        grid.add(
+            createStatCard("Exercise", "💪", currentPost.getStats().getExercise()),
+            createStatCard("Meditate", "🧘", currentPost.getStats().getMeditate()),
+            createStatCard("Pray", "🙏", currentPost.getStats().getPray()),
+            createStatCard("Read", "📚", currentPost.getStats().getRead()),
+            createStatCard("GTG", "👥", currentPost.getStats().getGtg()),
+            createStatCard("Meetings", "🤝", currentPost.getStats().getMeetings()),
+            createStatCard("Sponsor", "🤲", currentPost.getStats().getSponsor())
+        );
+
+        return grid;
+    }
+
+    private Div createStatCard(String label, String emoji, Integer initialValue) {
+        Div card = new Div();
+        card.addClassNames(
+            LumoUtility.Background.CONTRAST_5,
+            LumoUtility.BorderRadius.MEDIUM,
+            LumoUtility.Padding.SMALL
+        );
+        card.getStyle().set("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
+        card.getStyle().set("min-width", "140px");
+        card.getStyle().set("max-width", "160px");
+        card.getStyle().set("text-align", "center");
+        card.getStyle().set("margin", "0.25rem");
+
+        // Card header with emoji and label
+        Div header = new Div();
+        header.getStyle().set("margin-bottom", "0.5rem");
         
-        // Create the input field
-        IntegerField field = new IntegerField();
-        field.setValue(initialValue != null ? initialValue : 0);
-        field.setMin(0);
-        field.setMax(99);
-        field.setWidth("50px");
-        field.setLabel(null);
+        Span emojiSpan = new Span(emoji);
+        emojiSpan.getStyle().set("font-size", "1.5rem");
+        emojiSpan.getStyle().set("display", "block");
+        emojiSpan.getStyle().set("margin-bottom", "0.25rem");
         
-        upButton.addClickListener(e -> {
-            Integer currentValue = field.getValue();
-            if (currentValue == null) currentValue = 0;
-            if (currentValue < 99) {
+        Span labelSpan = new Span(label);
+        labelSpan.addClassNames(LumoUtility.FontWeight.MEDIUM, LumoUtility.FontSize.SMALL);
+        labelSpan.getStyle().set("color", "var(--lumo-primary-text-color)");
+        
+        header.add(emojiSpan, labelSpan);
+
+        // Value display - clickable and editable
+        IntegerField valueField = new IntegerField();
+        valueField.setValue(initialValue != null ? initialValue : 0);
+        valueField.setMin(0);
+        valueField.setMax(99);
+        valueField.setWidth("50px");
+        valueField.setLabel(null);
+        valueField.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
+        valueField.getStyle().set("color", "var(--lumo-primary-color)");
+        valueField.getStyle().set("text-align", "center");
+        valueField.getStyle().set("margin", "0.25rem 0");
+
+        // Control buttons
+        HorizontalLayout controls = new HorizontalLayout();
+        controls.setSpacing(false);
+        controls.setAlignItems(Alignment.CENTER);
+        controls.setJustifyContentMode(JustifyContentMode.CENTER);
+
+        Button minusBtn = createControlButton(VaadinIcon.MINUS, "Decrease " + label);
+        Button plusBtn = createControlButton(VaadinIcon.PLUS, "Increase " + label);
+
+        // Store current value for button handlers
+        final int[] currentValue = {initialValue != null ? initialValue : 0};
+
+        minusBtn.addClickListener(e -> {
+            if (currentValue[0] > 0) {
+                currentValue[0]--;
                 isUpdatingFromButton = true;
-                field.setValue(currentValue + 1);
-                updateStat(label, currentValue + 1);
+                valueField.setValue(currentValue[0]);
+                updateStat(label, currentValue[0]);
+                addPulseAnimation(valueField);
                 isUpdatingFromButton = false;
             }
         });
-        
-        downButton.addClickListener(e -> {
-            Integer currentValue = field.getValue();
-            if (currentValue == null) currentValue = 0;
-            if (currentValue > 0) {
+
+        plusBtn.addClickListener(e -> {
+            if (currentValue[0] < 99) {
+                currentValue[0]++;
                 isUpdatingFromButton = true;
-                field.setValue(currentValue - 1);
-                updateStat(label, currentValue - 1);
+                valueField.setValue(currentValue[0]);
+                updateStat(label, currentValue[0]);
+                addPulseAnimation(valueField);
                 isUpdatingFromButton = false;
             }
         });
-        
+
         // Handle direct input
-        field.addValueChangeListener(e -> {
+        valueField.addValueChangeListener(e -> {
             // Skip if this change was triggered by a button click
             if (isUpdatingFromButton) {
                 return;
@@ -146,40 +205,50 @@ public class StatsView extends VerticalLayout {
             Integer value = e.getValue();
             if (value != null) {
                 if (value < 0) {
-                    field.setValue(0);
+                    valueField.setValue(0);
                     value = 0;
                 } else if (value > 99) {
-                    field.setValue(99);
+                    valueField.setValue(99);
                     value = 99;
                 }
+                currentValue[0] = value;
                 updateStat(label, value);
             }
         });
-        
-        // Create horizontal layout: down arrow | input field | up arrow
-        HorizontalLayout controlLayout = new HorizontalLayout();
-        controlLayout.setAlignItems(Alignment.CENTER);
-        controlLayout.setSpacing(false);
-        controlLayout.add(downButton, field, upButton);
-        
-        // Create a container with the label and control
-        VerticalLayout statContainer = new VerticalLayout();
-        statContainer.setAlignItems(Alignment.CENTER);
-        statContainer.setSpacing(false);
-        statContainer.setPadding(false);
-        
-        H3 labelElement = new H3(label);
-        labelElement.getStyle().set("margin", "0");
-        labelElement.getStyle().set("margin-bottom", "0.25rem");
-        labelElement.getStyle().set("font-size", "var(--lumo-font-size-s)");
-        labelElement.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        
-        statContainer.add(labelElement, controlLayout);
-        
-        // Add the stat container to the passed container
-        container.add(statContainer);
-        
-        return field;
+
+        controls.add(minusBtn, valueField, plusBtn);
+        card.add(header, controls);
+
+        return card;
+    }
+
+    private Button createControlButton(VaadinIcon icon, String ariaLabel) {
+        Button button = new Button(icon.create());
+        button.addClassNames(
+            LumoUtility.BorderRadius.MEDIUM,
+            LumoUtility.Padding.SMALL
+        );
+        button.getStyle().set("min-width", "32px");
+        button.getStyle().set("min-height", "32px");
+        button.getStyle().set("background-color", "var(--lumo-primary-color)");
+        button.getStyle().set("color", "white");
+        button.getStyle().set("border", "none");
+        button.getStyle().set("cursor", "pointer");
+        button.setAriaLabel(ariaLabel);
+
+        // Hover effects
+        button.getElement().getStyle().set("transition", "all 0.2s ease");
+        button.addClickListener(e -> {
+            button.getStyle().set("transform", "scale(0.95)");
+            button.getElement().executeJs("setTimeout(() => $0.style.transform = 'scale(1)', 100)");
+        });
+
+        return button;
+    }
+
+    private void addPulseAnimation(com.vaadin.flow.component.Component element) {
+        element.getStyle().set("animation", "pulse 0.3s ease-in-out");
+        element.getElement().executeJs("setTimeout(() => $0.style.animation = '', 300)");
     }
 
     private void updateStat(String statName, Integer value) {
@@ -190,7 +259,6 @@ public class StatsView extends VerticalLayout {
                 case "exercise":
                     stats.setExercise(value);
                     break;
-                case "gtg (go to guy)":
                 case "gtg":
                     stats.setGtg(value);
                     break;
@@ -214,11 +282,16 @@ public class StatsView extends VerticalLayout {
             // Save the post
             try {
                 postService.savePost(currentPost);
-                Notification.show("Stats updated", 1000, Notification.Position.TOP_CENTER);
+                showSuccessNotification(statName + " updated to " + value);
             } catch (Exception e) {
                 Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
             }
         }
+    }
+
+    private void showSuccessNotification(String message) {
+        Notification notification = Notification.show(message, 1500, Notification.Position.TOP_CENTER);
+        notification.addThemeName("success");
     }
     
     private String formatDateTime(Date date) {
