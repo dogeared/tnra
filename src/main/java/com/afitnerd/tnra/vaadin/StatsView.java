@@ -79,32 +79,29 @@ public class StatsView extends VerticalLayout {
         statsContainer.setSpacing(true);
 
         // Create stat controls
-        exerciseField = createStatControl("Exercise", currentPost.getStats().getExercise());
-        gtgField = createStatControl("GTG (Go To Guy)", currentPost.getStats().getGtg());
-        meditateField = createStatControl("Meditate", currentPost.getStats().getMeditate());
-        meetingsField = createStatControl("Meetings", currentPost.getStats().getMeetings());
-        prayField = createStatControl("Pray", currentPost.getStats().getPray());
-        readField = createStatControl("Read", currentPost.getStats().getRead());
-        sponsorField = createStatControl("Sponsor", currentPost.getStats().getSponsor());
-
-        statsContainer.add(
-            exerciseField, gtgField, meditateField, meetingsField, 
-            prayField, readField, sponsorField
-        );
+        exerciseField = createStatControl("Exercise", currentPost.getStats().getExercise(), statsContainer);
+        gtgField = createStatControl("GTG (Go To Guy)", currentPost.getStats().getGtg(), statsContainer);
+        meditateField = createStatControl("Meditate", currentPost.getStats().getMeditate(), statsContainer);
+        meetingsField = createStatControl("Meetings", currentPost.getStats().getMeetings(), statsContainer);
+        prayField = createStatControl("Pray", currentPost.getStats().getPray(), statsContainer);
+        readField = createStatControl("Read", currentPost.getStats().getRead(), statsContainer);
+        sponsorField = createStatControl("Sponsor", currentPost.getStats().getSponsor(), statsContainer);
 
         add(title, subtitle, statsContainer);
     }
 
-    private IntegerField createStatControl(String label, Integer initialValue) {
-        IntegerField field = new IntegerField(label);
-        field.setValue(initialValue != null ? initialValue : 0);
-        field.setMin(0);
-        field.setMax(99);
-        field.setWidth("200px");
-        
+    private IntegerField createStatControl(String label, Integer initialValue, VerticalLayout container) {
         // Create up/down buttons
         Button upButton = new Button(new Icon(VaadinIcon.ARROW_UP));
         Button downButton = new Button(new Icon(VaadinIcon.ARROW_DOWN));
+        
+        // Create the input field
+        IntegerField field = new IntegerField();
+        field.setValue(initialValue != null ? initialValue : 0);
+        field.setMin(0);
+        field.setMax(99);
+        field.setWidth("50px");
+        field.setLabel(null);
         
         upButton.addClickListener(e -> {
             Integer currentValue = field.getValue();
@@ -139,30 +136,26 @@ public class StatsView extends VerticalLayout {
             }
         });
         
-        // Create horizontal layout for the control
+        // Create horizontal layout: down arrow | input field | up arrow
         HorizontalLayout controlLayout = new HorizontalLayout();
         controlLayout.setAlignItems(Alignment.CENTER);
         controlLayout.setSpacing(true);
         controlLayout.add(downButton, field, upButton);
         
-        // Replace the field with the control layout
-        field.setLabel(null);
-        field.setWidth("100px");
-        
         // Create a container with the label and control
-        VerticalLayout container = new VerticalLayout();
-        container.setAlignItems(Alignment.CENTER);
-        container.setSpacing(false);
+        VerticalLayout statContainer = new VerticalLayout();
+        statContainer.setAlignItems(Alignment.CENTER);
+        statContainer.setSpacing(false);
         
         H3 labelElement = new H3(label);
         labelElement.getStyle().set("margin", "0");
         labelElement.getStyle().set("font-size", "var(--lumo-font-size-s)");
         labelElement.getStyle().set("color", "var(--lumo-secondary-text-color)");
         
-        container.add(labelElement, controlLayout);
+        statContainer.add(labelElement, controlLayout);
         
-        // Add the container to the parent layout
-        add(container);
+        // Add the stat container to the passed container
+        container.add(statContainer);
         
         return field;
     }
