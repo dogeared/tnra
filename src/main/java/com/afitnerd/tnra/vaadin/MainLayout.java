@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.vaadin.flow.component.applayout.AppLayout;
+import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
@@ -21,9 +22,15 @@ public class MainLayout extends AppLayout {
     public MainLayout() {
         createHeader();
         createDrawer();
+        
+        // Make the drawer collapsible by default and show the toggle button
+        setDrawerOpened(false);
+        setPrimarySection(Section.DRAWER);
     }
 
     private void createHeader() {
+        DrawerToggle drawerToggle = new DrawerToggle();
+        
         H1 logo = new H1("TNRA");
         logo.addClassNames(
             LumoUtility.FontSize.LARGE,
@@ -46,7 +53,7 @@ public class MainLayout extends AppLayout {
         }
         authButton.addClassNames(LumoUtility.Margin.MEDIUM);
 
-        HorizontalLayout header = new HorizontalLayout(logo, authButton);
+        HorizontalLayout header = new HorizontalLayout(drawerToggle, logo, authButton);
         header.setWidthFull();
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
