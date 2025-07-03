@@ -41,3 +41,15 @@ Simplified previous request. Interestingly, it created a Stats view on its own..
 ```
 create a collapsible menu. Relocate the login button to the menu. When the user is authenticated, this should change to the logout button.
 ```
+
+It took a few refinements to get it right:
+
+```
+The nav is working properly. However, it is not collapsible
+```
+
+```
+There's no icon to click to expand or collapse the menu
+```
+
+You can see the changes by diffing from commit 68a26cd to aa2dfd2
