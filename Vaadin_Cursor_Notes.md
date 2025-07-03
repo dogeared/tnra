@@ -53,3 +53,15 @@ There's no icon to click to expand or collapse the menu
 ```
 
 You can see the changes by diffing from commit 68a26cd to aa2dfd2
+
+## Fifth prompt - Stats
+
+```
+update the Stats view to show the stats section of the Post model. Each stat should be represented by a control that has an entry field with an up and down arrow on each side. The entry field should be set to 0 initially. If there is no Post record that with PostState IN_PROGRESS, a new Post should be created when the user switches to this view. When the up arrow is pressed for a stat, it should increment the value. If the down arrow is pressed it should decrement the value. The value should not drop below 0 and should not exceed 99. The user can enter a value directly, but only numbers should be entered.
+```
+
+This came up with a view that had an error - it was creating a new Uer object rather than looking it up.
+
+I manually created a UserService that uses the UserRepository to look up the authenticated user. That fixed the error. 
+
+But, the up and down arrows were appearing separately from the input fields. It took a few more prompts to get it to render correctly.

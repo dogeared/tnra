@@ -20,6 +20,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)
 public class StatsView extends VerticalLayout {
@@ -34,6 +37,7 @@ public class StatsView extends VerticalLayout {
     private IntegerField prayField;
     private IntegerField readField;
     private IntegerField sponsorField;
+    private boolean isUpdatingFromButton = false;
 
     public StatsView(PostService postService, UserService userService) {
         this.userService = userService;
@@ -41,7 +45,7 @@ public class StatsView extends VerticalLayout {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.START);
-        setPadding(true);
+        setPadding(false);
         
         initializePost();
         createStatsView();
@@ -67,16 +71,23 @@ public class StatsView extends VerticalLayout {
     private void createStatsView() {
         H1 title = new H1("Stats");
         title.getStyle().set("color", "var(--lumo-primary-color)");
-        title.getStyle().set("margin-bottom", "2rem");
+        title.getStyle().set("margin-bottom", "0.25rem");
+        
+        // Show post start date and time
+        String startDate = "Post started: " + formatDateTime(currentPost.getStart());
+        H3 dateSubtitle = new H3(startDate);
+        dateSubtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        dateSubtitle.getStyle().set("margin-bottom", "0.25rem");
+        dateSubtitle.getStyle().set("font-size", "var(--lumo-font-size-s)");
         
         H3 subtitle = new H3("Track your daily activities");
         subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
-        subtitle.getStyle().set("margin-bottom", "2rem");
+        subtitle.getStyle().set("margin-bottom", "0.5rem");
 
         VerticalLayout statsContainer = new VerticalLayout();
         statsContainer.setAlignItems(Alignment.CENTER);
-        statsContainer.setWidth("600px");
-        statsContainer.setSpacing(true);
+        statsContainer.setWidth("400px");
+        statsContainer.setSpacing(false);
 
         // Create stat controls
         exerciseField = createStatControl("Exercise", currentPost.getStats().getExercise(), statsContainer);
@@ -87,7 +98,7 @@ public class StatsView extends VerticalLayout {
         readField = createStatControl("Read", currentPost.getStats().getRead(), statsContainer);
         sponsorField = createStatControl("Sponsor", currentPost.getStats().getSponsor(), statsContainer);
 
-        add(title, subtitle, statsContainer);
+        add(title, dateSubtitle, subtitle, statsContainer);
     }
 
     private IntegerField createStatControl(String label, Integer initialValue, VerticalLayout container) {
@@ -107,8 +118,10 @@ public class StatsView extends VerticalLayout {
             Integer currentValue = field.getValue();
             if (currentValue == null) currentValue = 0;
             if (currentValue < 99) {
+                isUpdatingFromButton = true;
                 field.setValue(currentValue + 1);
                 updateStat(label, currentValue + 1);
+                isUpdatingFromButton = false;
             }
         });
         
@@ -116,13 +129,20 @@ public class StatsView extends VerticalLayout {
             Integer currentValue = field.getValue();
             if (currentValue == null) currentValue = 0;
             if (currentValue > 0) {
+                isUpdatingFromButton = true;
                 field.setValue(currentValue - 1);
                 updateStat(label, currentValue - 1);
+                isUpdatingFromButton = false;
             }
         });
         
         // Handle direct input
         field.addValueChangeListener(e -> {
+            // Skip if this change was triggered by a button click
+            if (isUpdatingFromButton) {
+                return;
+            }
+            
             Integer value = e.getValue();
             if (value != null) {
                 if (value < 0) {
@@ -139,16 +159,18 @@ public class StatsView extends VerticalLayout {
         // Create horizontal layout: down arrow | input field | up arrow
         HorizontalLayout controlLayout = new HorizontalLayout();
         controlLayout.setAlignItems(Alignment.CENTER);
-        controlLayout.setSpacing(true);
+        controlLayout.setSpacing(false);
         controlLayout.add(downButton, field, upButton);
         
         // Create a container with the label and control
         VerticalLayout statContainer = new VerticalLayout();
         statContainer.setAlignItems(Alignment.CENTER);
         statContainer.setSpacing(false);
+        statContainer.setPadding(false);
         
         H3 labelElement = new H3(label);
         labelElement.getStyle().set("margin", "0");
+        labelElement.getStyle().set("margin-bottom", "0.25rem");
         labelElement.getStyle().set("font-size", "var(--lumo-font-size-s)");
         labelElement.getStyle().set("color", "var(--lumo-secondary-text-color)");
         
@@ -197,5 +219,13 @@ public class StatsView extends VerticalLayout {
                 Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
             }
         }
+    }
+    
+    private String formatDateTime(Date date) {
+        if (date == null) {
+            return "Unknown";
+        }
+        SimpleDateFormat formatter = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a");
+        return formatter.format(date);
     }
 } 
