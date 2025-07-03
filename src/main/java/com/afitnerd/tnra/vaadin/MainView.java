@@ -1,7 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.service.OidcUserService;
-import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -14,8 +13,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 @PageTitle("TNRA - The Nerdy Retrospective App")
-@Route(value = "")
-@RouteAlias(value = "main")
+@Route(value = "", layout = MainLayout.class)
+@RouteAlias(value = "main", layout = MainLayout.class)
 @AnonymousAllowed
 public class MainView extends VerticalLayout {
 
@@ -53,12 +52,7 @@ public class MainView extends VerticalLayout {
         description.getStyle().set("text-align", "center");
         description.getStyle().set("max-width", "600px");
         
-        Button loginButton = new Button("Login with OIDC", e -> {
-            getUI().ifPresent(ui -> ui.getPage().setLocation("/oauth2/authorization/okta"));
-        });
-        loginButton.getStyle().set("margin-top", "2rem");
-        
-        add(title, subtitle, description, loginButton);
+        add(title, subtitle, description);
     }
     
     private void showAuthenticatedView(Authentication authentication) {
@@ -74,12 +68,7 @@ public class MainView extends VerticalLayout {
             );
             welcomeMessage.getStyle().set("text-align", "center");
             
-            Button logoutButton = new Button("Logout", event -> {
-                getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
-            });
-            logoutButton.getStyle().set("margin-top", "2rem");
-            
-            add(title, welcomeMessage, logoutButton);
+            add(title, welcomeMessage);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -96,12 +85,7 @@ public class MainView extends VerticalLayout {
             errorMessage.getStyle().set("color", "var(--lumo-error-color)");
             errorMessage.getStyle().set("text-align", "center");
             
-            Button logoutButton = new Button("Logout", event -> {
-                getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
-            });
-            logoutButton.getStyle().set("margin-top", "2rem");
-            
-            add(title, welcomeMessage, errorMessage, logoutButton);
+            add(title, welcomeMessage, errorMessage);
             
             // Log the error for debugging
             System.err.println("Error in showAuthenticatedView: " + e.getMessage());

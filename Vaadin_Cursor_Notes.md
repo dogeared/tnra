@@ -27,3 +27,17 @@ This is a backend api project that uses OIDC for authn and authz. Add a Vaadin F
 ```
 
 Lots of wrestling with cursor and the application.yml
+
+## Third prompt - stats
+
+```
+Add a nav menu that has the login and logout items as well as a Stats item that goes to a new view called Stats. The Stats menu item should only be available if the user is authenticated. The Stats view should show sliders for each of the stats in the Post model. If there isn't an in-porgress post, a new one should be created. Once there is an in-porgress post, changes to the stats sliders should automatically persist to the database.
+```
+
+## Fourth prompt - menu/nav
+
+Simplified previous request. Interestingly, it created a Stats view on its own...
+
+```
+create a collapsible menu. Relocate the login button to the menu. When the user is authenticated, this should change to the logout button.
+```
