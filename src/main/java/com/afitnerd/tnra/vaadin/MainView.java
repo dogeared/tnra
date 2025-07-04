@@ -9,6 +9,7 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import com.vaadin.flow.component.dependency.CssImport;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -16,6 +17,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @Route(value = "", layout = MainLayout.class)
 @RouteAlias(value = "main", layout = MainLayout.class)
 @AnonymousAllowed
+@CssImport("./styles/main-view.css")
 public class MainView extends VerticalLayout {
 
     private final OidcUserService oidcUserService;
@@ -40,17 +42,16 @@ public class MainView extends VerticalLayout {
     
     private void showUnauthenticatedView() {
         H1 title = new H1("Welcome to TNRA");
-        title.getStyle().set("color", "var(--lumo-primary-color)");
+        title.addClassName("main-title");
         
         H2 subtitle = new H2("The Nerdy Retrospective App");
-        subtitle.getStyle().set("color", "var(--lumo-secondary-text-color)");
+        subtitle.addClassName("main-subtitle");
         
         Paragraph description = new Paragraph(
             "TNRA helps you conduct effective retrospectives with a structured approach. " +
             "Please log in to access your retrospective sessions."
         );
-        description.getStyle().set("text-align", "center");
-        description.getStyle().set("max-width", "600px");
+        description.addClassName("main-description");
         
         add(title, subtitle, description);
     }
@@ -58,7 +59,7 @@ public class MainView extends VerticalLayout {
     private void showAuthenticatedView(Authentication authentication) {
         try {
             H1 title = new H1("Welcome back!");
-            title.getStyle().set("color", "var(--lumo-primary-color)");
+            title.addClassName("main-title");
             
             // Get user's display name using the service
             String displayName = oidcUserService.getDisplayName(authentication);
@@ -66,24 +67,23 @@ public class MainView extends VerticalLayout {
             Paragraph welcomeMessage = new Paragraph(
                 "Hello, " + displayName + "! You are now logged in."
             );
-            welcomeMessage.getStyle().set("text-align", "center");
+            welcomeMessage.addClassName("welcome-message");
             
             add(title, welcomeMessage);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
-            title.getStyle().set("color", "var(--lumo-primary-color)");
+            title.addClassName("main-title");
             
             Paragraph welcomeMessage = new Paragraph(
                 "Hello! You are now logged in."
             );
-            welcomeMessage.getStyle().set("text-align", "center");
+            welcomeMessage.addClassName("welcome-message");
             
             Paragraph errorMessage = new Paragraph(
                 "Note: Could not retrieve user details due to an error."
             );
-            errorMessage.getStyle().set("color", "var(--lumo-error-color)");
-            errorMessage.getStyle().set("text-align", "center");
+            errorMessage.addClassName("error-message");
             
             add(title, welcomeMessage, errorMessage);
             
