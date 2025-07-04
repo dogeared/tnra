@@ -83,17 +83,14 @@ public class StatsView extends VerticalLayout {
         header.setSpacing(false);
         header.setPadding(false);
         header.setWidth("100%");
-        header.getStyle().set("margin-bottom", "1rem");
+        header.addClassName("stats-header");
 
         H1 title = new H1("Daily Stats");
-        title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD);
-        title.getStyle().set("color", "var(--lumo-primary-color)");
-        title.getStyle().set("margin", "0");
+        title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, "stats-title");
 
         String startDate = "Session started " + formatDateTime(currentPost.getStart());
         Span dateSpan = new Span(startDate);
-        dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY);
-        dateSpan.getStyle().set("margin-top", "0.25rem");
+        dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
 
         header.add(title, dateSpan);
         return header;
@@ -107,7 +104,7 @@ public class StatsView extends VerticalLayout {
         grid.setPadding(false);
         grid.setAlignItems(Alignment.START);
         grid.setJustifyContentMode(JustifyContentMode.CENTER);
-        grid.getStyle().set("flex-wrap", "wrap");
+        grid.addClassName("stats-grid");
 
         // Add all stats in a single row that wraps
         grid.add(
@@ -128,26 +125,19 @@ public class StatsView extends VerticalLayout {
         card.addClassNames(
             LumoUtility.Background.CONTRAST_5,
             LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL
+            LumoUtility.Padding.SMALL,
+            "stat-card"
         );
-        card.getStyle().set("box-shadow", "0 2px 4px rgba(0,0,0,0.1)");
-        card.getStyle().set("min-width", "140px");
-        card.getStyle().set("max-width", "160px");
-        card.getStyle().set("text-align", "center");
-        card.getStyle().set("margin", "0.25rem");
 
         // Card header with emoji and label
         Div header = new Div();
-        header.getStyle().set("margin-bottom", "0.5rem");
+        header.addClassName("stat-card-header");
         
         Span emojiSpan = new Span(emoji);
-        emojiSpan.getStyle().set("font-size", "1.5rem");
-        emojiSpan.getStyle().set("display", "block");
-        emojiSpan.getStyle().set("margin-bottom", "0.25rem");
+        emojiSpan.addClassName("stat-card-emoji");
         
         Span labelSpan = new Span(label);
-        labelSpan.addClassNames(LumoUtility.FontWeight.MEDIUM, LumoUtility.FontSize.SMALL);
-        labelSpan.getStyle().set("color", "var(--lumo-primary-text-color)");
+        labelSpan.addClassNames(LumoUtility.FontWeight.MEDIUM, LumoUtility.FontSize.SMALL, "stat-card-label");
         
         header.add(emojiSpan, labelSpan);
 
@@ -158,13 +148,7 @@ public class StatsView extends VerticalLayout {
         valueField.setMax(99);
         valueField.setWidth("50px");
         valueField.setLabel(null);
-        valueField.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD);
-        valueField.getStyle().set("color", "var(--lumo-primary-color)");
-        valueField.getStyle().set("text-align", "center");
-        valueField.getStyle().set("margin", "0.25rem 0");
-        
-        // Center the text in the input field using CSS class
-        valueField.addClassName("centered-input");
+        valueField.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "stat-input", "centered-input");
 
         // Control buttons
         HorizontalLayout controls = new HorizontalLayout();
@@ -231,18 +215,12 @@ public class StatsView extends VerticalLayout {
         Button button = new Button(icon.create());
         button.addClassNames(
             LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL
+            LumoUtility.Padding.SMALL,
+            "control-button"
         );
-        button.getStyle().set("min-width", "32px");
-        button.getStyle().set("min-height", "32px");
-        button.getStyle().set("background-color", "var(--lumo-primary-color)");
-        button.getStyle().set("color", "white");
-        button.getStyle().set("border", "none");
-        button.getStyle().set("cursor", "pointer");
         button.setAriaLabel(ariaLabel);
 
-        // Hover effects
-        button.getElement().getStyle().set("transition", "all 0.2s ease");
+        // Click animation
         button.addClickListener(e -> {
             button.getStyle().set("transform", "scale(0.95)");
             button.getElement().executeJs("setTimeout(() => $0.style.transform = 'scale(1)', 100)");
@@ -252,8 +230,8 @@ public class StatsView extends VerticalLayout {
     }
 
     private void addPulseAnimation(com.vaadin.flow.component.Component element) {
-        element.getStyle().set("animation", "pulse 0.3s ease-in-out");
-        element.getElement().executeJs("setTimeout(() => $0.style.animation = '', 300)");
+        element.addClassName("pulse-animation");
+        element.getElement().executeJs("setTimeout(() => $0.classList.remove('pulse-animation'), 300)");
     }
 
     private void updateStat(String statName, Integer value) {
@@ -296,7 +274,7 @@ public class StatsView extends VerticalLayout {
 
     private void showSuccessNotification(String message) {
         Notification notification = Notification.show(message, 1500, Notification.Position.TOP_CENTER);
-        notification.addThemeName("success");
+        notification.addThemeName("primary");
     }
     
     private String formatDateTime(Date date) {

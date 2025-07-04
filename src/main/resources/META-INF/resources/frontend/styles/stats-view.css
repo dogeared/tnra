@@ -1,3 +1,80 @@
+/* Stats View Styles */
+
+/* Header Section */
+.stats-header {
+    margin-bottom: 1rem;
+}
+
+.stats-title {
+    color: var(--lumo-primary-color);
+    margin: 0;
+}
+
+.stats-date {
+    margin-top: 0.25rem;
+}
+
+/* Stats Grid */
+.stats-grid {
+    flex-wrap: wrap;
+}
+
+/* Stat Cards */
+.stat-card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-width: 140px;
+    max-width: 160px;
+    text-align: center;
+    margin: 0.25rem;
+}
+
+.stat-card-header {
+    margin-bottom: 0.5rem;
+}
+
+.stat-card-emoji {
+    font-size: 1.5rem;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.stat-card-label {
+    color: var(--lumo-primary-text-color);
+}
+
+/* Input Field */
+.stat-input {
+    color: var(--lumo-primary-color);
+    text-align: center;
+    margin: 0.25rem 0;
+}
+
 .centered-input input {
     text-align: center !important;
+}
+
+/* Control Buttons */
+.control-button {
+    min-width: 32px;
+    min-height: 32px;
+    background-color: var(--lumo-primary-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.control-button:hover {
+    background-color: var(--lumo-primary-color-50pct);
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse-animation {
+    animation: pulse 0.3s ease-in-out;
 } 
