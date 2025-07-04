@@ -20,6 +20,7 @@ import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.vaadin.flow.component.dependency.CssImport;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
@@ -29,6 +30,7 @@ import java.util.Date;
 
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)
+@CssImport("./styles/stats-view.css")
 public class StatsView extends VerticalLayout {
 
     private final PostService postService;
@@ -160,6 +162,9 @@ public class StatsView extends VerticalLayout {
         valueField.getStyle().set("color", "var(--lumo-primary-color)");
         valueField.getStyle().set("text-align", "center");
         valueField.getStyle().set("margin", "0.25rem 0");
+        
+        // Center the text in the input field using CSS class
+        valueField.addClassName("centered-input");
 
         // Control buttons
         HorizontalLayout controls = new HorizontalLayout();

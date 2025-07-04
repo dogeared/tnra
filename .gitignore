@@ -38,4 +38,5 @@ nginx/.cert
 .env
 
 .vscode
-frontend
+/frontend/
+bundles
