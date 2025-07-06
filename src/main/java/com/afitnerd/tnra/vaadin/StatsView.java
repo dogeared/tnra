@@ -5,18 +5,14 @@ import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
+import com.afitnerd.tnra.vaadin.StatCard;
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Span;
-import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.orderedlayout.FlexComponent;
-import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -26,7 +22,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)
@@ -36,7 +34,9 @@ public class StatsView extends VerticalLayout {
     private final PostService postService;
     private final UserService userService;
     private Post currentPost;
-    private boolean isUpdatingFromButton = false;
+    private List<StatCard> statCards = new ArrayList<>();
+    private boolean isReadOnly = false;
+    private Button toggleButton;
 
     public StatsView(PostService postService, UserService userService) {
         this.userService = userService;
@@ -85,6 +85,7 @@ public class StatsView extends VerticalLayout {
         header.setWidth("100%");
         header.addClassName("stats-header");
 
+        // Title and date row
         H1 title = new H1("Daily Stats");
         title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, "stats-title");
 
@@ -92,7 +93,30 @@ public class StatsView extends VerticalLayout {
         Span dateSpan = new Span(startDate);
         dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
 
-        header.add(title, dateSpan);
+        // Toggle button row
+        HorizontalLayout toggleRow = new HorizontalLayout();
+        toggleRow.setAlignItems(Alignment.CENTER);
+        toggleRow.setSpacing(true);
+        toggleRow.setPadding(false);
+        toggleRow.addClassName("toggle-row");
+
+        toggleButton = new Button();
+        toggleButton.addClassNames(
+            LumoUtility.BorderRadius.MEDIUM,
+            LumoUtility.Padding.SMALL,
+            "toggle-button"
+        );
+        updateToggleButton();
+        
+        toggleButton.addClickListener(e -> {
+            isReadOnly = !isReadOnly;
+            setReadOnly(isReadOnly);
+            updateToggleButton();
+            showSuccessNotification(isReadOnly ? "Stats are now read-only" : "Stats are now editable");
+        });
+
+        toggleRow.add(toggleButton);
+        header.add(title, dateSpan, toggleRow);
         return header;
     }
 
@@ -106,133 +130,37 @@ public class StatsView extends VerticalLayout {
         grid.setJustifyContentMode(JustifyContentMode.CENTER);
         grid.addClassName("stats-grid");
 
-        // Add all stats in a single row that wraps
-        grid.add(
-            createStatCard("Exercise", "💪", currentPost.getStats().getExercise()),
-            createStatCard("Meditate", "🧘", currentPost.getStats().getMeditate()),
-            createStatCard("Pray", "🙏", currentPost.getStats().getPray()),
-            createStatCard("Read", "📚", currentPost.getStats().getRead()),
-            createStatCard("GTG", "👥", currentPost.getStats().getGtg()),
-            createStatCard("Meetings", "🤝", currentPost.getStats().getMeetings()),
-            createStatCard("Sponsor", "🤲", currentPost.getStats().getSponsor())
-        );
+        // Clear previous stat cards
+        statCards.clear();
+
+        // Create stat cards
+        StatCard exerciseCard = new StatCard("Exercise", "💪", currentPost.getStats().getExercise());
+        StatCard meditateCard = new StatCard("Meditate", "🧘", currentPost.getStats().getMeditate());
+        StatCard prayCard = new StatCard("Pray", "🙏", currentPost.getStats().getPray());
+        StatCard readCard = new StatCard("Read", "📚", currentPost.getStats().getRead());
+        StatCard gtgCard = new StatCard("GTG", "👥", currentPost.getStats().getGtg());
+        StatCard meetingsCard = new StatCard("Meetings", "🤝", currentPost.getStats().getMeetings());
+        StatCard sponsorCard = new StatCard("Sponsor", "🤲", currentPost.getStats().getSponsor());
+
+        // Add value change listeners
+        exerciseCard.setValueChangeListener(value -> updateStat("Exercise", value));
+        meditateCard.setValueChangeListener(value -> updateStat("Meditate", value));
+        prayCard.setValueChangeListener(value -> updateStat("Pray", value));
+        readCard.setValueChangeListener(value -> updateStat("Read", value));
+        gtgCard.setValueChangeListener(value -> updateStat("GTG", value));
+        meetingsCard.setValueChangeListener(value -> updateStat("Meetings", value));
+        sponsorCard.setValueChangeListener(value -> updateStat("Sponsor", value));
+
+        // Add to list for later access
+        statCards.addAll(List.of(exerciseCard, meditateCard, prayCard, readCard, gtgCard, meetingsCard, sponsorCard));
+
+        // Add all cards to grid
+        grid.add(exerciseCard, meditateCard, prayCard, readCard, gtgCard, meetingsCard, sponsorCard);
 
         return grid;
     }
 
-    private Div createStatCard(String label, String emoji, Integer initialValue) {
-        Div card = new Div();
-        card.addClassNames(
-            LumoUtility.Background.CONTRAST_5,
-            LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL,
-            "stat-card"
-        );
 
-        // Card header with emoji and label
-        Div header = new Div();
-        header.addClassName("stat-card-header");
-        
-        Span emojiSpan = new Span(emoji);
-        emojiSpan.addClassName("stat-card-emoji");
-        
-        Span labelSpan = new Span(label);
-        labelSpan.addClassNames(LumoUtility.FontWeight.MEDIUM, LumoUtility.FontSize.SMALL, "stat-card-label");
-        
-        header.add(emojiSpan, labelSpan);
-
-        // Value display - clickable and editable
-        IntegerField valueField = new IntegerField();
-        valueField.setValue(initialValue != null ? initialValue : 0);
-        valueField.setMin(0);
-        valueField.setMax(99);
-        valueField.setWidth("50px");
-        valueField.setLabel(null);
-        valueField.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "stat-input", "centered-input");
-
-        // Control buttons
-        HorizontalLayout controls = new HorizontalLayout();
-        controls.setSpacing(false);
-        controls.setAlignItems(Alignment.CENTER);
-        controls.setJustifyContentMode(JustifyContentMode.CENTER);
-
-        Button minusBtn = createControlButton(VaadinIcon.MINUS, "Decrease " + label);
-        Button plusBtn = createControlButton(VaadinIcon.PLUS, "Increase " + label);
-
-        // Store current value for button handlers
-        final int[] currentValue = {initialValue != null ? initialValue : 0};
-
-        minusBtn.addClickListener(e -> {
-            if (currentValue[0] > 0) {
-                currentValue[0]--;
-                isUpdatingFromButton = true;
-                valueField.setValue(currentValue[0]);
-                updateStat(label, currentValue[0]);
-                addPulseAnimation(valueField);
-                isUpdatingFromButton = false;
-            }
-        });
-
-        plusBtn.addClickListener(e -> {
-            if (currentValue[0] < 99) {
-                currentValue[0]++;
-                isUpdatingFromButton = true;
-                valueField.setValue(currentValue[0]);
-                updateStat(label, currentValue[0]);
-                addPulseAnimation(valueField);
-                isUpdatingFromButton = false;
-            }
-        });
-
-        // Handle direct input
-        valueField.addValueChangeListener(e -> {
-            // Skip if this change was triggered by a button click
-            if (isUpdatingFromButton) {
-                return;
-            }
-            
-            Integer value = e.getValue();
-            if (value != null) {
-                if (value < 0) {
-                    valueField.setValue(0);
-                    value = 0;
-                } else if (value > 99) {
-                    valueField.setValue(99);
-                    value = 99;
-                }
-                currentValue[0] = value;
-                updateStat(label, value);
-            }
-        });
-
-        controls.add(minusBtn, valueField, plusBtn);
-        card.add(header, controls);
-
-        return card;
-    }
-
-    private Button createControlButton(VaadinIcon icon, String ariaLabel) {
-        Button button = new Button(icon.create());
-        button.addClassNames(
-            LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL,
-            "control-button"
-        );
-        button.setAriaLabel(ariaLabel);
-
-        // Click animation
-        button.addClickListener(e -> {
-            button.getStyle().set("transform", "scale(0.95)");
-            button.getElement().executeJs("setTimeout(() => $0.style.transform = 'scale(1)', 100)");
-        });
-
-        return button;
-    }
-
-    private void addPulseAnimation(com.vaadin.flow.component.Component element) {
-        element.addClassName("pulse-animation");
-        element.getElement().executeJs("setTimeout(() => $0.classList.remove('pulse-animation'), 300)");
-    }
 
     private void updateStat(String statName, Integer value) {
         if (currentPost != null && currentPost.getStats() != null) {
@@ -275,6 +203,58 @@ public class StatsView extends VerticalLayout {
     private void showSuccessNotification(String message) {
         Notification notification = Notification.show(message, 1500, Notification.Position.TOP_CENTER);
         notification.addThemeName("primary");
+    }
+    
+    public void setReadOnly(boolean readOnly) {
+        this.isReadOnly = readOnly;
+        for (StatCard card : statCards) {
+            card.setReadOnly(readOnly);
+        }
+    }
+    
+    private void updateToggleButton() {
+        if (isReadOnly) {
+            toggleButton.setIcon(VaadinIcon.EDIT.create());
+            toggleButton.setText("Enable Editing");
+            toggleButton.addThemeName("primary");
+        } else {
+            toggleButton.setIcon(VaadinIcon.EYE.create());
+            toggleButton.setText("Read Only");
+            toggleButton.removeThemeName("primary");
+        }
+    }
+    
+    public void refreshStats() {
+        if (currentPost != null && currentPost.getStats() != null) {
+            Stats stats = currentPost.getStats();
+            
+            // Find and update each stat card
+            for (StatCard card : statCards) {
+                switch (card.getLabel().toLowerCase()) {
+                    case "exercise":
+                        card.setValue(stats.getExercise());
+                        break;
+                    case "meditate":
+                        card.setValue(stats.getMeditate());
+                        break;
+                    case "pray":
+                        card.setValue(stats.getPray());
+                        break;
+                    case "read":
+                        card.setValue(stats.getRead());
+                        break;
+                    case "gtg":
+                        card.setValue(stats.getGtg());
+                        break;
+                    case "meetings":
+                        card.setValue(stats.getMeetings());
+                        break;
+                    case "sponsor":
+                        card.setValue(stats.getSponsor());
+                        break;
+                }
+            }
+        }
     }
     
     private String formatDateTime(Date date) {

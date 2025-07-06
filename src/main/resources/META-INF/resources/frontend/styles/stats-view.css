@@ -77,4 +77,53 @@
 
 .pulse-animation {
     animation: pulse 0.3s ease-in-out;
+}
+
+/* Read-only State Styles */
+.readonly-card {
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    opacity: 0.8;
+}
+
+.readonly-input {
+    background-color: #f5f5f5 !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.readonly-input input {
+    background-color: #f5f5f5 !important;
+    color: #6c757d !important;
+    cursor: not-allowed;
+}
+
+.readonly-button {
+    background-color: #6c757d !important;
+    color: #ffffff !important;
+    cursor: not-allowed !important;
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.readonly-button:hover {
+    background-color: #6c757d !important;
+    opacity: 0.6;
+}
+
+/* Toggle Button Styles */
+.toggle-row {
+    margin-top: 0.5rem;
+}
+
+.toggle-button {
+    transition: all 0.3s ease;
+}
+
+.toggle-button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 } 
