@@ -1,12 +1,21 @@
 package com.afitnerd.tnra.vaadin;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
-import com.afitnerd.tnra.vaadin.StatCard;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -16,15 +25,6 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import com.vaadin.flow.component.dependency.CssImport;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
 
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)
@@ -63,7 +63,7 @@ public class StatsView extends VerticalLayout {
                     .orElseGet(() -> postService.startPost(user));
         } else {
             // Fallback for non-authenticated users (shouldn't happen due to route protection)
-            currentPost = new Post();
+            throw new RuntimeException("User is not authenticated");
         }
     }
 
