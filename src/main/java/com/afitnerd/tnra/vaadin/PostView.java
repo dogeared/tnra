@@ -235,18 +235,24 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         completedPostsLayout.add(postSelector, paginationLayout);
 
         // Create view mode buttons
+        showCompletedPostsButton = new Button("Switch to completed posts");
+        showCompletedPostsButton.addThemeName("secondary");
+        showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
+        
+        // Always add the button to the layout
+        controlsLayout.add(showCompletedPostsButton);
+        
         if (hasInProgressPost) {
             // Show "Show completed posts" button when in-progress post is active
-            showCompletedPostsButton = new Button("Switch to completed posts");
-            showCompletedPostsButton.addThemeName("secondary");
-            showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
-            controlsLayout.add(showCompletedPostsButton);
+            showCompletedPostsButton.setVisible(true);
             
             // Initially hide completed posts layout
             completedPostsLayout.setVisible(false);
         } else {
             // No in-progress post, show completed posts by default
             completedPostsLayout.setVisible(true);
+            // Hide the button since we're showing completed posts
+            showCompletedPostsButton.setVisible(false);
         }
     }
 
@@ -258,8 +264,12 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Load completed posts if not already loaded
         if (currentPageData == null) {
             loadCurrentPage();
-            updatePostSelector();
         }
+        
+        // Clear the dropdown selection and form fields
+        postSelector.setValue(null);
+        currentPost = null;
+        clearFormData();
         
         // Add switch to in-progress button
         switchToInProgressButton = new Button("Switch to in-progress post");
