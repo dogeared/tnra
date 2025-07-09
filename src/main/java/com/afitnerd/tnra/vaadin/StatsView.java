@@ -36,7 +36,6 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     private Post currentPost;
     private List<StatCard> statCards = new ArrayList<>();
     private boolean isReadOnly = false;
-    private Button toggleButton;
 
     public StatsView(
         OidcUserService oidcUserService, PostService postService, UserService userService
@@ -106,30 +105,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         Span dateSpan = new Span(startDate);
         dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
 
-        // Toggle button row
-        HorizontalLayout toggleRow = new HorizontalLayout();
-        toggleRow.setAlignItems(Alignment.CENTER);
-        toggleRow.setSpacing(true);
-        toggleRow.setPadding(false);
-        toggleRow.addClassName("toggle-row");
-
-        toggleButton = new Button();
-        toggleButton.addClassNames(
-            LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL,
-            "toggle-button"
-        );
-        updateToggleButton();
-        
-        toggleButton.addClickListener(e -> {
-            isReadOnly = !isReadOnly;
-            setReadOnly(isReadOnly);
-            updateToggleButton();
-            showSuccessNotification(isReadOnly ? "Stats are now read-only" : "Stats are now editable");
-        });
-
-        toggleRow.add(toggleButton);
-        header.add(title, dateSpan, toggleRow);
+        header.add(title, dateSpan);
         return header;
     }
 
@@ -225,17 +201,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         }
     }
     
-    private void updateToggleButton() {
-        if (isReadOnly) {
-            toggleButton.setIcon(VaadinIcon.EDIT.create());
-            toggleButton.setText("Enable Editing");
-            toggleButton.addThemeName("primary");
-        } else {
-            toggleButton.setIcon(VaadinIcon.EYE.create());
-            toggleButton.setText("Read Only");
-            toggleButton.removeThemeName("primary");
-        }
-    }
+
     
     public void refreshStats() {
         if (currentPost != null && currentPost.getStats() != null) {
