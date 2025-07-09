@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.service.OidcUserService;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
@@ -9,9 +10,6 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.component.dependency.CssImport;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 @PageTitle("TNRA - The Nerdy Retrospective App")
 @Route(value = "", layout = MainLayout.class)
@@ -27,14 +25,9 @@ public class MainView extends VerticalLayout {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
-        
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAuthenticated = authentication != null && 
-                                 authentication.isAuthenticated() && 
-                                 !"anonymousUser".equals(authentication.getName());
-        
-        if (isAuthenticated) {
-            showAuthenticatedView(authentication);
+
+        if (oidcUserService.isAuthenticated()) {
+            showAuthenticatedView();
         } else {
             showUnauthenticatedView();
         }
@@ -56,13 +49,13 @@ public class MainView extends VerticalLayout {
         add(title, subtitle, description);
     }
     
-    private void showAuthenticatedView(Authentication authentication) {
+    private void showAuthenticatedView() {
         try {
             H1 title = new H1("Welcome back!");
             title.addClassName("main-title");
             
             // Get user's display name using the service
-            String displayName = oidcUserService.getDisplayName(authentication);
+            String displayName = oidcUserService.getDisplayName();
             
             Paragraph welcomeMessage = new Paragraph(
                 "Hello, " + displayName + "! You are now logged in."

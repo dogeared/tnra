@@ -65,3 +65,26 @@ This came up with a view that had an error - it was creating a new Uer object ra
 I manually created a UserService that uses the UserRepository to look up the authenticated user. That fixed the error. 
 
 But, the up and down arrows were appearing separately from the input fields. It took a few more prompts to get it to render correctly.
+
+## Post prompt
+
+```
+Create a PostView. At the top there should be a pick list of available posts. The items in the list should be the available end dates of each post for the authenticated user.
+
+The rest of the view will contain all the elements from the Post model.
+
+The view should be divided into sections:
+
+The Intro section has thre inputs: a textarea for what i don't want you to know (widwytk), an input for kryptonite and a text area for what and when
+
+The next three sections are Personal, Family and Work. Each has two textareas: one for Best and one for Worst
+
+The final section is the stats setion and should be an embedded version of the StatsView.
+
+There should be a Start New Post button at the top to start a new post IF there isn't one already in progress.
+```
+
+
+## Dev Notes
+
+Speak to the importance of an ErrorView and logging the issue

@@ -1,5 +1,8 @@
 package com.afitnerd.tnra.vaadin;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
@@ -16,6 +19,8 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @AnonymousAllowed
 public class ErrorView extends VerticalLayout implements HasErrorParameter<Exception> {
 
+    private static final Logger logger = LoggerFactory.getLogger(ErrorView.class);
+
     public ErrorView() {
         setSizeFull();
         setAlignItems(Alignment.CENTER);
@@ -27,19 +32,25 @@ public class ErrorView extends VerticalLayout implements HasErrorParameter<Excep
         H1 title = new H1("Oops! Something went wrong");
         title.getStyle().set("color", "var(--lumo-error-color)");
         
-        Paragraph errorMessage = new Paragraph(
-            "We encountered an error while processing your request. " +
-            "Please try again or contact support if the problem persists."
-        );
+        Paragraph errorMessage = new Paragraph("""
+             We encountered an error while processing your request.
+             Please try again or contact support if the problem persists.
+        """);
         errorMessage.getStyle().set("text-align", "center");
         errorMessage.getStyle().set("max-width", "600px");
+
+        Paragraph errorDetails = new Paragraph(parameter.getException().getMessage());
+        errorDetails.getStyle().set("text-align", "center");
+        errorDetails.getStyle().set("max-width", "600px");
         
+        logger.error(parameter.getException().getMessage(), parameter.getException());
+
         Button homeButton = new Button("Go to Home", e -> {
             getUI().ifPresent(ui -> ui.navigate(""));
         });
         homeButton.getStyle().set("margin-top", "2rem");
         
-        add(title, errorMessage, homeButton);
+        add(title, errorMessage, errorDetails, homeButton);
         
         return 500; // Return a default error status code
     }

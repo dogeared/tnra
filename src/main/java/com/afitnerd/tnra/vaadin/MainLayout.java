@@ -1,8 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-
+import com.afitnerd.tnra.service.OidcUserService;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
@@ -19,7 +17,10 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 
 public class MainLayout extends AppLayout {
 
-    public MainLayout() {
+    private final OidcUserService oidcUserService;
+
+    public MainLayout(OidcUserService oidcUserService) {
+        this.oidcUserService = oidcUserService;
         createHeader();
         createDrawer();
         
@@ -36,13 +37,8 @@ public class MainLayout extends AppLayout {
             LumoUtility.FontSize.LARGE,
             LumoUtility.Margin.MEDIUM);
 
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAuthenticated = authentication != null && 
-                                 authentication.isAuthenticated() && 
-                                 !"anonymousUser".equals(authentication.getName());
-
         Button authButton;
-        if (isAuthenticated) {
+        if (oidcUserService.isAuthenticated()) {
             authButton = new Button("Logout", VaadinIcon.SIGN_OUT.create(), e -> {
                 getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
             });
@@ -65,11 +61,6 @@ public class MainLayout extends AppLayout {
     }
 
     private void createDrawer() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isAuthenticated = authentication != null && 
-                                 authentication.isAuthenticated() && 
-                                 !"anonymousUser".equals(authentication.getName());
-
         Tabs tabs = new Tabs();
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
         tabs.addClassNames(
@@ -83,7 +74,7 @@ public class MainLayout extends AppLayout {
         tabs.add(homeTab);
 
         // Stats tab - only visible when authenticated
-        if (isAuthenticated) {
+        if (oidcUserService.isAuthenticated()) {
             Tab statsTab = createTab("Stats", VaadinIcon.CHART_LINE, StatsView.class);
             tabs.add(statsTab);
         }

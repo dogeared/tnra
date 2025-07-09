@@ -5,13 +5,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
-
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
@@ -22,6 +19,8 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
@@ -29,40 +28,48 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)
 @CssImport("./styles/stats-view.css")
-public class StatsView extends VerticalLayout {
+public class StatsView extends VerticalLayout implements AfterNavigationObserver {
 
     private final PostService postService;
     private final UserService userService;
+    private final OidcUserService oidcUserService;
     private Post currentPost;
     private List<StatCard> statCards = new ArrayList<>();
     private boolean isReadOnly = false;
     private Button toggleButton;
 
-    public StatsView(PostService postService, UserService userService) {
+    public StatsView(
+        OidcUserService oidcUserService, PostService postService, UserService userService
+    ) {
+        this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.postService = postService;
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.START);
         setPadding(false);
-        
-        initializePost();
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        if (event.getLocation().getFirstSegment().equals("stats")) {
+            initializePost();
+            isReadOnly = false;
+        } else {
+            currentPost = new Post();
+            isReadOnly = true;
+        }
         createStatsView();
+        setReadOnly(isReadOnly);
     }
 
     private void initializePost() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.getPrincipal() instanceof OidcUser) {
-            OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-            String email = oidcUser.getEmail();
-            
+        if (oidcUserService.isAuthenticated()) {
+            String email = oidcUserService.getEmail();
             User user = userService.getUserByEmail(email);
-            
-            // Try to get existing in-progress post or create new one
             currentPost = postService.getOptionalInProgressPost(user)
                     .orElseGet(() -> postService.startPost(user));
         } else {
-            // Fallback for non-authenticated users (shouldn't happen due to route protection)
             throw new RuntimeException("User is not authenticated");
         }
     }
