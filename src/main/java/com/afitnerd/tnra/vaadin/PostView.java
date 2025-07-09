@@ -33,6 +33,11 @@ import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import com.vaadin.flow.component.HasValue;
+
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
@@ -86,6 +91,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     // Work section
     private TextArea workBestField;
     private TextArea workWorstField;
+    
+    // Debounced update system
+    private final ScheduledExecutorService debounceExecutor = Executors.newSingleThreadScheduledExecutor();
+    private boolean isUpdating = false;
 
     public PostView(OidcUserService oidcUserService, PostService postService, UserService userService) {
         this.oidcUserService = oidcUserService;
@@ -532,14 +541,17 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // WIDWYTK field
         widwytkField = new TextArea("What I Don't Want You To Know");
         widwytkField.addClassName("post-textarea");
+        widwytkField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         // Kryptonite field
         kryptoniteField = new TextField("Kryptonite");
         kryptoniteField.addClassName("post-textfield");
+        kryptoniteField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         // What and When field
         whatAndWhenField = new TextArea("What and When");
         whatAndWhenField.addClassName("post-textarea");
+        whatAndWhenField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         section.add(sectionTitle, widwytkField, kryptoniteField, whatAndWhenField);
         return section;
@@ -558,19 +570,25 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         TextArea worstField = new TextArea("Worst");
         worstField.addClassName("post-textarea");
 
-        // Store references based on category type
+        // Store references based on category type and add listeners
         switch (categoryType) {
             case "personal":
                 personalBestField = bestField;
                 personalWorstField = worstField;
+                bestField.addValueChangeListener(e -> debouncedUpdatePersonal());
+                worstField.addValueChangeListener(e -> debouncedUpdatePersonal());
                 break;
             case "family":
                 familyBestField = bestField;
                 familyWorstField = worstField;
+                bestField.addValueChangeListener(e -> debouncedUpdateFamily());
+                worstField.addValueChangeListener(e -> debouncedUpdateFamily());
                 break;
             case "work":
                 workBestField = bestField;
                 workWorstField = worstField;
+                bestField.addValueChangeListener(e -> debouncedUpdateWork());
+                worstField.addValueChangeListener(e -> debouncedUpdateWork());
                 break;
         }
 
@@ -596,26 +614,34 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void loadPostData() {
         if (currentPost == null) return;
 
-        // Load intro data
-        widwytkField.setValue(currentPost.getIntro().getWidwytk() != null ? currentPost.getIntro().getWidwytk() : "");
-        kryptoniteField.setValue(currentPost.getIntro().getKryptonite() != null ? currentPost.getIntro().getKryptonite() : "");
-        whatAndWhenField.setValue(currentPost.getIntro().getWhatAndWhen() != null ? currentPost.getIntro().getWhatAndWhen() : "");
+        // Temporarily disable updates while loading
+        isUpdating = true;
 
-        // Load personal data
-        personalBestField.setValue(currentPost.getPersonal().getBest() != null ? currentPost.getPersonal().getBest() : "");
-        personalWorstField.setValue(currentPost.getPersonal().getWorst() != null ? currentPost.getPersonal().getWorst() : "");
+        try {
+            // Load intro data
+            widwytkField.setValue(currentPost.getIntro().getWidwytk() != null ? currentPost.getIntro().getWidwytk() : "");
+            kryptoniteField.setValue(currentPost.getIntro().getKryptonite() != null ? currentPost.getIntro().getKryptonite() : "");
+            whatAndWhenField.setValue(currentPost.getIntro().getWhatAndWhen() != null ? currentPost.getIntro().getWhatAndWhen() : "");
 
-        // Load family data
-        familyBestField.setValue(currentPost.getFamily().getBest() != null ? currentPost.getFamily().getBest() : "");
-        familyWorstField.setValue(currentPost.getFamily().getWorst() != null ? currentPost.getFamily().getWorst() : "");
+            // Load personal data
+            personalBestField.setValue(currentPost.getPersonal().getBest() != null ? currentPost.getPersonal().getBest() : "");
+            personalWorstField.setValue(currentPost.getPersonal().getWorst() != null ? currentPost.getPersonal().getWorst() : "");
 
-        // Load work data
-        workBestField.setValue(currentPost.getWork().getBest() != null ? currentPost.getWork().getBest() : "");
-        workWorstField.setValue(currentPost.getWork().getWorst() != null ? currentPost.getWork().getWorst() : "");
+            // Load family data
+            familyBestField.setValue(currentPost.getFamily().getBest() != null ? currentPost.getFamily().getBest() : "");
+            familyWorstField.setValue(currentPost.getFamily().getWorst() != null ? currentPost.getFamily().getWorst() : "");
 
-        // Update stats view with current post data
-        if (statsView != null) {
-            statsView.setPost(currentPost);
+            // Load work data
+            workBestField.setValue(currentPost.getWork().getBest() != null ? currentPost.getWork().getBest() : "");
+            workWorstField.setValue(currentPost.getWork().getWorst() != null ? currentPost.getWork().getWorst() : "");
+
+            // Update stats view with current post data
+            if (statsView != null) {
+                statsView.setPost(currentPost);
+            }
+        } finally {
+            // Re-enable updates
+            isUpdating = false;
         }
     }
     
@@ -697,5 +723,111 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         }
         SimpleDateFormat formatter = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a");
         return formatter.format(date);
+    }
+    
+    // Debounced update methods
+    private void debouncedUpdateIntro() {
+        if (currentPost == null || isUpdating) return;
+        
+        debounceExecutor.schedule(() -> {
+            try {
+                isUpdating = true;
+                
+                // Create intro object with current values
+                com.afitnerd.tnra.model.Intro intro = new com.afitnerd.tnra.model.Intro();
+                intro.setWidwytk(widwytkField.getValue());
+                intro.setKryptonite(kryptoniteField.getValue());
+                intro.setWhatAndWhen(whatAndWhenField.getValue());
+                
+                // Update the post
+                postService.replaceIntro(currentUser, intro);
+                
+                // Refresh current post
+                currentPost = postService.getInProgressPost(currentUser);
+                
+            } catch (Exception e) {
+                Notification.show("Error saving intro: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            } finally {
+                isUpdating = false;
+            }
+        }, 1000, TimeUnit.MILLISECONDS);
+    }
+    
+    private void debouncedUpdatePersonal() {
+        if (currentPost == null || isUpdating) return;
+        
+        debounceExecutor.schedule(() -> {
+            try {
+                isUpdating = true;
+                
+                // Create personal object with current values
+                com.afitnerd.tnra.model.Category personal = new com.afitnerd.tnra.model.Category();
+                personal.setBest(personalBestField.getValue());
+                personal.setWorst(personalWorstField.getValue());
+                
+                // Update the post
+                postService.replacePersonal(currentUser, personal);
+                
+                // Refresh current post
+                currentPost = postService.getInProgressPost(currentUser);
+                
+            } catch (Exception e) {
+                Notification.show("Error saving personal: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            } finally {
+                isUpdating = false;
+            }
+        }, 1000, TimeUnit.MILLISECONDS);
+    }
+    
+    private void debouncedUpdateFamily() {
+        if (currentPost == null || isUpdating) return;
+        
+        debounceExecutor.schedule(() -> {
+            try {
+                isUpdating = true;
+                
+                // Create family object with current values
+                com.afitnerd.tnra.model.Category family = new com.afitnerd.tnra.model.Category();
+                family.setBest(familyBestField.getValue());
+                family.setWorst(familyWorstField.getValue());
+                
+                // Update the post
+                postService.replaceFamily(currentUser, family);
+                
+                // Refresh current post
+                currentPost = postService.getInProgressPost(currentUser);
+                
+            } catch (Exception e) {
+                Notification.show("Error saving family: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            } finally {
+                isUpdating = false;
+            }
+        }, 1000, TimeUnit.MILLISECONDS);
+    }
+    
+    private void debouncedUpdateWork() {
+        if (currentPost == null || isUpdating) return;
+        
+        debounceExecutor.schedule(() -> {
+            try {
+                isUpdating = true;
+                
+                // Create work object with current values
+                com.afitnerd.tnra.model.Category work = new com.afitnerd.tnra.model.Category();
+                work.setBest(workBestField.getValue());
+                work.setWorst(workWorstField.getValue());
+                
+                // Update the post
+                postService.replaceWork(currentUser, work);
+                
+                // Refresh current post
+                currentPost = postService.getInProgressPost(currentUser);
+                
+            } catch (Exception e) {
+                Notification.show("Error saving work: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            } finally {
+                isUpdating = false;
+            }
+        }, 1000, TimeUnit.MILLISECONDS);
     }
 } 
