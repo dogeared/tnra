@@ -136,12 +136,24 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         H2 title = new H2("Daily Posts");
         title.addClassNames(LumoUtility.FontSize.XXLARGE, LumoUtility.FontWeight.BOLD, "post-title");
 
-        // Post selector and start new post button
-        HorizontalLayout controlsRow = new HorizontalLayout();
-        controlsRow.setAlignItems(Alignment.CENTER);
-        controlsRow.setSpacing(true);
-        controlsRow.setPadding(false);
-        controlsRow.addClassName("post-controls");
+        // Check if there's already an in-progress post
+        boolean hasInProgressPost = userPosts.stream()
+                .anyMatch(post -> post.getState() == PostState.IN_PROGRESS);
+
+        // Create vertical layout for controls
+        VerticalLayout controlsLayout = new VerticalLayout();
+        controlsLayout.setAlignItems(Alignment.CENTER);
+        controlsLayout.setSpacing(true);
+        controlsLayout.setPadding(false);
+        controlsLayout.addClassName("post-controls");
+
+        // Only create and show start new post button if there's no in-progress post
+        if (!hasInProgressPost) {
+            startNewPostButton = new Button("Start New Post");
+            startNewPostButton.addThemeName("primary");
+            startNewPostButton.addClickListener(e -> startNewPost());
+            controlsLayout.add(startNewPostButton);
+        }
 
         // Post selector
         postSelector = new ComboBox<>("Select Post");
@@ -166,18 +178,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             }
         });
 
-        // Start new post button
-        startNewPostButton = new Button("Start New Post");
-        startNewPostButton.addThemeName("primary");
-        startNewPostButton.addClickListener(e -> startNewPost());
-        
-        // Check if there's already an in-progress post
-        boolean hasInProgressPost = userPosts.stream()
-                .anyMatch(post -> post.getState() == PostState.IN_PROGRESS);
-        startNewPostButton.setEnabled(!hasInProgressPost);
-
-        controlsRow.add(postSelector, startNewPostButton);
-        header.add(title, controlsRow);
+        controlsLayout.add(postSelector);
+        header.add(title, controlsLayout);
         return header;
     }
 
@@ -202,7 +204,12 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             currentPost = newPost;
             loadPostData();
             updateReadOnlyState();
-            startNewPostButton.setEnabled(false);
+
+            // Hide the start new post button since we now have an in-progress post
+            if (startNewPostButton != null) {
+                startNewPostButton.setVisible(false);
+            }
+
             Notification.show("New post started!", 3000, Notification.Position.TOP_CENTER);
         } catch (Exception e) {
             Notification.show("Error starting new post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
