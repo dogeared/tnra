@@ -87,4 +87,5 @@ There should be a Start New Post button at the top to start a new post IF there 
 
 ## Dev Notes
 
-Speak to the importance of an ErrorView and logging the issue
+- Speak to the importance of an ErrorView and logging the issue
+- speak to moving all hardcoded styles out to sheets

@@ -93,9 +93,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         this.userService = userService;
         
         setSizeFull();
-        setAlignItems(Alignment.CENTER);
-        setJustifyContentMode(JustifyContentMode.START);
-        setPadding(false);
+        addClassName("post-view");
     }
 
     @Override
@@ -162,10 +160,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private VerticalLayout createHeaderSection() {
         VerticalLayout header = new VerticalLayout();
-        header.setAlignItems(Alignment.CENTER);
-        header.setSpacing(false);
-        header.setPadding(false);
-        header.setWidth("100%");
         header.addClassName("post-header");
 
         // Check if there's already an in-progress post
@@ -173,15 +167,13 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
         // Create vertical layout for controls
         VerticalLayout controlsLayout = new VerticalLayout();
-        controlsLayout.setAlignItems(Alignment.CENTER);
-        controlsLayout.setSpacing(true);
-        controlsLayout.setPadding(false);
         controlsLayout.addClassName("post-controls");
 
         // Only create and show start new post button if there's no in-progress post
         if (!hasInProgressPost) {
             startNewPostButton = new Button("Start New Post");
             startNewPostButton.addThemeName("primary");
+            startNewPostButton.addClassName("start-new-post-button");
             startNewPostButton.addClickListener(e -> startNewPost());
             controlsLayout.add(startNewPostButton);
         }
@@ -197,14 +189,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void createViewModeControls(VerticalLayout controlsLayout, boolean hasInProgressPost) {
         // Create completed posts layout (initially hidden if there's an in-progress post)
         completedPostsLayout = new VerticalLayout();
-        completedPostsLayout.setAlignItems(Alignment.CENTER);
-        completedPostsLayout.setSpacing(true);
-        completedPostsLayout.setPadding(false);
         completedPostsLayout.addClassName("completed-posts-layout");
 
         // Post selector for completed posts
         postSelector = new ComboBox<>("Posts by Finished Date");
-        postSelector.setWidth("300px");
+        postSelector.addClassName("post-selector");
         postSelector.setItemLabelGenerator(this::generatePostLabel);
         
         // Set items to current page posts (only completed posts)
@@ -237,6 +226,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Create view mode buttons
         showCompletedPostsButton = new Button("Switch to completed posts");
         showCompletedPostsButton.addThemeName("secondary");
+        showCompletedPostsButton.addClassName("switch-posts-button");
         showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
         
         // Always add the button to the layout
@@ -274,6 +264,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Add switch to in-progress button
         switchToInProgressButton = new Button("Switch to in-progress post");
         switchToInProgressButton.addThemeName("secondary");
+        switchToInProgressButton.addClassName("switch-posts-button");
         switchToInProgressButton.addClickListener(e -> switchToInProgressPost());
         completedPostsLayout.addComponentAsFirst(switchToInProgressButton);
     }
@@ -325,9 +316,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
         // Page navigation with label and input field
         HorizontalLayout pageNavigationLayout = new HorizontalLayout();
-        pageNavigationLayout.setAlignItems(Alignment.CENTER);
-        pageNavigationLayout.setSpacing(false);
-        pageNavigationLayout.setPadding(false);
         pageNavigationLayout.addClassName("page-navigation-layout");
 
         // Page label
@@ -508,10 +496,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private VerticalLayout createContentSection() {
         VerticalLayout content = new VerticalLayout();
-        content.setWidth("100%");
-        content.setMaxWidth("800px");
-        content.setSpacing(true);
-        content.setPadding(false);
         content.addClassName("post-content");
 
         // Intro section
@@ -535,8 +519,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private VerticalLayout createIntroSection() {
         VerticalLayout section = new VerticalLayout();
-        section.setSpacing(false);
-        section.setPadding(false);
         section.addClassName("post-section");
 
         H3 sectionTitle = new H3("Intro");
@@ -544,19 +526,14 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
         // WIDWYTK field
         widwytkField = new TextArea("What I Don't Want You To Know");
-        widwytkField.setWidth("100%");
-        widwytkField.setHeight("100px");
         widwytkField.addClassName("post-textarea");
 
         // Kryptonite field
         kryptoniteField = new TextField("Kryptonite");
-        kryptoniteField.setWidth("100%");
         kryptoniteField.addClassName("post-textfield");
 
         // What and When field
         whatAndWhenField = new TextArea("What and When");
-        whatAndWhenField.setWidth("100%");
-        whatAndWhenField.setHeight("100px");
         whatAndWhenField.addClassName("post-textarea");
 
         section.add(sectionTitle, widwytkField, kryptoniteField, whatAndWhenField);
@@ -565,21 +542,15 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private VerticalLayout createCategorySection(String title, String categoryType) {
         VerticalLayout section = new VerticalLayout();
-        section.setSpacing(false);
-        section.setPadding(false);
         section.addClassName("post-section");
 
         H3 sectionTitle = new H3(title);
         sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "section-title");
 
         TextArea bestField = new TextArea("Best");
-        bestField.setWidth("100%");
-        bestField.setHeight("100px");
         bestField.addClassName("post-textarea");
 
         TextArea worstField = new TextArea("Worst");
-        worstField.setWidth("100%");
-        worstField.setHeight("100px");
         worstField.addClassName("post-textarea");
 
         // Store references based on category type
@@ -604,8 +575,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private VerticalLayout createStatsSection() {
         VerticalLayout section = new VerticalLayout();
-        section.setSpacing(false);
-        section.setPadding(false);
         section.addClassName("post-section");
 
         H3 sectionTitle = new H3("Stats");
@@ -613,7 +582,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
         // Create embedded StatsView
         statsView = StatsView.createEmbedded(oidcUserService, postService, userService);
-        statsView.setWidth("100%");
+        statsView.addClassName("stats-view");
 
         section.add(sectionTitle, statsView);
         return section;
