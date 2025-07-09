@@ -89,3 +89,4 @@ There should be a Start New Post button at the top to start a new post IF there 
 
 - Speak to the importance of an ErrorView and logging the issue
 - speak to moving all hardcoded styles out to sheets
+- Note on setting up https - pros and cons (auth is a pro, dev mode is a con)

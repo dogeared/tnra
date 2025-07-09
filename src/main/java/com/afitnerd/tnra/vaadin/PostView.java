@@ -156,6 +156,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         VerticalLayout contentSection = createContentSection();
         
         add(headerSection, contentSection);
+        
+        // If no current post is selected, clear form data and set fields to read-only
+        if (currentPost == null) {
+            clearFormData();
+        }
     }
 
     private VerticalLayout createHeaderSection() {
