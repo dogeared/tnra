@@ -300,41 +300,45 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private VerticalLayout createPaginationControls() {
         VerticalLayout paginationLayout = new VerticalLayout();
         paginationLayout.setAlignItems(Alignment.CENTER);
-        paginationLayout.setSpacing(true);
+        paginationLayout.setSpacing(false);
         paginationLayout.setPadding(false);
         paginationLayout.addClassName("pagination-controls");
 
-        // Navigation buttons row
-        HorizontalLayout navigationRow = new HorizontalLayout();
-        navigationRow.setAlignItems(Alignment.CENTER);
-        navigationRow.setSpacing(true);
-        navigationRow.setPadding(false);
+        // Single row with all pagination controls
+        HorizontalLayout paginationRow = new HorizontalLayout();
+        paginationRow.setAlignItems(Alignment.CENTER);
+        paginationRow.setSpacing(true);
+        paginationRow.setPadding(false);
+        paginationRow.addClassName("pagination-row");
 
         // First page button
         firstPageButton = new Button(VaadinIcon.FAST_BACKWARD.create());
         firstPageButton.setTooltipText("First page");
         firstPageButton.addClickListener(e -> goToFirstPage());
+        firstPageButton.addClassName("pagination-button");
 
         // Previous page button
         previousPageButton = new Button(VaadinIcon.STEP_BACKWARD.create());
         previousPageButton.setTooltipText("Previous page");
         previousPageButton.addClickListener(e -> goToPreviousPage());
+        previousPageButton.addClassName("pagination-button");
 
         // Page navigation with label and input field
         HorizontalLayout pageNavigationLayout = new HorizontalLayout();
         pageNavigationLayout.setAlignItems(Alignment.CENTER);
-        pageNavigationLayout.setSpacing(true);
+        pageNavigationLayout.setSpacing(false);
         pageNavigationLayout.setPadding(false);
+        pageNavigationLayout.addClassName("page-navigation-layout");
 
         // Page label
-        Span pageLabel = new Span("Page:");
+        Span pageLabel = new Span("Page: ");
         pageLabel.addClassName("page-label");
 
         // Page number input field
         pageNumberField = new IntegerField();
         pageNumberField.setMin(1);
         pageNumberField.setValue(currentPage + 1);
-        pageNumberField.setWidth("60px");
+        pageNumberField.addClassName("pagination-input");
         pageNumberField.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 int pageNumber = e.getValue();
@@ -345,7 +349,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         });
 
         // Page info label
-        pageInfoLabel = new Span("of " + (currentPageData != null ? currentPageData.getTotalPages() : 1));
+        pageInfoLabel = new Span(" of " + (currentPageData != null ? currentPageData.getTotalPages() : 1));
         pageInfoLabel.addClassName("page-info");
 
         pageNavigationLayout.add(pageLabel, pageNumberField, pageInfoLabel);
@@ -354,25 +358,20 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         nextPageButton = new Button(VaadinIcon.STEP_FORWARD.create());
         nextPageButton.setTooltipText("Next page");
         nextPageButton.addClickListener(e -> goToNextPage());
+        nextPageButton.addClassName("pagination-button");
 
         // Last page button
         lastPageButton = new Button(VaadinIcon.FAST_FORWARD.create());
         lastPageButton.setTooltipText("Last page");
         lastPageButton.addClickListener(e -> goToLastPage());
+        lastPageButton.addClassName("pagination-button");
 
-        navigationRow.add(firstPageButton, previousPageButton, pageNavigationLayout, nextPageButton, lastPageButton);
-
-        // Page size selector row
-        HorizontalLayout pageSizeRow = new HorizontalLayout();
-        pageSizeRow.setAlignItems(Alignment.CENTER);
-        pageSizeRow.setSpacing(true);
-        pageSizeRow.setPadding(false);
-
-        Span pageSizeLabel = new Span("Items per page:");
+        // Posts per page selector
+        Span pageSizeLabel = new Span("per page:");
         pageSizeSelector = new ComboBox<>();
         pageSizeSelector.setItems(5, 10, 25);
         pageSizeSelector.setValue(10);
-        pageSizeSelector.setWidth("80px");
+        pageSizeSelector.addClassName("per-page-selector");
         pageSizeSelector.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 pageSize = e.getValue();
@@ -383,9 +382,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             }
         });
 
-        pageSizeRow.add(pageSizeLabel, pageSizeSelector);
+        // Add all controls to the single row
+        paginationRow.add(firstPageButton, previousPageButton, pageNavigationLayout, nextPageButton, lastPageButton, pageSizeLabel, pageSizeSelector);
 
-        paginationLayout.add(navigationRow, pageSizeRow);
+        paginationLayout.add(paginationRow);
         updatePaginationControls();
         return paginationLayout;
     }

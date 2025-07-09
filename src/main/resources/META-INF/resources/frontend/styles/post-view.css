@@ -63,6 +63,53 @@
     cursor: not-allowed;
 }
 
+/* Pagination Controls */
+.pagination-controls {
+    margin-top: 0.5rem;
+}
+
+.pagination-controls .pagination-row {
+    gap: 0.25rem !important;
+    align-items: center;
+}
+
+.pagination-controls .pagination-button {
+    min-width: auto;
+    padding: 0.25rem;
+    height: 36px;
+}
+
+.pagination-controls .page-navigation-layout {
+    gap: 0.25rem !important;
+    align-items: center;
+}
+
+.pagination-controls .pagination-input {
+    min-width: auto;
+    width: 40px;
+    height: 36px;
+}
+
+.pagination-controls .per-page-selector {
+    min-width: auto;
+    max-width: 70px;
+    width: 70px !important;
+    height: 36px;
+}
+
+.pagination-controls vaadin-combo-box::part(input-field) {
+    height: 36px;
+}
+
+.pagination-controls vaadin-combo-box::part(toggle-button) {
+    height: 36px;
+}
+
+/* Completed Posts Layout */
+.completed-posts-layout {
+    margin-bottom: 0.5rem;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .post-content {
@@ -72,7 +119,7 @@
     
     .post-section {
         padding: 1rem;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
     }
     
     .post-controls {
@@ -82,5 +129,37 @@
     
     .post-controls vaadin-combo-box {
         width: 100% !important;
+    }
+    
+    .pagination-controls vaadin-horizontal-layout {
+        gap: 0.25rem !important;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .pagination-controls vaadin-combo-box {
+        max-width: 70px !important;
+        width: 70px !important;
+        min-width: 70px !important;
+        flex-shrink: 0;
+    }
+    
+    /* Mobile dropdown width constraint */
+    .completed-posts-layout vaadin-combo-box {
+        max-width: 300px !important;
+        width: 100% !important;
+    }
+    
+    /* Tighter spacing on mobile */
+    .completed-posts-layout {
+        margin-bottom: 0.25rem;
+    }
+    
+    .completed-posts-layout vaadin-combo-box {
+        margin-bottom: 0.25rem;
+    }
+    
+    .pagination-controls {
+        margin-top: 0.25rem;
     }
 } 
