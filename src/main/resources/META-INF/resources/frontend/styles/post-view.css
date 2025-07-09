@@ -1,0 +1,86 @@
+/* Post View Styles */
+
+/* Header Section */
+.post-header {
+    margin-bottom: 2rem;
+}
+
+.post-title {
+    color: var(--lumo-primary-color);
+    margin: 0 0 1rem 0;
+}
+
+.post-controls {
+    margin-top: 1rem;
+}
+
+/* Content Section */
+.post-content {
+    width: 100%;
+    max-width: 800px;
+}
+
+/* Post Sections */
+.post-section {
+    background-color: var(--lumo-contrast-5pct);
+    border-radius: var(--lumo-border-radius-m);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--lumo-contrast-10pct);
+}
+
+.section-title {
+    color: var(--lumo-primary-color);
+    margin: 0 0 1rem 0;
+    border-bottom: 2px solid var(--lumo-primary-color);
+    padding-bottom: 0.5rem;
+}
+
+/* Form Fields */
+.post-textarea {
+    margin-bottom: 1rem;
+}
+
+.post-textarea textarea {
+    font-family: var(--lumo-font-family);
+    line-height: 1.5;
+}
+
+.post-textfield {
+    margin-bottom: 1rem;
+}
+
+.post-textfield input {
+    font-family: var(--lumo-font-family);
+}
+
+/* Read-only state */
+.post-textarea[readonly] textarea,
+.post-textfield[readonly] input {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .post-content {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+    
+    .post-section {
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .post-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .post-controls vaadin-combo-box {
+        width: 100% !important;
+    }
+} 

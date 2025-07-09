@@ -50,17 +50,23 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         setPadding(false);
     }
 
+    // Static factory method for creating embedded StatsView
+    public static StatsView createEmbedded(
+        OidcUserService oidcUserService, PostService postService, UserService userService
+    ) {
+        StatsView statsView = new StatsView(oidcUserService, postService, userService);
+        statsView.currentPost = new Post(); // Start with empty post
+        statsView.isReadOnly = true;
+        statsView.createStatsView();
+        statsView.setReadOnly(statsView.isReadOnly);
+        return statsView;
+    }
+
+    // only reachable if NOT embedded
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (event.getLocation().getFirstSegment().equals("stats")) {
-            initializePost();
-            isReadOnly = false;
-        } else {
-            currentPost = new Post();
-            isReadOnly = true;
-        }
+        initializePost();
         createStatsView();
-        setReadOnly(isReadOnly);
     }
 
     private void initializePost() {
@@ -260,6 +266,19 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                         card.setValue(stats.getSponsor());
                         break;
                 }
+            }
+        }
+    }
+
+    // Method to set the post externally (for embedded use)
+    public void setPost(Post post) {
+        this.currentPost = post;
+        if (post != null && post.getStats() != null) {
+            refreshStats();
+        } else {
+            // Clear all stat cards when post is null
+            for (StatCard card : statCards) {
+                card.setValue(0);
             }
         }
     }

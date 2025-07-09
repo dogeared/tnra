@@ -77,6 +77,10 @@ public class MainLayout extends AppLayout {
         if (oidcUserService.isAuthenticated()) {
             Tab statsTab = createTab("Stats", VaadinIcon.CHART_LINE, StatsView.class);
             tabs.add(statsTab);
+
+            // Posts tab - only visible when authenticated
+            Tab postsTab = createTab("Posts", VaadinIcon.FILE_TEXT, PostView.class);
+            tabs.add(postsTab);
         }
 
         addToDrawer(tabs);
