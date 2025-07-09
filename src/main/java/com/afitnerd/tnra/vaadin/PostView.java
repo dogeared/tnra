@@ -3,23 +3,29 @@ package com.afitnerd.tnra.vaadin;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
-import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.router.AfterNavigationEvent;
@@ -36,15 +42,33 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private final PostService postService;
     private final UserService userService;
     private final OidcUserService oidcUserService;
-    private final PostRepository postRepository;
     private User currentUser;
     private Post currentPost;
-    private List<Post> userPosts = new ArrayList<>();
+    
+    // Server-side pagination fields
+    private int currentPage = 0;
+    private int pageSize = 10;
+    private Page<Post> currentPageData;
     
     // UI Components
     private ComboBox<Post> postSelector;
     private Button startNewPostButton;
     private StatsView statsView;
+    
+    // Pagination UI Components
+    private Button firstPageButton;
+    private Button previousPageButton;
+    private Button nextPageButton;
+    private Button lastPageButton;
+    private ComboBox<Integer> pageSizeSelector;
+    private IntegerField pageNumberField;
+    private Span pageInfoLabel;
+    
+    // View mode controls
+    private Button showCompletedPostsButton;
+    private Button switchToInProgressButton;
+    private VerticalLayout completedPostsLayout;
+    private boolean showingCompletedPosts = false;
     
     // Intro section
     private TextArea widwytkField;
@@ -63,11 +87,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private TextArea workBestField;
     private TextArea workWorstField;
 
-    public PostView(OidcUserService oidcUserService, PostService postService, UserService userService, PostRepository postRepository) {
+    public PostView(OidcUserService oidcUserService, PostService postService, UserService userService) {
         this.oidcUserService = oidcUserService;
         this.postService = postService;
         this.userService = userService;
-        this.postRepository = postRepository;
         
         setSizeFull();
         setAlignItems(Alignment.CENTER);
@@ -80,6 +103,12 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         if (event.getLocation().getFirstSegment().equals("posts")) {
             initializeUser();
             createPostView();
+            // Only load post data if we have a current post and we're not showing completed posts
+            // (in which case the user should select from dropdown)
+            if (currentPost != null && !showingCompletedPosts) {
+                loadPostData();
+                updateReadOnlyState();
+            }
         }
     }
 
@@ -93,22 +122,29 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 return;
             }
             
-            // Load all posts for the user
-            userPosts = postRepository.findByUser(currentUser);
-            
-            // Set current post to in-progress post or first available post
-            Optional<Post> inProgressPost = userPosts.stream()
-                    .filter(post -> post.getState() == PostState.IN_PROGRESS)
-                    .findFirst();
+            // Check if there's an in-progress post
+            Optional<Post> inProgressPost = postService.getOptionalInProgressPost(currentUser);
             
             if (inProgressPost.isPresent()) {
+                // Show in-progress post by default
                 currentPost = inProgressPost.get();
-            } else if (!userPosts.isEmpty()) {
-                currentPost = userPosts.get(0);
+                showingCompletedPosts = false;
+            } else {
+                // No in-progress post, show completed posts
+                loadCurrentPage();
+                showingCompletedPosts = true;
+                // Don't automatically select a post - let user choose from dropdown
+                currentPost = null;
             }
         } else {
             Notification.show("Authentication required.", 5000, Notification.Position.MIDDLE);
         }
+    }
+
+    private void loadCurrentPage() {
+        // Only load completed posts (not in-progress posts)
+        Pageable pageable = PageRequest.of(currentPage, pageSize, Sort.by(Sort.Direction.DESC, "finish"));
+        currentPageData = postService.getCompletedPostsPage(currentUser, pageable);
     }
 
     private void createPostView() {
@@ -132,12 +168,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         header.setWidth("100%");
         header.addClassName("post-header");
 
-        H2 title = new H2("Daily Posts");
-        title.addClassNames(LumoUtility.FontSize.XXLARGE, LumoUtility.FontWeight.BOLD, "post-title");
-
         // Check if there's already an in-progress post
-        boolean hasInProgressPost = userPosts.stream()
-                .anyMatch(post -> post.getState() == PostState.IN_PROGRESS);
+        boolean hasInProgressPost = postService.getOptionalInProgressPost(currentUser).isPresent();
 
         // Create vertical layout for controls
         VerticalLayout controlsLayout = new VerticalLayout();
@@ -154,13 +186,33 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             controlsLayout.add(startNewPostButton);
         }
 
-        // Post selector
-        postSelector = new ComboBox<>("Select Post");
+        // Create view mode controls
+        createViewModeControls(controlsLayout, hasInProgressPost);
+
+        controlsLayout.add(completedPostsLayout);
+        header.add(controlsLayout);
+        return header;
+    }
+
+    private void createViewModeControls(VerticalLayout controlsLayout, boolean hasInProgressPost) {
+        // Create completed posts layout (initially hidden if there's an in-progress post)
+        completedPostsLayout = new VerticalLayout();
+        completedPostsLayout.setAlignItems(Alignment.CENTER);
+        completedPostsLayout.setSpacing(true);
+        completedPostsLayout.setPadding(false);
+        completedPostsLayout.addClassName("completed-posts-layout");
+
+        // Post selector for completed posts
+        postSelector = new ComboBox<>("Posts by Finished Date");
         postSelector.setWidth("300px");
         postSelector.setItemLabelGenerator(this::generatePostLabel);
         
-        // Set items to user posts only
-        postSelector.setItems(userPosts);
+        // Set items to current page posts (only completed posts)
+        if (currentPageData != null) {
+            postSelector.setItems(currentPageData.getContent());
+        } else {
+            postSelector.setItems(new ArrayList<>());
+        }
         
         // Set initial selection to null (empty)
         postSelector.setValue(null);
@@ -177,9 +229,228 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             }
         });
 
-        controlsLayout.add(postSelector);
-        header.add(title, controlsLayout);
-        return header;
+        // Create pagination controls
+        VerticalLayout paginationLayout = createPaginationControls();
+
+        completedPostsLayout.add(postSelector, paginationLayout);
+
+        // Create view mode buttons
+        if (hasInProgressPost) {
+            // Show "Show completed posts" button when in-progress post is active
+            showCompletedPostsButton = new Button("Switch to completed posts");
+            showCompletedPostsButton.addThemeName("secondary");
+            showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
+            controlsLayout.add(showCompletedPostsButton);
+            
+            // Initially hide completed posts layout
+            completedPostsLayout.setVisible(false);
+        } else {
+            // No in-progress post, show completed posts by default
+            completedPostsLayout.setVisible(true);
+        }
+    }
+
+    private void showCompletedPosts() {
+        showingCompletedPosts = true;
+        showCompletedPostsButton.setVisible(false);
+        completedPostsLayout.setVisible(true);
+        
+        // Load completed posts if not already loaded
+        if (currentPageData == null) {
+            loadCurrentPage();
+            updatePostSelector();
+        }
+        
+        // Add switch to in-progress button
+        switchToInProgressButton = new Button("Switch to in-progress post");
+        switchToInProgressButton.addThemeName("secondary");
+        switchToInProgressButton.addClickListener(e -> switchToInProgressPost());
+        completedPostsLayout.addComponentAsFirst(switchToInProgressButton);
+    }
+
+    private void switchToInProgressPost() {
+        showingCompletedPosts = false;
+        completedPostsLayout.setVisible(false);
+        showCompletedPostsButton.setVisible(true);
+        
+        // Set current post to in-progress post
+        Optional<Post> inProgressPost = postService.getOptionalInProgressPost(currentUser);
+        if (inProgressPost.isPresent()) {
+            currentPost = inProgressPost.get();
+            loadPostData();
+            updateReadOnlyState();
+        }
+        
+        // Remove switch button
+        if (switchToInProgressButton != null) {
+            completedPostsLayout.remove(switchToInProgressButton);
+        }
+    }
+
+    private VerticalLayout createPaginationControls() {
+        VerticalLayout paginationLayout = new VerticalLayout();
+        paginationLayout.setAlignItems(Alignment.CENTER);
+        paginationLayout.setSpacing(true);
+        paginationLayout.setPadding(false);
+        paginationLayout.addClassName("pagination-controls");
+
+        // Navigation buttons row
+        HorizontalLayout navigationRow = new HorizontalLayout();
+        navigationRow.setAlignItems(Alignment.CENTER);
+        navigationRow.setSpacing(true);
+        navigationRow.setPadding(false);
+
+        // First page button
+        firstPageButton = new Button(VaadinIcon.FAST_BACKWARD.create());
+        firstPageButton.setTooltipText("First page");
+        firstPageButton.addClickListener(e -> goToFirstPage());
+
+        // Previous page button
+        previousPageButton = new Button(VaadinIcon.STEP_BACKWARD.create());
+        previousPageButton.setTooltipText("Previous page");
+        previousPageButton.addClickListener(e -> goToPreviousPage());
+
+        // Page navigation with label and input field
+        HorizontalLayout pageNavigationLayout = new HorizontalLayout();
+        pageNavigationLayout.setAlignItems(Alignment.CENTER);
+        pageNavigationLayout.setSpacing(true);
+        pageNavigationLayout.setPadding(false);
+
+        // Page label
+        Span pageLabel = new Span("Page:");
+        pageLabel.addClassName("page-label");
+
+        // Page number input field
+        pageNumberField = new IntegerField();
+        pageNumberField.setMin(1);
+        pageNumberField.setValue(currentPage + 1);
+        pageNumberField.setWidth("60px");
+        pageNumberField.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                int pageNumber = e.getValue();
+                if (pageNumber >= 1) {
+                    goToPage(pageNumber - 1);
+                }
+            }
+        });
+
+        // Page info label
+        pageInfoLabel = new Span("of " + (currentPageData != null ? currentPageData.getTotalPages() : 1));
+        pageInfoLabel.addClassName("page-info");
+
+        pageNavigationLayout.add(pageLabel, pageNumberField, pageInfoLabel);
+
+        // Next page button
+        nextPageButton = new Button(VaadinIcon.STEP_FORWARD.create());
+        nextPageButton.setTooltipText("Next page");
+        nextPageButton.addClickListener(e -> goToNextPage());
+
+        // Last page button
+        lastPageButton = new Button(VaadinIcon.FAST_FORWARD.create());
+        lastPageButton.setTooltipText("Last page");
+        lastPageButton.addClickListener(e -> goToLastPage());
+
+        navigationRow.add(firstPageButton, previousPageButton, pageNavigationLayout, nextPageButton, lastPageButton);
+
+        // Page size selector row
+        HorizontalLayout pageSizeRow = new HorizontalLayout();
+        pageSizeRow.setAlignItems(Alignment.CENTER);
+        pageSizeRow.setSpacing(true);
+        pageSizeRow.setPadding(false);
+
+        Span pageSizeLabel = new Span("Items per page:");
+        pageSizeSelector = new ComboBox<>();
+        pageSizeSelector.setItems(5, 10, 25);
+        pageSizeSelector.setValue(10);
+        pageSizeSelector.setWidth("80px");
+        pageSizeSelector.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                pageSize = e.getValue();
+                currentPage = 0; // Reset to first page
+                loadCurrentPage();
+                updatePaginationControls();
+                updatePostSelector();
+            }
+        });
+
+        pageSizeRow.add(pageSizeLabel, pageSizeSelector);
+
+        paginationLayout.add(navigationRow, pageSizeRow);
+        updatePaginationControls();
+        return paginationLayout;
+    }
+
+    private void updatePaginationControls() {
+        if (currentPageData == null) return;
+        
+        int totalPages = currentPageData.getTotalPages();
+        
+        // Update button states
+        firstPageButton.setEnabled(currentPage > 0);
+        previousPageButton.setEnabled(currentPage > 0);
+        nextPageButton.setEnabled(currentPage < totalPages - 1);
+        lastPageButton.setEnabled(currentPage < totalPages - 1);
+
+        // Update page number field
+        pageNumberField.setValue(currentPage + 1);
+        pageNumberField.setMax(totalPages);
+
+        // Update page info label
+        pageInfoLabel.setText("of " + totalPages);
+    }
+
+    private void updatePostSelector() {
+        if (currentPageData != null) {
+            postSelector.setItems(currentPageData.getContent());
+        } else {
+            postSelector.setItems(new ArrayList<>());
+        }
+        postSelector.setValue(null);
+    }
+
+    private void goToFirstPage() {
+        if (currentPage > 0) {
+            currentPage = 0;
+            loadCurrentPage();
+            updatePaginationControls();
+            updatePostSelector();
+        }
+    }
+
+    private void goToPreviousPage() {
+        if (currentPage > 0) {
+            currentPage--;
+            loadCurrentPage();
+            updatePaginationControls();
+            updatePostSelector();
+        }
+    }
+
+    private void goToNextPage() {
+        if (currentPageData != null && currentPage < currentPageData.getTotalPages() - 1) {
+            currentPage++;
+            loadCurrentPage();
+            updatePaginationControls();
+            updatePostSelector();
+        }
+    }
+
+    private void goToLastPage() {
+        if (currentPageData != null && currentPage < currentPageData.getTotalPages() - 1) {
+            currentPage = currentPageData.getTotalPages() - 1;
+            loadCurrentPage();
+            updatePaginationControls();
+            updatePostSelector();
+        }
+    }
+
+    private void goToPage(int page) {
+        if (currentPageData != null && page >= 0 && page < currentPageData.getTotalPages() && page != currentPage) {
+            currentPage = page;
+            loadCurrentPage();
+            updatePaginationControls();
+            updatePostSelector();
+        }
     }
 
     private String generatePostLabel(Post post) {
@@ -188,7 +459,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         } else if (post.getState() == PostState.IN_PROGRESS) {
             return "In Progress - Started " + formatDateTime(post.getStart());
         } else if (post.getFinish() != null) {
-            return "Completed " + formatDateTime(post.getFinish());
+            return formatDateTime(post.getFinish());
         } else {
             return "Post " + post.getId() + " - Started " + formatDateTime(post.getStart());
         }
@@ -197,17 +468,27 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void startNewPost() {
         try {
             Post newPost = postService.startPost(currentUser);
-            userPosts.add(newPost);
-            postSelector.setItems(userPosts);
-            postSelector.setValue(newPost);
+            
+            // Switch to in-progress post view
             currentPost = newPost;
-            loadPostData();
-            updateReadOnlyState();
-
+            showingCompletedPosts = false;
+            
+            // Hide completed posts layout and show in-progress post
+            completedPostsLayout.setVisible(false);
+            showCompletedPostsButton.setVisible(true);
+            
             // Hide the start new post button since we now have an in-progress post
             if (startNewPostButton != null) {
                 startNewPostButton.setVisible(false);
             }
+            
+            // Remove switch button if it exists
+            if (switchToInProgressButton != null) {
+                completedPostsLayout.remove(switchToInProgressButton);
+            }
+            
+            loadPostData();
+            updateReadOnlyState();
 
             Notification.show("New post started!", 3000, Notification.Position.TOP_CENTER);
         } catch (Exception e) {
