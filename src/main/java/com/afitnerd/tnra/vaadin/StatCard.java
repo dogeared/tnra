@@ -63,9 +63,9 @@ public class StatCard extends Div {
         controls.setAlignItems(FlexComponent.Alignment.CENTER);
         controls.setJustifyContentMode(FlexComponent.JustifyContentMode.CENTER);
 
-        // Value field
+        // Value field - start empty for null values
         valueField = new IntegerField();
-        valueField.setValue(initialValue != null ? initialValue : 0);
+        valueField.setValue(initialValue); // null values will show as empty
         valueField.setMin(0);
         valueField.setMax(99);
         valueField.setWidth("50px");
@@ -77,31 +77,58 @@ public class StatCard extends Div {
         plusBtn = createControlButton(VaadinIcon.PLUS, "Increase " + label);
 
         // Store current value for button handlers
-        final int[] currentValue = {initialValue != null ? initialValue : 0};
+        final Integer[] currentValue = {initialValue};
 
         minusBtn.addClickListener(e -> {
-            if (!readOnly && currentValue[0] > 0) {
-                currentValue[0]--;
-                isUpdatingFromButton = true;
-                valueField.setValue(currentValue[0]);
-                if (valueChangeListener != null) {
-                    valueChangeListener.accept(currentValue[0]);
+            if (!readOnly) {
+                if (currentValue[0] == null) {
+                    // If empty, minus button does nothing
+                    return;
+                } else if (currentValue[0] > 0) {
+                    currentValue[0]--;
+                    isUpdatingFromButton = true;
+                    valueField.setValue(currentValue[0]);
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(currentValue[0]);
+                    }
+                    addPulseAnimation(valueField);
+                    isUpdatingFromButton = false;
+                } else if (currentValue[0] == 0) {
+                    // If at 0, set to empty
+                    currentValue[0] = null;
+                    isUpdatingFromButton = true;
+                    valueField.setValue(null);
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(null);
+                    }
+                    addPulseAnimation(valueField);
+                    isUpdatingFromButton = false;
                 }
-                addPulseAnimation(valueField);
-                isUpdatingFromButton = false;
             }
         });
 
         plusBtn.addClickListener(e -> {
-            if (!readOnly && currentValue[0] < 99) {
-                currentValue[0]++;
-                isUpdatingFromButton = true;
-                valueField.setValue(currentValue[0]);
-                if (valueChangeListener != null) {
-                    valueChangeListener.accept(currentValue[0]);
+            if (!readOnly) {
+                if (currentValue[0] == null) {
+                    // If empty, advance to 0
+                    currentValue[0] = 0;
+                    isUpdatingFromButton = true;
+                    valueField.setValue(0);
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(0);
+                    }
+                    addPulseAnimation(valueField);
+                    isUpdatingFromButton = false;
+                } else if (currentValue[0] < 99) {
+                    currentValue[0]++;
+                    isUpdatingFromButton = true;
+                    valueField.setValue(currentValue[0]);
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(currentValue[0]);
+                    }
+                    addPulseAnimation(valueField);
+                    isUpdatingFromButton = false;
                 }
-                addPulseAnimation(valueField);
-                isUpdatingFromButton = false;
             }
         });
 
@@ -113,17 +140,32 @@ public class StatCard extends Div {
             }
             
             Integer value = e.getValue();
-            if (value != null && !readOnly) {
-                if (value < 0) {
+            if (!readOnly) {
+                if (value == null) {
+                    // Allow empty values
+                    currentValue[0] = null;
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(null);
+                    }
+                } else if (value < 0) {
                     valueField.setValue(0);
                     value = 0;
+                    currentValue[0] = value;
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(value);
+                    }
                 } else if (value > 99) {
                     valueField.setValue(99);
                     value = 99;
-                }
-                currentValue[0] = value;
-                if (valueChangeListener != null) {
-                    valueChangeListener.accept(value);
+                    currentValue[0] = value;
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(value);
+                    }
+                } else {
+                    currentValue[0] = value;
+                    if (valueChangeListener != null) {
+                        valueChangeListener.accept(value);
+                    }
                 }
             }
         });
@@ -180,7 +222,7 @@ public class StatCard extends Div {
     }
     
     public void setValue(Integer value) {
-        valueField.setValue(value != null ? value : 0);
+        valueField.setValue(value); // null values will show as empty
     }
     
     public Integer getValue() {

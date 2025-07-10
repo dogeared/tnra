@@ -122,7 +122,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         // Clear previous stat cards
         statCards.clear();
 
-        // Create stat cards
+        // Create stat cards - new posts will have null stats, so inputs start empty
         StatCard exerciseCard = new StatCard("Exercise", "💪", currentPost.getStats().getExercise());
         StatCard meditateCard = new StatCard("Meditate", "🧘", currentPost.getStats().getMeditate());
         StatCard prayCard = new StatCard("Pray", "🙏", currentPost.getStats().getPray());
@@ -182,18 +182,13 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
             // Save the post
             try {
                 postService.savePost(currentPost);
-                showSuccessNotification(statName + " updated to " + value);
+                String displayValue = value != null ? value.toString() : "empty";
             } catch (Exception e) {
                 Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
             }
         }
     }
 
-    private void showSuccessNotification(String message) {
-        Notification notification = Notification.show(message, 1500, Notification.Position.TOP_CENTER);
-        notification.addThemeName("primary");
-    }
-    
     public void setReadOnly(boolean readOnly) {
         this.isReadOnly = readOnly;
         for (StatCard card : statCards) {
@@ -256,4 +251,6 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         SimpleDateFormat formatter = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a");
         return formatter.format(date);
     }
+    
+
 } 
