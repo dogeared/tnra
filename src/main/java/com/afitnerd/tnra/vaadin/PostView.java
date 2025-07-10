@@ -72,6 +72,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     // View mode controls
     private Button showCompletedPostsButton;
     private Button switchToInProgressButton;
+    private Button finishPostButton;
     private VerticalLayout completedPostsLayout;
     private boolean showingCompletedPosts = false;
     
@@ -243,20 +244,29 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         showCompletedPostsButton.addClassName("switch-posts-button");
         showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
         
-        // Always add the button to the layout
-        controlsLayout.add(showCompletedPostsButton);
+        // Create finish post button (only shown when editing in-progress post)
+        finishPostButton = new Button("Finish Post");
+        finishPostButton.addThemeName("primary");
+        finishPostButton.addClassName("finish-post-button");
+        finishPostButton.setEnabled(false); // Initially disabled
+        finishPostButton.addClickListener(e -> finishPost());
+        
+        // Always add the buttons to the layout
+        controlsLayout.add(showCompletedPostsButton, finishPostButton);
         
         if (hasInProgressPost) {
             // Show "Show completed posts" button when in-progress post is active
             showCompletedPostsButton.setVisible(true);
+            finishPostButton.setVisible(true);
             
             // Initially hide completed posts layout
             completedPostsLayout.setVisible(false);
         } else {
             // No in-progress post, show completed posts by default
             completedPostsLayout.setVisible(true);
-            // Hide the button since we're showing completed posts
+            // Hide the buttons since we're showing completed posts
             showCompletedPostsButton.setVisible(false);
+            finishPostButton.setVisible(false);
         }
     }
 
@@ -281,12 +291,15 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         switchToInProgressButton.addClassName("switch-posts-button");
         switchToInProgressButton.addClickListener(e -> switchToInProgressPost());
         completedPostsLayout.addComponentAsFirst(switchToInProgressButton);
+
+        finishPostButton.setVisible(false);
     }
 
     private void switchToInProgressPost() {
         showingCompletedPosts = false;
         completedPostsLayout.setVisible(false);
         showCompletedPostsButton.setVisible(true);
+        finishPostButton.setVisible(true);
         
         // Set current post to in-progress post
         Optional<Post> inProgressPost = postService.getOptionalInProgressPost(currentUser);
@@ -501,10 +514,34 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             
             loadPostData();
             updateReadOnlyState();
+            updateFinishButtonState();
 
             Notification.show("New post started!", 3000, Notification.Position.TOP_CENTER);
         } catch (Exception e) {
             Notification.show("Error starting new post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+        }
+    }
+    
+    private void finishPost() {
+        try {
+            postService.finishPost(currentUser);
+            
+            // Switch to completed posts view
+            showingCompletedPosts = true;
+            completedPostsLayout.setVisible(true);
+            showCompletedPostsButton.setVisible(false);
+            finishPostButton.setVisible(false);
+            
+            // Reload completed posts
+            loadCurrentPage();
+            updatePostSelector();
+            
+            // Clear form data
+            clearFormData();
+            
+            Notification.show("Post completed successfully!", 3000, Notification.Position.TOP_CENTER);
+        } catch (Exception e) {
+            Notification.show("Error finishing post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
     }
 
@@ -606,6 +643,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Create embedded StatsView
         statsView = StatsView.createEmbedded(oidcUserService, postService, userService);
         statsView.addClassName("stats-view");
+        statsView.setOnStatsChanged(this::updateFinishButtonState);
 
         section.add(sectionTitle, statsView);
         return section;
@@ -715,6 +753,55 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         if (statsView != null) {
             statsView.setReadOnly(isReadOnly);
         }
+        
+        // Update finish button state
+        updateFinishButtonState();
+    }
+    
+    private void updateFinishButtonState() {
+        if (currentPost == null || currentPost.getState() == PostState.COMPLETE || showingCompletedPosts) {
+            if (finishPostButton != null) {
+                finishPostButton.setEnabled(false);
+                finishPostButton.setVisible(false);
+            }
+            return;
+        }
+        
+        // Show the button when editing in-progress post
+        if (finishPostButton != null) {
+            finishPostButton.setVisible(true);
+        }
+        
+        // Check if all intro fields have values
+        boolean introComplete = !isEmpty(widwytkField.getValue()) && 
+                               !isEmpty(kryptoniteField.getValue()) && 
+                               !isEmpty(whatAndWhenField.getValue());
+        
+        // Check if all personal fields have values
+        boolean personalComplete = !isEmpty(personalBestField.getValue()) && 
+                                  !isEmpty(personalWorstField.getValue());
+        
+        // Check if all family fields have values
+        boolean familyComplete = !isEmpty(familyBestField.getValue()) && 
+                                !isEmpty(familyWorstField.getValue());
+        
+        // Check if all work fields have values
+        boolean workComplete = !isEmpty(workBestField.getValue()) && 
+                              !isEmpty(workWorstField.getValue());
+        
+        // Check if all stats have values (0 or greater)
+        boolean statsComplete = statsView != null && statsView.areAllStatsSet();
+        
+        // Enable finish button only if all sections are complete
+        boolean allComplete = introComplete && personalComplete && familyComplete && workComplete && statsComplete;
+        
+        if (finishPostButton != null) {
+            finishPostButton.setEnabled(allComplete);
+        }
+    }
+    
+    private boolean isEmpty(String value) {
+        return value == null || value.trim().isEmpty();
     }
 
     private String formatDateTime(Date date) {
@@ -745,6 +832,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 // Refresh current post
                 currentPost = postService.getInProgressPost(currentUser);
                 
+                // Update finish button state
+                updateFinishButtonState();
+                
             } catch (Exception e) {
                 Notification.show("Error saving intro: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
             } finally {
@@ -770,6 +860,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 
                 // Refresh current post
                 currentPost = postService.getInProgressPost(currentUser);
+                
+                // Update finish button state
+                updateFinishButtonState();
                 
             } catch (Exception e) {
                 Notification.show("Error saving personal: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
@@ -797,6 +890,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 // Refresh current post
                 currentPost = postService.getInProgressPost(currentUser);
                 
+                // Update finish button state
+                updateFinishButtonState();
+                
             } catch (Exception e) {
                 Notification.show("Error saving family: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
             } finally {
@@ -822,6 +918,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 
                 // Refresh current post
                 currentPost = postService.getInProgressPost(currentUser);
+                
+                // Update finish button state
+                updateFinishButtonState();
                 
             } catch (Exception e) {
                 Notification.show("Error saving work: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);

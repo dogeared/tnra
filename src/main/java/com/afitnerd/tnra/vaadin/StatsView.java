@@ -36,6 +36,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     private Post currentPost;
     private List<StatCard> statCards = new ArrayList<>();
     private boolean isReadOnly = false;
+    private Runnable onStatsChanged;
 
     public StatsView(
         OidcUserService oidcUserService, PostService postService, UserService userService
@@ -153,8 +154,20 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
 
     private void updateStat(String statName, Integer value) {
         if (currentPost != null && currentPost.getStats() != null) {
-            Stats stats = currentPost.getStats();
+            // Create a new Stats object with the updated value
+            Stats stats = new Stats();
             
+            // Copy current values
+            Stats currentStats = currentPost.getStats();
+            stats.setExercise(currentStats.getExercise());
+            stats.setGtg(currentStats.getGtg());
+            stats.setMeditate(currentStats.getMeditate());
+            stats.setMeetings(currentStats.getMeetings());
+            stats.setPray(currentStats.getPray());
+            stats.setRead(currentStats.getRead());
+            stats.setSponsor(currentStats.getSponsor());
+            
+            // Update the specific stat
             switch (statName.toLowerCase()) {
                 case "exercise":
                     stats.setExercise(value);
@@ -179,10 +192,17 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                     break;
             }
             
-            // Save the post
+            // Use replaceStats to update only the stats
             try {
-                postService.savePost(currentPost);
+                String email = oidcUserService.getEmail();
+                User user = userService.getUserByEmail(email);
+                currentPost = postService.replaceStats(user, stats);
                 String displayValue = value != null ? value.toString() : "empty";
+                
+                // Notify parent that stats have changed
+                if (onStatsChanged != null) {
+                    onStatsChanged.run();
+                }
             } catch (Exception e) {
                 Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
             }
@@ -252,5 +272,28 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         return formatter.format(date);
     }
     
-
+    /**
+     * Check if all stats have been set (not null)
+     */
+    public boolean areAllStatsSet() {
+        if (currentPost == null || currentPost.getStats() == null) {
+            return false;
+        }
+        
+        Stats stats = currentPost.getStats();
+        return stats.getExercise() != null &&
+               stats.getMeditate() != null &&
+               stats.getPray() != null &&
+               stats.getRead() != null &&
+               stats.getGtg() != null &&
+               stats.getMeetings() != null &&
+               stats.getSponsor() != null;
+    }
+    
+    /**
+     * Set callback to be called when stats change
+     */
+    public void setOnStatsChanged(Runnable callback) {
+        this.onStatsChanged = callback;
+    }
 } 
