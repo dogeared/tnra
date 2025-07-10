@@ -82,9 +82,14 @@ public class MainLayout extends AppLayout {
             Tab postsTab = createTab("Posts", VaadinIcon.FILE_TEXT, PostView.class);
             tabs.add(postsTab);
 
+            // GTG tab - only visible when authenticated
+            Tab gtgTab = createTab("Go To Guy", VaadinIcon.PHONE, GTGView.class);
+            tabs.add(gtgTab);
+
             // Profile tab - only visible when authenticated
             Tab profileTab = createTab("Profile", VaadinIcon.USER, ProfileView.class);
             tabs.add(profileTab);
+            
         }
 
         addToDrawer(tabs);
