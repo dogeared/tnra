@@ -26,11 +26,11 @@ public class FileController {
     public ResponseEntity<Resource> serveFile(@PathVariable String fileName) {
         try {
             // Security check: prevent directory traversal
-            if (fileName.contains("..") || fileName.contains("/") || fileName.contains("\\")) {
+            Path filePath = Paths.get(uploadDir).resolve(fileName).normalize();
+            if (!filePath.startsWith(Paths.get(uploadDir))) {
                 return ResponseEntity.badRequest().build();
             }
             
-            Path filePath = Paths.get(uploadDir).resolve(fileName).normalize();
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
