@@ -33,7 +33,6 @@ import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-import com.vaadin.flow.component.HasValue;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;

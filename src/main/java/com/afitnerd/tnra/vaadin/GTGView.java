@@ -57,10 +57,10 @@ public class GTGView extends VerticalLayout {
         
         // Configure grid columns
         grid.addColumn(new ComponentRenderer<HorizontalLayout, GoToGuyPair>(pair -> createUserComponent(pair.getCaller())))
-            .setHeader("Caller");
+            .setHeader("Name");
             
         grid.addColumn(new ComponentRenderer<HorizontalLayout, GoToGuyPair>(pair -> createUserComponent(pair.getCallee())))
-            .setHeader("Callee");
+            .setHeader("Calls");
         
         add(grid);
     }
