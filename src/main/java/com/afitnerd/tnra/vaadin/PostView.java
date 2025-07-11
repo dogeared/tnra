@@ -279,6 +279,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             loadCurrentPage();
         }
         
+        // Update pagination controls and post selector with loaded data
+        updatePaginationControls();
+        updatePostSelector();
+        
         // Clear the dropdown selection and form fields
         postSelector.setValue(null);
         currentPost = null;
