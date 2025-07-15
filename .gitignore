@@ -36,3 +36,7 @@ src/main/resources/public
 nginx/.cert
 
 .env
+
+.vscode
+/frontend/
+bundles

@@ -11,6 +11,8 @@ import com.afitnerd.tnra.repository.PostRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
@@ -144,6 +146,20 @@ public class PostServiceImpl implements PostService {
         Post post = ensureOneInProgressPost(user);
         work = mergeAppendString(post.getWork(), work);
         return postRepository.save(post);
+    }
+
+    @Override
+    public Page<Post> getPostsPage(User user, Pageable pageable) {
+        Assert.notNull(user, "User cannot be null");
+        Assert.notNull(pageable, "Pageable cannot be null");
+        return postRepository.findByUserOrderByFinishDesc(user, pageable);
+    }
+
+    @Override
+    public Page<Post> getCompletedPostsPage(User user, Pageable pageable) {
+        Assert.notNull(user, "User cannot be null");
+        Assert.notNull(pageable, "Pageable cannot be null");
+        return postRepository.findByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE, pageable);
     }
 
     private <T> T mergeAppendString(T origOne, T newOne) {

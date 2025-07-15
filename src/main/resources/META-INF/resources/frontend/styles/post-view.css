@@ -1,0 +1,208 @@
+/* Post View Styles */
+
+/* Main Layout */
+.post-view {
+    align-items: center;
+    padding: 0;
+}
+
+/* Header Section */
+.post-header {
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.post-title {
+    color: var(--lumo-primary-color);
+    margin: 0 0 1rem 0;
+}
+
+.post-controls {
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    margin-top: 0.5rem;
+}
+
+.start-new-post-button,
+.switch-posts-button {
+    width: auto;
+    min-width: fit-content;
+}
+
+/* Content Section */
+.post-content {
+    width: 100%;
+    max-width: 800px;
+    gap: 1rem;
+    padding: 0;
+}
+
+/* Post Sections */
+.post-section {
+    background-color: var(--lumo-contrast-5pct);
+    border-radius: var(--lumo-border-radius-m);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--lumo-contrast-10pct);
+    gap: 0;
+}
+
+.section-title {
+    color: var(--lumo-primary-color);
+    margin: 0 0 1rem 0;
+    border-bottom: 2px solid var(--lumo-primary-color);
+    padding-bottom: 0.5rem;
+}
+
+/* Form Fields */
+.post-textarea {
+    width: 100%;
+    height: 150px;
+    margin-bottom: 1rem;
+}
+
+.post-textarea textarea {
+    font-family: var(--lumo-font-family);
+    line-height: 1.5;
+}
+
+.post-textfield {
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.post-textfield input {
+    font-family: var(--lumo-font-family);
+}
+
+.stats-view {
+    width: 100%;
+}
+
+/* Read-only state */
+.post-textarea[readonly] textarea,
+.post-textfield[readonly] input {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    border-color: #dee2e6 !important;
+    cursor: not-allowed;
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    margin-top: 0.25rem;
+}
+
+.pagination-controls .pagination-row {
+    gap: 0.25rem !important;
+    align-items: center;
+}
+
+.pagination-controls .pagination-button {
+    min-width: auto;
+    padding: 0.25rem;
+    height: 36px;
+}
+
+.pagination-controls .page-navigation-layout {
+    gap: 0.25rem !important;
+    align-items: center;
+}
+
+.pagination-controls .pagination-input {
+    min-width: auto;
+    width: 40px;
+    height: 36px;
+}
+
+.pagination-controls .per-page-selector {
+    min-width: auto;
+    max-width: 70px;
+    width: 70px !important;
+    height: 36px;
+}
+
+.pagination-controls .per-page-selector::part(input-field) {
+    height: 36px;
+}
+
+.pagination-controls .per-page-selector::part(toggle-button) {
+    height: 36px;
+}
+
+/* Completed Posts Layout */
+.completed-posts-layout {
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    margin-bottom: 0.25rem;
+}
+
+.post-selector {
+    width: 300px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .post-content {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+    
+    .post-section {
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .post-controls {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .post-controls .post-selector {
+        width: 100% !important;
+    }
+    
+    .start-new-post-button,
+    .switch-posts-button {
+        width: auto !important;
+        min-width: fit-content !important;
+        max-width: 200px;
+    }
+    
+    .pagination-controls .pagination-row {
+        gap: 0.25rem !important;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+    
+    .pagination-controls .per-page-selector {
+        max-width: 70px !important;
+        width: 70px !important;
+        min-width: 70px !important;
+        flex-shrink: 0;
+    }
+    
+    /* Mobile dropdown width constraint */
+    .completed-posts-layout .post-selector {
+        max-width: 300px !important;
+        width: 100% !important;
+    }
+    
+    /* Tighter spacing on mobile */
+    .completed-posts-layout {
+        margin-bottom: 0.25rem;
+    }
+    
+    .completed-posts-layout vaadin-combo-box {
+        margin-bottom: 0.25rem;
+    }
+    
+    .pagination-controls {
+        margin-top: 0.25rem;
+    }
+} 

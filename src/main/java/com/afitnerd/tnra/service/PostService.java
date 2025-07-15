@@ -5,6 +5,8 @@ import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
@@ -30,4 +32,8 @@ public interface PostService {
     Post updatePersonal(User user, Category personal);
     Post updateFamily(User user, Category family);
     Post updateWork(User user, Category work);
+    
+    // Pagination methods
+    Page<Post> getPostsPage(User user, Pageable pageable);
+    Page<Post> getCompletedPostsPage(User user, Pageable pageable);
 }

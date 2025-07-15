@@ -1,0 +1,42 @@
+/* Error View Styles */
+
+/* Error Title */
+.error-title {
+    color: var(--lumo-error-color);
+    margin-bottom: 1rem;
+}
+
+/* Error Message */
+.error-message {
+    text-align: center;
+    max-width: 600px;
+    margin-bottom: 1rem;
+    line-height: 1.5;
+}
+
+/* Error Details */
+.error-details {
+    text-align: center;
+    max-width: 600px;
+    margin-bottom: 1rem;
+    font-family: monospace;
+    background-color: var(--lumo-contrast-5pct);
+    padding: 1rem;
+    border-radius: var(--lumo-border-radius-m);
+    border: 1px solid var(--lumo-contrast-10pct);
+    word-break: break-word;
+}
+
+/* Home Button */
+.error-home-button {
+    margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .error-message,
+    .error-details {
+        max-width: 100%;
+        padding: 0 1rem;
+    }
+} 

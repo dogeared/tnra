@@ -1,0 +1,44 @@
+/* Main View Styles */
+
+/* Title Styles */
+.main-title {
+    color: var(--lumo-primary-color);
+}
+
+.main-subtitle {
+    color: var(--lumo-secondary-text-color);
+}
+
+/* Description Styles */
+.main-description {
+    text-align: center;
+    max-width: 600px;
+}
+
+/* Welcome Message Styles */
+.welcome-message {
+    text-align: center;
+}
+
+/* Error Message Styles */
+.error-message {
+    color: var(--lumo-error-color);
+    text-align: center;
+}
+
+/* Profile Section Styles */
+.profile-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 1rem 0;
+}
+
+.main-profile-image {
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--lumo-primary-color);
+    width: 80px !important;
+    height: 80px !important;
+    flex-shrink: 0;
+} 

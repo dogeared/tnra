@@ -1,0 +1,52 @@
+.profile-view {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.profile-image-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-image {
+    border-radius: 60px;
+    object-fit: cover;
+    border: 2px solid #e0e0e0;
+    transition: border-color 0.2s ease;
+}
+
+.profile-image:hover {
+    border-color: #007bff;
+}
+
+.upload-area {
+    text-align: center;
+    padding: 1rem;
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    transition: all 0.2s ease;
+}
+
+.upload-area:hover {
+    border-color: #007bff;
+    background-color: #e3f2fd;
+}
+
+.form-section {
+    flex: 1;
+    padding-left: 2rem;
+}
+
+@media (max-width: 768px) {
+    .form-section {
+        padding-left: 0;
+        padding-top: 2rem;
+    }
+    
+    .profile-view {
+        padding: 1rem;
+    }
+} 
