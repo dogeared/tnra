@@ -19,6 +19,7 @@ server {
     proxy_set_header X-Forwarded-Port 443;
     proxy_set_header X-Forwarded-Server $host;
     proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Forwarded-Scheme https;
   }
 
   listen 443 ssl;
