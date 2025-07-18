@@ -4,6 +4,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.provisioning.InMemoryUserDetailsManager;
+import java.util.UUID;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
@@ -31,6 +38,13 @@ public class SpringSecurityConfig {
                 .requestMatchers(allowedPaths).permitAll()
                 .anyRequest().authenticated())
             .csrf(csrf -> csrf.ignoringRequestMatchers(allowedPaths))
+            .sessionManagement(session -> session
+                .maximumSessions(1)
+                .maxSessionsPreventsLogin(false))
+            .rememberMe(remember -> remember
+                .tokenValiditySeconds(2592000)
+                .key("tnra-remember-me-key")
+                .rememberMeParameter("remember-me"))
             .oauth2Login(oauth2 -> oauth2
                 .defaultSuccessUrl("/", true)
                 .failureUrl("/?error=true"))
@@ -39,7 +53,7 @@ public class SpringSecurityConfig {
                 .logoutSuccessUrl("/")
                 .invalidateHttpSession(true)
                 .clearAuthentication(true)
-                .deleteCookies("JSESSIONID"));
+                .deleteCookies("JSESSIONID", "remember-me"));
         
         return http.build();
     }
@@ -49,5 +63,22 @@ public class SpringSecurityConfig {
         SimpleUrlLogoutSuccessHandler handler = new SimpleUrlLogoutSuccessHandler();
         handler.setDefaultTargetUrl("/");
         return handler;
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public UserDetailsService userDetailsService() {
+        String randomPassword = UUID.randomUUID().toString();
+        UserDetails user = User.builder()
+            .username("oauth2-user")
+            .password(passwordEncoder().encode(randomPassword))
+            .roles("USER")
+            .disabled(true)
+            .build();
+        return new InMemoryUserDetailsManager(user);
     }
 }
