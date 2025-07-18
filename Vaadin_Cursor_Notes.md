@@ -90,3 +90,4 @@ There should be a Start New Post button at the top to start a new post IF there 
 - Speak to the importance of an ErrorView and logging the issue
 - speak to moving all hardcoded styles out to sheets
 - Note on setting up https - pros and cons (auth is a pro, dev mode is a con)
+- Look at the difference between 4.1 and 4.2 - starting to consolidate service calls into VaadinPostService (which is functioning kind of like a controller)
