@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
 
+import com.afitnerd.tnra.service.VaadinPostService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -43,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 @CssImport("./styles/post-view.css")
 public class PostView extends VerticalLayout implements AfterNavigationObserver {
 
+    private final VaadinPostService vaadinPostService;
     private final PostService postService;
     private final UserService userService;
     private final OidcUserService oidcUserService;
@@ -96,7 +98,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private final ScheduledExecutorService debounceExecutor = Executors.newSingleThreadScheduledExecutor();
     private boolean isUpdating = false;
 
-    public PostView(OidcUserService oidcUserService, PostService postService, UserService userService) {
+    public PostView(
+        VaadinPostService vaadinPostService,
+        OidcUserService oidcUserService, PostService postService, UserService userService
+    ) {
+        this.vaadinPostService = vaadinPostService;
         this.oidcUserService = oidcUserService;
         this.postService = postService;
         this.userService = userService;
@@ -527,7 +533,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     
     private void finishPost() {
         try {
-            postService.finishPost(currentUser);
+            vaadinPostService.finishPost(currentUser);
             
             // Switch to completed posts view
             showingCompletedPosts = true;
