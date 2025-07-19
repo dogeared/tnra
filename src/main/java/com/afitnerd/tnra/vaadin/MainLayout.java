@@ -14,6 +14,8 @@ import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 public class MainLayout extends AppLayout {
 
@@ -90,6 +92,11 @@ public class MainLayout extends AppLayout {
             Tab profileTab = createTab("Profile", VaadinIcon.USER, ProfileView.class);
             tabs.add(profileTab);
             
+            // Admin tab - only visible to users with ADMIN role
+            if (hasAdminRole()) {
+                Tab adminTab = createTab("Admin", VaadinIcon.COG, AdminView.class);
+                tabs.add(adminTab);
+            }
         }
 
         addToDrawer(tabs);
@@ -108,5 +115,16 @@ public class MainLayout extends AppLayout {
         link.setTabIndex(-1);
 
         return new Tab(link);
+    }
+    
+    private boolean hasAdminRole() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return false;
+        }
+        
+        return authentication.getAuthorities().stream()
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()) || 
+                                 "ADMIN".equals(authority.getAuthority()));
     }
 } 
