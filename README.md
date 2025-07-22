@@ -1,3 +1,10 @@
+## Post View Modes
+
+|                     | Completed View                                                                  | In Progress View                                                        |
+|---------------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| In Progress Post    | - switch to in progress button - completed posts dropdown - pagination controls | - switch to completed button - post started date & time - finish button |
+| No In Progress Post | - start new post button - completed posts dropdown - pagination controls        | XXXX                                                                    |
+
 ## Running locally
 
 The app is set to use H2 when run locally, so you'll need to re-insert records when restarting.

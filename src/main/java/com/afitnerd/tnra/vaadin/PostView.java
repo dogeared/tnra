@@ -75,7 +75,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private Button switchToInProgressButton;
     private Button finishPostButton;
     private VerticalLayout completedPostsLayout;
-    private boolean showingCompletedPosts = false;
+    boolean showingCompletedPosts = false; // package-private for testing
     
     // Intro section
     private TextArea widwytkField;
@@ -312,13 +312,18 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private void switchToInProgressPost() {
         showingCompletedPosts = false;
-        // Recreate header with in-progress post view
-        recreateHeader();
         
-        // Set current post to in-progress post
+        // Set current post to in-progress post BEFORE recreating header
         Optional<Post> inProgressPost = postService.getOptionalInProgressPost(currentUser);
         if (inProgressPost.isPresent()) {
             currentPost = inProgressPost.get();
+        }
+        
+        // Recreate header with in-progress post view
+        recreateHeader();
+        
+        // Load post data if we have a current post
+        if (currentPost != null) {
             loadPostData();
             updateReadOnlyState();
         }
