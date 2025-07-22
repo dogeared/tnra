@@ -192,9 +192,8 @@ public class PostServiceImpl implements PostService {
             if ("class".equals(pd.getName())) { continue; }
             try {
                 Object getterResult = pd.getReadMethod().invoke(newOne);
-                // For Stats objects, allow null values to be persisted (enable unsetting values)
-                // For other objects, only update if value is not null
-                if (getterResult != null || origOne instanceof Stats) {
+                // Only update if value is not null - preserve existing values when new value is null
+                if (getterResult != null) {
                     pd.getWriteMethod().invoke(origOne, getterResult);
                 }
             } catch (IllegalAccessException | InvocationTargetException e) {

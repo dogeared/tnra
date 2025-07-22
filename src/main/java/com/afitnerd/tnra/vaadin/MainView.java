@@ -16,7 +16,7 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
-@PageTitle("TNRA - The Nerdy Retrospective App")
+@PageTitle("TNRA - Taking the Next Right Action")
 @Route(value = "", layout = MainLayout.class)
 @RouteAlias(value = "main", layout = MainLayout.class)
 @AnonymousAllowed
