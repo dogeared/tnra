@@ -207,6 +207,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         showCompletedPostsButton.addThemeName("secondary");
         showCompletedPostsButton.addClassName("switch-posts-button");
         showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
+
+        String startDate = "Post started " + formatDateTime(currentPost.getStart());
+        Span dateSpan = new Span(startDate);
+        dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
         
         // Create finish post button
         finishPostButton = new Button("Finish Post");
@@ -215,7 +219,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         finishPostButton.setEnabled(false); // Initially disabled
         finishPostButton.addClickListener(e -> finishPost());
         
-        controlsLayout.add(showCompletedPostsButton, finishPostButton);
+        controlsLayout.add(showCompletedPostsButton, dateSpan, finishPostButton);
         return controlsLayout;
     }
 
