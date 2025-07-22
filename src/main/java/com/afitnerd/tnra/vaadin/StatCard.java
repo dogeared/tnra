@@ -22,10 +22,12 @@ public class StatCard extends Div {
     private boolean readOnly = false;
     private Consumer<Integer> valueChangeListener;
     private boolean isUpdatingFromButton = false;
+    private Integer currentValue;
     
     public StatCard(String label, String emoji, Integer initialValue) {
         this.label = label;
         this.emoji = emoji;
+        this.currentValue = initialValue;
         
         addClassNames(
             LumoUtility.Background.CONTRAST_5,
@@ -76,26 +78,23 @@ public class StatCard extends Div {
         minusBtn = createControlButton(VaadinIcon.MINUS, "Decrease " + label);
         plusBtn = createControlButton(VaadinIcon.PLUS, "Increase " + label);
 
-        // Store current value for button handlers
-        final Integer[] currentValue = {initialValue};
-
         minusBtn.addClickListener(e -> {
             if (!readOnly) {
-                if (currentValue[0] == null) {
+                if (currentValue == null) {
                     // If empty, minus button does nothing
                     return;
-                } else if (currentValue[0] > 0) {
-                    currentValue[0]--;
+                } else if (currentValue > 0) {
+                    currentValue--;
                     isUpdatingFromButton = true;
-                    valueField.setValue(currentValue[0]);
+                    valueField.setValue(currentValue);
                     if (valueChangeListener != null) {
-                        valueChangeListener.accept(currentValue[0]);
+                        valueChangeListener.accept(currentValue);
                     }
                     addPulseAnimation(valueField);
                     isUpdatingFromButton = false;
-                } else if (currentValue[0] == 0) {
+                } else if (currentValue == 0) {
                     // If at 0, set to empty
-                    currentValue[0] = null;
+                    currentValue = null;
                     isUpdatingFromButton = true;
                     valueField.setValue(null);
                     if (valueChangeListener != null) {
@@ -109,9 +108,9 @@ public class StatCard extends Div {
 
         plusBtn.addClickListener(e -> {
             if (!readOnly) {
-                if (currentValue[0] == null) {
+                if (currentValue == null) {
                     // If empty, advance to 0
-                    currentValue[0] = 0;
+                    currentValue = 0;
                     isUpdatingFromButton = true;
                     valueField.setValue(0);
                     if (valueChangeListener != null) {
@@ -119,12 +118,12 @@ public class StatCard extends Div {
                     }
                     addPulseAnimation(valueField);
                     isUpdatingFromButton = false;
-                } else if (currentValue[0] < 99) {
-                    currentValue[0]++;
+                } else if (currentValue < 99) {
+                    currentValue++;
                     isUpdatingFromButton = true;
-                    valueField.setValue(currentValue[0]);
+                    valueField.setValue(currentValue);
                     if (valueChangeListener != null) {
-                        valueChangeListener.accept(currentValue[0]);
+                        valueChangeListener.accept(currentValue);
                     }
                     addPulseAnimation(valueField);
                     isUpdatingFromButton = false;
@@ -143,26 +142,26 @@ public class StatCard extends Div {
             if (!readOnly) {
                 if (value == null) {
                     // Allow empty values
-                    currentValue[0] = null;
+                    currentValue = null;
                     if (valueChangeListener != null) {
                         valueChangeListener.accept(null);
                     }
                 } else if (value < 0) {
                     valueField.setValue(0);
                     value = 0;
-                    currentValue[0] = value;
+                    currentValue = value;
                     if (valueChangeListener != null) {
                         valueChangeListener.accept(value);
                     }
                 } else if (value > 99) {
                     valueField.setValue(99);
                     value = 99;
-                    currentValue[0] = value;
+                    currentValue = value;
                     if (valueChangeListener != null) {
                         valueChangeListener.accept(value);
                     }
                 } else {
-                    currentValue[0] = value;
+                    currentValue = value;
                     if (valueChangeListener != null) {
                         valueChangeListener.accept(value);
                     }
@@ -222,6 +221,7 @@ public class StatCard extends Div {
     }
     
     public void setValue(Integer value) {
+        this.currentValue = value;  // Update internal state
         valueField.setValue(value); // null values will show as empty
     }
     

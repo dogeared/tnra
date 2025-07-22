@@ -100,11 +100,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         H1 title = new H1("Daily Stats");
         title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, "stats-title");
 
-        String startDate = "Session started " + formatDateTime(currentPost.getStart());
-        Span dateSpan = new Span(startDate);
-        dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
-
-        header.add(title, dateSpan);
+        header.add(title);
         return header;
     }
 
