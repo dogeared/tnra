@@ -16,7 +16,9 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "gtg", layout = MainLayout.class)
@@ -138,9 +140,12 @@ public class GTGView extends VerticalLayout {
                 List<GoToGuyPair> pairs = latestSet.getGoToGuyPairs();
                 
                 // Update header with date
-                SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy");
-                String dateStr = latestSet.getStartDate() != null ? 
-                    dateFormat.format(latestSet.getStartDate()) : "Unknown Date";
+                String dateStr = "Unknown Date";
+                if (latestSet.getStartDate() != null) {
+                    LocalDateTime localDateTime = latestSet.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+                    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy");
+                    dateStr = localDateTime.format(dateFormat);
+                }
                 header.setText("Go To Guy Call Chain - " + dateStr);
                 
                 grid.setItems(pairs);
