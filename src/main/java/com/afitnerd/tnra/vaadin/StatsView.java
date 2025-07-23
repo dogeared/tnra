@@ -1,6 +1,5 @@
 package com.afitnerd.tnra.vaadin;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -8,6 +7,7 @@ import java.util.List;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.util.DateTimeUtils;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
@@ -186,11 +186,11 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                     break;
             }
             
-            // Use replaceStats to update only the stats
+            // Use updateCompleteStats to update stats (allows null values for unsetting)
             try {
                 String email = oidcUserService.getEmail();
                 User user = userService.getUserByEmail(email);
-                currentPost = postService.replaceStats(user, stats);
+                currentPost = postService.updateCompleteStats(user, stats);
                 String displayValue = value != null ? value.toString() : "empty";
                 
                 // Notify parent that stats have changed
@@ -253,19 +253,15 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         } else {
             // Clear all stat cards when post is null
             for (StatCard card : statCards) {
-                card.setValue(0);
+                card.setValue(null);
             }
         }
     }
     
     private String formatDateTime(Date date) {
-        if (date == null) {
-            return "Unknown";
-        }
-        SimpleDateFormat formatter = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a");
-        return formatter.format(date);
+        return DateTimeUtils.formatDateTime(date);
     }
-    
+
     /**
      * Check if all stats have been set (not null)
      */

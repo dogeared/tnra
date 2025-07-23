@@ -147,11 +147,11 @@ public class StatCard extends Div {
                         valueChangeListener.accept(null);
                     }
                 } else if (value < 0) {
-                    valueField.setValue(0);
-                    value = 0;
-                    currentValue = value;
+                    // Allow negative input to set value to null (unset)
+                    valueField.setValue(null);
+                    currentValue = null;
                     if (valueChangeListener != null) {
-                        valueChangeListener.accept(value);
+                        valueChangeListener.accept(null);
                     }
                 } else if (value > 99) {
                     valueField.setValue(99);

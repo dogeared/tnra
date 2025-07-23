@@ -1,11 +1,11 @@
 package com.afitnerd.tnra.vaadin;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Optional;
 
 import com.afitnerd.tnra.service.VaadinPostService;
+import com.afitnerd.tnra.util.DateTimeUtils;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -832,11 +832,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     }
 
     private String formatDateTime(Date date) {
-        if (date == null) {
-            return "Unknown";
-        }
-        SimpleDateFormat formatter = new SimpleDateFormat("MMM dd, yyyy 'at' h:mm a");
-        return formatter.format(date);
+        return DateTimeUtils.formatDateTime(date);
     }
     
     // Debounced update methods
