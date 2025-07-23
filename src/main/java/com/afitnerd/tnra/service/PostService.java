@@ -23,6 +23,7 @@ public interface PostService {
     Post savePost(Post post);
 
     Post replaceStats(User user, Stats stats);
+    Post updateCompleteStats(User user, Stats stats);
     Post replaceIntro(User user, Intro intro);
     Post replacePersonal(User user, Category personal);
     Post replaceFamily(User user, Category family);

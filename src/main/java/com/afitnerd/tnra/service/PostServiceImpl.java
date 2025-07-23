@@ -93,6 +93,13 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
+    public Post updateCompleteStats(User user, Stats stats) {
+        Post post = ensureOneInProgressPost(user);
+        mergeReplaceAllowNulls(post.getStats(), stats);
+        return postRepository.save(post);
+    }
+
+    @Override
     public Post replaceIntro(User user, Intro intro) {
         Post post = ensureOneInProgressPost(user);
         mergeReplace(post.getIntro(), intro);
@@ -196,6 +203,24 @@ public class PostServiceImpl implements PostService {
                 if (getterResult != null) {
                     pd.getWriteMethod().invoke(origOne, getterResult);
                 }
+            } catch (IllegalAccessException | InvocationTargetException e) {
+                log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
+            }
+        }
+        return origOne;
+    }
+
+    private <T> T mergeReplaceAllowNulls(T origOne, T newOne) {
+        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
+        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
+
+        PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
+        for (PropertyDescriptor pd : descriptors) {
+            if ("class".equals(pd.getName())) { continue; }
+            try {
+                Object getterResult = pd.getReadMethod().invoke(newOne);
+                // Allow all values including null to be set (for complete updates)
+                pd.getWriteMethod().invoke(origOne, getterResult);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
             }

@@ -186,11 +186,11 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                     break;
             }
             
-            // Use replaceStats to update only the stats
+            // Use updateCompleteStats to update stats (allows null values for unsetting)
             try {
                 String email = oidcUserService.getEmail();
                 User user = userService.getUserByEmail(email);
-                currentPost = postService.replaceStats(user, stats);
+                currentPost = postService.updateCompleteStats(user, stats);
                 String displayValue = value != null ? value.toString() : "empty";
                 
                 // Notify parent that stats have changed
