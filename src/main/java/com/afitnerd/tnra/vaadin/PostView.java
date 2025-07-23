@@ -5,7 +5,8 @@ import java.util.Date;
 import java.util.Optional;
 
 import com.afitnerd.tnra.service.VaadinPostService;
-import com.afitnerd.tnra.util.DateTimeUtils;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.component.page.ExtendedClientDetails;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -38,6 +39,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.time.ZoneId;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
@@ -106,7 +108,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         this.oidcUserService = oidcUserService;
         this.postService = postService;
         this.userService = userService;
-        
+
         setSizeFull();
         addClassName("post-view");
     }
@@ -208,7 +210,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         showCompletedPostsButton.addClassName("switch-posts-button");
         showCompletedPostsButton.addClickListener(e -> showCompletedPosts());
 
-        String startDate = "Post started " + formatDateTime(currentPost.getStart());
+        String startDate = "Post started " +
+            DateTimeUtils.formatDateTime(currentPost.getStart());
         Span dateSpan = new Span(startDate);
         dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
         
@@ -522,11 +525,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         if (post == null) {
             return "Select a post...";
         } else if (post.getState() == PostState.IN_PROGRESS) {
-            return "In Progress - Started " + formatDateTime(post.getStart());
+            return "In Progress - Started " + DateTimeUtils.formatDateTime(post.getStart());
         } else if (post.getFinish() != null) {
-            return formatDateTime(post.getFinish());
+            return DateTimeUtils.formatDateTime(post.getFinish());
         } else {
-            return "Post " + post.getId() + " - Started " + formatDateTime(post.getStart());
+            return "Post " + post.getId() + " - Started " + DateTimeUtils.formatDateTime(post.getStart());
         }
     }
 
@@ -831,9 +834,18 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         return value == null || value.trim().isEmpty();
     }
 
-    private String formatDateTime(Date date) {
-        return DateTimeUtils.formatDateTime(date);
-    }
+//    private String formatDateTime(Date date) {
+//        ZoneId displayZone = ZoneId.systemDefault();
+//        if (
+//            UI.getCurrent() != null &&
+//            UI.getCurrent().getSession() != null &&
+//            UI.getCurrent().getSession().getAttribute(ExtendedClientDetails.class) != null
+//        ) {
+//            displayZone =
+//                ZoneId.of(UI.getCurrent().getSession().getAttribute(ExtendedClientDetails.class).getTimeZoneId());
+//        }
+//        return DateTimeUtils.formatDateTime(date, displayZone);
+//    }
     
     // Debounced update methods
     private void debouncedUpdateIntro() {

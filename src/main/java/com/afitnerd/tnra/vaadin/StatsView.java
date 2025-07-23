@@ -7,13 +7,11 @@ import java.util.List;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.util.DateTimeUtils;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -258,10 +256,6 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         }
     }
     
-    private String formatDateTime(Date date) {
-        return DateTimeUtils.formatDateTime(date);
-    }
-
     /**
      * Check if all stats have been set (not null)
      */

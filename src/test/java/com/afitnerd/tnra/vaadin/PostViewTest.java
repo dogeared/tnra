@@ -7,17 +7,21 @@ import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.service.VaadinPostService;
+import com.afitnerd.tnra.vaadin.DateTimeUtils;
 import com.vaadin.flow.component.Component;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.page.ExtendedClientDetails;
+import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
@@ -51,12 +55,21 @@ class PostViewTest {
     
     @Mock
     private OidcUserService oidcUserService;
+    
+    @Mock
+    private UI mockUI;
+
+    @Mock
+    private VaadinSession mockSession;
+    
+    @Mock
+    private ExtendedClientDetails mockExtendedClientDetails;
 
     private User testUser;
     private Post inProgressPost;
     private Post completedPost1;
     private Post completedPost2;
-    private Page<Post> completedPostsPage;
+    private org.springframework.data.domain.Page<Post> completedPostsPage;
 
     private PostView postView;
 
@@ -102,19 +115,24 @@ class PostViewTest {
         // Arrange: Has in-progress post, but showing completed view
         lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         
-        postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
-        postView.afterNavigation(mockAfterNavigationEvent());
-        
-        // Force switch to completed posts view
-        postView.showingCompletedPosts = true;
-        invokeMethod(postView, "recreateHeader");
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView.afterNavigation(mockAfterNavigationEvent());
+            
+            // Force switch to completed posts view
+            postView.showingCompletedPosts = true;
+            invokeMethod(postView, "recreateHeader");
 
-        // Assert: Should have switch to in-progress button, dropdown, and pagination
-        assertTrue(hasComponent(postView, "Switch to in-progress post"), "Should have 'Switch to in-progress post' button");
-        assertTrue(hasComponentOfType(postView, ComboBox.class), "Should have posts dropdown");
-        assertTrue(hasPaginationControls(postView), "Should have pagination controls");
-        assertFalse(hasComponent(postView, "Start New Post"), "Should NOT have 'Start New Post' button");
-        assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have 'Finish Post' button");
+            // Assert: Should have switch to in-progress button, dropdown, and pagination
+            assertTrue(hasComponent(postView, "Switch to in-progress post"), "Should have 'Switch to in-progress post' button");
+            assertTrue(hasComponentOfType(postView, ComboBox.class), "Should have posts dropdown");
+            assertTrue(hasPaginationControls(postView), "Should have pagination controls");
+            assertFalse(hasComponent(postView, "Start New Post"), "Should NOT have 'Start New Post' button");
+            assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have 'Finish Post' button");
+        }
     }
 
     @Test
@@ -123,15 +141,20 @@ class PostViewTest {
         lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         lenient().when(postService.getInProgressPost(testUser)).thenReturn(inProgressPost);
         
-        postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
-        postView.afterNavigation(mockAfterNavigationEvent());
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView.afterNavigation(mockAfterNavigationEvent());
 
-        // Assert: Should have switch button, date/time display, and finish button
-        assertTrue(hasComponent(postView, "Switch to completed posts"), "Should have 'Switch to completed posts' button");
-        assertTrue(hasComponent(postView, "Finish Post"), "Should have 'Finish Post' button");
-        assertTrue(hasPostStartedDate(postView), "Should show post started date/time");
-        assertFalse(hasComponent(postView, "Start New Post"), "Should NOT have 'Start New Post' button");
-        assertFalse(hasComponentOfType(postView, ComboBox.class), "Should NOT have posts dropdown in in-progress view");
+            // Assert: Should have switch button, date/time display, and finish button
+            assertTrue(hasComponent(postView, "Switch to completed posts"), "Should have 'Switch to completed posts' button");
+            assertTrue(hasComponent(postView, "Finish Post"), "Should have 'Finish Post' button");
+            assertTrue(hasPostStartedDate(postView), "Should show post started date/time");
+            assertFalse(hasComponent(postView, "Start New Post"), "Should NOT have 'Start New Post' button");
+            assertFalse(hasComponentOfType(postView, ComboBox.class), "Should NOT have posts dropdown in in-progress view");
+        }
     }
 
     @Test
@@ -139,17 +162,22 @@ class PostViewTest {
         // Arrange: No in-progress post
         lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         
-        postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
-        postView.afterNavigation(mockAfterNavigationEvent());
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView.afterNavigation(mockAfterNavigationEvent());
 
-        // Assert: Should be in completed view with dropdown, pagination, and start button
-        assertTrue(postView.showingCompletedPosts, "Should be showing completed posts view");
-        assertTrue(hasComponent(postView, "Start New Post"), "Should have 'Start New Post' button");
-        assertTrue(hasComponentOfType(postView, ComboBox.class), "Should have posts dropdown");
-        assertTrue(hasPaginationControls(postView), "Should have pagination controls");
-        assertFalse(hasComponent(postView, "Switch to completed posts"), "Should NOT have 'Switch to completed posts' button");
-        assertFalse(hasComponent(postView, "Switch to in-progress post"), "Should NOT have 'Switch to in-progress post' button");
-        assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have 'Finish Post' button");
+            // Assert: Should be in completed view with dropdown, pagination, and start button
+            assertTrue(postView.showingCompletedPosts, "Should be showing completed posts view");
+            assertTrue(hasComponent(postView, "Start New Post"), "Should have 'Start New Post' button");
+            assertTrue(hasComponentOfType(postView, ComboBox.class), "Should have posts dropdown");
+            assertTrue(hasPaginationControls(postView), "Should have pagination controls");
+            assertFalse(hasComponent(postView, "Switch to completed posts"), "Should NOT have 'Switch to completed posts' button");
+            assertFalse(hasComponent(postView, "Switch to in-progress post"), "Should NOT have 'Switch to in-progress post' button");
+            assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have 'Finish Post' button");
+        }
     }
 
     @Test
@@ -157,21 +185,26 @@ class PostViewTest {
         // Arrange: No in-progress post exists
         lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         
-        postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
-        postView.afterNavigation(mockAfterNavigationEvent());
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView.afterNavigation(mockAfterNavigationEvent());
 
-        // Assert: Cannot switch to in-progress view (no switch button available)
-        assertFalse(hasComponent(postView, "Switch to in-progress post"), 
-                   "Should NOT have 'Switch to in-progress post' button when no in-progress post exists");
-        
-        // Try to manually set to in-progress view (should not be possible through UI)
-        postView.showingCompletedPosts = false;
-        invokeMethod(postView, "recreateHeader");
-        
-        // Should still show completed posts layout since no in-progress post exists
-        assertTrue(hasComponentOfType(postView, ComboBox.class), "Should still show posts dropdown");
-        assertTrue(hasPaginationControls(postView), "Should still show pagination controls");
-        assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have 'Finish Post' button");
+            // Assert: Cannot switch to in-progress view (no switch button available)
+            assertFalse(hasComponent(postView, "Switch to in-progress post"), 
+                       "Should NOT have 'Switch to in-progress post' button when no in-progress post exists");
+            
+            // Try to manually set to in-progress view (should not be possible through UI)
+            postView.showingCompletedPosts = false;
+            invokeMethod(postView, "recreateHeader");
+            
+            // Should still show completed posts layout since no in-progress post exists
+            assertTrue(hasComponentOfType(postView, ComboBox.class), "Should still show posts dropdown");
+            assertTrue(hasPaginationControls(postView), "Should still show pagination controls");
+            assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have 'Finish Post' button");
+        }
     }
 
     @Test
@@ -180,33 +213,61 @@ class PostViewTest {
         lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         lenient().when(postService.getInProgressPost(testUser)).thenReturn(inProgressPost);
         
-        postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
-        postView.afterNavigation(mockAfterNavigationEvent());
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView.afterNavigation(mockAfterNavigationEvent());
 
-        // Initial state: in-progress view
-        assertFalse(postView.showingCompletedPosts, "Should start in in-progress view");
-        assertTrue(hasComponent(postView, "Switch to completed posts"), "Should have switch button");
+            // Initial state: in-progress view
+            assertFalse(postView.showingCompletedPosts, "Should start in in-progress view");
+            assertTrue(hasComponent(postView, "Switch to completed posts"), "Should have switch button");
 
-        // Act: Switch to completed posts view
-        Button switchButton = findComponent(postView, Button.class, "Switch to completed posts");
-        assertNotNull(switchButton, "Switch button should exist");
-        switchButton.click();
+            // Act: Switch to completed posts view
+            Button switchButton = findComponent(postView, Button.class, "Switch to completed posts");
+            assertNotNull(switchButton, "Switch button should exist");
+            switchButton.click();
 
-        // Assert: Now in completed view
-        assertTrue(postView.showingCompletedPosts, "Should now be in completed posts view");
-        assertTrue(hasComponent(postView, "Switch to in-progress post"), "Should have switch back button");
-        assertTrue(hasComponentOfType(postView, ComboBox.class), "Should have dropdown");
-        assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have finish button");
+            // Assert: Now in completed view
+            assertTrue(postView.showingCompletedPosts, "Should now be in completed posts view");
+            assertTrue(hasComponent(postView, "Switch to in-progress post"), "Should have switch back button");
+            assertTrue(hasComponentOfType(postView, ComboBox.class), "Should have dropdown");
+            assertFalse(hasComponent(postView, "Finish Post"), "Should NOT have finish button");
 
-        // Act: Switch back to in-progress view
-        Button switchBackButton = findComponent(postView, Button.class, "Switch to in-progress post");
-        assertNotNull(switchBackButton, "Switch back button should exist");
-        switchBackButton.click();
+            // Act: Switch back to in-progress view
+            Button switchBackButton = findComponent(postView, Button.class, "Switch to in-progress post");
+            assertNotNull(switchBackButton, "Switch back button should exist");
+            switchBackButton.click();
 
-        // Assert: Back to in-progress view
-        assertFalse(postView.showingCompletedPosts, "Should be back in in-progress view");
-        assertTrue(hasComponent(postView, "Switch to completed posts"), "Should have switch button again");
-        assertTrue(hasComponent(postView, "Finish Post"), "Should have finish button again");
+            // Assert: Back to in-progress view
+            assertFalse(postView.showingCompletedPosts, "Should be back in in-progress view");
+            assertTrue(hasComponent(postView, "Switch to completed posts"), "Should have switch button again");
+            assertTrue(hasComponent(postView, "Finish Post"), "Should have finish button again");
+        }
+    }
+
+    @Test
+    void testTimezoneDifferentFromSystemDefault() {
+        // Arrange: Set up a timezone different from system default
+        setupUIMocks("Europe/Berlin"); // Different timezone from the default NY
+        
+        // Create a post with a known UTC time for testing
+        Date knownUtcTime = new Date(1640995200000L); // 2022-01-01 00:00:00 UTC
+        
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            // Act: Test the DateTimeUtils.formatDateTime method directly
+            String formattedTime = DateTimeUtils.formatDateTime(knownUtcTime);
+            
+            // Assert: Time should be formatted in Berlin timezone (UTC+1)
+            // Jan 01, 2022 at 1:00 AM (Berlin is UTC+1)
+            assertTrue(formattedTime.contains("Jan 01, 2022"), 
+                      "Should show the correct date in Berlin timezone");
+            assertTrue(formattedTime.contains("1:00"), 
+                      "Should show the correct hour in Berlin timezone (UTC+1)"); 
+        }
     }
 
     // Helper methods for component discovery and assertions
@@ -324,6 +385,14 @@ class PostViewTest {
             throw new RuntimeException("Failed to invoke method: " + methodName, e);
         }
     }
+
+    private void setupUIMocks(String timeZoneId) {
+        // Setup the mock chain: UI.getCurrent().getSession().getAttribute(ExtendedClientDetails.class)
+        lenient().when(mockUI.getSession()).thenReturn(mockSession);
+        lenient().when(mockExtendedClientDetails.getTimeZoneId()).thenReturn(timeZoneId);
+        lenient().when(mockSession.getAttribute(ExtendedClientDetails.class)).thenReturn(mockExtendedClientDetails);
+    }
+    
 
     private com.vaadin.flow.router.AfterNavigationEvent mockAfterNavigationEvent() {
         com.vaadin.flow.router.AfterNavigationEvent event = mock(com.vaadin.flow.router.AfterNavigationEvent.class);
