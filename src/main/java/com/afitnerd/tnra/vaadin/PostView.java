@@ -30,6 +30,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
@@ -99,6 +100,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     // Debounced update system
     private final ScheduledExecutorService debounceExecutor = Executors.newSingleThreadScheduledExecutor();
     private boolean isUpdating = false;
+    
+    // Vaadin Binder for data binding (Intro section demonstration)
+    private Binder<Post> introBinder = new Binder<>(Post.class);
 
     public PostView(
         VaadinPostService vaadinPostService,
@@ -609,19 +613,20 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // WIDWYTK field
         widwytkField = new TextArea("What I Don't Want You To Know");
         widwytkField.addClassName("post-textarea");
-        widwytkField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         // Kryptonite field
         kryptoniteField = new TextField("Kryptonite");
         kryptoniteField.addClassName("post-textfield");
-        kryptoniteField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         // What and When field
         whatAndWhenField = new TextArea("What and When");
         whatAndWhenField.addClassName("post-textarea");
-        whatAndWhenField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         section.add(sectionTitle, widwytkField, kryptoniteField, whatAndWhenField);
+        
+        // Initialize data binding for Intro section after fields are created
+        setupIntroDataBinding();
+        
         return section;
     }
 
@@ -687,10 +692,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         isUpdating = true;
 
         try {
-            // Load intro data
-            widwytkField.setValue(currentPost.getIntro().getWidwytk() != null ? currentPost.getIntro().getWidwytk() : "");
-            kryptoniteField.setValue(currentPost.getIntro().getKryptonite() != null ? currentPost.getIntro().getKryptonite() : "");
-            whatAndWhenField.setValue(currentPost.getIntro().getWhatAndWhen() != null ? currentPost.getIntro().getWhatAndWhen() : "");
+            // Load intro data using Binder (replaces manual field setting)
+            introBinder.setBean(currentPost);
 
             // Load personal data
             personalBestField.setValue(currentPost.getPersonal().getBest() != null ? currentPost.getPersonal().getBest() : "");
@@ -715,10 +718,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     }
     
     private void clearFormData() {
-        // Clear intro data
-        widwytkField.setValue("");
-        kryptoniteField.setValue("");
-        whatAndWhenField.setValue("");
+        // Clear intro data using Binder
+        introBinder.setBean(null);
 
         // Clear personal data
         personalBestField.setValue("");
@@ -833,6 +834,63 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
     }
+    
+    // ==============================================
+    // VAADIN BINDER IMPLEMENTATION (INTRO SECTION)
+    // ==============================================
+    
+    /**
+     * Sets up data binding for the Intro section using Vaadin Binder.
+     * This demonstrates the recommended approach vs manual field syncing.
+     */
+    private void setupIntroDataBinding() {
+        // Set up validation and save-on-change for intro fields
+        introBinder.forField(widwytkField)
+            .withValidator(value -> value != null && !value.trim().isEmpty(), 
+                          "What I Don't Want You To Know is required")
+            .bind("intro.widwytk");
+            
+        introBinder.forField(kryptoniteField)
+            .withValidator(value -> value != null && !value.trim().isEmpty(), 
+                          "Kryptonite is required")
+            .bind("intro.kryptonite");
+            
+        introBinder.forField(whatAndWhenField)
+            .withValidator(value -> value != null && !value.trim().isEmpty(), 
+                          "What and When is required")
+            .bind("intro.whatAndWhen");
+        
+        // Add value change listener for automatic saving
+        introBinder.addValueChangeListener(event -> {
+            if (currentPost != null && introBinder.isValid() && !isUpdating) {
+                saveIntroChanges();
+            }
+        });
+    }
+    
+    /**
+     * Saves intro changes using Binder approach.
+     * Much simpler than manual debouncing!
+     */
+    private void saveIntroChanges() {
+        try {
+            if (introBinder.writeBeanIfValid(currentPost)) {
+                // Update the post via service
+                postService.replaceIntro(currentUser, currentPost.getIntro());
+                
+                // Refresh current post
+                currentPost = postService.getInProgressPost(currentUser);
+                
+                // Update finish button state
+                updateFinishButtonState();
+                
+                // Show success (optional)
+                // Notification.show("Intro saved", 1000, Notification.Position.BOTTOM_START);
+            }
+        } catch (Exception e) {
+            Notification.show("Error saving intro: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+        }
+    }
 
 //    private String formatDateTime(Date date) {
 //        ZoneId displayZone = ZoneId.systemDefault();
@@ -847,36 +905,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 //        return DateTimeUtils.formatDateTime(date, displayZone);
 //    }
     
-    // Debounced update methods
-    private void debouncedUpdateIntro() {
-        if (currentPost == null || isUpdating) return;
-        
-        debounceExecutor.schedule(() -> {
-            try {
-                isUpdating = true;
-                
-                // Create intro object with current values
-                com.afitnerd.tnra.model.Intro intro = new com.afitnerd.tnra.model.Intro();
-                intro.setWidwytk(widwytkField.getValue());
-                intro.setKryptonite(kryptoniteField.getValue());
-                intro.setWhatAndWhen(whatAndWhenField.getValue());
-                
-                // Update the post
-                postService.replaceIntro(currentUser, intro);
-                
-                // Refresh current post
-                currentPost = postService.getInProgressPost(currentUser);
-                
-                // Update finish button state
-                updateFinishButtonState();
-                
-            } catch (Exception e) {
-                Notification.show("Error saving intro: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
-            } finally {
-                isUpdating = false;
-            }
-        }, 1000, TimeUnit.MILLISECONDS);
-    }
+    // Debounced update methods (Intro section now uses Binder - see saveIntroChanges())
     
     private void debouncedUpdatePersonal() {
         if (currentPost == null || isUpdating) return;
