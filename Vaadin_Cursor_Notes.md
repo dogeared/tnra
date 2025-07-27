@@ -291,3 +291,6 @@ Testing Results:
 
 This demonstration shows the clear advantages of using Vaadin Binder over manual field syncing and debouncing. The same approach could be extended to the Personal,
 Family, and Work sections to further modernize the PostView implementation.
+
+- highlight the difference between eager and lazy (default) for setValueChangeMode and setValueChangeTimeout (default 400ms)
+- speak to performance / database writes vs save state and possible loss

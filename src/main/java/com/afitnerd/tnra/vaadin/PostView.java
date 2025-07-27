@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import com.afitnerd.tnra.service.VaadinPostService;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -92,7 +93,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private boolean isUpdating = false;
     
     // Vaadin Binder for data binding (replaces manual field syncing)
-    private Binder<Post> postBinder = new Binder<>(Post.class);
+    // is the true param for nested properties needed?
+    private Binder<Post> postBinder = new Binder<>(Post.class, true);
 
     public PostView(
         VaadinPostService vaadinPostService,
@@ -805,57 +807,30 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
      */
     private void setupDataBinding() {
         // Set up validation and save-on-change for intro fields
-        postBinder.forField(widwytkField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "What I Don't Want You To Know is required")
-            .bind("intro.widwytk");
+        postBinder.forField(widwytkField).bind("intro.widwytk");
             
-        postBinder.forField(kryptoniteField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Kryptonite is required")
-            .bind("intro.kryptonite");
+        postBinder.forField(kryptoniteField).bind("intro.kryptonite");
             
-        postBinder.forField(whatAndWhenField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "What and When is required")
-            .bind("intro.whatAndWhen");
+        postBinder.forField(whatAndWhenField).bind("intro.whatAndWhen");
         
         // Set up validation and save-on-change for personal fields
-        postBinder.forField(personalBestField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Personal Best is required")
-            .bind("personal.best");
+        postBinder.forField(personalBestField).bind("personal.best");
             
-        postBinder.forField(personalWorstField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Personal Worst is required")
-            .bind("personal.worst");
+        postBinder.forField(personalWorstField).bind("personal.worst");
         
         // Set up validation and save-on-change for family fields
-        postBinder.forField(familyBestField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Family Best is required")
-            .bind("family.best");
+        postBinder.forField(familyBestField).bind("family.best");
             
-        postBinder.forField(familyWorstField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Family Worst is required")
-            .bind("family.worst");
+        postBinder.forField(familyWorstField).bind("family.worst");
         
         // Set up validation and save-on-change for work fields
-        postBinder.forField(workBestField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Work Best is required")
-            .bind("work.best");
+        postBinder.forField(workBestField).bind("work.best");
             
-        postBinder.forField(workWorstField)
-            .withValidator(value -> value != null && !value.trim().isEmpty(), 
-                          "Work Worst is required")
-            .bind("work.worst");
+        postBinder.forField(workWorstField).bind("work.worst");
         
         // Add value change listener for automatic saving
         postBinder.addValueChangeListener(event -> {
-            if (currentPost != null && postBinder.isValid() && !isUpdating) {
+            if (currentPost != null && !isUpdating) {
                 savePostChanges();
             }
         });
@@ -863,26 +838,17 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     
     /**
      * Saves all form changes using Binder approach.
-     * Much simpler than manual debouncing!
      */
     private void savePostChanges() {
         try {
-            if (postBinder.writeBeanIfValid(currentPost)) {
-                // Update all sections via service
-                postService.replaceIntro(currentUser, currentPost.getIntro());
-                postService.replacePersonal(currentUser, currentPost.getPersonal());
-                postService.replaceFamily(currentUser, currentPost.getFamily());
-                postService.replaceWork(currentUser, currentPost.getWork());
-                
-                // Refresh current post
-                currentPost = postService.getInProgressPost(currentUser);
-                
-                // Update finish button state
-                updateFinishButtonState();
-                
-                // Show success (optional)
-                // Notification.show("Post saved", 1000, Notification.Position.BOTTOM_START);
-            }
+            // Write current field values to the bean (even if validation fails)
+            postBinder.writeBean(currentPost);
+            
+            // Save entire post in single transaction for immediate persistence
+            currentPost = postService.savePost(currentPost);
+
+            // Update finish button state
+            updateFinishButtonState();
         } catch (Exception e) {
             Notification.show("Error saving post: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
         }
