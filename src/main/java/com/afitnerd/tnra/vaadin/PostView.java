@@ -1,12 +1,10 @@
 package com.afitnerd.tnra.vaadin;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Optional;
 
 import com.afitnerd.tnra.service.VaadinPostService;
-import com.vaadin.flow.component.UI;
-import com.vaadin.flow.component.page.ExtendedClientDetails;
+import com.vaadin.flow.data.value.ValueChangeMode;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -30,16 +28,12 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.time.ZoneId;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
@@ -96,9 +90,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private TextArea workBestField;
     private TextArea workWorstField;
     
-    // Debounced update system
-    private final ScheduledExecutorService debounceExecutor = Executors.newSingleThreadScheduledExecutor();
     private boolean isUpdating = false;
+    
+    // Vaadin Binder for data binding (replaces manual field syncing)
+    // is the true param for nested properties needed?
+    private Binder<Post> postBinder = new Binder<>(Post.class, true);
 
     public PostView(
         VaadinPostService vaadinPostService,
@@ -596,6 +592,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         VerticalLayout statsSection = createStatsSection();
 
         content.add(introSection, personalSection, familySection, workSection, statsSection);
+        
+        // Initialize data binding after all form fields are created
+        setupDataBinding();
+        
         return content;
     }
 
@@ -609,17 +609,14 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // WIDWYTK field
         widwytkField = new TextArea("What I Don't Want You To Know");
         widwytkField.addClassName("post-textarea");
-        widwytkField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         // Kryptonite field
         kryptoniteField = new TextField("Kryptonite");
         kryptoniteField.addClassName("post-textfield");
-        kryptoniteField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         // What and When field
         whatAndWhenField = new TextArea("What and When");
         whatAndWhenField.addClassName("post-textarea");
-        whatAndWhenField.addValueChangeListener(e -> debouncedUpdateIntro());
 
         section.add(sectionTitle, widwytkField, kryptoniteField, whatAndWhenField);
         return section;
@@ -638,25 +635,19 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         TextArea worstField = new TextArea("Worst");
         worstField.addClassName("post-textarea");
 
-        // Store references based on category type and add listeners
+        // Store references based on category type (Binder handles value change listeners)
         switch (categoryType) {
             case "personal":
                 personalBestField = bestField;
                 personalWorstField = worstField;
-                bestField.addValueChangeListener(e -> debouncedUpdatePersonal());
-                worstField.addValueChangeListener(e -> debouncedUpdatePersonal());
                 break;
             case "family":
                 familyBestField = bestField;
                 familyWorstField = worstField;
-                bestField.addValueChangeListener(e -> debouncedUpdateFamily());
-                worstField.addValueChangeListener(e -> debouncedUpdateFamily());
                 break;
             case "work":
                 workBestField = bestField;
                 workWorstField = worstField;
-                bestField.addValueChangeListener(e -> debouncedUpdateWork());
-                worstField.addValueChangeListener(e -> debouncedUpdateWork());
                 break;
         }
 
@@ -687,22 +678,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         isUpdating = true;
 
         try {
-            // Load intro data
-            widwytkField.setValue(currentPost.getIntro().getWidwytk() != null ? currentPost.getIntro().getWidwytk() : "");
-            kryptoniteField.setValue(currentPost.getIntro().getKryptonite() != null ? currentPost.getIntro().getKryptonite() : "");
-            whatAndWhenField.setValue(currentPost.getIntro().getWhatAndWhen() != null ? currentPost.getIntro().getWhatAndWhen() : "");
-
-            // Load personal data
-            personalBestField.setValue(currentPost.getPersonal().getBest() != null ? currentPost.getPersonal().getBest() : "");
-            personalWorstField.setValue(currentPost.getPersonal().getWorst() != null ? currentPost.getPersonal().getWorst() : "");
-
-            // Load family data
-            familyBestField.setValue(currentPost.getFamily().getBest() != null ? currentPost.getFamily().getBest() : "");
-            familyWorstField.setValue(currentPost.getFamily().getWorst() != null ? currentPost.getFamily().getWorst() : "");
-
-            // Load work data
-            workBestField.setValue(currentPost.getWork().getBest() != null ? currentPost.getWork().getBest() : "");
-            workWorstField.setValue(currentPost.getWork().getWorst() != null ? currentPost.getWork().getWorst() : "");
+            // Load all form data using Binder (replaces all manual field setting)
+            postBinder.setBean(currentPost);
 
             // Update stats view with current post data
             if (statsView != null) {
@@ -715,22 +692,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     }
     
     private void clearFormData() {
-        // Clear intro data
-        widwytkField.setValue("");
-        kryptoniteField.setValue("");
-        whatAndWhenField.setValue("");
-
-        // Clear personal data
-        personalBestField.setValue("");
-        personalWorstField.setValue("");
-
-        // Clear family data
-        familyBestField.setValue("");
-        familyWorstField.setValue("");
-
-        // Clear work data
-        workBestField.setValue("");
-        workWorstField.setValue("");
+        // Clear all form data using Binder (replaces all manual field clearing)
+        postBinder.setBean(null);
 
         // Set stats view to read-only when no post is selected
         if (statsView != null) {
@@ -833,135 +796,64 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
     }
+    
+    // ==============================================
+    // VAADIN BINDER IMPLEMENTATION (INTRO SECTION)
+    // ==============================================
+    
+    /**
+     * Sets up data binding for all form sections using Vaadin Binder.
+     * This demonstrates the recommended approach vs manual field syncing.
+     */
+    private void setupDataBinding() {
+        // Set up validation and save-on-change for intro fields
+        postBinder.forField(widwytkField).bind("intro.widwytk");
+            
+        postBinder.forField(kryptoniteField).bind("intro.kryptonite");
+            
+        postBinder.forField(whatAndWhenField).bind("intro.whatAndWhen");
+        
+        // Set up validation and save-on-change for personal fields
+        postBinder.forField(personalBestField).bind("personal.best");
+            
+        postBinder.forField(personalWorstField).bind("personal.worst");
+        
+        // Set up validation and save-on-change for family fields
+        postBinder.forField(familyBestField).bind("family.best");
+            
+        postBinder.forField(familyWorstField).bind("family.worst");
+        
+        // Set up validation and save-on-change for work fields
+        postBinder.forField(workBestField).bind("work.best");
+            
+        postBinder.forField(workWorstField).bind("work.worst");
+        
+        // Add value change listener for automatic saving
+        postBinder.addValueChangeListener(event -> {
+            if (currentPost != null && !isUpdating) {
+                savePostChanges();
+            }
+        });
+    }
+    
+    /**
+     * Saves all form changes using Binder approach.
+     */
+    private void savePostChanges() {
+        try {
+            // Write current field values to the bean (even if validation fails)
+            postBinder.writeBean(currentPost);
+            
+            // Save entire post in single transaction for immediate persistence
+            currentPost = postService.savePost(currentPost);
 
-//    private String formatDateTime(Date date) {
-//        ZoneId displayZone = ZoneId.systemDefault();
-//        if (
-//            UI.getCurrent() != null &&
-//            UI.getCurrent().getSession() != null &&
-//            UI.getCurrent().getSession().getAttribute(ExtendedClientDetails.class) != null
-//        ) {
-//            displayZone =
-//                ZoneId.of(UI.getCurrent().getSession().getAttribute(ExtendedClientDetails.class).getTimeZoneId());
-//        }
-//        return DateTimeUtils.formatDateTime(date, displayZone);
-//    }
-    
-    // Debounced update methods
-    private void debouncedUpdateIntro() {
-        if (currentPost == null || isUpdating) return;
-        
-        debounceExecutor.schedule(() -> {
-            try {
-                isUpdating = true;
-                
-                // Create intro object with current values
-                com.afitnerd.tnra.model.Intro intro = new com.afitnerd.tnra.model.Intro();
-                intro.setWidwytk(widwytkField.getValue());
-                intro.setKryptonite(kryptoniteField.getValue());
-                intro.setWhatAndWhen(whatAndWhenField.getValue());
-                
-                // Update the post
-                postService.replaceIntro(currentUser, intro);
-                
-                // Refresh current post
-                currentPost = postService.getInProgressPost(currentUser);
-                
-                // Update finish button state
-                updateFinishButtonState();
-                
-            } catch (Exception e) {
-                Notification.show("Error saving intro: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
-            } finally {
-                isUpdating = false;
-            }
-        }, 1000, TimeUnit.MILLISECONDS);
+            // Update finish button state
+            updateFinishButtonState();
+        } catch (Exception e) {
+            Notification.show("Error saving post: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+        }
     }
     
-    private void debouncedUpdatePersonal() {
-        if (currentPost == null || isUpdating) return;
-        
-        debounceExecutor.schedule(() -> {
-            try {
-                isUpdating = true;
-                
-                // Create personal object with current values
-                com.afitnerd.tnra.model.Category personal = new com.afitnerd.tnra.model.Category();
-                personal.setBest(personalBestField.getValue());
-                personal.setWorst(personalWorstField.getValue());
-                
-                // Update the post
-                postService.replacePersonal(currentUser, personal);
-                
-                // Refresh current post
-                currentPost = postService.getInProgressPost(currentUser);
-                
-                // Update finish button state
-                updateFinishButtonState();
-                
-            } catch (Exception e) {
-                Notification.show("Error saving personal: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
-            } finally {
-                isUpdating = false;
-            }
-        }, 1000, TimeUnit.MILLISECONDS);
-    }
-    
-    private void debouncedUpdateFamily() {
-        if (currentPost == null || isUpdating) return;
-        
-        debounceExecutor.schedule(() -> {
-            try {
-                isUpdating = true;
-                
-                // Create family object with current values
-                com.afitnerd.tnra.model.Category family = new com.afitnerd.tnra.model.Category();
-                family.setBest(familyBestField.getValue());
-                family.setWorst(familyWorstField.getValue());
-                
-                // Update the post
-                postService.replaceFamily(currentUser, family);
-                
-                // Refresh current post
-                currentPost = postService.getInProgressPost(currentUser);
-                
-                // Update finish button state
-                updateFinishButtonState();
-                
-            } catch (Exception e) {
-                Notification.show("Error saving family: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
-            } finally {
-                isUpdating = false;
-            }
-        }, 1000, TimeUnit.MILLISECONDS);
-    }
-    
-    private void debouncedUpdateWork() {
-        if (currentPost == null || isUpdating) return;
-        
-        debounceExecutor.schedule(() -> {
-            try {
-                isUpdating = true;
-                
-                // Create work object with current values
-                com.afitnerd.tnra.model.Category work = new com.afitnerd.tnra.model.Category();
-                work.setBest(workBestField.getValue());
-                work.setWorst(workWorstField.getValue());
-                
-                // Update the post
-                postService.replaceWork(currentUser, work);
-                
-                // Refresh current post
-                currentPost = postService.getInProgressPost(currentUser);
-                
-                // Update finish button state
-                updateFinishButtonState();
-                
-            } catch (Exception e) {
-                Notification.show("Error saving work: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
-            } finally {
-                isUpdating = false;
-            }
-        }, 1000, TimeUnit.MILLISECONDS);
-    }
+    // NOTE: Manual debouncing methods removed - now using Vaadin Binder approach
+    // See setupDataBinding() and savePostChanges() methods for the modern implementation
 } 
