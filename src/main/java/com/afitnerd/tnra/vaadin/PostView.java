@@ -111,15 +111,13 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (event.getLocation().getFirstSegment().equals("posts")) {
-            initializeUser();
-            createPostView();
-            // Only load post data if we have a current post and we're not showing completed posts
-            // (in which case the user should select from dropdown)
-            if (currentPost != null && !showingCompletedPosts) {
-                loadPostData();
-                updateReadOnlyState();
-            }
+        initializeUser();
+        createPostView();
+        // Only load post data if we have a current post and we're not showing completed posts
+        // (in which case the user should select from dropdown)
+        if (currentPost != null && !showingCompletedPosts) {
+            loadPostData();
+            updateReadOnlyState();
         }
     }
 

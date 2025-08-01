@@ -397,8 +397,6 @@ class PostViewTest {
     private com.vaadin.flow.router.AfterNavigationEvent mockAfterNavigationEvent() {
         com.vaadin.flow.router.AfterNavigationEvent event = mock(com.vaadin.flow.router.AfterNavigationEvent.class);
         com.vaadin.flow.router.Location location = mock(com.vaadin.flow.router.Location.class);
-        when(event.getLocation()).thenReturn(location);
-        when(location.getFirstSegment()).thenReturn("posts");
         return event;
     }
 }
