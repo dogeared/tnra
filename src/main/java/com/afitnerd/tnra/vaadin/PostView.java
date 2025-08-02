@@ -113,6 +113,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     public void afterNavigation(AfterNavigationEvent event) {
         initializeUser();
         createPostView();
+
+        // Initialize data binding after all form fields are created
+        setupDataBinding();
+
         // Only load post data if we have a current post and we're not showing completed posts
         // (in which case the user should select from dropdown)
         if (currentPost != null && !showingCompletedPosts) {
@@ -596,10 +600,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         VerticalLayout statsSection = createStatsSection();
 
         content.add(introSection, personalSection, familySection, workSection, statsSection);
-        
-        // Initialize data binding after all form fields are created
-        setupDataBinding();
-        
+
         return content;
     }
 
@@ -829,11 +830,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
     }
-    
-    // ==============================================
-    // VAADIN BINDER IMPLEMENTATION (INTRO SECTION)
-    // ==============================================
-    
+
     /**
      * Sets up data binding for all form sections using Vaadin Binder.
      * This demonstrates the recommended approach vs manual field syncing.
