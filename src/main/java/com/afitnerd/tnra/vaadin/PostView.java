@@ -279,7 +279,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 updateReadOnlyState();
             } else {
                 // Clear the form when no post is selected
-                currentPost = null;
                 clearFormData();
             }
         });
@@ -300,7 +299,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         }
         
         // Clear current post and form data
-        currentPost = null;
         clearFormData();
         
         // Recreate header with completed posts view
