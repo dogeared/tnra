@@ -692,6 +692,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     }
     
     private void clearFormData() {
+        // TODO - is this fragile? Without this, the value change listener writes empty values to the database
+        // because of the next line when we setBean to null
+        // clear current post
+        currentPost = null;
+
         // Clear all form data using Binder (replaces all manual field clearing)
         postBinder.setBean(null);
 
