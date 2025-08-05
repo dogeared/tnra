@@ -1,13 +1,11 @@
 package com.afitnerd.tnra.service;
 
+import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.UserRepository;
-
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
-
-import com.afitnerd.tnra.model.User;
 
 @Service
 public class UserServiceImpl implements UserService {

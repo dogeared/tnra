@@ -1,10 +1,6 @@
 package com.afitnerd.tnra.service.pq;
 
 import com.afitnerd.tnra.model.pq.PQMeResponse;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.util.Comparator;

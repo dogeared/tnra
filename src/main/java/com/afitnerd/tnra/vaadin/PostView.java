@@ -1,21 +1,12 @@
 package com.afitnerd.tnra.vaadin;
 
-import java.util.ArrayList;
-import java.util.Optional;
-
-import com.afitnerd.tnra.service.VaadinPostService;
-import com.vaadin.flow.data.value.ValueChangeMode;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
+import com.afitnerd.tnra.service.VaadinPostService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -34,6 +25,13 @@ import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import java.util.ArrayList;
+import java.util.Optional;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)

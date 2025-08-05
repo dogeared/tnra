@@ -7,7 +7,6 @@ import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.service.VaadinPostService;
-import com.afitnerd.tnra.vaadin.DateTimeUtils;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -29,10 +28,14 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 /**
  * Test class for PostView that exercises various modes and UI states:

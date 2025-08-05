@@ -3,7 +3,6 @@ package com.afitnerd.tnra.service;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
-import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 

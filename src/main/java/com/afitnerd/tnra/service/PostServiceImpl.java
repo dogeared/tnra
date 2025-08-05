@@ -8,6 +8,7 @@ import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PostRepository;
+import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -17,7 +18,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.Assert;
 import org.springframework.util.ObjectUtils;
 
-import jakarta.transaction.Transactional;
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Date;

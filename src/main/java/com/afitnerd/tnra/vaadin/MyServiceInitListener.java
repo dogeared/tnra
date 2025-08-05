@@ -6,9 +6,6 @@ import com.vaadin.flow.server.ServiceInitEvent;
 import com.vaadin.flow.server.VaadinServiceInitListener;
 import com.vaadin.flow.spring.annotation.SpringComponent;
 
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-
 @SpringComponent
 public class MyServiceInitListener implements VaadinServiceInitListener {
     @Override

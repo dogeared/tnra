@@ -2,14 +2,13 @@ package com.afitnerd.tnra.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonView;
-import org.hibernate.annotations.GenericGenerator;
-
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToOne;
+import org.hibernate.annotations.GenericGenerator;
 
 @Entity
 public class GoToGuyPair {
