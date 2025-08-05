@@ -184,6 +184,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private VerticalLayout createHeaderSection() {
         VerticalLayout header = new VerticalLayout();
         header.addClassName("post-header");
+        header.addClassName("sticky-header");
 
         // Create appropriate header based on current view mode
         if (showingCompletedPosts) {
