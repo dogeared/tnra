@@ -168,7 +168,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Main content sections
         VerticalLayout contentSection = createContentSection();
         
-        add(headerSection, contentSection);
+        // Footer section for in-progress posts
+        VerticalLayout footerSection = createFooterSection();
+        
+        add(headerSection, contentSection, footerSection);
         
         // If no current post is selected, clear form data and set fields to read-only
         if (currentPost == null) {
@@ -211,14 +214,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         Span dateSpan = new Span(startDate);
         dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
         
-        // Create finish post button
-        finishPostButton = new Button("Finish Post");
-        finishPostButton.addThemeName("primary");
-        finishPostButton.addClassName("finish-post-button");
-        finishPostButton.setEnabled(false); // Initially disabled
-        finishPostButton.addClickListener(e -> finishPost());
-        
-        controlsLayout.add(showCompletedPostsButton, dateSpan, finishPostButton);
+        controlsLayout.add(showCompletedPostsButton, dateSpan);
         return controlsLayout;
     }
 
@@ -340,9 +336,19 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                     .findFirst()
                     .ifPresent(this::remove);
         
+        // Find and remove the existing footer
+        getChildren().filter(component -> component.getElement().hasAttribute("class") && 
+                            component.getElement().getAttribute("class").contains("post-footer"))
+                    .findFirst()
+                    .ifPresent(this::remove);
+        
         // Create and add new header
         VerticalLayout newHeader = createHeaderSection();
         addComponentAsFirst(newHeader);
+        
+        // Create and add new footer (will be hidden if not needed)
+        VerticalLayout newFooter = createFooterSection();
+        add(newFooter);
         
         // Update pagination and post selector if showing completed posts
         if (showingCompletedPosts) {
@@ -597,6 +603,30 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         setupDataBinding();
         
         return content;
+    }
+
+    private VerticalLayout createFooterSection() {
+        VerticalLayout footer = new VerticalLayout();
+        footer.addClassName("post-footer");
+        
+        // Only create and show footer for in-progress posts
+        if (!showingCompletedPosts && currentPost != null && currentPost.getState() == PostState.IN_PROGRESS) {
+            // Create finish post button
+            finishPostButton = new Button("Finish Post");
+            finishPostButton.addThemeName("primary");
+            finishPostButton.addClassName("finish-post-button");
+            finishPostButton.setEnabled(false); // Initially disabled
+            finishPostButton.addClickListener(e -> finishPost());
+            
+            footer.add(finishPostButton);
+            footer.setAlignItems(Alignment.CENTER);
+            footer.setVisible(true);
+        } else {
+            // Hide footer completely when not needed
+            footer.setVisible(false);
+        }
+        
+        return footer;
     }
 
     private VerticalLayout createIntroSection() {
