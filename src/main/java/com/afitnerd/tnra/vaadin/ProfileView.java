@@ -1,9 +1,5 @@
 package com.afitnerd.tnra.vaadin;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.regex.Pattern;
-
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
@@ -22,6 +18,10 @@ import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.regex.Pattern;
 
 @Route(value = "profile", layout = MainLayout.class)
 @CssImport("./styles/profile-view.css")

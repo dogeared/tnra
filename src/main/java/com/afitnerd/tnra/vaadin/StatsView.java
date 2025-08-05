@@ -1,9 +1,5 @@
 package com.afitnerd.tnra.vaadin;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
@@ -20,6 +16,9 @@ import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)

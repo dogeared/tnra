@@ -1,8 +1,5 @@
 package com.afitnerd.tnra.slack.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-
-import java.io.IOException;
 import java.util.Map;
 
 public interface SlackAPIService {

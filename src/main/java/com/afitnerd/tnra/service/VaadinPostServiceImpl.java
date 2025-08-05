@@ -3,6 +3,7 @@ package com.afitnerd.tnra.service;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -14,6 +15,12 @@ public class VaadinPostServiceImpl implements VaadinPostService {
     private final EMailService eMailService;
     private final SlackAPIService slackAPIService;
     private final SlackPostRenderer slackPostRenderer;
+
+    @Value("#{ @environment['tnra.emailService.enabled'] ?: true }")
+    private boolean emailServiceEnabled;
+
+    @Value("#{ @environment['tnra.slackService.enabled'] ?: true }")
+    private boolean slackServiceEnabled;
 
     public VaadinPostServiceImpl(
         PostService postService, EMailService eMailService,
@@ -28,9 +35,13 @@ public class VaadinPostServiceImpl implements VaadinPostService {
     @Override
     public Post finishPost(User user) {
         Post post = postService.finishPost(user);
-        eMailService.sendMailToAll(post);
-        // use chat api to send to general
-        Map<String, Object> charRes = slackAPIService.chat(slackPostRenderer.render(post));
+        if (emailServiceEnabled) {
+            eMailService.sendMailToAll(post);
+        }
+        if (slackServiceEnabled) {
+            // use chat api to send to general
+            Map<String, Object> charRes = slackAPIService.chat(slackPostRenderer.render(post));
+        }
 
         return post;
     }

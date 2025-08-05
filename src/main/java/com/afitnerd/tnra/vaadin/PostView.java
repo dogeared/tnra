@@ -1,21 +1,12 @@
 package com.afitnerd.tnra.vaadin;
 
-import java.util.ArrayList;
-import java.util.Optional;
-
-import com.afitnerd.tnra.service.VaadinPostService;
-import com.vaadin.flow.data.value.ValueChangeMode;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
+import com.afitnerd.tnra.service.VaadinPostService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -34,6 +25,13 @@ import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+
+import java.util.ArrayList;
+import java.util.Optional;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
@@ -111,15 +109,17 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        if (event.getLocation().getFirstSegment().equals("posts")) {
-            initializeUser();
-            createPostView();
-            // Only load post data if we have a current post and we're not showing completed posts
-            // (in which case the user should select from dropdown)
-            if (currentPost != null && !showingCompletedPosts) {
-                loadPostData();
-                updateReadOnlyState();
-            }
+        initializeUser();
+        createPostView();
+
+        // Initialize data binding after all form fields are created
+        setupDataBinding();
+
+        // Only load post data if we have a current post and we're not showing completed posts
+        // (in which case the user should select from dropdown)
+        if (currentPost != null && !showingCompletedPosts) {
+            loadPostData();
+            updateReadOnlyState();
         }
     }
 
@@ -182,6 +182,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private VerticalLayout createHeaderSection() {
         VerticalLayout header = new VerticalLayout();
         header.addClassName("post-header");
+        header.addClassName("sticky-header");
 
         // Create appropriate header based on current view mode
         if (showingCompletedPosts) {
@@ -277,7 +278,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 updateReadOnlyState();
             } else {
                 // Clear the form when no post is selected
-                currentPost = null;
                 clearFormData();
             }
         });
@@ -298,7 +298,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         }
         
         // Clear current post and form data
-        currentPost = null;
         clearFormData();
         
         // Recreate header with completed posts view
@@ -598,10 +597,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         VerticalLayout statsSection = createStatsSection();
 
         content.add(introSection, personalSection, familySection, workSection, statsSection);
-        
-        // Initialize data binding after all form fields are created
-        setupDataBinding();
-        
+
         return content;
     }
 
@@ -831,11 +827,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
     }
-    
-    // ==============================================
-    // VAADIN BINDER IMPLEMENTATION (INTRO SECTION)
-    // ==============================================
-    
+
     /**
      * Sets up data binding for all form sections using Vaadin Binder.
      * This demonstrates the recommended approach vs manual field syncing.

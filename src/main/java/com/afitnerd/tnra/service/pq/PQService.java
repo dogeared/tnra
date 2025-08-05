@@ -3,7 +3,6 @@ package com.afitnerd.tnra.service.pq;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
 import com.afitnerd.tnra.model.pq.PQMeResponse;
-import org.springframework.scheduling.annotation.Scheduled;
 
 import java.io.IOException;
 import java.util.Map;

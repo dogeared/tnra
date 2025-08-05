@@ -1,7 +1,6 @@
 package com.afitnerd.tnra.repository;
 
 import com.afitnerd.tnra.model.PostState;
-
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
