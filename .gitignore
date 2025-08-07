@@ -40,3 +40,4 @@ nginx/.cert
 .vscode
 /frontend/
 bundles
+uploads
