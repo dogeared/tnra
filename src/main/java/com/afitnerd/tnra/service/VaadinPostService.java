@@ -3,7 +3,6 @@ package com.afitnerd.tnra.service;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
-import org.springframework.boot.autoconfigure.data.web.SpringDataWebProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
