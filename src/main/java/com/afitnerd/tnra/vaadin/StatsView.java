@@ -3,9 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.OidcUserService;
-import com.afitnerd.tnra.service.PostService;
-import com.afitnerd.tnra.service.UserService;
+import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.notification.Notification;
@@ -25,20 +23,14 @@ import java.util.List;
 @CssImport("./styles/stats-view.css")
 public class StatsView extends VerticalLayout implements AfterNavigationObserver {
 
-    private final PostService postService;
-    private final UserService userService;
-    private final OidcUserService oidcUserService;
+    private final VaadinPostPresenter vaadinPostPresenter;
     private Post currentPost;
     private List<StatCard> statCards = new ArrayList<>();
     private boolean isReadOnly = false;
     private Runnable onStatsChanged;
 
-    public StatsView(
-        OidcUserService oidcUserService, PostService postService, UserService userService
-    ) {
-        this.oidcUserService = oidcUserService;
-        this.userService = userService;
-        this.postService = postService;
+    public StatsView(VaadinPostPresenter vaadinPostPresenter) {
+        this.vaadinPostPresenter = vaadinPostPresenter;
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.START);
@@ -46,10 +38,8 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     }
 
     // Static factory method for creating embedded StatsView
-    public static StatsView createEmbedded(
-        OidcUserService oidcUserService, PostService postService, UserService userService
-    ) {
-        StatsView statsView = new StatsView(oidcUserService, postService, userService);
+    public static StatsView createEmbedded(VaadinPostPresenter vaadinPostPresenter) {
+        StatsView statsView = new StatsView(vaadinPostPresenter);
         statsView.currentPost = new Post(); // Start with empty post
         statsView.isReadOnly = true;
         statsView.createStatsView();
@@ -65,14 +55,9 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     }
 
     private void initializePost() {
-        if (oidcUserService.isAuthenticated()) {
-            String email = oidcUserService.getEmail();
-            User user = userService.getUserByEmail(email);
-            currentPost = postService.getOptionalInProgressPost(user)
-                    .orElseGet(() -> postService.startPost(user));
-        } else {
-            throw new RuntimeException("User is not authenticated");
-        }
+        User currentUser = vaadinPostPresenter.initializeUser();
+        currentPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser)
+            .orElseGet(() -> vaadinPostPresenter.startPost(currentUser));
     }
 
     private void createStatsView() {
@@ -185,9 +170,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
             
             // Use updateCompleteStats to update stats (allows null values for unsetting)
             try {
-                String email = oidcUserService.getEmail();
-                User user = userService.getUserByEmail(email);
-                currentPost = postService.updateCompleteStats(user, stats);
+                currentPost = vaadinPostPresenter.updateCompleteStats(stats);
                 String displayValue = value != null ? value.toString() : "empty";
                 
                 // Notify parent that stats have changed
