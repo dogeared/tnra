@@ -3,9 +3,6 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.OidcUserService;
-import com.afitnerd.tnra.service.PostService;
-import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.service.VaadinPostService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -49,15 +46,6 @@ class PostViewTest {
 
     @Mock
     private VaadinPostService vaadinPostService;
-    
-    @Mock
-    private PostService postService;
-    
-    @Mock
-    private UserService userService;
-    
-    @Mock
-    private OidcUserService oidcUserService;
     
     @Mock
     private UI mockUI;
@@ -107,22 +95,20 @@ class PostViewTest {
         completedPostsPage = new PageImpl<>(Arrays.asList(completedPost1, completedPost2));
 
         // Setup common mocks with lenient stubbing to avoid unnecessary stubbing warnings
-        lenient().when(oidcUserService.isAuthenticated()).thenReturn(true);
-        lenient().when(oidcUserService.getEmail()).thenReturn("test@example.com");
-        lenient().when(userService.getUserByEmail("test@example.com")).thenReturn(testUser);
-        lenient().when(postService.getCompletedPostsPage(eq(testUser), any(Pageable.class))).thenReturn(completedPostsPage);
+        lenient().when(vaadinPostService.initializeUser()).thenReturn(testUser);
+        lenient().when(vaadinPostService.getCompletedPostsPage(eq(testUser), any(Pageable.class))).thenReturn(completedPostsPage);
     }
 
     @Test
     void testHasInProgressPost_ShowingCompletedView() {
         // Arrange: Has in-progress post, but showing completed view
-        lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView = new PostView(vaadinPostService);
             postView.afterNavigation(mockAfterNavigationEvent());
             
             // Force switch to completed posts view
@@ -141,14 +127,13 @@ class PostViewTest {
     @Test
     void testHasInProgressPost_ShowingInProgressView() {
         // Arrange: Has in-progress post, showing in-progress view
-        lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
-        lenient().when(postService.getInProgressPost(testUser)).thenReturn(inProgressPost);
+        lenient().when(vaadinPostService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView = new PostView(vaadinPostService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: Should have switch button, date/time display, and finish button
@@ -163,13 +148,13 @@ class PostViewTest {
     @Test
     void testNoInProgressPost_CompletedViewOnly() {
         // Arrange: No in-progress post
-        lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostService.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView = new PostView(vaadinPostService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: Should be in completed view with dropdown, pagination, and start button
@@ -186,13 +171,13 @@ class PostViewTest {
     @Test
     void testCannotShowInProgressViewWhenNoInProgressPost() {
         // Arrange: No in-progress post exists
-        lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostService.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView = new PostView(vaadinPostService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: Cannot switch to in-progress view (no switch button available)
@@ -213,14 +198,13 @@ class PostViewTest {
     @Test
     void testSwitchBetweenViews() {
         // Arrange: Start with in-progress post and in-progress view
-        lenient().when(postService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
-        lenient().when(postService.getInProgressPost(testUser)).thenReturn(inProgressPost);
+        lenient().when(vaadinPostService.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostService, oidcUserService, postService, userService);
+            postView = new PostView(vaadinPostService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Initial state: in-progress view
