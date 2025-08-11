@@ -13,7 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
-public class VaadinPostServiceImpl implements VaadinPostService {
+public class VaadinPostPresenterImpl implements VaadinPostPresenter {
 
     private final UserService userService;
     private final OidcUserService oidcUserService;
@@ -28,7 +28,7 @@ public class VaadinPostServiceImpl implements VaadinPostService {
     @Value("#{ @environment['tnra.slackService.enabled'] ?: true }")
     private boolean slackServiceEnabled;
 
-    public VaadinPostServiceImpl(
+    public VaadinPostPresenterImpl(
         OidcUserService oidcUserService, UserService userService,
         PostService postService, EMailService eMailService,
         SlackAPIService slackAPIService, SlackPostRenderer slackPostRenderer

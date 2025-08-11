@@ -3,7 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.VaadinPostService;
+import com.afitnerd.tnra.service.VaadinPostPresenter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -35,7 +35,7 @@ import java.util.Optional;
 @CssImport("./styles/post-view.css")
 public class PostView extends VerticalLayout implements AfterNavigationObserver {
 
-    private final VaadinPostService vaadinPostService;
+    private final VaadinPostPresenter vaadinPostPresenter;
     private User currentUser;
     private Post currentPost;
     
@@ -88,8 +88,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     // is the true param for nested properties needed?
     private Binder<Post> postBinder = new Binder<>(Post.class, true);
 
-    public PostView(VaadinPostService vaadinPostService) {
-        this.vaadinPostService = vaadinPostService;
+    public PostView(VaadinPostPresenter vaadinPostPresenter) {
+        this.vaadinPostPresenter = vaadinPostPresenter;
 
         setSizeFull();
         addClassName("post-view");
@@ -113,8 +113,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private void initializeUser() {
         // TODO implement and handle exceptions
-        currentUser = vaadinPostService.initializeUser();
-        Optional<Post> inProgressPost = vaadinPostService.getOptionalInProgressPost(currentUser);
+        currentUser = vaadinPostPresenter.initializeUser();
+        Optional<Post> inProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser);
         if (inProgressPost.isPresent()) {
             // Show in-progress post by default
             currentPost = inProgressPost.get();
@@ -131,7 +131,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void loadCurrentPage() {
         // Only load completed posts (not in-progress posts)
         Pageable pageable = PageRequest.of(currentPage, pageSize, Sort.by(Sort.Direction.DESC, "finish"));
-        currentPageData = vaadinPostService.getCompletedPostsPage(currentUser, pageable);
+        currentPageData = vaadinPostPresenter.getCompletedPostsPage(currentUser, pageable);
     }
 
     private void createPostView() {
@@ -165,7 +165,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             header.add(createNoInProgressPostHeader());
         } else {
             // Check if there's an in-progress post when not explicitly showing completed posts
-            boolean hasInProgressPost = vaadinPostService.getOptionalInProgressPost(currentUser).isPresent();
+            boolean hasInProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser).isPresent();
             if (hasInProgressPost) {
                 header.add(createInProgressPostHeader());
             } else {
@@ -200,7 +200,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         controlsLayout.addClassName("post-controls");
 
         // Check if there's an in-progress post
-        Optional<Post> inProgressPost = vaadinPostService.getOptionalInProgressPost(currentUser);
+        Optional<Post> inProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser);
         
         // Only create start new post button if there's no in-progress post
         if (!inProgressPost.isPresent()) {
@@ -284,7 +284,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         showingCompletedPosts = false;
         
         // Set current post to in-progress post BEFORE recreating header
-        Optional<Post> inProgressPost = vaadinPostService.getOptionalInProgressPost(currentUser);
+        Optional<Post> inProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser);
         if (inProgressPost.isPresent()) {
             currentPost = inProgressPost.get();
         }
@@ -512,7 +512,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private void startNewPost() {
         try {
-            Post newPost = vaadinPostService.startPost(currentUser);
+            Post newPost = vaadinPostPresenter.startPost(currentUser);
             
             // Switch to in-progress post view
             currentPost = newPost;
@@ -533,7 +533,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     
     private void finishPost() {
         try {
-            vaadinPostService.finishPost(currentUser);
+            vaadinPostPresenter.finishPost(currentUser);
             
             // Switch to completed posts view
             showingCompletedPosts = true;
@@ -665,7 +665,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "section-title");
 
         // Create embedded StatsView
-        statsView = StatsView.createEmbedded(vaadinPostService);
+        statsView = StatsView.createEmbedded(vaadinPostPresenter);
         statsView.addClassName("stats-view");
         statsView.setOnStatsChanged(this::updateFinishButtonState);
 
@@ -848,7 +848,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             postBinder.writeBean(currentPost);
             
             // Save entire post in single transaction for immediate persistence
-            currentPost = vaadinPostService.savePost(currentPost);
+            currentPost = vaadinPostPresenter.savePost(currentPost);
 
             // Update finish button state
             updateFinishButtonState();

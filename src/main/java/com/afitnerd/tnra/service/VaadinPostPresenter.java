@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Optional;
 
-public interface VaadinPostService {
+public interface VaadinPostPresenter {
     Post finishPost(User me);
     Optional<Post> getOptionalInProgressPost(User me);
     User initializeUser();
