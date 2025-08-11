@@ -1,8 +1,13 @@
-package com.afitnerd.tnra.service;
+package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.EMailService;
+import com.afitnerd.tnra.service.OidcUserService;
+import com.afitnerd.tnra.service.PostService;
+import com.afitnerd.tnra.service.SlackPostRenderer;
+import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;

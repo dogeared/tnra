@@ -3,7 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.VaadinPostPresenter;
+import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.notification.Notification;

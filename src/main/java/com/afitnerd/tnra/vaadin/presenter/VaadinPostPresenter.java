@@ -1,4 +1,4 @@
-package com.afitnerd.tnra.service;
+package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.Stats;

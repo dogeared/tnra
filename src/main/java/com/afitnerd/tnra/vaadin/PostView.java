@@ -3,7 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.VaadinPostPresenter;
+import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
