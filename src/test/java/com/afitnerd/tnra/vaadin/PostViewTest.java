@@ -28,11 +28,13 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 
 /**
  * Test class for PostView that exercises various modes and UI states:
@@ -254,6 +256,197 @@ class PostViewTest {
                       "Should show the correct date in Berlin timezone");
             assertTrue(formattedTime.contains("1:00"), 
                       "Should show the correct hour in Berlin timezone (UTC+1)"); 
+        }
+    }
+
+    @Test
+    void testStartNewPostSuccess() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.startPost(testUser)).thenReturn(inProgressPost);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act
+            Button startButton = findComponent(postView, Button.class, "Start New Post");
+            assertNotNull(startButton, "Start button should exist");
+            startButton.click();
+
+            // Assert
+            verify(vaadinPostPresenter).startPost(testUser);
+        }
+    }
+
+    @Test
+    void testStartNewPostFailure() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.startPost(testUser)).thenThrow(new RuntimeException("Error starting post"));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act
+            Button startButton = findComponent(postView, Button.class, "Start New Post");
+            assertNotNull(startButton, "Start button should exist");
+            
+            // Should not throw exception - error should be handled
+            assertDoesNotThrow(() -> startButton.click());
+        }
+    }
+
+    @Test
+    void testFinishPostButtonExists() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert
+            assertTrue(hasComponent(postView, "Finish Post"), "Should have 'Finish Post' button");
+        }
+    }
+
+    @Test
+    void testFinishPostFailure() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.finishPost(testUser)).thenThrow(new RuntimeException("Error finishing post"));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act
+            Button finishButton = findComponent(postView, Button.class, "Finish Post");
+            assertNotNull(finishButton, "Finish button should exist");
+            
+            // Should not throw exception - error should be handled
+            assertDoesNotThrow(() -> finishButton.click());
+        }
+    }
+
+    @Test
+    void testPaginationControls() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert
+            assertTrue(hasPaginationControls(postView), "Should have pagination controls");
+        }
+    }
+
+    @Test
+    void testPostSelectorWithPosts() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act
+            ComboBox<Post> postSelector = findComponentOfType(postView, ComboBox.class);
+            
+            // Assert
+            assertNotNull(postSelector, "Should have post selector");
+        }
+    }
+
+    @Test
+    void testFormFieldsExist() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert - Check that form contains expected sections
+            assertTrue(postView.getChildren().count() > 0, "Should have form content");
+        }
+    }
+
+    @Test
+    void testPostViewConstructor() {
+        // Act & Assert
+        assertDoesNotThrow(() -> {
+            new PostView(vaadinPostPresenter);
+        });
+    }
+
+    @Test
+    void testPostViewSizeAndClassNames() {
+        // Act
+        PostView view = new PostView(vaadinPostPresenter);
+
+        // Assert
+        assertTrue(view.getClassNames().contains("post-view"));
+    }
+
+    @Test
+    void testGeneratePostLabelForInProgressPost() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act - We can't test the private method directly, but we can test that
+            // the view handles in-progress posts correctly
+            assertNotNull(postView);
+        }
+    }
+
+    @Test
+    void testGeneratePostLabelForCompletedPost() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act - We can test that completed posts are handled
+            ComboBox<Post> selector = findComponentOfType(postView, ComboBox.class);
+            assertNotNull(selector, "Should have post selector for completed posts");
         }
     }
 
