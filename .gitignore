@@ -23,7 +23,7 @@ dist/
 nbdist/
 .nb-gradle/
 
-application.yml
+*.yml
 application.properties
 
 .DS_Store
