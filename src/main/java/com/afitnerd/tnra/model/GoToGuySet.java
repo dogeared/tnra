@@ -26,7 +26,7 @@ public class GoToGuySet {
     private Date startDate;
 
     @JsonView(JsonViews.Sparse.class)
-    @OneToMany(mappedBy = "goToGuySet", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "goToGuySet", cascade = CascadeType.ALL, fetch = FetchType.EAGER, orphanRemoval = true)
     private List<GoToGuyPair> goToGuyPairs;
 
     public Long getId() {
