@@ -3,8 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.repository.GoToGuySetRepository;
-import com.afitnerd.tnra.service.FileStorageService;
+import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
@@ -16,9 +15,6 @@ import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Route(value = "gtg", layout = MainLayout.class)
@@ -26,16 +22,13 @@ import java.util.List;
 @PageTitle("Go To Guy Chain | TNRA")
 public class GTGView extends VerticalLayout {
 
-    private final GoToGuySetRepository goToGuySetRepository;
-    private final FileStorageService fileStorageService;
+    private final CallChainPresenter callChainPresenter;
     
     private H2 header;
     private Grid<GoToGuyPair> grid;
 
-    public GTGView(GoToGuySetRepository goToGuySetRepository, FileStorageService fileStorageService) {
-        this.goToGuySetRepository = goToGuySetRepository;
-        this.fileStorageService = fileStorageService;
-        
+    public GTGView(CallChainPresenter callChainPresenter) {
+        this.callChainPresenter = callChainPresenter;
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -79,7 +72,7 @@ public class GTGView extends VerticalLayout {
         profileImage.addClassName("user-avatar");
         
         if (user.getProfileImage() != null && !user.getProfileImage().isEmpty()) {
-            String imageUrl = fileStorageService.getFileUrl(user.getProfileImage());
+            String imageUrl = callChainPresenter.getFileUrl(user.getProfileImage());
             profileImage.setSrc(imageUrl);
         } else {
             profileImage.setSrc("/uploads/placeholder.png");
@@ -134,17 +127,15 @@ public class GTGView extends VerticalLayout {
 
     private void loadData() {
         try {
-            GoToGuySet latestSet = goToGuySetRepository.findTopByOrderByStartDateDesc();
-            
+            GoToGuySet latestSet = callChainPresenter.getCurrentGoToGuySet();
+
             if (latestSet != null && latestSet.getGoToGuyPairs() != null) {
                 List<GoToGuyPair> pairs = latestSet.getGoToGuyPairs();
                 
                 // Update header with date
                 String dateStr = "Unknown Date";
                 if (latestSet.getStartDate() != null) {
-                    LocalDateTime localDateTime = latestSet.getStartDate().toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
-                    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("MMM dd, yyyy");
-                    dateStr = localDateTime.format(dateFormat);
+                    dateStr = DateTimeUtils.formatDateTime(latestSet.getStartDate());
                 }
                 header.setText("Go To Guy Call Chain - " + dateStr);
                 

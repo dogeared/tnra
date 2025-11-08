@@ -3,8 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.repository.GoToGuySetRepository;
-import com.afitnerd.tnra.service.FileStorageService;
+import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,10 +26,7 @@ import static org.mockito.Mockito.when;
 class GTGViewTest {
 
     @Mock
-    private GoToGuySetRepository goToGuySetRepository;
-
-    @Mock
-    private FileStorageService fileStorageService;
+    private CallChainPresenter callChainPresenter;
 
     private GTGView gtgView;
     private GoToGuySet testGoToGuySet;
@@ -82,16 +78,16 @@ class GTGViewTest {
         testGoToGuySet.setStartDate(new java.util.Date());
 
         // Setup mocks
-        lenient().when(fileStorageService.getFileUrl(anyString())).thenReturn(null);
+        lenient().when(callChainPresenter.getFileUrl(anyString())).thenReturn(null);
     }
 
     @Test
     void testGTGViewCreation() {
         // Arrange
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
@@ -102,10 +98,10 @@ class GTGViewTest {
     @Test
     void testGTGViewWithNoData() {
         // Arrange
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(null);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
@@ -116,10 +112,10 @@ class GTGViewTest {
     void testGTGViewWithEmptyPairs() {
         // Arrange
         testGoToGuySet.setGoToGuyPairs(Collections.emptyList());
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
@@ -129,10 +125,10 @@ class GTGViewTest {
     @Test
     void testGTGViewLayoutProperties() {
         // Arrange
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertTrue(gtgView.isPadding());
@@ -143,10 +139,10 @@ class GTGViewTest {
     @Test
     void testGTGViewContainsExpectedComponents() {
         // Arrange
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         // Check that view contains expected component types
@@ -164,12 +160,12 @@ class GTGViewTest {
         // Arrange
         user1.setProfileImage("user1.jpg");
         user2.setProfileImage("user2.jpg");
-        lenient().when(fileStorageService.getFileUrl("user1.jpg")).thenReturn("http://example.com/user1.jpg");
-        lenient().when(fileStorageService.getFileUrl("user2.jpg")).thenReturn("http://example.com/user2.jpg");
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        lenient().when(callChainPresenter.getFileUrl("user1.jpg")).thenReturn("http://example.com/user1.jpg");
+        lenient().when(callChainPresenter.getFileUrl("user2.jpg")).thenReturn("http://example.com/user2.jpg");
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
@@ -181,10 +177,10 @@ class GTGViewTest {
         // Arrange
         user1.setPhoneNumber(null);
         user2.setPhoneNumber(null);
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
@@ -195,21 +191,21 @@ class GTGViewTest {
     void testGTGViewHandlesFileStorageServiceFailure() {
         // Arrange
         user1.setProfileImage("user1.jpg");
-        lenient().when(fileStorageService.getFileUrl("user1.jpg")).thenThrow(new RuntimeException("Storage error"));
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        lenient().when(callChainPresenter.getFileUrl("user1.jpg")).thenThrow(new RuntimeException("Storage error"));
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act & Assert
         assertDoesNotThrow(() -> {
-            gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+            gtgView = new GTGView(callChainPresenter);
         });
     }
 
     @Test
-    void testGTGViewConstructorWithNullRepository() {
+    void testGTGViewConstructorWithNullPresenter() {
         // Act & Assert
         // GTGView constructor may not validate null parameters, so just test it doesn't crash
         assertDoesNotThrow(() -> {
-            GTGView view = new GTGView(null, fileStorageService);
+            GTGView view = new GTGView(null);
             assertNotNull(view);
         });
     }
@@ -217,24 +213,23 @@ class GTGViewTest {
     @Test
     void testGTGViewConstructorWithNullFileService() {
         // Arrange
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
-        // Act & Assert
-        // GTGView constructor may not validate null parameters, so just test it doesn't crash
-        assertDoesNotThrow(() -> {
-            GTGView view = new GTGView(goToGuySetRepository, null);
-            assertNotNull(view);
-        });
+        // Act
+        gtgView = new GTGView(callChainPresenter);
+
+        // Assert
+        assertNotNull(gtgView);
     }
 
     @Test
     void testGTGViewWithSinglePair() {
         // Arrange
         testGoToGuySet.setGoToGuyPairs(Arrays.asList(pair1));
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
@@ -248,10 +243,10 @@ class GTGViewTest {
         user1.setLastName(null);
         user2.setFirstName("");
         user2.setLastName("");
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(goToGuySetRepository, fileStorageService);
+        gtgView = new GTGView(callChainPresenter);
 
         // Assert
         assertNotNull(gtgView);
