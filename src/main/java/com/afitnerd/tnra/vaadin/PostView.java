@@ -37,6 +37,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private final VaadinPostPresenter vaadinPostPresenter;
     private User currentUser;
+    private User selectedUser;
     private Post currentPost;
     
     // Server-side pagination fields
@@ -45,6 +46,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private Page<Post> currentPageData;
     
     // UI Components
+    private ComboBox<User> userSelector;
     private ComboBox<Post> postSelector;
     private Button startNewPostButton;
     private StatsView statsView;
@@ -114,6 +116,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void initializeUser() {
         // TODO implement and handle exceptions
         currentUser = vaadinPostPresenter.initializeUser();
+        selectedUser = currentUser; // Default to current authenticated user
         Optional<Post> inProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser);
         if (inProgressPost.isPresent()) {
             // Show in-progress post by default
@@ -131,7 +134,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void loadCurrentPage() {
         // Only load completed posts (not in-progress posts)
         Pageable pageable = PageRequest.of(currentPage, pageSize, Sort.by(Sort.Direction.DESC, "finish"));
-        currentPageData = vaadinPostPresenter.getCompletedPostsPage(currentUser, pageable);
+        currentPageData = vaadinPostPresenter.getCompletedPostsPage(selectedUser, pageable);
     }
 
     private void createPostView() {
@@ -232,21 +235,55 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         VerticalLayout completedLayout = new VerticalLayout();
         completedLayout.addClassName("completed-posts-layout");
 
+        // Create horizontal layout for user and post selectors
+        HorizontalLayout selectorsLayout = new HorizontalLayout();
+        selectorsLayout.addClassName("selectors-layout");
+        selectorsLayout.setSpacing(true);
+        selectorsLayout.setAlignItems(Alignment.BASELINE);
+
+        // User selector
+        userSelector = new ComboBox<>("User");
+        userSelector.addClassName("user-selector");
+        userSelector.setItemLabelGenerator(user -> {
+            if (user == null) {
+                return "Select a user...";
+            }
+            return user.getFirstName() + " " + user.getLastName();
+        });
+
+        // Get all active users and set them (already sorted by first name)
+        userSelector.setItems(vaadinPostPresenter.getAllActiveUsers());
+
+        // Set default to current authenticated user
+        userSelector.setValue(selectedUser);
+
+        userSelector.addValueChangeListener(e -> {
+            if (e.getValue() != null) {
+                selectedUser = e.getValue();
+                // Reset to first page when user changes
+                currentPage = 0;
+                // Reload completed posts for the selected user
+                loadCurrentPage();
+                updatePaginationControls();
+                updatePostSelector();
+            }
+        });
+
         // Post selector for completed posts
         postSelector = new ComboBox<>("Posts by Finished Date");
         postSelector.addClassName("post-selector");
         postSelector.setItemLabelGenerator(this::generatePostLabel);
-        
+
         // Set items to current page posts (only completed posts)
         if (currentPageData != null) {
             postSelector.setItems(currentPageData.getContent());
         } else {
             postSelector.setItems(new ArrayList<>());
         }
-        
+
         // Set initial selection to null (empty)
         postSelector.setValue(null);
-        
+
         postSelector.addValueChangeListener(e -> {
             if (e.getValue() != null) {
                 currentPost = e.getValue();
@@ -258,10 +295,13 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             }
         });
 
+        // Add selectors to horizontal layout
+        selectorsLayout.add(userSelector, postSelector);
+
         // Create pagination controls
         VerticalLayout paginationLayout = createPaginationControls();
 
-        completedLayout.add(postSelector, paginationLayout);
+        completedLayout.add(selectorsLayout, paginationLayout);
         return completedLayout;
     }
 
