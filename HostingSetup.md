@@ -28,7 +28,7 @@
     * `~/tnra/.env`
 
 1. test build the project
-    * `mvn clean install -DskipTests=true`
+    * `mvn clean package -Pproduction -DskipTests=true`
 
 1. set up certs
     * `scp fullchain.pem privkey.pem <user>@<ip>:~/`

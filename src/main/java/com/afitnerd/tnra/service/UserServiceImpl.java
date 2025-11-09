@@ -7,6 +7,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -66,5 +68,10 @@ public class UserServiceImpl implements UserService {
             }
             userRepository.delete(user);
         }
+    }
+
+    @Override
+    public List<User> getAllActiveUsers() {
+        return userRepository.findByActiveTrueOrderByFirstName();
     }
 }

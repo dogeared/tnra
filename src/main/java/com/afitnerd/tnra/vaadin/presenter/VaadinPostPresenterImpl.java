@@ -14,6 +14,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -99,5 +100,10 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     @Override
     public Post updateCompleteStats(Stats stats) {
         return postService.updateCompleteStats(initializeUser(), stats);
+    }
+
+    @Override
+    public List<User> getAllActiveUsers() {
+        return userService.getAllActiveUsers();
     }
 }

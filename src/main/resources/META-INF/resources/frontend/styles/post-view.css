@@ -151,6 +151,15 @@
     margin-bottom: 0.25rem;
 }
 
+.selectors-layout {
+    gap: 1rem;
+    align-items: baseline;
+}
+
+.user-selector {
+    width: 200px;
+}
+
 .post-selector {
     width: 300px;
 }
@@ -214,17 +223,29 @@
         flex-shrink: 0;
     }
     
+    /* Mobile selectors layout - stack vertically */
+    .selectors-layout {
+        flex-direction: column;
+        gap: 0.5rem !important;
+        width: 100%;
+    }
+
+    .user-selector {
+        width: 100% !important;
+        max-width: 300px !important;
+    }
+
     /* Mobile dropdown width constraint */
     .completed-posts-layout .post-selector {
         max-width: 300px !important;
         width: 100% !important;
     }
-    
+
     /* Tighter spacing on mobile */
     .completed-posts-layout {
         margin-bottom: 0.25rem;
     }
-    
+
     .completed-posts-layout vaadin-combo-box {
         margin-bottom: 0.25rem;
     }

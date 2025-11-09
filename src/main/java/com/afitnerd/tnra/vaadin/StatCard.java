@@ -130,13 +130,16 @@ public class StatCard extends Div {
             }
         });
 
+        // Track if we're currently processing a keyboard shortcut
+        final boolean[] processingShortcut = {false};
+
         // Handle direct input
         valueField.addValueChangeListener(e -> {
-            // Skip if this change was triggered by a button click
-            if (isUpdatingFromButton) {
+            // Skip if this change was triggered by a button click or keyboard shortcut
+            if (isUpdatingFromButton || processingShortcut[0]) {
                 return;
             }
-            
+
             Integer value = e.getValue();
             if (!readOnly) {
                 if (value == null) {
@@ -168,6 +171,39 @@ public class StatCard extends Div {
             }
         });
 
+        // Add keyboard shortcuts for +/- keys when this specific field is focused
+        // Prevent default behavior for +/- keys and handle them as shortcuts
+        valueField.getElement().executeJs(
+            "this.addEventListener('keydown', function(e) {" +
+            "  if ((e.key === '+' || (e.key === '=' && e.shiftKey) || e.key === '-')) {" +
+            "    e.preventDefault();" +
+            "  }" +
+            "});"
+        );
+
+        // Using pure Java DOM event listeners to capture +/- keys
+        valueField.getElement().addEventListener("keydown", event -> {
+            if (!readOnly) {
+                String key = event.getEventData().getString("event.key");
+                boolean shiftKey = event.getEventData().getBoolean("event.shiftKey");
+
+                // Trigger the appropriate button based on key
+                if ("+".equals(key) || ("=".equals(key) && shiftKey)) {
+                    // Set flag to prevent value change listener from firing
+                    processingShortcut[0] = true;
+                    plusBtn.click();
+                    processingShortcut[0] = false;
+                } else if ("-".equals(key)) {
+                    // Set flag to prevent value change listener from firing
+                    processingShortcut[0] = true;
+                    minusBtn.click();
+                    processingShortcut[0] = false;
+                }
+            }
+        }).addEventData("event.key")
+          .addEventData("event.shiftKey")
+          .setFilter("event.key === '+' || event.key === '-' || (event.key === '=' && event.shiftKey)");
+
         controls.add(minusBtn, valueField, plusBtn);
         return controls;
     }
@@ -180,6 +216,9 @@ public class StatCard extends Div {
             "control-button"
         );
         button.setAriaLabel(ariaLabel);
+
+        // Exclude from tab order - users should tab between input fields only
+        button.setTabIndex(-1);
 
         // Click animation
         button.addClickListener(e -> {
