@@ -9,7 +9,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '8080:8080'
+      - '127.0.0.1:8080:8080'
     environment:
       DD_AGENT_MAJOR_VERSION: ${DD_AGENT_MAJOR_VERSION}
       DD_API_KEY: ${DD_API_KEY}
@@ -21,15 +21,15 @@ services:
       MAILGUN_KEY_PUBLIC: ${MAILGUN_KEY_PUBLIC}
       MAILGUN_MAX_EMAIL_TO_SMS_LENGTH: ${MAILGUN_MAX_EMAIL_TO_SMS_LENGTH}
       MAILGUN_URL: ${MAILGUN_URL}
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       MYSQL_DATABASE: tnra
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
       OKTA_OAUTH2_CLIENT_ID: ${OKTA_OAUTH2_CLIENT_ID}
       OKTA_OAUTH2_ISSUER: ${OKTA_OAUTH2_ISSUER}
       PQ_REFRESH_SCHEDULE: ${PQ_REFRESH_SCHEDULE}
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tnra
       SPRING_JPA_HIBERNATE_DDL-AUTO: update
       TNRA_NOTIFY_SCHEDULE: ${TNRA_NOTIFY_SCHEDULE}
@@ -37,6 +37,8 @@ services:
       TNRA_SLACK_BROADCAST_CHANNEL: ${TNRA_SLACK_BROADCAST_CHANNEL}
       TNRA_SLACK_TOKEN: ${TNRA_SLACK_TOKEN}
       VAADIN_PRODUCTIONMODE: ${VAADIN_PRODUCTIONMODE}
+    volumes:
+      - ./uploads:/uploads:rw
     depends_on:
       mysql:
         condition: service_healthy
@@ -50,10 +52,10 @@ services:
       timeout: 3s
       retries: 30
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       MYSQL_DATABASE: tnra
     ports:
-      - '3307:3306'
+      - '127.0.0.1:3307:3306'
     volumes:
       - 'mysql-db:/var/lib/mysql'
   proxy:
