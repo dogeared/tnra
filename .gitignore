@@ -41,3 +41,5 @@ nginx/.cert
 /frontend/
 bundles
 uploads
+emails
+*.json
