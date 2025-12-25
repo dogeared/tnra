@@ -5,27 +5,27 @@ This document describes the Vaadin Flow frontend that has been added to the TNRA
 ## Features
 
 - **Vaadin Flow Frontend**: Modern web UI built with Vaadin Flow
-- **OIDC Authentication**: Integration with Okta for authentication using PKCE flow
+- **OIDC Authentication**: Integration with any OAuth2/OIDC provider using PKCE flow
 - **Responsive Design**: Clean, modern interface that works on all devices
 - **Anonymous Access**: Unauthenticated users can view the login page
 - **Secure Routes**: Protected routes require authentication
 
 ## Configuration
 
-### OIDC Settings
+### OAuth2/OIDC Settings
 
-The application is configured to use Okta for OIDC authentication. Update the following environment variables:
+The application is configured to use any OAuth2/OIDC provider. Set the following environment variables:
 
 ```bash
-export OKTA_CLIENT_ID=your-okta-client-id
-export OKTA_CLIENT_SECRET=your-okta-client-secret
-export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
+export OAUTH2_CLIENT_ID=your-client-id
+export OAUTH2_CLIENT_SECRET=your-client-secret
+export OAUTH2_ISSUER_URI=https://your-oauth2-provider.com
 ```
 
-### Okta Application Setup
+### OAuth2 Provider Setup
 
-1. Create a new OIDC application in your Okta developer console
-2. Set the redirect URI to: `https://tnra.afitnerd.local/login/oauth2/code/okta`
+1. Create a new OIDC application in your OAuth2 provider's console
+2. Set the redirect URI to: `https://your-domain/login/oauth2/code/oidc`
 3. Enable PKCE (Proof Key for Code Exchange) for enhanced security
 4. Configure the scopes: `openid`, `profile`, `email`
 
@@ -33,7 +33,7 @@ export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
 
 ### Local Development
 
-1. Set the environment variables for Okta configuration
+1. Set the environment variables for OAuth2 configuration
 2. Run the Spring Boot application:
    ```bash
    ./mvnw spring-boot:run
@@ -43,7 +43,7 @@ export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
 ### Production with NGINX
 
 1. The application is configured to work with the existing NGINX setup
-2. Access the application at: `https://tnra.afitnerd.local`
+2. Access the application at: `https://your-domain`
 3. NGINX will proxy requests to the Spring Boot application
 
 ## Application Structure
@@ -60,22 +60,22 @@ export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
 - `/` - Main application view (anonymous access allowed)
 - `/main` - Alias for main view
 - `/error` - Error handling page
-- `/oauth2/authorization/okta` - OIDC authorization endpoint
-- `/login/oauth2/code/okta` - OIDC callback endpoint
+- `/oauth2/authorization/oidc` - OIDC authorization endpoint
+- `/login/oauth2/code/oidc` - OIDC callback endpoint
 - `/logout` - Logout endpoint
 
 ## Testing
 
 ### Unauthenticated Access
 
-1. Visit `https://tnra.afitnerd.local`
-2. You should see the welcome page with a "Login with OIDC" button
+1. Visit your application URL
+2. You should see the welcome page with a "Login" button
 3. The page should be accessible without authentication
 
 ### Authentication Flow
 
-1. Click the "Login with OIDC" button
-2. You will be redirected to Okta for authentication
+1. Click the "Login" button
+2. You will be redirected to your OAuth2 provider for authentication
 3. After successful authentication, you'll be redirected back to the application
 4. The page should show a welcome message with your name and a logout button
 
@@ -90,7 +90,7 @@ export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
 ### Common Issues
 
 1. **OIDC Configuration**: Ensure all environment variables are set correctly
-2. **Redirect URI**: Verify the redirect URI matches your Okta application configuration
+2. **Redirect URI**: Verify the redirect URI matches your OAuth2 provider application configuration
 3. **CORS Issues**: The application is configured to work with the existing NGINX setup
 4. **Vaadin Resources**: Ensure Vaadin resources are properly served (handled automatically)
 
@@ -107,4 +107,4 @@ The application includes debug logging for Spring Security and OIDC. Check the l
 - Session management is handled by Spring Security
 - CSRF protection is configured for Vaadin
 - All sensitive endpoints require authentication
-- Logout properly invalidates sessions and clears cookies 
+- Logout properly invalidates sessions and clears cookies

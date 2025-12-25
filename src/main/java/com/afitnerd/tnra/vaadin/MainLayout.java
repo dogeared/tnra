@@ -46,7 +46,7 @@ public class MainLayout extends AppLayout {
             });
         } else {
             authButton = new Button("Login", VaadinIcon.SIGN_IN.create(), e -> {
-                getUI().ifPresent(ui -> ui.getPage().setLocation("/oauth2/authorization/okta"));
+                getUI().ifPresent(ui -> ui.getPage().setLocation("/oauth2/authorization/oidc"));
             });
         }
         authButton.addClassNames(LumoUtility.Margin.MEDIUM);
