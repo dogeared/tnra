@@ -11,6 +11,7 @@ import org.apache.hc.client5.http.HttpResponseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.security.Principal;
@@ -49,10 +51,18 @@ public class PQController {
     public Map<String, String> pqAuthenticate(
         Principal me, @RequestBody PQAuthenticationRequest request
     ) throws IOException {
-        // TODO - check presence of login and password
+        if (me == null || !StringUtils.hasText(me.getName())) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
+        }
+        if (request == null || !StringUtils.hasText(request.getLogin()) || !StringUtils.hasText(request.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "login and password are required");
+        }
+
         PQAuthenticationResponse response = pqService.authenticate(request.getLogin(), request.getPassword());
-//        log.info("pq auth: {}", mapper.writeValueAsString(response));
         User user = userRepository.findByEmail(me.getName());
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authenticated user not found");
+        }
         user.setPqAccessToken(response.getAccessToken());
         user.setPqRefreshToken(response.getRefreshToken());
         userRepository.save(user);

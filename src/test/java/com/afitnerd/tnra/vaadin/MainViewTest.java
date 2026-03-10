@@ -14,11 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -199,5 +198,42 @@ class MainViewTest {
         // Assert
         assertNotNull(mainView);
         assertTrue(mainView.getChildren().count() > 0);
+    }
+
+    @Test
+    void testMainViewFallsBackToCurrentUserNameWhenDisplayNameMissing() {
+        testUser.setProfileImage(null);
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn(" ");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService);
+
+        boolean hasFallbackGreeting = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Paragraph)
+            .map(component -> (Paragraph) component)
+            .anyMatch(paragraph -> paragraph.getText().contains("Hello, John Doe!"));
+
+        assertTrue(hasFallbackGreeting, "Expected greeting to use current user name when display name is blank");
+    }
+
+    @Test
+    void testMainViewSetsAccessibleAltTextForProfileImage() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService);
+
+        Image profileImage = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Image)
+            .map(component -> (Image) component)
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals("User profile image", profileImage.getAlt().orElse(null));
+        verify(fileStorageService).getFileUrl("profile.jpg");
     }
 }
