@@ -15,6 +15,9 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.util.StringUtils;
 
 @PageTitle("TNRA - Taking the Next Right Action")
 @Route(value = "", layout = MainLayout.class)
@@ -22,6 +25,8 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @AnonymousAllowed
 @CssImport("./styles/main-view.css")
 public class MainView extends VerticalLayout {
+
+    private static final Logger log = LoggerFactory.getLogger(MainView.class);
 
     private final OidcUserService oidcUserService;
     private final UserService userService;
@@ -77,17 +82,20 @@ public class MainView extends VerticalLayout {
             // Profile Image
             Image profileImage = new Image();
             profileImage.addClassName("main-profile-image");
-            
+            profileImage.setAlt("User profile image");
+
             if (currentUser != null && currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
                 String imageUrl = fileStorageService.getFileUrl(currentUser.getProfileImage());
-                profileImage.setSrc(imageUrl);
+                profileImage.setSrc(StringUtils.hasText(imageUrl) ? imageUrl : "/uploads/placeholder.png");
             } else {
                 profileImage.setSrc("/uploads/placeholder.png");
             }
-            
+
+            String resolvedDisplayName = resolveDisplayName(displayName, currentUser);
+
             // Welcome Message
             Paragraph welcomeMessage = new Paragraph(
-                "Hello, " + displayName + "! You are now logged in."
+                "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
             
@@ -110,10 +118,27 @@ public class MainView extends VerticalLayout {
             errorMessage.addClassName("error-message");
             
             add(title, welcomeMessage, errorMessage);
-            
-            // Log the error for debugging
-            System.err.println("Error in showAuthenticatedView: " + e.getMessage());
-            e.printStackTrace();
+
+            log.warn("Error while rendering authenticated main view", e);
         }
     }
-} 
+
+    private String resolveDisplayName(String displayName, User currentUser) {
+        if (StringUtils.hasText(displayName)) {
+            return displayName;
+        }
+        if (currentUser == null) {
+            return "there";
+        }
+        if (StringUtils.hasText(currentUser.getFirstName()) && StringUtils.hasText(currentUser.getLastName())) {
+            return currentUser.getFirstName().trim() + " " + currentUser.getLastName().trim();
+        }
+        if (StringUtils.hasText(currentUser.getFirstName())) {
+            return currentUser.getFirstName().trim();
+        }
+        if (StringUtils.hasText(currentUser.getEmail())) {
+            return currentUser.getEmail().trim();
+        }
+        return "there";
+    }
+}
