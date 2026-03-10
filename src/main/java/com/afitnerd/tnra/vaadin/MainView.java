@@ -5,6 +5,7 @@ import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
@@ -58,8 +59,12 @@ public class MainView extends VerticalLayout {
             "Please log in to access your posts!"
         );
         description.addClassName("main-description");
+
+        Anchor signInLink = new Anchor("/oauth2/authorization/okta", "Sign in to get started");
+        signInLink.addClassName("login-cta");
+        signInLink.getElement().setAttribute("role", "button");
         
-        add(title, subtitle, description);
+        add(title, subtitle, description, signInLink);
     }
     
     private void showAuthenticatedView() {

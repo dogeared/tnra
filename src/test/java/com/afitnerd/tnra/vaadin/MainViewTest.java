@@ -7,6 +7,7 @@ import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Paragraph;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -235,5 +236,22 @@ class MainViewTest {
 
         assertEquals("User profile image", profileImage.getAlt().orElse(null));
         verify(fileStorageService).getFileUrl("profile.jpg");
+    }
+
+    @Test
+    void testMainViewProvidesLoginCtaForUnauthenticatedUser() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService);
+
+        Anchor loginCta = mainView.getChildren()
+            .filter(component -> component instanceof Anchor)
+            .map(component -> (Anchor) component)
+            .findFirst()
+            .orElseThrow();
+
+        assertEquals("Sign in to get started", loginCta.getText());
+        assertEquals("/oauth2/authorization/okta", loginCta.getHref());
+        assertEquals("button", loginCta.getElement().getAttribute("role"));
     }
 }

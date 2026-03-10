@@ -17,6 +17,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.security.Principal;
 import java.util.Map;
@@ -25,6 +27,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1")
 public class APIController {
+    private static final Logger log = LoggerFactory.getLogger(APIController.class);
 
     private final PostService postService;
     private final EMailService eMailService;
@@ -68,12 +71,16 @@ public class APIController {
     @GetMapping("/notify_what_and_whens")
     public GoToGuySet notifyWhatAndWhens() {
         GoToGuySet goToGuySet = gtgLatest();
+        if (goToGuySet == null || goToGuySet.getGoToGuyPairs() == null || goToGuySet.getGoToGuyPairs().isEmpty()) {
+            log.info("No Go To Guy set available for notification run");
+            return goToGuySet;
+        }
         goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
             //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
-            // send caller what and when
+            // send callee what and when to caller
             Post calleePost = postService.getLastFinishedPost(gtgPair.getCallee());
-            eMailService.sendTextViaMail(gtgPair.getCallee(), calleePost);
-            // send callee what and when
+            eMailService.sendTextViaMail(gtgPair.getCaller(), calleePost);
+            // send caller what and when to callee
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
             eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
             //}
