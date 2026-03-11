@@ -21,6 +21,33 @@ TNRA_SLACK_TOKEN
 
 run from IntelliJ or command line and the app will listen on port 8080.
 
+## Auth navigation configuration
+
+Login navigation is configurable through `AuthNavigationService`.
+
+- `tnra.auth.login-path`: explicit login URL path (for example, `/oauth2/authorization/google`)
+- `tnra.auth.login-registration-id`: provider registration id used when `tnra.auth.login-path` is not set
+
+Resolution behavior:
+
+1. If `tnra.auth.login-path` is set, that path is always used.
+2. Otherwise login falls back to `/oauth2/authorization/{tnra.auth.login-registration-id}`.
+3. If both are missing/blank, default is `/oauth2/authorization/okta`.
+
+Environment variable equivalents:
+
+```
+TNRA_AUTH_LOGIN_PATH
+TNRA_AUTH_LOGIN_REGISTRATION_ID
+```
+
+Example:
+
+```bash
+export TNRA_AUTH_LOGIN_REGISTRATION_ID=google
+# Login buttons/routes will use /oauth2/authorization/google
+```
+
 ## Testing from slack
 
 run ngrok to setup public url:
