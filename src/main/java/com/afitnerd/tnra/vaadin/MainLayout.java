@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.AttachEvent;
@@ -37,12 +38,18 @@ public class MainLayout extends AppLayout {
 
     private final OidcUserService oidcUserService;
     private final UserService userService;
+    private final AuthNavigationService authNavigationService;
     private Button themeToggleButton;
     private boolean darkMode;
 
-    public MainLayout(OidcUserService oidcUserService, UserService userService) {
+    public MainLayout(
+        OidcUserService oidcUserService,
+        UserService userService,
+        AuthNavigationService authNavigationService
+    ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
+        this.authNavigationService = authNavigationService;
         createHeader();
         createDrawer();
 
@@ -118,7 +125,7 @@ public class MainLayout extends AppLayout {
             });
         } else {
             authButton = new Button("Login", VaadinIcon.SIGN_IN.create(), e -> {
-                getUI().ifPresent(ui -> ui.getPage().setLocation("/oauth2/authorization/okta"));
+                getUI().ifPresent(ui -> ui.getPage().setLocation(authNavigationService.getLoginPath()));
             });
         }
         authButton.addClassNames(LumoUtility.Margin.MEDIUM);

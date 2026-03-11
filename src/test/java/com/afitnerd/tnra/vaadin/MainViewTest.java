@@ -1,9 +1,11 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
@@ -32,6 +34,9 @@ class MainViewTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private AuthNavigationService authNavigationService;
+
     private User testUser;
     private MainView mainView;
 
@@ -48,6 +53,7 @@ class MainViewTest {
         lenient().when(oidcUserService.getEmail()).thenReturn("test@example.com");
         lenient().when(userService.getUserByEmail("test@example.com")).thenReturn(testUser);
         lenient().when(fileStorageService.getFileUrl(anyString())).thenReturn("http://example.com/profile.jpg");
+        lenient().when(authNavigationService.getLoginPath()).thenReturn("/oauth2/authorization/okta");
     }
 
     @Test
@@ -56,7 +62,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertNotNull(mainView);
@@ -74,7 +80,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertNotNull(mainView);
@@ -91,7 +97,7 @@ class MainViewTest {
         lenient().when(oidcUserService.isAuthenticated()).thenReturn(true);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertEquals(MainView.Alignment.CENTER, mainView.getAlignItems());
@@ -104,7 +110,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert - Constructor should complete without throwing
         assertNotNull(mainView);
@@ -119,7 +125,7 @@ class MainViewTest {
 
         // Act & Assert - Should not throw exception
         assertDoesNotThrow(() -> {
-            mainView = new MainView(oidcUserService, userService, fileStorageService);
+            mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
         });
     }
 
@@ -132,7 +138,7 @@ class MainViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertNotNull(mainView);
@@ -147,7 +153,7 @@ class MainViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertNotNull(mainView);
@@ -160,7 +166,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         // We can verify the view was created without exception
@@ -176,7 +182,7 @@ class MainViewTest {
         when(fileStorageService.getFileUrl(anyString())).thenReturn(null);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertNotNull(mainView);
@@ -193,7 +199,7 @@ class MainViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         // Assert
         assertNotNull(mainView);
@@ -207,7 +213,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn(" ");
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         boolean hasFallbackGreeting = mainView.getChildren()
             .flatMap(component -> component.getChildren())
@@ -224,7 +230,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn("Test User");
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
 
         Image profileImage = mainView.getChildren()
             .flatMap(component -> component.getChildren())
@@ -235,5 +241,17 @@ class MainViewTest {
 
         assertEquals("User profile image", profileImage.getAlt().orElse(null));
         verify(fileStorageService).getFileUrl("profile.jpg");
+    }
+
+    @Test
+    void testMainViewShowsLoginButtonForUnauthenticatedUsers() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasLoginButton = mainView.getChildren()
+            .anyMatch(component -> component instanceof Button && "Log in".equals(((Button) component).getText()));
+
+        assertTrue(hasLoginButton, "Expected unauthenticated view to include a log in button");
     }
 }
