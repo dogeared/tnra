@@ -1,3 +1,5 @@
+/* GTG View Styles */
+
 .gtg-view {
     max-width: 800px;
     margin: 0;
@@ -5,38 +7,38 @@
 
 .gtg-header {
     margin: 0;
-    margin-bottom: 1rem;
-    color: #333;
+    margin-bottom: 1.25rem;
+    color: var(--tnra-text);
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .gtg-grid {
-    border: 1px solid #e0e0e0;
-    border-radius: 4px;
+    border: 1px solid var(--tnra-border);
+    border-radius: var(--tnra-radius-md);
     overflow: hidden;
     width: fit-content !important;
     min-width: 450px;
     max-width: 800px;
+    background: var(--tnra-surface);
+    box-shadow: var(--tnra-shadow-sm);
 }
 
-/* Grid styling using class-based selectors */
-.gtg-grid {
-    width: fit-content !important;
-    max-width: 800px !important;
-}
+/* Grid duplicate removed — single declaration */
 
 .user-component {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
     padding: 0;
     min-width: 0;
     width: 100%;
 }
 
 .user-avatar {
-    border-radius: 16px;
+    border-radius: var(--tnra-radius-sm);
     object-fit: cover;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--tnra-border);
     flex-shrink: 0;
     width: 60px !important;
     height: 60px !important;
@@ -44,34 +46,39 @@
     max-width: 60px !important;
     min-height: 60px !important;
     max-height: 60px !important;
+    transition: border-color var(--tnra-transition);
+}
+
+.user-avatar:hover {
+    border-color: var(--tnra-primary);
 }
 
 .user-info {
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: 0.2rem;
     min-width: 0;
     flex: 1;
     overflow: hidden;
 }
 
 .user-name {
-    font-weight: bold;
-    font-size: 14px;
-    color: #333;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--tnra-text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.2;
+    line-height: 1.3;
 }
 
 .user-phone {
-    font-size: 12px;
-    color: #666;
+    font-size: 0.8rem;
+    color: var(--tnra-text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 1.2;
+    line-height: 1.3;
     min-width: 0;
 }
 
@@ -79,11 +86,11 @@
     .gtg-view {
         padding: 1rem;
     }
-    
+
     .user-component {
         padding: 0;
     }
-    
+
     .user-avatar {
         width: 60px !important;
         height: 60px !important;
@@ -92,12 +99,12 @@
         min-height: 60px !important;
         max-height: 60px !important;
     }
-    
+
     .user-name {
-        font-size: 12px;
+        font-size: 0.8rem;
     }
-    
+
     .user-phone {
-        font-size: 10px;
+        font-size: 0.7rem;
     }
-} 
+}

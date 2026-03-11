@@ -1,9 +1,15 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.OidcUserService;
+import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.applayout.AppLayout;
 import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
@@ -12,33 +18,100 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
+import com.vaadin.flow.dom.ThemeList;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.VaadinResponse;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.theme.lumo.LumoUtility;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+@CssImport("./styles/theme.css")
 public class MainLayout extends AppLayout {
 
-    private final OidcUserService oidcUserService;
+    static final String DARK_MODE_COOKIE = "tnra-dark-mode";
+    private static final int COOKIE_MAX_AGE = 365 * 24 * 60 * 60; // 1 year
 
-    public MainLayout(OidcUserService oidcUserService) {
+    private final OidcUserService oidcUserService;
+    private final UserService userService;
+    private Button themeToggleButton;
+    private boolean darkMode;
+
+    public MainLayout(OidcUserService oidcUserService, UserService userService) {
         this.oidcUserService = oidcUserService;
+        this.userService = userService;
         createHeader();
         createDrawer();
-        
-        // Make the drawer collapsible by default and show the toggle button
+
         setDrawerOpened(false);
         setPrimarySection(Section.DRAWER);
     }
 
+    @Override
+    protected void onAttach(AttachEvent attachEvent) {
+        super.onAttach(attachEvent);
+
+        // Determine initial dark mode state
+        darkMode = resolveInitialDarkMode();
+
+        // Apply to the UI's theme list (sets theme="dark" on <html>)
+        applyTheme(darkMode);
+
+        // Update the toggle icon to match
+        updateToggleIcon();
+    }
+
+    /**
+     * Resolve initial dark mode: prefer authenticated user's DB preference,
+     * fall back to the cookie value.
+     */
+    private boolean resolveInitialDarkMode() {
+        if (oidcUserService.isAuthenticated()) {
+            try {
+                User user = userService.getCurrentUser();
+                if (user != null && user.getDarkMode() != null) {
+                    return user.getDarkMode();
+                }
+            } catch (Exception ignored) {
+                // fall through to cookie
+            }
+        }
+        return readDarkModeCookie();
+    }
+
+    private void applyTheme(boolean dark) {
+        getUI().ifPresent(ui -> {
+            ThemeList themeList = ui.getElement().getThemeList();
+            if (dark) {
+                themeList.add(Lumo.DARK);
+            } else {
+                themeList.remove(Lumo.DARK);
+            }
+        });
+    }
+
     private void createHeader() {
         DrawerToggle drawerToggle = new DrawerToggle();
-        
+
         H1 logo = new H1("TNRA");
         logo.addClassNames(
             LumoUtility.FontSize.LARGE,
             LumoUtility.Margin.MEDIUM);
 
+        // Theme toggle button — icon swaps between sun and moon
+        themeToggleButton = new Button();
+        themeToggleButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        themeToggleButton.addClassName("theme-toggle-button");
+        themeToggleButton.getElement().setAttribute("title", "Toggle dark mode");
+        themeToggleButton.setIcon(VaadinIcon.MOON_O.create()); // default icon
+        themeToggleButton.addClickListener(e -> toggleTheme());
+
+        // Auth button
         Button authButton;
         if (oidcUserService.isAuthenticated()) {
             authButton = new Button("Logout", VaadinIcon.SIGN_OUT.create(), e -> {
@@ -51,7 +124,12 @@ public class MainLayout extends AppLayout {
         }
         authButton.addClassNames(LumoUtility.Margin.MEDIUM);
 
-        HorizontalLayout header = new HorizontalLayout(drawerToggle, logo, authButton);
+        // Right side: toggle + auth button
+        HorizontalLayout rightSection = new HorizontalLayout(themeToggleButton, authButton);
+        rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
+        rightSection.setSpacing(true);
+
+        HorizontalLayout header = new HorizontalLayout(drawerToggle, logo, rightSection);
         header.setWidthFull();
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
@@ -62,6 +140,70 @@ public class MainLayout extends AppLayout {
         addToNavbar(header);
     }
 
+    private void toggleTheme() {
+        darkMode = !darkMode;
+
+        // Update the UI theme attribute
+        applyTheme(darkMode);
+        updateToggleIcon();
+
+        // Persist to cookie (works for all users)
+        writeDarkModeCookie(darkMode);
+
+        // If authenticated, also persist to the user's profile
+        if (oidcUserService.isAuthenticated()) {
+            try {
+                User user = userService.getCurrentUser();
+                if (user != null) {
+                    user.setDarkMode(darkMode);
+                    userService.saveUser(user);
+                }
+            } catch (Exception ignored) {
+                // cookie is the fallback
+            }
+        }
+    }
+
+    private void updateToggleIcon() {
+        if (darkMode) {
+            themeToggleButton.setIcon(VaadinIcon.SUN_O.create());
+            themeToggleButton.getElement().setAttribute("title", "Switch to light mode");
+        } else {
+            themeToggleButton.setIcon(VaadinIcon.MOON_O.create());
+            themeToggleButton.getElement().setAttribute("title", "Switch to dark mode");
+        }
+    }
+
+    // ---- Cookie helpers ----
+
+    static boolean readDarkModeCookie() {
+        VaadinRequest request = VaadinService.getCurrentRequest();
+        if (request instanceof HttpServletRequest httpRequest) {
+            Cookie[] cookies = httpRequest.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if (DARK_MODE_COOKIE.equals(cookie.getName())) {
+                        return "true".equals(cookie.getValue());
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private void writeDarkModeCookie(boolean dark) {
+        VaadinResponse response = VaadinService.getCurrentResponse();
+        if (response instanceof HttpServletResponse httpResponse) {
+            Cookie cookie = new Cookie(DARK_MODE_COOKIE, String.valueOf(dark));
+            cookie.setPath("/");
+            cookie.setMaxAge(COOKIE_MAX_AGE);
+            cookie.setHttpOnly(false); // not sensitive
+            httpResponse.addCookie(cookie);
+        }
+    }
+
+    // ---- Drawer / navigation ----
+
     private void createDrawer() {
         Tabs tabs = new Tabs();
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
@@ -71,31 +213,17 @@ public class MainLayout extends AppLayout {
             LumoUtility.FlexDirection.COLUMN,
             LumoUtility.Height.FULL);
 
-        // Home tab - always visible
         Tab homeTab = createTab("Home", VaadinIcon.HOME, MainView.class);
         tabs.add(homeTab);
 
-        // Stats tab - only visible when authenticated
         if (oidcUserService.isAuthenticated()) {
-            Tab statsTab = createTab("Stats", VaadinIcon.CHART_LINE, StatsView.class);
-            tabs.add(statsTab);
+            tabs.add(createTab("Stats", VaadinIcon.CHART_LINE, StatsView.class));
+            tabs.add(createTab("Posts", VaadinIcon.FILE_TEXT, PostView.class));
+            tabs.add(createTab("Go To Guy", VaadinIcon.PHONE, GTGView.class));
+            tabs.add(createTab("Profile", VaadinIcon.USER, ProfileView.class));
 
-            // Posts tab - only visible when authenticated
-            Tab postsTab = createTab("Posts", VaadinIcon.FILE_TEXT, PostView.class);
-            tabs.add(postsTab);
-
-            // GTG tab - only visible when authenticated
-            Tab gtgTab = createTab("Go To Guy", VaadinIcon.PHONE, GTGView.class);
-            tabs.add(gtgTab);
-
-            // Profile tab - only visible when authenticated
-            Tab profileTab = createTab("Profile", VaadinIcon.USER, ProfileView.class);
-            tabs.add(profileTab);
-            
-            // Admin tab - only visible to users with ADMIN role
             if (hasAdminRole()) {
-                Tab adminTab = createTab("Admin", VaadinIcon.COG, AdminView.class);
-                tabs.add(adminTab);
+                tabs.add(createTab("Admin", VaadinIcon.COG, AdminView.class));
             }
         }
 
@@ -116,15 +244,14 @@ public class MainLayout extends AppLayout {
 
         return new Tab(link);
     }
-    
+
     private boolean hasAdminRole() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
             return false;
         }
-        
         return authentication.getAuthorities().stream()
-            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()) || 
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()) ||
                                  "ADMIN".equals(authority.getAuthority()));
     }
-} 
+}

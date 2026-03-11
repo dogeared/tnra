@@ -1,0 +1,334 @@
+/* ===================================================
+   TNRA Global Theme — Light / Dark Mode + Modern Design
+   =================================================== */
+
+/* --- Google Fonts: Inter --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* =========================================
+   LIGHT MODE (default)
+   ========================================= */
+:root,
+html {
+    /* --- Typography --- */
+    --tnra-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    /* --- Primary Palette --- */
+    --tnra-primary: #4f6df5;
+    --tnra-primary-hover: #3b5bdb;
+    --tnra-primary-light: rgba(79, 109, 245, 0.10);
+    --tnra-primary-text: #4f6df5;
+
+    /* --- Accent --- */
+    --tnra-accent: #10b981;
+    --tnra-accent-hover: #059669;
+
+    /* --- Surfaces --- */
+    --tnra-bg: #f8f9fc;
+    --tnra-surface: #ffffff;
+    --tnra-surface-raised: #ffffff;
+    --tnra-surface-dim: #f1f3f9;
+
+    /* --- Borders --- */
+    --tnra-border: #e2e5f1;
+    --tnra-border-subtle: #eef0f6;
+
+    /* --- Text --- */
+    --tnra-text: #1a1d2e;
+    --tnra-text-secondary: #64698b;
+    --tnra-text-muted: #9ba1bc;
+
+    /* --- Shadows --- */
+    --tnra-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --tnra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.07), 0 1px 4px rgba(0, 0, 0, 0.04);
+    --tnra-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+
+    /* --- Radii --- */
+    --tnra-radius-sm: 8px;
+    --tnra-radius-md: 12px;
+    --tnra-radius-lg: 16px;
+    --tnra-radius-full: 9999px;
+
+    /* --- Transitions --- */
+    --tnra-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    /* --- Header / Nav --- */
+    --tnra-header-bg: #ffffff;
+    --tnra-header-border: #e2e5f1;
+    --tnra-drawer-bg: #f8f9fc;
+
+    /* --- Status --- */
+    --tnra-error: #ef4444;
+    --tnra-warning: #f59e0b;
+    --tnra-success: #10b981;
+
+    /* --- Readonly --- */
+    --tnra-readonly-bg: #f1f3f9;
+    --tnra-readonly-text: #9ba1bc;
+    --tnra-readonly-border: #e2e5f1;
+}
+
+
+/* =========================================
+   DARK MODE
+   ========================================= */
+html[theme~="dark"] {
+    --tnra-primary: #6b8aff;
+    --tnra-primary-hover: #8da4ff;
+    --tnra-primary-light: rgba(107, 138, 255, 0.12);
+    --tnra-primary-text: #8da4ff;
+
+    --tnra-accent: #34d399;
+    --tnra-accent-hover: #6ee7b7;
+
+    --tnra-bg: #0f1117;
+    --tnra-surface: #1a1d2e;
+    --tnra-surface-raised: #22263a;
+    --tnra-surface-dim: #151826;
+
+    --tnra-border: #2e3348;
+    --tnra-border-subtle: #252940;
+
+    --tnra-text: #e8eaf0;
+    --tnra-text-secondary: #a3a8c3;
+    --tnra-text-muted: #6b7194;
+
+    --tnra-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    --tnra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
+    --tnra-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+
+    --tnra-header-bg: #1a1d2e;
+    --tnra-header-border: #2e3348;
+    --tnra-drawer-bg: #151826;
+
+    --tnra-error: #f87171;
+    --tnra-warning: #fbbf24;
+    --tnra-success: #34d399;
+
+    --tnra-readonly-bg: #1a1d2e;
+    --tnra-readonly-text: #6b7194;
+    --tnra-readonly-border: #2e3348;
+
+    /* Override Lumo for dark mode */
+    --lumo-base-color: #0f1117;
+    --lumo-primary-color: #6b8aff;
+    --lumo-primary-text-color: #8da4ff;
+    --lumo-body-text-color: #e8eaf0;
+    --lumo-secondary-text-color: #a3a8c3;
+    --lumo-error-color: #f87171;
+    --lumo-contrast-5pct: rgba(255, 255, 255, 0.05);
+    --lumo-contrast-10pct: rgba(255, 255, 255, 0.10);
+    --lumo-contrast-20pct: rgba(255, 255, 255, 0.20);
+    --lumo-contrast-50pct: rgba(255, 255, 255, 0.50);
+}
+
+
+/* =========================================
+   GLOBAL BASE STYLES
+   ========================================= */
+
+html {
+    font-family: var(--tnra-font-family);
+    background-color: var(--tnra-bg);
+    color: var(--tnra-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Override Lumo font everywhere */
+html,
+[theme],
+vaadin-app-layout,
+vaadin-app-layout::part(navbar),
+vaadin-app-layout::part(drawer) {
+    --lumo-font-family: var(--tnra-font-family);
+}
+
+
+/* =========================================
+   APP LAYOUT / HEADER
+   ========================================= */
+
+vaadin-app-layout::part(navbar) {
+    background: var(--tnra-header-bg);
+    border-bottom: 1px solid var(--tnra-header-border);
+    box-shadow: var(--tnra-shadow-sm);
+    min-height: 56px;
+}
+
+vaadin-app-layout::part(drawer) {
+    background: var(--tnra-drawer-bg);
+    border-right: 1px solid var(--tnra-border);
+}
+
+vaadin-app-layout [slot="navbar"] h1 {
+    font-weight: 700;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--tnra-primary), var(--tnra-accent));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+
+/* =========================================
+   THEME TOGGLE BUTTON
+   ========================================= */
+
+.theme-toggle-button {
+    font-size: 1.2rem;
+    border-radius: var(--tnra-radius-full);
+    min-width: 40px;
+    min-height: 40px;
+    padding: 0;
+    color: var(--tnra-text-secondary);
+    transition: color var(--tnra-transition), background var(--tnra-transition);
+}
+
+.theme-toggle-button:hover {
+    color: var(--tnra-primary-text);
+    background: var(--tnra-primary-light);
+}
+
+
+/* =========================================
+   NAVIGATION TABS
+   ========================================= */
+
+vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab {
+    border-radius: var(--tnra-radius-sm);
+    margin: 2px 8px;
+    padding: 8px 12px;
+    transition: background var(--tnra-transition), color var(--tnra-transition);
+    color: var(--tnra-text-secondary);
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab:hover {
+    background: var(--tnra-primary-light);
+    color: var(--tnra-primary-text);
+}
+
+vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab[selected] {
+    background: var(--tnra-primary-light);
+    color: var(--tnra-primary-text);
+    font-weight: 600;
+}
+
+vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab a {
+    color: inherit;
+    text-decoration: none;
+}
+
+
+/* =========================================
+   BUTTONS — MODERN DEFAULTS
+   ========================================= */
+
+vaadin-button {
+    border-radius: var(--tnra-radius-sm);
+    font-weight: 500;
+    font-family: var(--tnra-font-family);
+    letter-spacing: -0.01em;
+    transition: all var(--tnra-transition);
+}
+
+vaadin-button[theme~="primary"] {
+    background: var(--tnra-primary);
+    color: white;
+    box-shadow: var(--tnra-shadow-sm);
+}
+
+vaadin-button[theme~="primary"]:hover {
+    background: var(--tnra-primary-hover);
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-1px);
+}
+
+vaadin-button[theme~="primary"]:active {
+    transform: translateY(0);
+    box-shadow: var(--tnra-shadow-sm);
+}
+
+
+/* =========================================
+   TEXT FIELDS / INPUTS
+   ========================================= */
+
+vaadin-text-field,
+vaadin-text-area,
+vaadin-integer-field,
+vaadin-combo-box,
+vaadin-select {
+    --lumo-text-field-size: 40px;
+    font-family: var(--tnra-font-family);
+}
+
+vaadin-text-field::part(input-field),
+vaadin-text-area::part(input-field),
+vaadin-integer-field::part(input-field),
+vaadin-combo-box::part(input-field) {
+    border-radius: var(--tnra-radius-sm);
+    background: var(--tnra-surface);
+    border: 1px solid var(--tnra-border);
+    transition: border-color var(--tnra-transition), box-shadow var(--tnra-transition);
+}
+
+vaadin-text-field::part(input-field):focus-within,
+vaadin-text-area::part(input-field):focus-within,
+vaadin-integer-field::part(input-field):focus-within {
+    border-color: var(--tnra-primary);
+    box-shadow: 0 0 0 3px var(--tnra-primary-light);
+}
+
+
+/* =========================================
+   CARDS — global utility
+   ========================================= */
+
+.tnra-card {
+    background: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    box-shadow: var(--tnra-shadow-sm);
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.tnra-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+}
+
+
+/* =========================================
+   NOTIFICATIONS
+   ========================================= */
+
+vaadin-notification-card {
+    border-radius: var(--tnra-radius-md);
+    font-family: var(--tnra-font-family);
+}
+
+
+/* =========================================
+   SCROLLBAR STYLING
+   ========================================= */
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--tnra-border);
+    border-radius: var(--tnra-radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--tnra-text-muted);
+}

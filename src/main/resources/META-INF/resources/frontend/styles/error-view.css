@@ -2,7 +2,9 @@
 
 /* Error Title */
 .error-title {
-    color: var(--lumo-error-color);
+    color: var(--tnra-error);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     margin-bottom: 1rem;
 }
 
@@ -11,7 +13,8 @@
     text-align: center;
     max-width: 600px;
     margin-bottom: 1rem;
-    line-height: 1.5;
+    line-height: 1.6;
+    color: var(--tnra-text-secondary);
 }
 
 /* Error Details */
@@ -19,11 +22,13 @@
     text-align: center;
     max-width: 600px;
     margin-bottom: 1rem;
-    font-family: monospace;
-    background-color: var(--lumo-contrast-5pct);
-    padding: 1rem;
-    border-radius: var(--lumo-border-radius-m);
-    border: 1px solid var(--lumo-contrast-10pct);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    background-color: var(--tnra-surface-dim);
+    color: var(--tnra-text);
+    padding: 1.25rem;
+    border-radius: var(--tnra-radius-md);
+    border: 1px solid var(--tnra-border);
     word-break: break-word;
 }
 
@@ -39,4 +44,4 @@
         max-width: 100%;
         padding: 0 1rem;
     }
-} 
+}
