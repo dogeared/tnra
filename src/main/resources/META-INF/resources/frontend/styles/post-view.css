@@ -1,4 +1,6 @@
-/* Post View Styles */
+/* ===================================================
+   Post View — Notion/Linear-inspired journaling layout
+   =================================================== */
 
 /* Main Layout */
 .post-view {
@@ -6,13 +8,16 @@
     padding: 0;
 }
 
-/* Header Section */
+/* =========================================
+   HEADER SECTION
+   ========================================= */
+
 .post-header {
     align-items: center;
     gap: 0;
     padding: 0;
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .sticky-header {
@@ -22,7 +27,7 @@
     background-color: var(--tnra-header-bg);
     border-bottom: 1px solid var(--tnra-border);
     box-shadow: var(--tnra-shadow-sm);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
 }
 
 .post-title {
@@ -45,74 +50,127 @@
     min-width: fit-content;
 }
 
-/* Content Section */
+
+/* =========================================
+   CONTENT AREA
+   ========================================= */
+
 .post-content {
     width: 100%;
-    max-width: 800px;
-    gap: 1rem;
-    padding: 0;
+    max-width: 740px;
+    gap: 0;
+    padding: 0 1rem;
 }
 
-/* Post Sections */
+
+/* =========================================
+   SECTION CARDS  —  clean, breathing layout
+   ========================================= */
+
 .post-section {
     background-color: var(--tnra-surface);
     border-radius: var(--tnra-radius-md);
-    padding: 1.75rem;
-    margin-bottom: 1.5rem;
+    padding: 2rem 2rem 1.5rem;
+    margin-bottom: 1.25rem;
     border: 1px solid var(--tnra-border-subtle);
     box-shadow: var(--tnra-shadow-sm);
     gap: 0;
-    transition: box-shadow var(--tnra-transition);
+    transition: box-shadow var(--tnra-transition), border-color var(--tnra-transition);
 }
 
 .post-section:hover {
     box-shadow: var(--tnra-shadow-md);
+    border-color: var(--tnra-border);
 }
+
+
+/* =========================================
+   SECTION TITLES  —  typography hierarchy,
+   NOT colored links with underlines
+   ========================================= */
 
 .section-title {
-    color: var(--tnra-primary-text);
-    font-weight: 700;
+    /* Use primary text color, NOT link blue */
+    color: var(--tnra-text);
+    font-weight: 600;
+    font-size: 1.1rem;
     letter-spacing: -0.01em;
-    margin: 0 0 1rem 0;
-    border-bottom: 2px solid var(--tnra-primary);
-    padding-bottom: 0.5rem;
+    margin: 0 0 1.5rem 0;
+
+    /* Remove the link-like underline — use a subtle left accent instead */
+    border-bottom: none;
+    padding-bottom: 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--tnra-primary);
 }
 
-/* Form Fields */
+
+/* =========================================
+   FORM FIELDS  —  generous spacing,
+   inviting for long-form writing
+   ========================================= */
+
 .post-textarea {
     width: 100%;
-    height: 150px;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+/* Give textareas a comfortable minimum height */
+.post-textarea::part(input-field) {
+    min-height: 120px;
 }
 
 .post-textarea textarea {
     font-family: var(--tnra-font-family);
-    line-height: 1.6;
+    line-height: 1.7;
+    font-size: 0.95rem;
 }
 
 .post-textfield {
     width: 100%;
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .post-textfield input {
     font-family: var(--tnra-font-family);
 }
 
+/* Vaadin label styling — softer, not competing with content */
+.post-textarea::part(label),
+.post-textfield::part(label) {
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--tnra-text-secondary);
+}
+
 .stats-view {
     width: 100%;
 }
 
-/* Read-only state */
-.post-textarea[readonly] textarea,
-.post-textfield[readonly] input {
-    background-color: var(--tnra-readonly-bg) !important;
-    color: var(--tnra-readonly-text) !important;
-    border-color: var(--tnra-readonly-border) !important;
-    cursor: not-allowed;
+
+/* =========================================
+   READ-ONLY STATE
+   ========================================= */
+
+.post-textarea[readonly]::part(input-field),
+.post-textfield[readonly]::part(input-field) {
+    background-color: var(--tnra-readonly-bg);
+    border-color: var(--tnra-readonly-border);
 }
 
-/* Pagination Controls */
+.post-textarea[readonly] textarea,
+.post-textfield[readonly] input {
+    color: var(--tnra-text-muted);
+    cursor: default;
+}
+
+
+/* =========================================
+   PAGINATION CONTROLS
+   ========================================= */
+
 .pagination-controls {
     margin-top: 0.25rem;
 }
@@ -154,7 +212,11 @@
     height: 36px;
 }
 
-/* Completed Posts Layout */
+
+/* =========================================
+   COMPLETED POSTS LAYOUT
+   ========================================= */
+
 .completed-posts-layout {
     align-items: center;
     gap: 0.5rem;
@@ -175,35 +237,50 @@
     width: 300px;
 }
 
-/* Footer Section */
+
+/* =========================================
+   FOOTER — sticky action bar
+   ========================================= */
+
 .post-footer {
     position: sticky;
     bottom: 0;
     width: 100%;
-    max-width: 800px;
+    max-width: 740px;
     padding: 1rem;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
     border-top: 1px solid var(--tnra-border);
     background-color: var(--tnra-header-bg);
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
     z-index: 100;
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
 }
 
 .finish-post-button {
-    min-width: 150px;
+    min-width: 160px;
+    min-height: 44px;
+    font-weight: 600;
 }
 
-/* Responsive Design */
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
 @media (max-width: 768px) {
     .post-content {
         max-width: 100%;
-        padding: 0 1rem;
+        padding: 0 0.75rem;
     }
 
     .post-section {
         padding: 1.25rem;
         margin-bottom: 0.75rem;
+    }
+
+    .section-title {
+        font-size: 1rem;
+        margin-bottom: 1.25rem;
     }
 
     .post-controls {
@@ -235,7 +312,6 @@
         flex-shrink: 0;
     }
 
-    /* Mobile selectors layout - stack vertically */
     .selectors-layout {
         flex-direction: column;
         gap: 0.5rem !important;
@@ -247,13 +323,11 @@
         max-width: 300px !important;
     }
 
-    /* Mobile dropdown width constraint */
     .completed-posts-layout .post-selector {
         max-width: 300px !important;
         width: 100% !important;
     }
 
-    /* Tighter spacing on mobile */
     .completed-posts-layout {
         margin-bottom: 0.25rem;
     }

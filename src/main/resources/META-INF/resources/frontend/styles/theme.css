@@ -341,7 +341,16 @@ vaadin-combo-box::part(input-field) {
     border-radius: var(--tnra-radius-sm);
     background: var(--tnra-surface);
     border: 1px solid var(--tnra-border);
-    transition: border-color var(--tnra-transition), box-shadow var(--tnra-transition);
+    transition: border-color var(--tnra-transition),
+                box-shadow var(--tnra-transition),
+                background var(--tnra-transition);
+}
+
+vaadin-text-field::part(input-field):hover,
+vaadin-text-area::part(input-field):hover,
+vaadin-integer-field::part(input-field):hover,
+vaadin-combo-box::part(input-field):hover {
+    border-color: var(--tnra-text-muted);
 }
 
 vaadin-text-field::part(input-field):focus-within,
@@ -349,6 +358,16 @@ vaadin-text-area::part(input-field):focus-within,
 vaadin-integer-field::part(input-field):focus-within {
     border-color: var(--tnra-primary);
     box-shadow: 0 0 0 3px var(--tnra-primary-light);
+}
+
+/* Input labels — softer secondary color */
+vaadin-text-field::part(label),
+vaadin-text-area::part(label),
+vaadin-integer-field::part(label),
+vaadin-combo-box::part(label) {
+    color: var(--tnra-text-secondary);
+    font-weight: 500;
+    font-size: 0.875rem;
 }
 
 
