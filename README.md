@@ -1,3 +1,6 @@
+![Build Passes](.github/badges/build.svg)
+![Test Coverage](.github/badges/coverage.svg)
+
 ## Post View Modes
 
 |                     | Completed View                                                                  | In Progress View                                                        |

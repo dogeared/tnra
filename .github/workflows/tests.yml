@@ -1,10 +1,18 @@
 name: Tests
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - '.github/badges/**'
   pull_request:
     branches:
       - main
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   test:
@@ -21,5 +29,47 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - name: Run test suite
-        run: ./mvnw --batch-mode test
+      - name: Run test suite with coverage
+        id: verify
+        continue-on-error: true
+        run: ./mvnw --batch-mode verify
+
+      - name: Set build badge metadata
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        id: build_badge
+        run: |
+          if [ "${{ steps.verify.outcome }}" = "success" ]; then
+            echo "status=passing" >> "$GITHUB_OUTPUT"
+            echo "color=brightgreen" >> "$GITHUB_OUTPUT"
+          else
+            echo "status=failing" >> "$GITHUB_OUTPUT"
+            echo "color=red" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Generate coverage badge
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.verify.outcome == 'success'
+        uses: cicirello/jacoco-badge-generator@v2.1.0
+        with:
+          generate-branches-badge: false
+          jacoco-csv-file: target/site/jacoco/jacoco.csv
+          badges-directory: .github/badges
+
+      - name: Generate build badge
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: emibcn/badge-action@v2
+        with:
+          label: build
+          status: ${{ steps.build_badge.outputs.status }}
+          color: ${{ steps.build_badge.outputs.color }}
+          path: .github/badges/build.svg
+
+      - name: Commit badge updates
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Update generated badges [skip ci]'
+          file_pattern: .github/badges/*.svg
+
+      - name: Fail job if verification failed
+        if: steps.verify.outcome != 'success'
+        run: exit 1
