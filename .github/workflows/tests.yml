@@ -54,10 +54,6 @@ jobs:
           jacoco-csv-file: target/site/jacoco/jacoco.csv
           badges-directory: .github/badges
 
-      - name: Rename coverage badge
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.verify.outcome == 'success'
-        run: mv .github/badges/jacoco.svg .github/badges/coverage.svg
-
       - name: Generate build badge
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
