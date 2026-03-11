@@ -2,30 +2,44 @@
 
 /* Header Section */
 .stats-header {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .stats-title {
-    color: var(--lumo-primary-color);
+    color: var(--tnra-text);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     margin: 0;
 }
 
 .stats-date {
     margin-top: 0.25rem;
+    color: var(--tnra-text-secondary);
+    font-size: 0.9rem;
 }
 
 /* Stats Grid */
 .stats-grid {
     flex-wrap: wrap;
+    gap: 0.75rem;
 }
 
 /* Stat Cards */
 .stat-card {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    box-shadow: var(--tnra-shadow-sm);
     min-width: 140px;
     max-width: 160px;
     text-align: center;
     margin: 0.25rem;
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.stat-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
 }
 
 .stat-card-header {
@@ -33,18 +47,21 @@
 }
 
 .stat-card-emoji {
-    font-size: 1.5rem;
+    font-size: 1.75rem;
     display: block;
     margin-bottom: 0.25rem;
 }
 
 .stat-card-label {
-    color: var(--lumo-primary-text-color);
+    color: var(--tnra-text);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: -0.01em;
 }
 
 /* Input Field */
 .stat-input {
-    color: var(--lumo-primary-color);
+    color: var(--tnra-primary-text);
     text-align: center;
     margin: 0.25rem 0;
 }
@@ -55,17 +72,24 @@
 
 /* Control Buttons */
 .control-button {
-    min-width: 32px;
-    min-height: 32px;
-    background-color: var(--lumo-primary-color);
+    min-width: 34px;
+    min-height: 34px;
+    background-color: var(--tnra-primary);
     color: white;
     border: none;
+    border-radius: var(--tnra-radius-sm);
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all var(--tnra-transition);
+    font-weight: 600;
 }
 
 .control-button:hover {
-    background-color: var(--lumo-primary-color-50pct);
+    background-color: var(--tnra-primary-hover);
+    transform: scale(1.05);
+}
+
+.control-button:active {
+    transform: scale(0.95);
 }
 
 /* Pulse Animation */
@@ -83,35 +107,36 @@
 .readonly-card {
     pointer-events: none;
     transition: opacity 0.3s ease;
-    opacity: 0.8;
+    opacity: 0.7;
 }
 
 .readonly-input {
-    background-color: #f5f5f5 !important;
-    color: #6c757d !important;
-    border-color: #dee2e6 !important;
+    background-color: var(--tnra-readonly-bg) !important;
+    color: var(--tnra-readonly-text) !important;
+    border-color: var(--tnra-readonly-border) !important;
     cursor: not-allowed;
     opacity: 0.6;
     transition: opacity 0.3s ease;
 }
 
 .readonly-input input {
-    background-color: #f5f5f5 !important;
-    color: #6c757d !important;
+    background-color: var(--tnra-readonly-bg) !important;
+    color: var(--tnra-readonly-text) !important;
     cursor: not-allowed;
 }
 
 .readonly-button {
-    background-color: #6c757d !important;
-    color: #ffffff !important;
+    background-color: var(--tnra-text-muted) !important;
+    color: white !important;
     cursor: not-allowed !important;
-    opacity: 0.6;
+    opacity: 0.5;
     transition: opacity 0.3s ease;
 }
 
 .readonly-button:hover {
-    background-color: #6c757d !important;
-    opacity: 0.6;
+    background-color: var(--tnra-text-muted) !important;
+    opacity: 0.5;
+    transform: none;
 }
 
 /* Toggle Button Styles */
@@ -120,10 +145,10 @@
 }
 
 .toggle-button {
-    transition: all 0.3s ease;
+    transition: all var(--tnra-transition);
 }
 
 .toggle-button:hover {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-} 
+    box-shadow: var(--tnra-shadow-sm);
+}

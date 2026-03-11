@@ -10,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.GenericGenerator;
 
 import java.util.List;
 
@@ -20,8 +19,7 @@ public class User {
 
     @JsonView(JsonViews.Sparse.class)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO, generator="native")
-    @GenericGenerator(name = "native", strategy = "native")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @JsonView(JsonViews.Sparse.class)
@@ -41,6 +39,9 @@ public class User {
 
     @JsonView(JsonViews.Sparse.class)
     private String textEmailSuffix;
+
+    @JsonView(JsonViews.Sparse.class)
+    private Boolean darkMode;
 
     @JsonView(JsonViews.Full.class)
     private Boolean active;
@@ -182,5 +183,13 @@ public class User {
 
     public void setPqRefreshToken(String pqRefreshToken) {
         this.pqRefreshToken = pqRefreshToken;
+    }
+
+    public Boolean getDarkMode() {
+        return darkMode;
+    }
+
+    public void setDarkMode(Boolean darkMode) {
+        this.darkMode = darkMode;
     }
 }

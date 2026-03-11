@@ -1,3 +1,5 @@
+/* Profile View Styles */
+
 .profile-view {
     max-width: 800px;
     margin: 0 auto;
@@ -11,28 +13,30 @@
 }
 
 .profile-image {
-    border-radius: 60px;
+    border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #e0e0e0;
-    transition: border-color 0.2s ease;
+    border: 3px solid var(--tnra-border);
+    transition: border-color var(--tnra-transition), box-shadow var(--tnra-transition);
+    box-shadow: var(--tnra-shadow-sm);
 }
 
 .profile-image:hover {
-    border-color: #007bff;
+    border-color: var(--tnra-primary);
+    box-shadow: var(--tnra-shadow-md);
 }
 
 .upload-area {
     text-align: center;
     padding: 1rem;
-    border: 2px dashed #ccc;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    transition: all 0.2s ease;
+    border: 2px dashed var(--tnra-border);
+    border-radius: var(--tnra-radius-md);
+    background-color: var(--tnra-surface-dim);
+    transition: all var(--tnra-transition);
 }
 
 .upload-area:hover {
-    border-color: #007bff;
-    background-color: #e3f2fd;
+    border-color: var(--tnra-primary);
+    background-color: var(--tnra-primary-light);
 }
 
 .form-section {
@@ -45,8 +49,8 @@
         padding-left: 0;
         padding-top: 2rem;
     }
-    
+
     .profile-view {
         padding: 1rem;
     }
-} 
+}
