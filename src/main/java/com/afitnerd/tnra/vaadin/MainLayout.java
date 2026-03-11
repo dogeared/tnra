@@ -18,12 +18,10 @@ import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
-import com.vaadin.flow.dom.ThemeList;
 import com.vaadin.flow.router.RouterLink;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
-import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -86,12 +84,13 @@ public class MainLayout extends AppLayout {
 
     private void applyTheme(boolean dark) {
         getUI().ifPresent(ui -> {
-            ThemeList themeList = ui.getElement().getThemeList();
-            if (dark) {
-                themeList.add(Lumo.DARK);
-            } else {
-                themeList.remove(Lumo.DARK);
-            }
+            // Set on <html> so global CSS custom-property overrides
+            // (html[theme~="dark"]) take effect for our --tnra-* tokens
+            // and comprehensive Lumo variable overrides.
+            ui.getPage().executeJs(
+                "document.documentElement.setAttribute('theme', $0)",
+                dark ? "dark" : ""
+            );
         });
     }
 
