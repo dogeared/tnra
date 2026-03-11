@@ -1,9 +1,12 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
@@ -31,11 +34,18 @@ public class MainView extends VerticalLayout {
     private final OidcUserService oidcUserService;
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final AuthNavigationService authNavigationService;
 
-    public MainView(OidcUserService oidcUserService, UserService userService, FileStorageService fileStorageService) {
+    public MainView(
+        OidcUserService oidcUserService,
+        UserService userService,
+        FileStorageService fileStorageService,
+        AuthNavigationService authNavigationService
+    ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.fileStorageService = fileStorageService;
+        this.authNavigationService = authNavigationService;
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -58,8 +68,14 @@ public class MainView extends VerticalLayout {
             "Please log in to access your posts!"
         );
         description.addClassName("main-description");
-        
-        add(title, subtitle, description);
+
+        Button loginButton = new Button("Log in", click ->
+            getUI().ifPresent(ui -> ui.getPage().setLocation(authNavigationService.getLoginPath()))
+        );
+        loginButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        loginButton.addClassName("main-login-button");
+
+        add(title, subtitle, description, loginButton);
     }
     
     private void showAuthenticatedView() {

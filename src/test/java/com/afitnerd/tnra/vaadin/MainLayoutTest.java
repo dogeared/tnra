@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,9 @@ class MainLayoutTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private AuthNavigationService authNavigationService;
+
     @BeforeEach
     void setUp() {
         // Setup common mocks
@@ -34,14 +38,14 @@ class MainLayoutTest {
         // MainLayout constructor will fail due to RouterLink routing dependencies in unit test context
         // This is expected behavior since Vaadin routing requires full application context
         assertThrows(Exception.class, () -> {
-            new MainLayout(oidcUserService, userService);
+            new MainLayout(oidcUserService, userService, authNavigationService);
         });
     }
 
     @Test
     void testMainLayoutConstructorWithNullService() {
         // Act & Assert
-        assertThrows(Exception.class, () -> new MainLayout(null, null));
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null));
     }
 
     @Test
@@ -53,7 +57,7 @@ class MainLayoutTest {
         // Verify that the service dependency is properly checked
         // This will throw during RouterLink creation, which is expected in unit test context
         assertThrows(Exception.class, () -> {
-            new MainLayout(oidcUserService, userService);
+            new MainLayout(oidcUserService, userService, authNavigationService);
         });
 
         // Verify that isAuthenticated was called during the failed construction attempt
@@ -67,7 +71,7 @@ class MainLayoutTest {
 
         try {
             // Act
-            new MainLayout(oidcUserService, userService);
+            new MainLayout(oidcUserService, userService, authNavigationService);
         } catch (Exception e) {
             // Expected due to routing context not being available in unit tests
         }
@@ -84,7 +88,7 @@ class MainLayoutTest {
 
         try {
             // Act
-            new MainLayout(oidcUserService, userService);
+            new MainLayout(oidcUserService, userService, authNavigationService);
         } catch (Exception e) {
             // Expected due to routing context not being available in unit tests
         }
@@ -97,6 +101,6 @@ class MainLayoutTest {
     @Test
     void testServiceNotNull() {
         // Test that we don't accept null services
-        assertThrows(Exception.class, () -> new MainLayout(null, null));
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null));
     }
 }
