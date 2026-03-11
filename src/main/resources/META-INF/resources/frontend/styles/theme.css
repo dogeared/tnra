@@ -70,56 +70,124 @@ html {
 
 
 /* =========================================
-   DARK MODE
+   DARK MODE  —  GitHub-inspired palette
+   =========================================
+   Background scale:  #0d1117 → #161b22 → #1c2128 → #21262d
+   Text scale:        #e6edf3 (primary) → #8b949e (secondary) → #6e7681 (muted)
+   Border:            #30363d
+   Primary accent:    #58a6ff
    ========================================= */
 html[theme~="dark"] {
-    --tnra-primary: #6b8aff;
-    --tnra-primary-hover: #8da4ff;
-    --tnra-primary-light: rgba(107, 138, 255, 0.12);
-    --tnra-primary-text: #8da4ff;
+    /* --- TNRA custom tokens --- */
+    --tnra-primary: #58a6ff;
+    --tnra-primary-hover: #79b8ff;
+    --tnra-primary-light: rgba(88, 166, 255, 0.15);
+    --tnra-primary-text: #58a6ff;
 
-    --tnra-accent: #34d399;
-    --tnra-accent-hover: #6ee7b7;
+    --tnra-accent: #3fb950;
+    --tnra-accent-hover: #56d364;
 
-    --tnra-bg: #0f1117;
-    --tnra-surface: #1a1d2e;
-    --tnra-surface-raised: #22263a;
-    --tnra-surface-dim: #151826;
+    --tnra-bg: #0d1117;
+    --tnra-surface: #161b22;
+    --tnra-surface-raised: #1c2128;
+    --tnra-surface-dim: #0d1117;
 
-    --tnra-border: #2e3348;
-    --tnra-border-subtle: #252940;
+    --tnra-border: #30363d;
+    --tnra-border-subtle: #21262d;
 
-    --tnra-text: #e8eaf0;
-    --tnra-text-secondary: #a3a8c3;
-    --tnra-text-muted: #6b7194;
+    --tnra-text: #e6edf3;
+    --tnra-text-secondary: #8b949e;
+    --tnra-text-muted: #6e7681;
 
-    --tnra-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-    --tnra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3), 0 1px 4px rgba(0, 0, 0, 0.2);
-    --tnra-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.2);
+    --tnra-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+    --tnra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
+    --tnra-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
 
-    --tnra-header-bg: #1a1d2e;
-    --tnra-header-border: #2e3348;
-    --tnra-drawer-bg: #151826;
+    --tnra-header-bg: #161b22;
+    --tnra-header-border: #30363d;
+    --tnra-drawer-bg: #0d1117;
 
-    --tnra-error: #f87171;
-    --tnra-warning: #fbbf24;
-    --tnra-success: #34d399;
+    --tnra-error: #f85149;
+    --tnra-warning: #d29922;
+    --tnra-success: #3fb950;
 
-    --tnra-readonly-bg: #1a1d2e;
-    --tnra-readonly-text: #6b7194;
-    --tnra-readonly-border: #2e3348;
+    --tnra-readonly-bg: #161b22;
+    --tnra-readonly-text: #6e7681;
+    --tnra-readonly-border: #30363d;
 
-    /* Override Lumo for dark mode */
-    --lumo-base-color: #0f1117;
-    --lumo-primary-color: #6b8aff;
-    --lumo-primary-text-color: #8da4ff;
-    --lumo-body-text-color: #e8eaf0;
-    --lumo-secondary-text-color: #a3a8c3;
-    --lumo-error-color: #f87171;
-    --lumo-contrast-5pct: rgba(255, 255, 255, 0.05);
-    --lumo-contrast-10pct: rgba(255, 255, 255, 0.10);
-    --lumo-contrast-20pct: rgba(255, 255, 255, 0.20);
-    --lumo-contrast-50pct: rgba(255, 255, 255, 0.50);
+    /* =============================================
+       Comprehensive Lumo variable overrides
+       ============================================= */
+
+    /* --- Base & background --- */
+    --lumo-base-color: #0d1117;
+
+    /* --- Primary color scale --- */
+    --lumo-primary-color: #58a6ff;
+    --lumo-primary-color-10pct: rgba(88, 166, 255, 0.10);
+    --lumo-primary-color-50pct: rgba(88, 166, 255, 0.50);
+    --lumo-primary-text-color: #58a6ff;
+    --lumo-primary-contrast-color: #ffffff;
+
+    /* --- Text color hierarchy (critical for readability) --- */
+    --lumo-header-text-color: #e6edf3;
+    --lumo-body-text-color: #e6edf3;
+    --lumo-secondary-text-color: #8b949e;
+    --lumo-tertiary-text-color: #6e7681;
+    --lumo-disabled-text-color: rgba(139, 148, 158, 0.4);
+
+    /* --- Contrast scale (white-based for dark backgrounds) --- */
+    --lumo-contrast: #e6edf3;
+    --lumo-contrast-5pct: rgba(230, 237, 243, 0.05);
+    --lumo-contrast-10pct: rgba(230, 237, 243, 0.10);
+    --lumo-contrast-20pct: rgba(230, 237, 243, 0.16);
+    --lumo-contrast-30pct: rgba(230, 237, 243, 0.24);
+    --lumo-contrast-40pct: rgba(230, 237, 243, 0.32);
+    --lumo-contrast-50pct: rgba(230, 237, 243, 0.45);
+    --lumo-contrast-60pct: rgba(230, 237, 243, 0.56);
+    --lumo-contrast-70pct: rgba(230, 237, 243, 0.67);
+    --lumo-contrast-80pct: rgba(230, 237, 243, 0.80);
+    --lumo-contrast-90pct: rgba(230, 237, 243, 0.90);
+
+    /* --- Tint scale (lighter overlays on dark) --- */
+    --lumo-tint: #ffffff;
+    --lumo-tint-5pct: rgba(255, 255, 255, 0.04);
+    --lumo-tint-10pct: rgba(255, 255, 255, 0.08);
+    --lumo-tint-20pct: rgba(255, 255, 255, 0.12);
+    --lumo-tint-30pct: rgba(255, 255, 255, 0.18);
+    --lumo-tint-40pct: rgba(255, 255, 255, 0.24);
+    --lumo-tint-50pct: rgba(255, 255, 255, 0.34);
+    --lumo-tint-60pct: rgba(255, 255, 255, 0.44);
+    --lumo-tint-70pct: rgba(255, 255, 255, 0.56);
+    --lumo-tint-80pct: rgba(255, 255, 255, 0.70);
+    --lumo-tint-90pct: rgba(255, 255, 255, 0.85);
+
+    /* --- Shade scale (darker overlays on dark) --- */
+    --lumo-shade: #000000;
+    --lumo-shade-5pct: rgba(0, 0, 0, 0.10);
+    --lumo-shade-10pct: rgba(0, 0, 0, 0.20);
+    --lumo-shade-20pct: rgba(0, 0, 0, 0.32);
+    --lumo-shade-30pct: rgba(0, 0, 0, 0.42);
+    --lumo-shade-40pct: rgba(0, 0, 0, 0.50);
+    --lumo-shade-50pct: rgba(0, 0, 0, 0.58);
+    --lumo-shade-60pct: rgba(0, 0, 0, 0.65);
+    --lumo-shade-70pct: rgba(0, 0, 0, 0.72);
+    --lumo-shade-80pct: rgba(0, 0, 0, 0.80);
+    --lumo-shade-90pct: rgba(0, 0, 0, 0.88);
+
+    /* --- Error color scale --- */
+    --lumo-error-color: #f85149;
+    --lumo-error-color-10pct: rgba(248, 81, 73, 0.10);
+    --lumo-error-color-50pct: rgba(248, 81, 73, 0.50);
+    --lumo-error-text-color: #f85149;
+    --lumo-error-contrast-color: #ffffff;
+
+    /* --- Success color scale --- */
+    --lumo-success-color: #3fb950;
+    --lumo-success-color-10pct: rgba(63, 185, 80, 0.10);
+    --lumo-success-color-50pct: rgba(63, 185, 80, 0.50);
+    --lumo-success-text-color: #3fb950;
+    --lumo-success-contrast-color: #ffffff;
 }
 
 
