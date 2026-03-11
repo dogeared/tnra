@@ -128,7 +128,12 @@ public class MainLayout extends AppLayout {
         rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
         rightSection.setSpacing(true);
 
-        HorizontalLayout header = new HorizontalLayout(drawerToggle, logo, rightSection);
+        // Left side: hamburger + logo grouped together
+        HorizontalLayout leftSection = new HorizontalLayout(drawerToggle, logo);
+        leftSection.setAlignItems(FlexComponent.Alignment.CENTER);
+        leftSection.setSpacing(false);
+
+        HorizontalLayout header = new HorizontalLayout(leftSection, rightSection);
         header.setWidthFull();
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
