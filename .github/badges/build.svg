@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="94" height="20" role="img" aria-label="build: passing">
-  <linearGradient id="s" x2="0" y2="100%">
-    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+<svg width="88.6" height="20" viewBox="0 0 886 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="build: passing">
+  <title>build: passing</title>
+  <linearGradient id="a" x2="0" y2="100%">
+    <stop offset="0" stop-opacity=".1" stop-color="#EEE"/>
     <stop offset="1" stop-opacity=".1"/>
   </linearGradient>
-  <clipPath id="r">
-    <rect width="94" height="20" rx="3" fill="#fff"/>
-  </clipPath>
-  <g clip-path="url(#r)">
-    <rect width="37" height="20" fill="#555"/>
-    <rect x="37" width="57" height="20" fill="#4c1"/>
-    <rect width="94" height="20" fill="url(#s)"/>
+  <mask id="m"><rect width="886" height="200" rx="30" fill="#FFF"/></mask>
+  <g mask="url(#m)">
+    <rect width="368" height="200" fill="#555"/>
+    <rect width="518" height="200" fill="#brightgreen" x="368"/>
+    <rect width="886" height="200" fill="url(#a)"/>
   </g>
-  <g fill="#fff" text-anchor="middle" font-family="DejaVu Sans,Verdana,Geneva,sans-serif" font-size="11">
-    <text x="19.5" y="15" fill="#010101" fill-opacity=".3">build</text>
-    <text x="19.5" y="14">build</text>
-    <text x="64.5" y="15" fill="#010101" fill-opacity=".3">passing</text>
-    <text x="64.5" y="14">passing</text>
+  <g aria-hidden="true" fill="#fff" text-anchor="start" font-family="Verdana,DejaVu Sans,sans-serif" font-size="110">
+    <text x="60" y="148" textLength="268" fill="#000" opacity="0.25">build</text>
+    <text x="50" y="138" textLength="268">build</text>
+    <text x="423" y="148" textLength="418" fill="#000" opacity="0.25">passing</text>
+    <text x="413" y="138" textLength="418">passing</text>
   </g>
+  
 </svg>
