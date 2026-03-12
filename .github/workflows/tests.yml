@@ -56,12 +56,10 @@ jobs:
 
       - name: Generate build badge
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: emibcn/badge-action@v2
-        with:
-          label: build
-          status: ${{ steps.build_badge.outputs.status }}
-          color: ${{ steps.build_badge.outputs.color }}
-          path: .github/badges/build.svg
+        run: |
+          curl -fsSL \
+            "https://img.shields.io/badge/build-${{ steps.build_badge.outputs.status }}-${{ steps.build_badge.outputs.color }}.svg" \
+            -o .github/badges/build.svg
 
       - name: Commit badge updates
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

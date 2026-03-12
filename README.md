@@ -1,5 +1,5 @@
-![Build Passes](.github/badges/build.svg)
-![Test Coverage](.github/badges/coverage.svg)
+[![Build Passes](.github/badges/build.svg)](https://github.com/tnra/actions/workflows/main.yml)
+[![Test Coverage](.github/badges/jacoco.svg)](https://github.com/tnra/actions/workflows/main.yml)
 
 ## Post View Modes
 
