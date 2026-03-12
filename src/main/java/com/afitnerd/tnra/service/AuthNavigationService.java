@@ -7,6 +7,9 @@ import org.springframework.util.StringUtils;
 @Service
 public class AuthNavigationService {
 
+    private static final String DEFAULT_REGISTRATION_ID = "okta";
+    private static final String OAUTH_LOGIN_PREFIX = "/oauth2/authorization/";
+
     private final String loginPath;
 
     public AuthNavigationService(
@@ -23,10 +26,28 @@ public class AuthNavigationService {
     static String resolveLoginPath(String configuredLoginPath, String registrationId) {
         if (StringUtils.hasText(configuredLoginPath)) {
             String path = configuredLoginPath.trim();
-            return path.startsWith("/") ? path : "/" + path;
+            String normalizedPath = path.startsWith("/") ? path : "/" + path;
+
+            // Prevent protocol-relative redirects like "//evil.example".
+            if (normalizedPath.startsWith("//")) {
+                return OAUTH_LOGIN_PREFIX + resolveRegistrationId(registrationId);
+            }
+            return normalizedPath;
         }
 
-        String safeRegistrationId = StringUtils.hasText(registrationId) ? registrationId.trim() : "okta";
-        return "/oauth2/authorization/" + safeRegistrationId;
+        return OAUTH_LOGIN_PREFIX + resolveRegistrationId(registrationId);
+    }
+
+    private static String resolveRegistrationId(String registrationId) {
+        if (!StringUtils.hasText(registrationId)) {
+            return DEFAULT_REGISTRATION_ID;
+        }
+
+        String trimmedRegistrationId = registrationId.trim();
+        if (!trimmedRegistrationId.matches("[A-Za-z0-9_-]+")) {
+            return DEFAULT_REGISTRATION_ID;
+        }
+
+        return trimmedRegistrationId;
     }
 }
