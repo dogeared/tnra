@@ -268,6 +268,13 @@
    ========================================= */
 
 @media (max-width: 768px) {
+    .sticky-header,
+    .post-footer {
+        position: static;
+        top: auto;
+        bottom: auto;
+    }
+
     .post-content {
         max-width: 100%;
         padding: 0 0.75rem;
