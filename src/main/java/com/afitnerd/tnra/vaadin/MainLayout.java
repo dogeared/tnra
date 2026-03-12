@@ -11,7 +11,9 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -121,7 +123,7 @@ public class MainLayout extends AppLayout {
         Button authButton;
         if (oidcUserService.isAuthenticated()) {
             authButton = new Button("Logout", VaadinIcon.SIGN_OUT.create(), e -> {
-                getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
+                openLogoutDialog();
             });
         } else {
             authButton = new Button("Login", VaadinIcon.SIGN_IN.create(), e -> {
@@ -149,6 +151,23 @@ public class MainLayout extends AppLayout {
             LumoUtility.Padding.Horizontal.MEDIUM);
 
         addToNavbar(header);
+    }
+
+    private void openLogoutDialog() {
+        Dialog dialog = new Dialog();
+        dialog.addClassName("logout-dialog");
+        dialog.setHeaderTitle("Log out?");
+        dialog.add(new Paragraph("You are about to end your current session."));
+
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button confirmButton = new Button("Logout", e -> {
+            dialog.close();
+            getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
+        });
+        confirmButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
+
+        dialog.getFooter().add(cancelButton, confirmButton);
+        dialog.open();
     }
 
     private void toggleTheme() {
