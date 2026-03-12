@@ -3,10 +3,8 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.User;
-import com.afitnerd.tnra.service.BuildInfoService;
-import com.afitnerd.tnra.service.OidcUserService;
-import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
+import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.combobox.ComboBox;
@@ -15,7 +13,6 @@ import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
-import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -25,17 +22,11 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.server.auth.AccessAnnotationChecker;
-import com.vaadin.flow.spring.security.AuthenticationContext;
 import jakarta.annotation.security.RolesAllowed;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 @PageTitle("Admin Dashboard - TNRA")
 @Route(value = "admin", layout = MainLayout.class)
@@ -43,17 +34,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 @CssImport("./styles/admin-view.css")
 public class AdminView extends VerticalLayout {
 
-    private final OidcUserService oidcUserService;
-    private final UserService userService;
+    private final VaadinAdminPresenter vaadinAdminPresenter;
     private final CallChainPresenter callChainPresenter;
-    private final BuildInfoService buildInfoService;
     private GoToGuySet workingSet;
 
-    public AdminView(OidcUserService oidcUserService, UserService userService, CallChainPresenter callChainPresenter, BuildInfoService buildInfoService) {
-        this.oidcUserService = oidcUserService;
-        this.userService = userService;
+    public AdminView(VaadinAdminPresenter vaadinAdminPresenter, CallChainPresenter callChainPresenter) {
+        this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
-        this.buildInfoService = buildInfoService;
         
         addClassName("admin-view");
         setSizeFull();
@@ -100,13 +87,13 @@ public class AdminView extends VerticalLayout {
         Div infoCard = new Div();
         infoCard.addClassName("system-info");
 
-        infoCard.add(createInfoRow("Git Tag", buildInfoService.getGitTag()));
-        infoCard.add(createInfoRow("Git Commit", buildInfoService.getGitCommitId()));
-        infoCard.add(createInfoRow("Git Branch", buildInfoService.getGitBranch()));
-        infoCard.add(createInfoRow("Spring Boot", buildInfoService.getSpringBootVersion()));
-        infoCard.add(createInfoRow("Vaadin", buildInfoService.getVaadinVersion()));
-        infoCard.add(createInfoRow("Java", buildInfoService.getJavaVersion()));
-        infoCard.add(createInfoRow("Build Time", buildInfoService.getBuildTime()));
+        infoCard.add(createInfoRow("Git Tag", vaadinAdminPresenter.getGitTag()));
+        infoCard.add(createInfoRow("Git Commit", vaadinAdminPresenter.getGitCommitId()));
+        infoCard.add(createInfoRow("Git Branch", vaadinAdminPresenter.getGitBranch()));
+        infoCard.add(createInfoRow("Spring Boot", vaadinAdminPresenter.getSpringBootVersion()));
+        infoCard.add(createInfoRow("Vaadin", vaadinAdminPresenter.getVaadinVersion()));
+        infoCard.add(createInfoRow("Java", vaadinAdminPresenter.getJavaVersion()));
+        infoCard.add(createInfoRow("Build Time", vaadinAdminPresenter.getBuildTime()));
 
         content.add(header, infoCard);
         return content;
