@@ -3,6 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.BuildInfoService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
@@ -13,10 +14,12 @@ import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
@@ -43,12 +46,14 @@ public class AdminView extends VerticalLayout {
     private final OidcUserService oidcUserService;
     private final UserService userService;
     private final CallChainPresenter callChainPresenter;
+    private final BuildInfoService buildInfoService;
     private GoToGuySet workingSet;
 
-    public AdminView(OidcUserService oidcUserService, UserService userService, CallChainPresenter callChainPresenter) {
+    public AdminView(OidcUserService oidcUserService, UserService userService, CallChainPresenter callChainPresenter, BuildInfoService buildInfoService) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.callChainPresenter = callChainPresenter;
+        this.buildInfoService = buildInfoService;
         
         addClassName("admin-view");
         setSizeFull();
@@ -74,11 +79,56 @@ public class AdminView extends VerticalLayout {
         
         // Create GTG tab with existing admin content
         VerticalLayout gtgContent = createGtgTabContent();
-        Tab gtgTab = tabSheet.add("GTG", gtgContent);
-        
+        tabSheet.add("GTG", gtgContent);
+
+        // Create Build Info tab
+        VerticalLayout buildInfoContent = createBuildInfoTabContent();
+        tabSheet.add("Build Info", buildInfoContent);
+
         add(tabSheet);
     }
     
+    private VerticalLayout createBuildInfoTabContent() {
+        VerticalLayout content = new VerticalLayout();
+        content.setSizeFull();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        H3 header = new H3("Build Information");
+        header.addClassName("section-header");
+
+        Div infoCard = new Div();
+        infoCard.addClassName("system-info");
+
+        infoCard.add(createInfoRow("Git Tag", buildInfoService.getGitTag()));
+        infoCard.add(createInfoRow("Git Commit", buildInfoService.getGitCommitId()));
+        infoCard.add(createInfoRow("Git Branch", buildInfoService.getGitBranch()));
+        infoCard.add(createInfoRow("Spring Boot", buildInfoService.getSpringBootVersion()));
+        infoCard.add(createInfoRow("Vaadin", buildInfoService.getVaadinVersion()));
+        infoCard.add(createInfoRow("Java", buildInfoService.getJavaVersion()));
+        infoCard.add(createInfoRow("Build Time", buildInfoService.getBuildTime()));
+
+        content.add(header, infoCard);
+        return content;
+    }
+
+    private Div createInfoRow(String label, String value) {
+        Div row = new Div();
+        row.getStyle().set("padding", "0.5rem 0");
+        row.getStyle().set("display", "flex");
+        row.getStyle().set("gap", "1rem");
+
+        Span labelSpan = new Span(label + ":");
+        labelSpan.getStyle().set("font-weight", "600");
+        labelSpan.getStyle().set("min-width", "120px");
+        labelSpan.getStyle().set("color", "var(--tnra-text-secondary)");
+
+        Span valueSpan = new Span(value != null ? value : "N/A");
+
+        row.add(labelSpan, valueSpan);
+        return row;
+    }
+
     private VerticalLayout createGtgTabContent() {
         VerticalLayout content = new VerticalLayout();
         content.setSizeFull();
