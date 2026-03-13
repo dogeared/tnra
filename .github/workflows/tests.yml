@@ -61,12 +61,14 @@ jobs:
             "https://img.shields.io/badge/build-${{ steps.build_badge.outputs.status }}-${{ steps.build_badge.outputs.color }}.svg" \
             -o .github/badges/build.svg
 
-      - name: Commit badge updates
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - name: Commit and push the badge
+        uses: EndBug/add-and-commit@v9
         with:
-          commit_message: 'Update generated badges [skip ci]'
-          file_pattern: .github/badges/*.svg
+          # Commits the generated badge file to the repository
+          add: '.github/badges/*.svg'
+          message: 'chore: generate JaCoCo coverage badge'
+        # Only run on the main branch pushes, not PRs
+        if: github.ref == 'refs/heads/main'
 
       - name: Fail job if verification failed
         if: steps.verify.outcome != 'success'
