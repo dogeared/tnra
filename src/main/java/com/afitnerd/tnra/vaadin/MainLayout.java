@@ -31,6 +31,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.csrf.CsrfToken;
 
 @CssImport("./styles/theme.css")
 public class MainLayout extends AppLayout {
@@ -162,12 +163,42 @@ public class MainLayout extends AppLayout {
         Button cancelButton = new Button("Cancel", e -> dialog.close());
         Button confirmButton = new Button("Logout", e -> {
             dialog.close();
-            getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
+            executeDirectLogout();
         });
         confirmButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
 
         dialog.getFooter().add(cancelButton, confirmButton);
         dialog.open();
+    }
+
+    private void executeDirectLogout() {
+        VaadinRequest request = VaadinService.getCurrentRequest();
+        if (request instanceof HttpServletRequest httpRequest) {
+            Object tokenAttribute = httpRequest.getAttribute(CsrfToken.class.getName());
+            if (!(tokenAttribute instanceof CsrfToken)) {
+                tokenAttribute = httpRequest.getAttribute("_csrf");
+            }
+
+            if (tokenAttribute instanceof CsrfToken csrfToken) {
+                getUI().ifPresent(ui -> ui.getPage().executeJs(
+                    "const form = document.createElement('form');" +
+                        "form.method = 'POST';" +
+                        "form.action = '/logout';" +
+                        "const token = document.createElement('input');" +
+                        "token.type = 'hidden';" +
+                        "token.name = $0;" +
+                        "token.value = $1;" +
+                        "form.appendChild(token);" +
+                        "document.body.appendChild(form);" +
+                        "form.submit();",
+                    csrfToken.getParameterName(),
+                    csrfToken.getToken()
+                ));
+                return;
+            }
+        }
+
+        getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
     }
 
     private void toggleTheme() {
