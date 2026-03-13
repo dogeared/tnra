@@ -54,6 +54,21 @@ class FileStorageServiceImplTest {
     }
 
     @Test
+    void deleteFileRejectsTraversalOutsideUploadDirectory() throws IOException {
+        FileStorageServiceImpl service = new FileStorageServiceImpl();
+        Path uploadPath = tempDir.resolve("uploads");
+        ReflectionTestUtils.setField(service, "uploadDir", uploadPath.toString());
+        Files.createDirectories(uploadPath);
+
+        Path outsideFile = tempDir.resolve("outside.txt");
+        Files.writeString(outsideFile, "content");
+
+        service.deleteFile("../outside.txt");
+
+        assertTrue(Files.exists(outsideFile));
+    }
+
+    @Test
     void getFileUrlReturnsNullForBlankValuesAndPrefixesBaseUrl() {
         FileStorageServiceImpl service = new FileStorageServiceImpl();
         ReflectionTestUtils.setField(service, "baseUrl", "/files");

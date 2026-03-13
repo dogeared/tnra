@@ -116,8 +116,16 @@ public class MainView extends VerticalLayout {
             welcomeMessage.addClassName("welcome-message");
             
             profileSection.add(profileImage, welcomeMessage);
-            
-            add(title, profileSection);
+
+            HorizontalLayout actionButtons = new HorizontalLayout();
+            actionButtons.addClassName("main-action-buttons");
+            actionButtons.setSpacing(true);
+            actionButtons.add(
+                createNavigationButton("Open posts", "/posts", ButtonVariant.LUMO_PRIMARY),
+                createNavigationButton("View stats", "/stats")
+            );
+
+            add(title, profileSection, actionButtons);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -156,5 +164,14 @@ public class MainView extends VerticalLayout {
             return currentUser.getEmail().trim();
         }
         return "there";
+    }
+
+    private Button createNavigationButton(String text, String route, ButtonVariant... themeVariants) {
+        Button button = new Button(text, click -> getUI().ifPresent(ui -> ui.getPage().setLocation(route)));
+        button.addClassName("main-action-button");
+        if (themeVariants.length > 0) {
+            button.addThemeVariants(themeVariants);
+        }
+        return button;
     }
 }
