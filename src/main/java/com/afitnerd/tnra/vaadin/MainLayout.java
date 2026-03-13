@@ -11,7 +11,9 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.Icon;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -29,6 +31,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.csrf.CsrfToken;
 
 @CssImport("./styles/theme.css")
 public class MainLayout extends AppLayout {
@@ -121,7 +124,7 @@ public class MainLayout extends AppLayout {
         Button authButton;
         if (oidcUserService.isAuthenticated()) {
             authButton = new Button("Logout", VaadinIcon.SIGN_OUT.create(), e -> {
-                getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
+                openLogoutDialog();
             });
         } else {
             authButton = new Button("Login", VaadinIcon.SIGN_IN.create(), e -> {
@@ -149,6 +152,53 @@ public class MainLayout extends AppLayout {
             LumoUtility.Padding.Horizontal.MEDIUM);
 
         addToNavbar(header);
+    }
+
+    private void openLogoutDialog() {
+        Dialog dialog = new Dialog();
+        dialog.addClassName("logout-dialog");
+        dialog.setHeaderTitle("Log out?");
+        dialog.add(new Paragraph("You are about to end your current session."));
+
+        Button cancelButton = new Button("Cancel", e -> dialog.close());
+        Button confirmButton = new Button("Logout", e -> {
+            dialog.close();
+            executeDirectLogout();
+        });
+        confirmButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_PRIMARY);
+
+        dialog.getFooter().add(cancelButton, confirmButton);
+        dialog.open();
+    }
+
+    private void executeDirectLogout() {
+        VaadinRequest request = VaadinService.getCurrentRequest();
+        if (request instanceof HttpServletRequest httpRequest) {
+            Object tokenAttribute = httpRequest.getAttribute(CsrfToken.class.getName());
+            if (!(tokenAttribute instanceof CsrfToken)) {
+                tokenAttribute = httpRequest.getAttribute("_csrf");
+            }
+
+            if (tokenAttribute instanceof CsrfToken csrfToken) {
+                getUI().ifPresent(ui -> ui.getPage().executeJs(
+                    "const form = document.createElement('form');" +
+                        "form.method = 'POST';" +
+                        "form.action = '/logout';" +
+                        "const token = document.createElement('input');" +
+                        "token.type = 'hidden';" +
+                        "token.name = $0;" +
+                        "token.value = $1;" +
+                        "form.appendChild(token);" +
+                        "document.body.appendChild(form);" +
+                        "form.submit();",
+                    csrfToken.getParameterName(),
+                    csrfToken.getToken()
+                ));
+                return;
+            }
+        }
+
+        getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
     }
 
     private void toggleTheme() {

@@ -322,6 +322,27 @@ vaadin-button[theme~="primary"]:active {
 
 
 /* =========================================
+   LOGOUT DIALOG
+   ========================================= */
+
+vaadin-dialog-overlay.logout-dialog::part(content) {
+    background: var(--tnra-surface-raised);
+    border: 1px solid var(--tnra-border);
+    box-shadow: var(--tnra-shadow-lg);
+    color: var(--tnra-text);
+}
+
+vaadin-dialog-overlay.logout-dialog::part(header) {
+    color: var(--tnra-text);
+    border-bottom: 1px solid var(--tnra-border-subtle);
+}
+
+vaadin-dialog-overlay.logout-dialog::part(footer) {
+    border-top: 1px solid var(--tnra-border-subtle);
+}
+
+
+/* =========================================
    TEXT FIELDS / INPUTS
    ========================================= */
 
