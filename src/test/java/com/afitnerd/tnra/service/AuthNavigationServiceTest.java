@@ -33,4 +33,25 @@ class AuthNavigationServiceTest {
 
         assertEquals("/oauth2/authorization/okta", service.getLoginPath());
     }
+
+    @Test
+    void ignoresUnsafeConfiguredPathAndFallsBackToRegistrationId() {
+        AuthNavigationService service = new AuthNavigationService("https://example.com/login", "custom");
+
+        assertEquals("/oauth2/authorization/custom", service.getLoginPath());
+    }
+
+    @Test
+    void ignoresProtocolRelativeConfiguredPathAndFallsBack() {
+        AuthNavigationService service = new AuthNavigationService("//evil.example/login", "custom");
+
+        assertEquals("/oauth2/authorization/custom", service.getLoginPath());
+    }
+
+    @Test
+    void fallsBackToDefaultWhenRegistrationIdContainsInvalidCharacters() {
+        AuthNavigationService service = new AuthNavigationService("", "../bad-id");
+
+        assertEquals("/oauth2/authorization/okta", service.getLoginPath());
+    }
 }
