@@ -13,12 +13,14 @@ import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.Upload;
-import com.vaadin.flow.component.upload.receivers.MemoryBuffer;
+import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Pattern;
@@ -72,40 +74,19 @@ public class ProfileView extends VerticalLayout {
         profileImage.setWidth("120px");
         profileImage.setHeight("120px");
         profileImage.addClassName("profile-image");
-        
-        MemoryBuffer buffer = new MemoryBuffer();
-        imageUpload = new Upload(buffer);
+
+        UI ui = UI.getCurrent();
+        imageUpload = new Upload(UploadHandler.inMemory((metadata, data) -> {
+            if (ui != null) {
+                ui.access(() -> processProfileImageUpload(metadata.fileName(), metadata.contentType(), data));
+            } else {
+                processProfileImageUpload(metadata.fileName(), metadata.contentType(), data);
+            }
+        }));
         imageUpload.setAcceptedFileTypes("image/*");
         imageUpload.setMaxFileSize(5 * 1024 * 1024); // 5MB limit
         imageUpload.setDropLabel(new Div(new Paragraph("Drop image here or click to upload")));
         imageUpload.setUploadButton(new Button("Upload Image"));
-        
-        imageUpload.addSucceededListener(event -> {
-            try {
-                InputStream inputStream = buffer.getInputStream();
-                String fileName = event.getFileName();
-                String contentType = event.getMIMEType();
-                
-                // Delete old profile image if it exists
-                if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
-                    fileStorageService.deleteFile(currentUser.getProfileImage());
-                }
-                
-                // Store the file and get the filename
-                String storedFileName = fileStorageService.storeFile(inputStream, fileName, contentType);
-                
-                // Update the user's profile image reference
-                currentUser.setProfileImage(storedFileName);
-                
-                // Update the image display
-                String imageUrl = fileStorageService.getFileUrl(storedFileName);
-                profileImage.setSrc(imageUrl);
-                
-                Notification.show("Image uploaded successfully", 3000, Notification.Position.TOP_CENTER);
-            } catch (IOException e) {
-                Notification.show("Error uploading image", 3000, Notification.Position.TOP_CENTER);
-            }
-        });
         
         imageSection.add(profileImage, imageUpload);
         
@@ -139,6 +120,24 @@ public class ProfileView extends VerticalLayout {
         mainLayout.setFlexGrow(1, formLayout);
         
         add(mainLayout);
+    }
+
+    private void processProfileImageUpload(String fileName, String contentType, byte[] data) {
+        try (InputStream inputStream = new ByteArrayInputStream(data)) {
+            if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
+                fileStorageService.deleteFile(currentUser.getProfileImage());
+            }
+
+            String storedFileName = fileStorageService.storeFile(inputStream, fileName, contentType);
+            currentUser.setProfileImage(storedFileName);
+
+            String imageUrl = fileStorageService.getFileUrl(storedFileName);
+            profileImage.setSrc(imageUrl);
+
+            Notification.show("Image uploaded successfully", 3000, Notification.Position.TOP_CENTER);
+        } catch (IOException e) {
+            Notification.show("Error uploading image", 3000, Notification.Position.TOP_CENTER);
+        }
     }
     
     private TextField createPhoneNumberField() {
