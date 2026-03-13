@@ -1,10 +1,12 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.vaadin.flow.component.button.Button;
-import com.vaadin.flow.component.textfield.IntegerField;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -152,5 +154,57 @@ class StatCardTest {
         assertEquals("Pray", prayCard.getLabel());
         assertEquals(10, meditateCard.getValue());
         assertEquals(5, prayCard.getValue());
+    }
+
+    @Test
+    void testPlusMinusButtonTransitions() {
+        StatCard card = new StatCard("Hydrate", "H", null);
+        List<Integer> events = new ArrayList<>();
+        card.setValueChangeListener(events::add);
+
+        Button minus = buttonByAriaLabel(card, "Decrease Hydrate");
+        Button plus = buttonByAriaLabel(card, "Increase Hydrate");
+
+        assertNull(card.getValue());
+        plus.click();
+        assertEquals(0, card.getValue());
+        plus.click();
+        assertEquals(1, card.getValue());
+        minus.click();
+        assertEquals(0, card.getValue());
+        minus.click();
+        assertNull(card.getValue());
+
+        assertEquals(4, events.size());
+        assertEquals(0, events.get(0));
+        assertEquals(1, events.get(1));
+        assertEquals(0, events.get(2));
+        assertNull(events.get(3));
+    }
+
+    @Test
+    void testReadOnlyPreventsButtonChanges() {
+        StatCard card = new StatCard("Hydrate", "H", 2);
+        Button minus = buttonByAriaLabel(card, "Decrease Hydrate");
+        Button plus = buttonByAriaLabel(card, "Increase Hydrate");
+
+        card.setReadOnly(true);
+        plus.click();
+        minus.click();
+
+        assertEquals(2, card.getValue());
+    }
+
+    private Button buttonByAriaLabel(StatCard card, String ariaLabel) {
+        ArrayDeque<com.vaadin.flow.component.Component> stack = new ArrayDeque<>();
+        stack.push(card);
+        while (!stack.isEmpty()) {
+            com.vaadin.flow.component.Component current = stack.pop();
+            if (current instanceof Button button && ariaLabel.equals(button.getElement().getAttribute("aria-label"))) {
+                return button;
+            }
+            current.getChildren().forEach(stack::push);
+        }
+        throw new AssertionError("Button not found: " + ariaLabel);
     }
 }

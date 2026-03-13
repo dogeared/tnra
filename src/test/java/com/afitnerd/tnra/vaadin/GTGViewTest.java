@@ -6,12 +6,14 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
@@ -251,5 +253,55 @@ class GTGViewTest {
         // Assert
         assertNotNull(gtgView);
         assertTrue(gtgView.getChildren().count() > 0);
+    }
+
+    @Test
+    void testFormatPhoneNumberVariantsViaReflection() throws Exception {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
+        gtgView = new GTGView(callChainPresenter);
+
+        Method formatPhoneNumber = GTGView.class.getDeclaredMethod("formatPhoneNumber", String.class);
+        formatPhoneNumber.setAccessible(true);
+
+        assertEquals("(555) 111-2222", formatPhoneNumber.invoke(gtgView, "5551112222"));
+        assertEquals("(555) 111-2222", formatPhoneNumber.invoke(gtgView, "15551112222"));
+        assertEquals("12", formatPhoneNumber.invoke(gtgView, "12"));
+        assertEquals("No phone", formatPhoneNumber.invoke(gtgView, ""));
+        assertEquals("No phone", formatPhoneNumber.invoke(gtgView, new Object[]{null}));
+    }
+
+    @Test
+    void testLoadDataHandlesNullStartDateAndExceptions() {
+        // Null start date branch
+        testGoToGuySet.setStartDate(null);
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
+        assertDoesNotThrow(() -> new GTGView(callChainPresenter));
+
+        // Exception branch
+        when(callChainPresenter.getCurrentGoToGuySet()).thenThrow(new RuntimeException("boom"));
+        assertDoesNotThrow(() -> new GTGView(callChainPresenter));
+    }
+
+    @Test
+    void testCreateUserComponentBranchesViaReflection() throws Exception {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
+        when(callChainPresenter.getFileUrl("avatar.jpg")).thenReturn("http://cdn/avatar.jpg");
+        gtgView = new GTGView(callChainPresenter);
+
+        Method createUserComponent = GTGView.class.getDeclaredMethod("createUserComponent", User.class);
+        createUserComponent.setAccessible(true);
+
+        User withImage = new User();
+        withImage.setFirstName("A");
+        withImage.setPhoneNumber("5551112222");
+        withImage.setProfileImage("avatar.jpg");
+        HorizontalLayout withImageLayout = (HorizontalLayout) createUserComponent.invoke(gtgView, withImage);
+        assertTrue(withImageLayout.getChildren().count() >= 2);
+
+        User withoutImage = new User();
+        withoutImage.setEmail("fallback@example.com");
+        withoutImage.setPhoneNumber(null);
+        HorizontalLayout withoutImageLayout = (HorizontalLayout) createUserComponent.invoke(gtgView, withoutImage);
+        assertTrue(withoutImageLayout.getChildren().count() >= 2);
     }
 }
