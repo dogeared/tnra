@@ -56,6 +56,7 @@ html {
     --tnra-header-bg: #ffffff;
     --tnra-header-border: #e2e5f1;
     --tnra-drawer-bg: #f8f9fc;
+    --tnra-navbar-height: 56px;
 
     /* --- Status --- */
     --tnra-error: #ef4444;
@@ -222,11 +223,18 @@ vaadin-app-layout::part(navbar) {
     border-bottom: 1px solid var(--tnra-header-border);
     box-shadow: var(--tnra-shadow-sm);
     min-height: 56px;
+    position: relative;
+    z-index: 1000;
 }
 
 vaadin-app-layout::part(drawer) {
     background: var(--tnra-drawer-bg);
     border-right: 1px solid var(--tnra-border);
+    z-index: 1100;
+}
+
+vaadin-app-layout::part(backdrop) {
+    z-index: 1050;
 }
 
 vaadin-app-layout [slot="navbar"] h1 {
@@ -237,6 +245,11 @@ vaadin-app-layout [slot="navbar"] h1 {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+vaadin-app-layout [slot="navbar"] vaadin-drawer-toggle {
+    position: relative;
+    z-index: 1001;
 }
 
 
