@@ -3,8 +3,10 @@ package com.afitnerd.tnra.controller;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.model.pq.PQAuthenticationRequest;
 import com.afitnerd.tnra.model.pq.PQAuthenticationResponse;
+import com.afitnerd.tnra.model.pq.PQMeResponse;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.pq.PQService;
+import org.apache.hc.client5.http.HttpResponseException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,6 +20,8 @@ import java.security.Principal;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -98,5 +102,48 @@ class PQControllerTest {
         assertEquals("access-token", user.getPqAccessToken());
         assertEquals("refresh-token", user.getPqRefreshToken());
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void pqAuthenticateRejectsMissingPrincipal() {
+        PQAuthenticationRequest request = new PQAuthenticationRequest();
+        request.setLogin("login");
+        request.setPassword("password");
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+            () -> controller.pqAuthenticate(null, request));
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void handlesExceptionAndAuthEndpoints() throws IOException {
+        Map<String, Object> handled = controller.handleException(new HttpResponseException(401, "nope"));
+        assertEquals("FAILURE", handled.get("status"));
+
+        Principal principal = () -> "user@example.com";
+        User user = new User();
+        user.setPqAccessToken("token");
+        when(userRepository.findByEmail("user@example.com")).thenReturn(user);
+        assertTrue((Boolean) controller.isAuthenticated(principal).get("is_authenticated"));
+    }
+
+    @Test
+    void pqMeAndMetricsAllCoverBothBranches() throws IOException {
+        Principal principal = () -> "user@example.com";
+        User user = new User();
+        user.setId(77L);
+        user.setPqAccessToken("access");
+        PQMeResponse metrics = new PQMeResponse();
+
+        when(userRepository.findByEmail("user@example.com")).thenReturn(user);
+        when(pqService.metrics("access")).thenReturn(metrics);
+        when(pqService.pqMetricsAll()).thenReturn(Map.of("A", metrics));
+
+        assertEquals(metrics, controller.pqMe(principal));
+        assertEquals(1, controller.pqMetricsAll().size());
+
+        user.setPqAccessToken(null);
+        assertNull(controller.pqMe(principal));
     }
 }
