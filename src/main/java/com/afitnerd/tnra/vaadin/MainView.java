@@ -114,8 +114,14 @@ public class MainView extends VerticalLayout {
                 "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
+
+            Button openPostsButton = new Button("Open Posts", click ->
+                getUI().ifPresent(ui -> ui.navigate(PostView.class))
+            );
+            openPostsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            openPostsButton.addClassName("main-posts-button");
             
-            profileSection.add(profileImage, welcomeMessage);
+            profileSection.add(profileImage, welcomeMessage, openPostsButton);
             
             add(title, profileSection);
         } catch (Exception e) {

@@ -254,4 +254,19 @@ class MainViewTest {
 
         assertTrue(hasLoginButton, "Expected unauthenticated view to include a log in button");
     }
+
+    @Test
+    void testMainViewShowsOpenPostsButtonForAuthenticatedUsers() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasOpenPostsButton = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .anyMatch(component -> component instanceof Button && "Open Posts".equals(((Button) component).getText()));
+
+        assertTrue(hasOpenPostsButton, "Expected authenticated view to include an Open Posts button");
+    }
 }
