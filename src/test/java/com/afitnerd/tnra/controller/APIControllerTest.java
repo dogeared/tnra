@@ -77,7 +77,7 @@ class APIControllerTest {
 
         assertSame(gtgSet, returned);
         verify(eMailService).sendTextViaMail(callee, calleePost);
-        verify(eMailService).sendTextViaMail(callee, callerPost);
+        verify(eMailService).sendTextViaMail(caller, callerPost);
     }
 
     @Test
