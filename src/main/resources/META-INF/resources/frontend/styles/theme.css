@@ -241,6 +241,7 @@ vaadin-app-layout [slot="navbar"] h1 {
     font-weight: 700;
     font-size: 1.35rem;
     letter-spacing: -0.02em;
+    margin: 0;
     background: linear-gradient(135deg, var(--tnra-primary), var(--tnra-accent));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
