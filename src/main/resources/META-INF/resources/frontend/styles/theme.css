@@ -223,8 +223,15 @@ vaadin-app-layout::part(navbar) {
     border-bottom: 1px solid var(--tnra-header-border);
     box-shadow: var(--tnra-shadow-sm);
     min-height: 56px;
+    padding-top: 0;
     position: relative;
+    top: 0;
     z-index: 1000;
+}
+
+vaadin-app-layout [slot="navbar"] {
+    margin-top: 0;
+    padding-top: 0;
 }
 
 vaadin-app-layout::part(drawer) {
