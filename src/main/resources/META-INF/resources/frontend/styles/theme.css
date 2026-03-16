@@ -218,6 +218,10 @@ vaadin-app-layout::part(drawer) {
    APP LAYOUT / HEADER
    ========================================= */
 
+vaadin-app-layout {
+    --_vaadin-app-layout-navbar-offset-size: 0px;
+}
+
 vaadin-app-layout::part(navbar) {
     background: var(--tnra-header-bg);
     border-bottom: 1px solid var(--tnra-header-border);
