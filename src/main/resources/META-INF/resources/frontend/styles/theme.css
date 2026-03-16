@@ -218,22 +218,25 @@ vaadin-app-layout::part(drawer) {
    APP LAYOUT / HEADER
    ========================================= */
 
-vaadin-app-layout {
-    --_vaadin-app-layout-navbar-offset-size: 0px;
-}
-
 vaadin-app-layout::part(navbar) {
     background: var(--tnra-header-bg);
     border-bottom: 1px solid var(--tnra-header-border);
+    box-sizing: border-box;
     box-shadow: var(--tnra-shadow-sm);
-    min-height: 56px;
+    height: var(--tnra-navbar-height);
+    min-height: var(--tnra-navbar-height);
     padding-top: 0;
+    padding-bottom: 0;
     position: relative;
     top: 0;
     z-index: 1000;
 }
 
 vaadin-app-layout [slot="navbar"] {
+    align-items: center;
+    box-sizing: border-box;
+    display: flex;
+    min-height: 100%;
     margin-top: 0;
     padding-top: 0;
 }
