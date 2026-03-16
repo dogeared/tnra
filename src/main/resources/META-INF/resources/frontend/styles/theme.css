@@ -225,9 +225,10 @@ vaadin-app-layout::part(navbar) {
     box-shadow: var(--tnra-shadow-sm);
     height: var(--tnra-navbar-height);
     min-height: var(--tnra-navbar-height);
+    inset-inline: 0;
     padding-top: 0;
     padding-bottom: 0;
-    position: relative;
+    position: fixed;
     top: 0;
     z-index: 1000;
 }
