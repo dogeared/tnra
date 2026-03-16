@@ -80,12 +80,12 @@ public class EmailServiceImpl implements EMailService {
                     .addTextBody(
                         "html",
                         emailPostRenderer.render(post),
-                        ContentType.create("text/hmtl", StandardCharsets.UTF_8)
+                        ContentType.create("text/html", StandardCharsets.UTF_8)
                     )
                     .build();
 
                 InputStream responseStream = Request.post(mailgunUrl)
-                    .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
+                    .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes(StandardCharsets.UTF_8)))
                     .body(entity)
                     .execute().returnContent().asStream();
                 Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
@@ -118,7 +118,7 @@ public class EmailServiceImpl implements EMailService {
                 .addTextBody("text", "\n" + text)
                 .build();
             InputStream responseStream = Request.post(mailgunUrl)
-                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
+                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes(StandardCharsets.UTF_8)))
                 .body(entity)
                 .execute().returnContent().asStream();
             Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
@@ -129,9 +129,14 @@ public class EmailServiceImpl implements EMailService {
     }
 
     private List<String> split(String prefix, String s) {
+        if (s == null || s.isEmpty()) {
+            return List.of();
+        }
+
+        int chunkSize = Math.max(1, maxEmailToSmsLength - prefix.length());
         List<String> chunks = new ArrayList<>();
-        for (int i = 0; i < s.length(); i += (maxEmailToSmsLength-prefix.length())) {
-            chunks.add(s.substring(i, Math.min(s.length(), i + (maxEmailToSmsLength-prefix.length()))));
+        for (int i = 0; i < s.length(); i += chunkSize) {
+            chunks.add(s.substring(i, Math.min(s.length(), i + chunkSize)));
         }
         return chunks;
     }
@@ -141,6 +146,9 @@ public class EmailServiceImpl implements EMailService {
         Runnable runnableTask = () -> {
             User postUser = post.getUser();
             String waw = PostRenderer.utf8ToAscii(post.getIntro().getWhatAndWhen());
+            if (waw == null) {
+                waw = "";
+            }
             String prefix = postUser.getFirstName() + " " + postUser.getLastName() + " (%d of %d)";
             String to = user.getPhoneNumber() + "@" + user.getTextEmailSuffix();
             if ("vtext.com".equals(user.getTextEmailSuffix().toLowerCase().trim())) {

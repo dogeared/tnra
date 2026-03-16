@@ -6,6 +6,7 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -61,6 +62,8 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     }
 
     private void createStatsView() {
+        removeAll();
+
         // Header section
         VerticalLayout headerSection = createHeaderSection();
         
@@ -81,8 +84,13 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         // Title and date row
         H1 title = new H1("Daily Stats");
         title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, "stats-title");
+        title.getElement().setProperty("id", "daily-stats-title");
 
-        header.add(title);
+        Paragraph hint = new Paragraph("Use +/- buttons or type values from 0 to 99.");
+        hint.addClassName("stats-hint");
+        hint.getElement().setAttribute("aria-live", "polite");
+
+        header.add(title, hint);
         return header;
     }
 

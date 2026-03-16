@@ -18,6 +18,12 @@
     font-size: 0.9rem;
 }
 
+.stats-hint {
+    margin: 0.35rem 0 0;
+    color: var(--tnra-text-secondary);
+    font-size: 0.9rem;
+}
+
 /* Stats Grid */
 .stats-grid {
     flex-wrap: wrap;
