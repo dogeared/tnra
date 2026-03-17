@@ -132,6 +132,23 @@ class StatsViewTest {
     }
 
     @Test
+    void testAfterNavigationTwiceDoesNotDuplicateTopLevelComponents() {
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            statsView = new StatsView(vaadinPostPresenter);
+            statsView.afterNavigation(mockAfterNavigationEvent());
+            assertEquals(2, statsView.getComponentCount());
+
+            statsView.afterNavigation(mockAfterNavigationEvent());
+            assertEquals(2, statsView.getComponentCount());
+        }
+    }
+
+    @Test
     void testSetPost() {
         // Arrange
         StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);

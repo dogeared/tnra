@@ -14,6 +14,9 @@ public interface PostRenderer {
     String render(Post post);
 
     static String utf8ToAscii(String input) {
+        if (input == null) {
+            return null;
+        }
         return input
             .replaceAll("’", "'").replaceAll("‛", "'")
             .replaceAll("‟", "\"").replaceAll("”", "\"");
