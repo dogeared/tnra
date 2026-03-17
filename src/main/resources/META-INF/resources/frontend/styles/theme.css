@@ -245,6 +245,8 @@ vaadin-app-layout [slot="navbar"] {
 vaadin-app-layout::part(drawer) {
     background: var(--tnra-drawer-bg);
     border-right: 1px solid var(--tnra-border);
+    padding-top: 0;
+    top: var(--tnra-navbar-height);
     z-index: 1100;
 }
 
