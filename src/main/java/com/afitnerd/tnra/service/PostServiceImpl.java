@@ -88,6 +88,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post replaceStats(User user, Stats stats) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getStats() == null) {
+            post.setStats(new Stats());
+        }
         mergeReplace(post.getStats(), stats);
         return postRepository.save(post);
     }
@@ -95,6 +98,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post updateCompleteStats(User user, Stats stats) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getStats() == null) {
+            post.setStats(new Stats());
+        }
         mergeReplaceAllowNulls(post.getStats(), stats);
         return postRepository.save(post);
     }
@@ -102,6 +108,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post replaceIntro(User user, Intro intro) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getIntro() == null) {
+            post.setIntro(new Intro());
+        }
         mergeReplace(post.getIntro(), intro);
         return postRepository.save(post);
     }
@@ -109,6 +118,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post replacePersonal(User user, Category personal) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getPersonal() == null) {
+            post.setPersonal(new Category());
+        }
         mergeReplace(post.getPersonal(), personal);
         return postRepository.save(post);
     }
@@ -116,6 +128,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post replaceFamily(User user, Category family) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getFamily() == null) {
+            post.setFamily(new Category());
+        }
         mergeReplace(post.getFamily(), family);
         return postRepository.save(post);
     }
@@ -123,6 +138,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post replaceWork(User user, Category work) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getWork() == null) {
+            post.setWork(new Category());
+        }
         mergeReplace(post.getWork(), work);
         return postRepository.save(post);
     }
@@ -130,6 +148,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post updateIntro(User user, Intro intro) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getIntro() == null) {
+            post.setIntro(new Intro());
+        }
         intro = mergeAppendString(post.getIntro(), intro);
         return postRepository.save(post);
     }
@@ -137,6 +158,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post updatePersonal(User user, Category personal) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getPersonal() == null) {
+            post.setPersonal(new Category());
+        }
         personal = mergeAppendString(post.getPersonal(), personal);
         return postRepository.save(post);
     }
@@ -144,6 +168,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post updateFamily(User user, Category family) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getFamily() == null) {
+            post.setFamily(new Category());
+        }
         family = mergeAppendString(post.getFamily(), family);
         return postRepository.save(post);
     }
@@ -151,6 +178,9 @@ public class PostServiceImpl implements PostService {
     @Override
     public Post updateWork(User user, Category work) {
         Post post = ensureOneInProgressPost(user);
+        if (post.getWork() == null) {
+            post.setWork(new Category());
+        }
         work = mergeAppendString(post.getWork(), work);
         return postRepository.save(post);
     }
@@ -170,8 +200,8 @@ public class PostServiceImpl implements PostService {
     }
 
     private <T> T mergeAppendString(T origOne, T newOne) {
-        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
-        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
+        Assert.notNull(origOne, "Original object must not be null.");
+        Assert.notNull(newOne, "New object must not be null.");
 
         PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
         for (PropertyDescriptor pd : descriptors) {
@@ -191,8 +221,8 @@ public class PostServiceImpl implements PostService {
     }
 
     private <T> T mergeReplace(T origOne, T newOne) {
-        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
-        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
+        Assert.notNull(origOne, "Original object must not be null.");
+        Assert.notNull(newOne, "New object must not be null.");
 
         PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
         for (PropertyDescriptor pd : descriptors) {
@@ -211,8 +241,8 @@ public class PostServiceImpl implements PostService {
     }
 
     private <T> T mergeReplaceAllowNulls(T origOne, T newOne) {
-        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
-        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
+        Assert.notNull(origOne, "Original object must not be null.");
+        Assert.notNull(newOne, "New object must not be null.");
 
         PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
         for (PropertyDescriptor pd : descriptors) {

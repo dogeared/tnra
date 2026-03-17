@@ -228,6 +228,40 @@ public class PostServiceTests {
     }
 
     @Test
+    public void testReplaceStats_success_whenExistingStatsIsNull() {
+        Post post = postService.startPost(user);
+        post.setStats(null);
+        postRepository.save(post);
+
+        Stats stats = new Stats();
+        stats.setExercise(4);
+
+        postService.replaceStats(user, stats);
+
+        Post updated = postService.getInProgressPost(user);
+        assertNotNull(updated.getStats());
+        assertEquals(4, (int) updated.getStats().getExercise());
+    }
+
+    @Test
+    public void testUpdatePersonal_success_whenExistingCategoryIsNull() {
+        Post post = postService.startPost(user);
+        post.setPersonal(null);
+        postRepository.save(post);
+
+        com.afitnerd.tnra.model.Category personal = new com.afitnerd.tnra.model.Category();
+        personal.setBest("Recovered best");
+        personal.setWorst("Recovered worst");
+
+        postService.updatePersonal(user, personal);
+
+        Post updated = postService.getInProgressPost(user);
+        assertNotNull(updated.getPersonal());
+        assertEquals("Recovered best", updated.getPersonal().getBest());
+        assertEquals("Recovered worst", updated.getPersonal().getWorst());
+    }
+
+    @Test
     public void testReplaceStats_fail_noInProgressPost() {
         Stats stats = new Stats();
         stats.setExercise(2);

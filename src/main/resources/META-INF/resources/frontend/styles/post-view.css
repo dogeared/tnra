@@ -237,6 +237,12 @@
     width: 300px;
 }
 
+.empty-completed-posts-message {
+    color: var(--tnra-text-secondary);
+    font-style: italic;
+    margin-top: 0.25rem;
+}
+
 
 /* =========================================
    FOOTER — sticky action bar

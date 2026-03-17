@@ -11,6 +11,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
+import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -381,6 +383,32 @@ class PostViewTest {
     }
 
     @Test
+    void testNoCompletedPostsShowsEmptyStateAndDisablesPostControls() {
+        // Arrange
+        completedPostsPage = new PageImpl<>(List.of());
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class))).thenReturn(completedPostsPage);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            ComboBox<Post> postSelector = findComponentByClassName(postView, ComboBox.class, "post-selector");
+            IntegerField pageField = findComponentByClassName(postView, IntegerField.class, "pagination-input");
+            Span emptyState = findComponentWithText(postView, Span.class, "No completed posts yet");
+
+            assertNotNull(postSelector, "Post selector should exist");
+            assertFalse(postSelector.isEnabled(), "Post selector should be disabled when there are no posts");
+            assertNotNull(pageField, "Page number field should exist");
+            assertFalse(pageField.isEnabled(), "Page number field should be disabled when there are no posts");
+            assertNotNull(emptyState, "Empty state message should be shown for no completed posts");
+        }
+    }
+
+    @Test
     void testFormFieldsExist() {
         // Arrange
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
@@ -514,6 +542,21 @@ class PostViewTest {
 
         for (Component child : parent.getChildren().toArray(Component[]::new)) {
             T result = findComponentOfType(child, componentType);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Component> T findComponentByClassName(Component parent, Class<T> componentType, String className) {
+        if (componentType.isInstance(parent) && parent.getClassNames().contains(className)) {
+            return (T) parent;
+        }
+
+        for (Component child : parent.getChildren().toArray(Component[]::new)) {
+            T result = findComponentByClassName(child, componentType, className);
             if (result != null) {
                 return result;
             }
