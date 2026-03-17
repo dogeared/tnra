@@ -108,9 +108,7 @@ public class MainLayout extends AppLayout {
         DrawerToggle drawerToggle = new DrawerToggle();
 
         H1 logo = new H1("TNRA");
-        logo.addClassNames(
-            LumoUtility.FontSize.LARGE,
-            LumoUtility.Margin.MEDIUM);
+        logo.addClassNames(LumoUtility.FontSize.LARGE);
 
         // Theme toggle button — icon swaps between sun and moon
         themeToggleButton = new Button();
@@ -131,8 +129,6 @@ public class MainLayout extends AppLayout {
                 getUI().ifPresent(ui -> ui.getPage().setLocation(authNavigationService.getLoginPath()));
             });
         }
-        authButton.addClassNames(LumoUtility.Margin.MEDIUM);
-
         // Right side: toggle + auth button
         HorizontalLayout rightSection = new HorizontalLayout(themeToggleButton, authButton);
         rightSection.setAlignItems(FlexComponent.Alignment.CENTER);
