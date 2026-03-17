@@ -26,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Optional;
@@ -59,6 +60,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private ComboBox<Integer> pageSizeSelector;
     private IntegerField pageNumberField;
     private Span pageInfoLabel;
+    private Span noCompletedPostsMessage;
     
     // View mode controls
     private Button showCompletedPostsButton;
@@ -301,7 +303,12 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Create pagination controls
         VerticalLayout paginationLayout = createPaginationControls();
 
-        completedLayout.add(selectorsLayout, paginationLayout);
+        noCompletedPostsMessage = new Span();
+        noCompletedPostsMessage.addClassName("empty-completed-posts-message");
+        noCompletedPostsMessage.setVisible(false);
+
+        completedLayout.add(selectorsLayout, paginationLayout, noCompletedPostsMessage);
+        updateCompletedPostsEmptyState();
         return completedLayout;
     }
 
@@ -469,19 +476,23 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         if (currentPageData == null) return;
         
         int totalPages = currentPageData.getTotalPages();
-        
-        // Update button states
-        firstPageButton.setEnabled(currentPage > 0);
-        previousPageButton.setEnabled(currentPage > 0);
-        nextPageButton.setEnabled(currentPage < totalPages - 1);
-        lastPageButton.setEnabled(currentPage < totalPages - 1);
+        boolean hasPages = totalPages > 0;
 
-        // Update page number field
-        pageNumberField.setValue(currentPage + 1);
-        pageNumberField.setMax(totalPages);
+        // Update button states
+        firstPageButton.setEnabled(hasPages && currentPage > 0);
+        previousPageButton.setEnabled(hasPages && currentPage > 0);
+        nextPageButton.setEnabled(hasPages && currentPage < totalPages - 1);
+        lastPageButton.setEnabled(hasPages && currentPage < totalPages - 1);
+
+        // Keep page controls valid even when there are no completed posts
+        int visibleTotalPages = Math.max(totalPages, 1);
+        int visiblePage = hasPages ? currentPage + 1 : 1;
+        pageNumberField.setValue(visiblePage);
+        pageNumberField.setMax(visibleTotalPages);
 
         // Update page info label
-        pageInfoLabel.setText("of " + totalPages);
+        pageInfoLabel.setText("of " + visibleTotalPages);
+        updateCompletedPostsEmptyState();
     }
 
     private void updatePostSelector() {
@@ -491,6 +502,46 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             postSelector.setItems(new ArrayList<>());
         }
         postSelector.setValue(null);
+        updateCompletedPostsEmptyState();
+    }
+
+    private void updateCompletedPostsEmptyState() {
+        if (currentPageData == null) {
+            return;
+        }
+
+        boolean hasPosts = !currentPageData.getContent().isEmpty();
+
+        if (postSelector != null) {
+            postSelector.setEnabled(hasPosts);
+        }
+        if (pageNumberField != null) {
+            pageNumberField.setEnabled(hasPosts);
+        }
+
+        if (noCompletedPostsMessage != null) {
+            if (hasPosts) {
+                noCompletedPostsMessage.setVisible(false);
+                noCompletedPostsMessage.setText("");
+            } else {
+                noCompletedPostsMessage.setText("No completed posts yet for " + getDisplayName(selectedUser) + ".");
+                noCompletedPostsMessage.setVisible(true);
+            }
+        }
+    }
+
+    private String getDisplayName(User user) {
+        if (user == null) {
+            return "this user";
+        }
+        String fullName = (user.getFirstName() + " " + user.getLastName()).trim();
+        if (StringUtils.hasText(fullName) && !"null null".equalsIgnoreCase(fullName)) {
+            return fullName;
+        }
+        if (StringUtils.hasText(user.getSlackUsername())) {
+            return user.getSlackUsername();
+        }
+        return "this user";
     }
 
     private void goToFirstPage() {
