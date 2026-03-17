@@ -56,6 +56,7 @@ html {
     --tnra-header-bg: #ffffff;
     --tnra-header-border: #e2e5f1;
     --tnra-drawer-bg: #f8f9fc;
+    --tnra-navbar-height: 56px;
 
     /* --- Status --- */
     --tnra-error: #ef4444;
@@ -220,23 +221,53 @@ vaadin-app-layout::part(drawer) {
 vaadin-app-layout::part(navbar) {
     background: var(--tnra-header-bg);
     border-bottom: 1px solid var(--tnra-header-border);
+    box-sizing: border-box;
     box-shadow: var(--tnra-shadow-sm);
-    min-height: 56px;
+    height: var(--tnra-navbar-height);
+    min-height: var(--tnra-navbar-height);
+    inset-inline: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    position: fixed;
+    top: 0;
+    z-index: 1200;
+}
+
+vaadin-app-layout [slot="navbar"] {
+    align-items: center;
+    box-sizing: border-box;
+    display: flex;
+    min-height: 100%;
+    margin-top: 0;
+    padding-top: 0;
 }
 
 vaadin-app-layout::part(drawer) {
     background: var(--tnra-drawer-bg);
     border-right: 1px solid var(--tnra-border);
+    padding-top: 0;
+    top: var(--tnra-navbar-height);
+    z-index: 1100;
+}
+
+vaadin-app-layout::part(backdrop) {
+    z-index: 1050;
 }
 
 vaadin-app-layout [slot="navbar"] h1 {
     font-weight: 700;
     font-size: 1.35rem;
     letter-spacing: -0.02em;
+    margin: 0;
     background: linear-gradient(135deg, var(--tnra-primary), var(--tnra-accent));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+}
+
+vaadin-app-layout [slot="navbar"] vaadin-drawer-toggle {
+    position: relative;
+    z-index: 1201;
 }
 
 

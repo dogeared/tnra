@@ -23,7 +23,7 @@
 .sticky-header {
     position: sticky;
     top: 0;
-    z-index: 100;
+    z-index: 20;
     background-color: var(--tnra-header-bg);
     border-bottom: 1px solid var(--tnra-border);
     box-shadow: var(--tnra-shadow-sm);
@@ -252,7 +252,7 @@
     border-top: 1px solid var(--tnra-border);
     background-color: var(--tnra-header-bg);
     box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.06);
-    z-index: 100;
+    z-index: 20;
     backdrop-filter: blur(12px);
 }
 
@@ -267,7 +267,15 @@
    RESPONSIVE
    ========================================= */
 
-@media (max-width: 768px) {
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+    .sticky-header,
+    .post-footer {
+        position: static;
+        top: auto;
+        bottom: auto;
+        z-index: auto;
+    }
+
     .post-content {
         max-width: 100%;
         padding: 0 0.75rem;
