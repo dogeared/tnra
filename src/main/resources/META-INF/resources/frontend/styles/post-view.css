@@ -22,7 +22,7 @@
 
 .sticky-header {
     position: sticky;
-    top: var(--tnra-navbar-height, 56px);
+    top: 0;
     z-index: 20;
     background-color: var(--tnra-header-bg);
     border-bottom: 1px solid var(--tnra-border);
