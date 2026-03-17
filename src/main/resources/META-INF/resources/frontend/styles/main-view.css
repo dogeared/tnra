@@ -30,6 +30,11 @@
     font-weight: 600;
 }
 
+.main-posts-button {
+    min-width: 9rem;
+    font-weight: 600;
+}
+
 /* Welcome Message Styles */
 .welcome-message {
     text-align: center;
