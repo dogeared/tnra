@@ -230,7 +230,7 @@ vaadin-app-layout::part(navbar) {
     padding-bottom: 0;
     position: fixed;
     top: 0;
-    z-index: 1000;
+    z-index: 1200;
 }
 
 vaadin-app-layout [slot="navbar"] {
@@ -265,7 +265,7 @@ vaadin-app-layout [slot="navbar"] h1 {
 
 vaadin-app-layout [slot="navbar"] vaadin-drawer-toggle {
     position: relative;
-    z-index: 1001;
+    z-index: 1201;
 }
 
 
