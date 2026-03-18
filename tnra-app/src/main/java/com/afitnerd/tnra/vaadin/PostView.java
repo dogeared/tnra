@@ -11,6 +11,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
@@ -44,6 +45,7 @@ import java.util.Optional;
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
 @PermitAll
+@JsModule("./tnra-offline-sync.js")
 @CssImport("./styles/post-view.css")
 public class PostView extends VerticalLayout implements AfterNavigationObserver, HasUrlParameter<String> {
 
@@ -162,6 +164,8 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             if (ui == null) return;
             ui.beforeClientResponse(this, ctx -> AppNotification.info(message));
         }
+
+        getUI().ifPresent(ui -> ui.getPage().executeJs("window.TnraOfflineSync?.init();"));
     }
 
     private void initializeUser() {
