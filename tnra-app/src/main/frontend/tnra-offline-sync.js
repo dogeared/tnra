@@ -1,6 +1,8 @@
 (() => {
   const STORAGE_KEY = "tnra:posts:offline-draft:v1";
   const SYNC_INTERVAL_MS = 15000;
+  const RESTORE_RETRY_DELAY_MS = 250;
+  const RESTORE_MAX_ATTEMPTS = 8;
   const STAT_NAMES = ["exercise", "meditate", "pray", "read", "gtg", "meetings", "sponsor"];
   const FIELD_CONFIG = [
     { selector: "vaadin-text-area[label=\"What I Don't Want You To Know\"]", path: ["intro", "widwytk"] },
@@ -16,6 +18,7 @@
 
   let initialized = false;
   let syncing = false;
+  let restoring = false;
   let syncTimerId = null;
 
   function getElement(config) {
@@ -43,6 +46,31 @@
       return null;
     }
     return typeof element.value === "string" ? element.value : element.value ?? null;
+  }
+
+  function getByPath(source, path) {
+    let node = source;
+    for (let i = 0; i < path.length; i += 1) {
+      if (node == null || typeof node !== "object") {
+        return undefined;
+      }
+      node = node[path[i]];
+    }
+    return node;
+  }
+
+  function setFieldValue(element, value) {
+    if (!element) {
+      return false;
+    }
+    const nextValue = value == null ? "" : `${value}`;
+    if (`${element.value ?? ""}` === nextValue) {
+      return false;
+    }
+    element.value = nextValue;
+    element.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    element.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    return true;
   }
 
   function readDraftFromUi() {
@@ -92,11 +120,12 @@
   }
 
   function saveDraft() {
-    if (!window.location.pathname.startsWith("/posts")) {
+    if (restoring || !window.location.pathname.startsWith("/posts")) {
       return;
     }
     const draft = readDraftFromUi();
     if (!hasDraftContent(draft)) {
+      localStorage.removeItem(STORAGE_KEY);
       return;
     }
     localStorage.setItem(
@@ -188,6 +217,61 @@
     }
   }
 
+  function applyStoredDraftToUi(storedDraft) {
+    if (!storedDraft || !storedDraft.draft) {
+      return false;
+    }
+
+    restoring = true;
+    let updated = false;
+    try {
+      FIELD_CONFIG.forEach((config) => {
+        const element = getElement(config);
+        const value = getByPath(storedDraft.draft, config.path);
+        if (value !== undefined && value !== null) {
+          updated = setFieldValue(element, value) || updated;
+        }
+      });
+
+      const statInputs = document.querySelectorAll(".stat-input");
+      STAT_NAMES.forEach((statName, index) => {
+        const element = statInputs[index];
+        const value = storedDraft.draft.stats?.[statName];
+        if (value !== undefined && value !== null) {
+          updated = setFieldValue(element, value) || updated;
+        }
+      });
+    } finally {
+      restoring = false;
+    }
+
+    if (updated) {
+      window.dispatchEvent(new CustomEvent("tnra-offline-draft-restored"));
+    }
+    return updated;
+  }
+
+  function restoreDraftFromStorage(attempt = 0) {
+    const stored = getStoredDraft();
+    if (!stored) {
+      return;
+    }
+
+    const uiDraft = readDraftFromUi();
+    if (hasDraftContent(uiDraft)) {
+      return;
+    }
+
+    const restored = applyStoredDraftToUi(stored);
+    if (restored || attempt >= RESTORE_MAX_ATTEMPTS) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      restoreDraftFromStorage(attempt + 1);
+    }, RESTORE_RETRY_DELAY_MS);
+  }
+
   function listenForFieldChanges() {
     document.addEventListener("change", saveDraft, true);
     document.addEventListener("input", saveDraft, true);
@@ -219,6 +303,7 @@
     initialized = true;
     listenForFieldChanges();
     initSyncLoop();
+    restoreDraftFromStorage();
     syncDraft();
   }
 
