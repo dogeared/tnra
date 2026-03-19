@@ -192,7 +192,7 @@
   }
 
   async function syncDraft() {
-    if (syncing || !navigator.onLine || !window.location.pathname.startsWith("/posts")) {
+    if (syncing || !navigator.onLine) {
       return;
     }
     const stored = getStoredDraft();
