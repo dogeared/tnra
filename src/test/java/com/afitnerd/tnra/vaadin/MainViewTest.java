@@ -92,6 +92,24 @@ class MainViewTest {
     }
 
     @Test
+    void testAuthenticatedViewShowsQuickActionButtons() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        long quickActionCount = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Button)
+            .map(component -> (Button) component)
+            .filter(button -> "Go to Posts".equals(button.getText()) || "View Profile".equals(button.getText()))
+            .count();
+
+        assertEquals(2, quickActionCount, "Expected authenticated users to see quick action buttons");
+    }
+
+    @Test
     void testMainViewLayoutProperties() {
         // Arrange
         lenient().when(oidcUserService.isAuthenticated()).thenReturn(true);
