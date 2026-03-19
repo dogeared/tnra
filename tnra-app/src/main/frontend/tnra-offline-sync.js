@@ -1,5 +1,6 @@
 (() => {
   const STORAGE_KEY = "tnra:posts:offline-draft:v1";
+  const ACTIONS_KEY = "tnra:posts:offline-actions:v1";
   const SYNC_INTERVAL_MS = 15000;
   const RESTORE_RETRY_DELAY_MS = 250;
   const RESTORE_MAX_ATTEMPTS = 8;
@@ -153,6 +154,27 @@
     }
   }
 
+  function getStoredActions() {
+    const raw = localStorage.getItem(ACTIONS_KEY);
+    if (!raw) {
+      return {};
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch (err) {
+      return {};
+    }
+  }
+
+  function saveActions(actions) {
+    if (!actions || Object.keys(actions).length === 0) {
+      localStorage.removeItem(ACTIONS_KEY);
+      return;
+    }
+    localStorage.setItem(ACTIONS_KEY, JSON.stringify(actions));
+  }
+
   async function fetchInProgressPost() {
     const response = await fetch("/api/v1/in_progress", {
       method: "GET",
@@ -163,6 +185,29 @@
       throw new Error(`Unable to read in-progress post (${response.status})`);
     }
     return response.json();
+  }
+
+  async function startInProgressPost() {
+    const response = await fetch("/api/v1/start_from_app", {
+      method: "GET",
+      credentials: "same-origin",
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) {
+      throw new Error(`Unable to start post (${response.status})`);
+    }
+    return response.json();
+  }
+
+  async function finishInProgressPost() {
+    const response = await fetch("/api/v1/finish_from_app", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { Accept: "application/json" }
+    });
+    if (!response.ok) {
+      throw new Error(`Unable to finish post (${response.status})`);
+    }
   }
 
   function mergeDraft(post, draft) {
@@ -196,20 +241,36 @@
       return;
     }
     const stored = getStoredDraft();
-    if (!stored) {
+    const actions = getStoredActions();
+    if (!stored && !actions.finishAfterSync) {
       return;
     }
 
     syncing = true;
     try {
-      const serverPost = await fetchInProgressPost();
-      if (!serverPost || serverPost.state !== "IN_PROGRESS") {
-        return;
+      let serverPost = await fetchInProgressPost();
+      if (stored && (!serverPost || serverPost.state !== "IN_PROGRESS")) {
+        serverPost = await startInProgressPost();
       }
-      const merged = mergeDraft(serverPost, stored.draft);
-      await pushPost(merged);
-      localStorage.removeItem(STORAGE_KEY);
-      window.dispatchEvent(new CustomEvent("tnra-offline-sync-success"));
+
+      if (stored) {
+        const merged = mergeDraft(serverPost, stored.draft);
+        await pushPost(merged);
+        localStorage.removeItem(STORAGE_KEY);
+        window.dispatchEvent(new CustomEvent("tnra-offline-sync-success"));
+      }
+
+      if (actions.finishAfterSync) {
+        if (!serverPost || serverPost.state !== "IN_PROGRESS") {
+          serverPost = await fetchInProgressPost();
+        }
+        if (!serverPost || serverPost.state !== "IN_PROGRESS") {
+          return;
+        }
+        await finishInProgressPost();
+        saveActions({});
+        window.dispatchEvent(new CustomEvent("tnra-offline-finish-success"));
+      }
     } catch (err) {
       // Keep draft; next reconnect or timer run retries.
     } finally {
@@ -309,7 +370,10 @@
 
   window.TnraOfflineSync = {
     init,
-    syncDraft
+    syncDraft,
+    getStoredDraft,
+    getStoredActions,
+    saveActions
   };
 
   window.addEventListener("beforeunload", () => {
