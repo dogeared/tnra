@@ -114,10 +114,12 @@ public class MainView extends VerticalLayout {
                 "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
-            
+
+            HorizontalLayout quickActions = createQuickActions();
+
             profileSection.add(profileImage, welcomeMessage);
-            
-            add(title, profileSection);
+
+            add(title, profileSection, quickActions);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -137,6 +139,28 @@ public class MainView extends VerticalLayout {
 
             log.warn("Error while rendering authenticated main view", e);
         }
+    }
+
+    private HorizontalLayout createQuickActions() {
+        HorizontalLayout quickActions = new HorizontalLayout();
+        quickActions.setSpacing(true);
+        quickActions.setAlignItems(Alignment.CENTER);
+        quickActions.addClassName("main-quick-actions");
+
+        Button postsButton = new Button("Go to Posts");
+        postsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        postsButton.addClickListener(click -> getUI().ifPresent(ui -> ui.navigate(PostView.class)));
+
+        Button profileButton = new Button("View Profile");
+        profileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        profileButton.addClickListener(click -> getUI().ifPresent(ui -> ui.navigate(ProfileView.class)));
+
+        Button statsButton = new Button("Edit Stats");
+        statsButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        statsButton.addClickListener(click -> getUI().ifPresent(ui -> ui.navigate(StatsView.class)));
+
+        quickActions.add(postsButton, profileButton, statsButton);
+        return quickActions;
     }
 
     private String resolveDisplayName(String displayName, User currentUser) {

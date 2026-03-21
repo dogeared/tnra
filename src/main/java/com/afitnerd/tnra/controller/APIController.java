@@ -11,6 +11,8 @@ import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.SlackPostRenderer;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
 import com.fasterxml.jackson.annotation.JsonView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +27,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/v1")
 public class APIController {
+    private static final Logger log = LoggerFactory.getLogger(APIController.class);
 
     private final PostService postService;
     private final EMailService eMailService;
@@ -68,14 +71,30 @@ public class APIController {
     @GetMapping("/notify_what_and_whens")
     public GoToGuySet notifyWhatAndWhens() {
         GoToGuySet goToGuySet = gtgLatest();
+        if (goToGuySet == null || goToGuySet.getGoToGuyPairs() == null) {
+            log.warn("Skipping notifications because there is no GTG set or GTG pair list");
+            return goToGuySet;
+        }
         goToGuySet.getGoToGuyPairs().forEach(gtgPair -> {
+            if (gtgPair.getCaller() == null || gtgPair.getCallee() == null) {
+                log.warn("Skipping GTG pair with missing caller/callee: {}", gtgPair);
+                return;
+            }
             //if (gtgPair.getCallee().getFirstName().equalsIgnoreCase("micah")) {
             // send caller what and when
             Post calleePost = postService.getLastFinishedPost(gtgPair.getCallee());
-            eMailService.sendTextViaMail(gtgPair.getCallee(), calleePost);
+            if (calleePost != null) {
+                eMailService.sendTextViaMail(gtgPair.getCaller(), calleePost);
+            } else {
+                log.warn("No finished post for callee {}. Skipping caller notification.", gtgPair.getCallee().getEmail());
+            }
             // send callee what and when
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
-            eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+            if (callerPost != null) {
+                eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+            } else {
+                log.warn("No finished post for caller {}. Skipping callee notification.", gtgPair.getCaller().getEmail());
+            }
             //}
         });
         return goToGuySet;
