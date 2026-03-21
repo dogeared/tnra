@@ -21,8 +21,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -76,8 +78,30 @@ class APIControllerTest {
         GoToGuySet returned = controller.notifyWhatAndWhens();
 
         assertSame(gtgSet, returned);
-        verify(eMailService).sendTextViaMail(callee, calleePost);
+        verify(eMailService).sendTextViaMail(caller, calleePost);
         verify(eMailService).sendTextViaMail(callee, callerPost);
+    }
+
+    @Test
+    void notifyWhatAndWhensSkipsNullPostsAndReturnsWhenNoSet() {
+        APIController controller = controller();
+        User caller = new User("Caller", "One", "caller@example.com");
+        User callee = new User("Callee", "Two", "callee@example.com");
+        GoToGuyPair pair = new GoToGuyPair();
+        pair.setCaller(caller);
+        pair.setCallee(callee);
+        GoToGuySet gtgSet = new GoToGuySet();
+        gtgSet.setGoToGuyPairs(List.of(pair));
+
+        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(gtgSet);
+        when(postService.getLastFinishedPost(callee)).thenReturn(null);
+        when(postService.getLastFinishedPost(caller)).thenReturn(null);
+
+        assertSame(gtgSet, controller.notifyWhatAndWhens());
+        verify(eMailService, never()).sendTextViaMail(any(User.class), any(Post.class));
+
+        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(null);
+        assertNull(controller.notifyWhatAndWhens());
     }
 
     @Test

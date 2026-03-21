@@ -7,7 +7,6 @@ import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import org.junit.jupiter.api.BeforeEach;
@@ -253,5 +252,24 @@ class MainViewTest {
             .anyMatch(component -> component instanceof Button && "Log in".equals(((Button) component).getText()));
 
         assertTrue(hasLoginButton, "Expected unauthenticated view to include a log in button");
+    }
+
+    @Test
+    void testAuthenticatedViewShowsQuickActionButtons() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        long quickActionCount = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Button)
+            .map(component -> (Button) component)
+            .map(Button::getText)
+            .filter(text -> "Go to Posts".equals(text) || "View Profile".equals(text) || "Edit Stats".equals(text))
+            .count();
+
+        assertEquals(3, quickActionCount, "Expected authenticated main view to show all quick action buttons");
     }
 }
