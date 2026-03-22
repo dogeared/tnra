@@ -354,6 +354,32 @@
     }, SYNC_INTERVAL_MS);
   }
 
+  function queueFinishAfterReconnect() {
+    const nextActions = { ...getStoredActions(), finishAfterSync: true };
+    saveActions(nextActions);
+    saveDraft();
+    window.dispatchEvent(new CustomEvent("tnra-offline-finish-queued"));
+  }
+
+  function wireFinishButtonOfflineQueue() {
+    document.addEventListener("click", (event) => {
+      const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+      const finishButton = path.find(
+        (node) => node instanceof HTMLElement && node.classList?.contains("finish-post-button")
+      );
+      if (!finishButton) {
+        return;
+      }
+      if (navigator.onLine) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      queueFinishAfterReconnect();
+    }, true);
+  }
+
   function init() {
     if (initialized) {
       return;
@@ -364,6 +390,7 @@
     initialized = true;
     listenForFieldChanges();
     initSyncLoop();
+    wireFinishButtonOfflineQueue();
     restoreDraftFromStorage();
     syncDraft();
   }
