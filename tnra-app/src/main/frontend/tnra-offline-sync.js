@@ -181,6 +181,9 @@
       credentials: "same-origin",
       headers: { Accept: "application/json" }
     });
+    if (response.status === 404) {
+      return null;
+    }
     if (!response.ok) {
       throw new Error(`Unable to read in-progress post (${response.status})`);
     }
