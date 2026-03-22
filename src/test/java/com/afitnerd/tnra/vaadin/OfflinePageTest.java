@@ -21,6 +21,7 @@ class OfflinePageTest {
             assertTrue(html.contains("tnra:posts:offline-draft:v1"));
             assertTrue(html.contains("/api/v1/in_progress"));
             assertTrue(html.contains("/api/v1/finish_from_app"));
+            assertTrue(html.contains("response.status === 404"));
         }
     }
 }
