@@ -30,6 +30,18 @@
     font-weight: 600;
 }
 
+.main-action-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.main-action-button {
+    min-width: 11rem;
+    font-weight: 600;
+}
+
 /* Welcome Message Styles */
 .welcome-message {
     text-align: center;
@@ -70,4 +82,11 @@
 
 .main-profile-image:hover {
     border-color: var(--tnra-accent);
+}
+
+@media (max-width: 640px) {
+    .profile-section {
+        flex-direction: column;
+        text-align: center;
+    }
 }
