@@ -22,6 +22,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Optional;
 
@@ -63,6 +64,7 @@ class PostViewTest {
     private Post completedPost1;
     private Post completedPost2;
     private org.springframework.data.domain.Page<Post> completedPostsPage;
+    private org.springframework.data.domain.Page<Post> emptyCompletedPostsPage;
 
     private PostView postView;
 
@@ -95,6 +97,7 @@ class PostViewTest {
         completedPost2.setFinish(new Date(System.currentTimeMillis() - 169200000L)); // finished 1 hour later
 
         completedPostsPage = new PageImpl<>(Arrays.asList(completedPost1, completedPost2));
+        emptyCompletedPostsPage = new PageImpl<>(Collections.emptyList());
 
         // Setup common mocks with lenient stubbing to avoid unnecessary stubbing warnings
         lenient().when(vaadinPostPresenter.initializeUser()).thenReturn(testUser);
@@ -381,6 +384,28 @@ class PostViewTest {
     }
 
     @Test
+    void testCompletedViewWithoutPostsDisablesSelectorAndNormalizesPagination() {
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class))).thenReturn(emptyCompletedPostsPage);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            ComboBox<?> completedPostsSelector = findComponentByClassName(postView, ComboBox.class, "post-selector");
+            assertNotNull(completedPostsSelector, "Completed post selector should exist");
+            assertFalse(completedPostsSelector.isEnabled(), "Completed post selector should be disabled for empty pages");
+
+            Span pageInfo = findComponentByClassName(postView, Span.class, "page-info");
+            assertNotNull(pageInfo, "Page info should be rendered");
+            assertTrue(pageInfo.getText().contains("of 1"), "Empty pagination should display one normalized page");
+        }
+    }
+
+    @Test
     void testFormFieldsExist() {
         // Arrange
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
@@ -554,6 +579,21 @@ class PostViewTest {
             }
         }
         return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Component> T findComponentByClassName(Component parent, Class<T> componentType, String className) {
+        if (componentType.isInstance(parent) && parent.getClassNames().contains(className)) {
+            return (T) parent;
+        }
+
+        for (Component child : parent.getChildren().toArray(Component[]::new)) {
+            T result = findComponentByClassName(child, componentType, className);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
     }
 
     private void invokeMethod(Object target, String methodName) {
