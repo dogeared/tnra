@@ -75,7 +75,7 @@ public class APIController {
             eMailService.sendTextViaMail(gtgPair.getCallee(), calleePost);
             // send callee what and when
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
-            eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+            eMailService.sendTextViaMail(gtgPair.getCaller(), callerPost);
             //}
         });
         return goToGuySet;

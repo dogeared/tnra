@@ -71,3 +71,31 @@
 .main-profile-image:hover {
     border-color: var(--tnra-accent);
 }
+
+.main-quick-actions {
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.main-action-button {
+    min-width: 11rem;
+    font-weight: 600;
+}
+
+@media (max-width: 640px) {
+    .profile-section {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .main-quick-actions {
+        width: 100%;
+    }
+
+    .main-action-button {
+        width: 100%;
+    }
+}
