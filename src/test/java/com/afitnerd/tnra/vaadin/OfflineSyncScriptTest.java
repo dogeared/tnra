@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OfflineSyncScriptTest {
@@ -19,5 +20,6 @@ class OfflineSyncScriptTest {
         assertTrue(script.contains("tnra-offline-finish-queued"));
         assertTrue(script.contains("finishAfterSync: true"));
         assertTrue(script.contains("event.stopImmediatePropagation()"));
+        assertFalse(script.contains("if (!window.location.pathname.startsWith(\"/posts\")) {"));
     }
 }
