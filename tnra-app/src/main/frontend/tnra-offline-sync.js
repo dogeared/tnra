@@ -387,14 +387,13 @@
     if (initialized) {
       return;
     }
-    if (!window.location.pathname.startsWith("/posts")) {
-      return;
-    }
     initialized = true;
-    listenForFieldChanges();
     initSyncLoop();
-    wireFinishButtonOfflineQueue();
-    restoreDraftFromStorage();
+    if (window.location.pathname.startsWith("/posts")) {
+      listenForFieldChanges();
+      wireFinishButtonOfflineQueue();
+      restoreDraftFromStorage();
+    }
     syncDraft();
   }
 
