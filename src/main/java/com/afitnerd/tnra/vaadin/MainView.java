@@ -114,10 +114,12 @@ public class MainView extends VerticalLayout {
                 "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
+
+            HorizontalLayout quickActions = createQuickActions();
             
             profileSection.add(profileImage, welcomeMessage);
             
-            add(title, profileSection);
+            add(title, profileSection, quickActions);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -137,6 +139,33 @@ public class MainView extends VerticalLayout {
 
             log.warn("Error while rendering authenticated main view", e);
         }
+    }
+
+    private HorizontalLayout createQuickActions() {
+        HorizontalLayout quickActions = new HorizontalLayout();
+        quickActions.addClassName("main-quick-actions");
+        quickActions.setSpacing(true);
+
+        Button openPostsButton = new Button("Open Posts", click ->
+            getUI().ifPresent(ui -> ui.navigate("posts"))
+        );
+        openPostsButton.addClassName("main-action-button");
+        openPostsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+        Button viewStatsButton = new Button("View Stats", click ->
+            getUI().ifPresent(ui -> ui.navigate("stats"))
+        );
+        viewStatsButton.addClassName("main-action-button");
+        viewStatsButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        Button updateProfileButton = new Button("Update Profile", click ->
+            getUI().ifPresent(ui -> ui.navigate("profile"))
+        );
+        updateProfileButton.addClassName("main-action-button");
+        updateProfileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        quickActions.add(openPostsButton, viewStatsButton, updateProfileButton);
+        return quickActions;
     }
 
     private String resolveDisplayName(String displayName, User currentUser) {
