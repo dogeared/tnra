@@ -12,6 +12,7 @@ import com.afitnerd.tnra.service.SlackPostRenderer;
 import com.afitnerd.tnra.slack.service.SlackAPIService;
 import com.fasterxml.jackson.annotation.JsonView;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -75,7 +76,7 @@ public class APIController {
             eMailService.sendTextViaMail(gtgPair.getCallee(), calleePost);
             // send callee what and when
             Post callerPost = postService.getLastFinishedPost(gtgPair.getCaller());
-            eMailService.sendTextViaMail(gtgPair.getCallee(), callerPost);
+            eMailService.sendTextViaMail(gtgPair.getCaller(), callerPost);
             //}
         });
         return goToGuySet;
@@ -118,7 +119,22 @@ public class APIController {
 
     @PostMapping("/in_progress")
     Post updatePost(Principal me, @RequestBody Post post) {
+        User currentUser = userRepository.findByEmail(me.getName());
+        if (post.getUser() != null && !isCurrentUser(post.getUser(), currentUser)) {
+            throw new IllegalArgumentException("Post user does not match current user");
+        }
+        post.setUser(currentUser);
         return postService.savePost(post);
+    }
+
+    private boolean isCurrentUser(User postUser, User currentUser) {
+        if (postUser.getId() != null && currentUser.getId() != null) {
+            return postUser.getId().equals(currentUser.getId());
+        }
+        if (StringUtils.hasText(postUser.getEmail()) && StringUtils.hasText(currentUser.getEmail())) {
+            return postUser.getEmail().trim().equalsIgnoreCase(currentUser.getEmail().trim());
+        }
+        return false;
     }
 
     @GetMapping("/complete")
