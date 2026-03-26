@@ -22,7 +22,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -77,7 +80,7 @@ class APIControllerTest {
 
         assertSame(gtgSet, returned);
         verify(eMailService).sendTextViaMail(callee, calleePost);
-        verify(eMailService).sendTextViaMail(callee, callerPost);
+        verify(eMailService).sendTextViaMail(caller, callerPost);
     }
 
     @Test
@@ -85,17 +88,33 @@ class APIControllerTest {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
         User user = new User("Test", "User", "user@example.com");
+        user.setId(1L);
         Post post = new Post(user);
         when(userRepository.findByEmail("user@example.com")).thenReturn(user);
         when(postService.getOptionalInProgressPost(user)).thenReturn(Optional.of(post));
         when(postService.getOptionalCompletePost(user)).thenReturn(Optional.of(post));
         when(postService.startPost(user)).thenReturn(post);
-        when(postService.savePost(post)).thenReturn(post);
+        when(postService.savePost(argThat(saved -> saved.getUser() == user))).thenReturn(post);
 
         assertEquals(Optional.of(post), controller.getInProgressPost(principal));
         assertSame(post, controller.updatePost(principal, post));
         assertEquals(Optional.of(post), controller.getCompletePost(principal));
         assertSame(post, controller.startPost(principal));
+    }
+
+    @Test
+    void updatePostRejectsOtherUsersPost() {
+        APIController controller = controller();
+        Principal principal = () -> "user@example.com";
+        User currentUser = new User("Current", "User", "user@example.com");
+        currentUser.setId(1L);
+        User otherUser = new User("Other", "User", "other@example.com");
+        otherUser.setId(2L);
+        Post post = new Post(otherUser);
+        when(userRepository.findByEmail("user@example.com")).thenReturn(currentUser);
+
+        assertThrows(IllegalArgumentException.class, () -> controller.updatePost(principal, post));
+        verify(postService, never()).savePost(any(Post.class));
     }
 
     @Test

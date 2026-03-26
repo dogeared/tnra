@@ -71,3 +71,59 @@
 .main-profile-image:hover {
     border-color: var(--tnra-accent);
 }
+
+.main-action-section {
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 42rem;
+}
+
+.main-action-title {
+    color: var(--tnra-text);
+    font-size: 1.1rem;
+    margin: 0 0 0.75rem;
+}
+
+.main-action-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.main-action-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 9rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--tnra-radius-sm);
+    border: 1px solid var(--tnra-border-subtle);
+    color: var(--tnra-text);
+    background: var(--tnra-surface);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all var(--tnra-transition);
+}
+
+.main-action-link:hover {
+    border-color: var(--tnra-primary);
+    box-shadow: var(--tnra-shadow-sm);
+}
+
+@media (max-width: 640px) {
+    .profile-section {
+        flex-direction: column;
+        text-align: center;
+        width: 100%;
+    }
+
+    .main-action-links {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .main-action-link {
+        width: 100%;
+    }
+}

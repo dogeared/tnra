@@ -6,6 +6,7 @@ import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
@@ -253,5 +254,22 @@ class MainViewTest {
             .anyMatch(component -> component instanceof Button && "Log in".equals(((Button) component).getText()));
 
         assertTrue(hasLoginButton, "Expected unauthenticated view to include a log in button");
+    }
+
+    @Test
+    void testAuthenticatedViewShowsQuickActionLinks() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        long actionLinkCount = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Anchor)
+            .count();
+
+        assertEquals(3, actionLinkCount, "Expected quick action links for posts, stats, and profile");
     }
 }

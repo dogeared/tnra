@@ -8,6 +8,7 @@ import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
@@ -116,8 +117,10 @@ public class MainView extends VerticalLayout {
             welcomeMessage.addClassName("welcome-message");
             
             profileSection.add(profileImage, welcomeMessage);
-            
-            add(title, profileSection);
+
+            VerticalLayout actionSection = createActionSection();
+
+            add(title, profileSection, actionSection);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -132,11 +135,39 @@ public class MainView extends VerticalLayout {
                 "Note: Could not retrieve user details due to an error."
             );
             errorMessage.addClassName("error-message");
-            
-            add(title, welcomeMessage, errorMessage);
+
+            VerticalLayout actionSection = createActionSection();
+
+            add(title, welcomeMessage, errorMessage, actionSection);
 
             log.warn("Error while rendering authenticated main view", e);
         }
+    }
+
+    private VerticalLayout createActionSection() {
+        VerticalLayout actionSection = new VerticalLayout();
+        actionSection.setSpacing(false);
+        actionSection.setPadding(false);
+        actionSection.setAlignItems(Alignment.CENTER);
+        actionSection.addClassName("main-action-section");
+
+        H2 actionTitle = new H2("Quick actions");
+        actionTitle.addClassName("main-action-title");
+
+        HorizontalLayout links = new HorizontalLayout();
+        links.setSpacing(true);
+        links.addClassName("main-action-links");
+
+        Anchor postsLink = new Anchor("/posts", "Open posts");
+        postsLink.addClassName("main-action-link");
+        Anchor statsLink = new Anchor("/stats", "View stats");
+        statsLink.addClassName("main-action-link");
+        Anchor profileLink = new Anchor("/profile", "Update profile");
+        profileLink.addClassName("main-action-link");
+
+        links.add(postsLink, statsLink, profileLink);
+        actionSection.add(actionTitle, links);
+        return actionSection;
     }
 
     private String resolveDisplayName(String displayName, User currentUser) {
