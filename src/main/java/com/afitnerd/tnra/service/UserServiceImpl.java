@@ -49,9 +49,6 @@ public class UserServiceImpl implements UserService {
             // Create new user from OIDC data
             user = new User(firstName, lastName, email);
             user.setActive(true);
-            // Set default values for required fields
-            user.setSlackUserId("oidc-" + email);
-            user.setSlackUsername(email.split("@")[0]);
             user = userRepository.save(user);
         }
         return user;

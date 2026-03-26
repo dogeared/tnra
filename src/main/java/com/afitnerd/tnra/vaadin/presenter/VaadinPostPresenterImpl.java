@@ -6,16 +6,13 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
-import com.afitnerd.tnra.service.SlackPostRenderer;
 import com.afitnerd.tnra.service.UserService;
-import com.afitnerd.tnra.slack.service.SlackAPIService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -25,26 +22,18 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     private final OidcUserService oidcUserService;
     private final PostService postService;
     private final EMailService eMailService;
-    private final SlackAPIService slackAPIService;
-    private final SlackPostRenderer slackPostRenderer;
 
     @Value("#{ @environment['tnra.emailService.enabled'] ?: true }")
     private boolean emailServiceEnabled;
 
-    @Value("#{ @environment['tnra.slackService.enabled'] ?: true }")
-    private boolean slackServiceEnabled;
-
     public VaadinPostPresenterImpl(
         OidcUserService oidcUserService, UserService userService,
-        PostService postService, EMailService eMailService,
-        SlackAPIService slackAPIService, SlackPostRenderer slackPostRenderer
+        PostService postService, EMailService eMailService
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.postService = postService;
         this.eMailService = eMailService;
-        this.slackAPIService = slackAPIService;
-        this.slackPostRenderer = slackPostRenderer;
     }
 
     @Override
@@ -53,11 +42,6 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
         if (emailServiceEnabled) {
             eMailService.sendMailToAll(post);
         }
-        if (slackServiceEnabled) {
-            // use chat api to send to general
-            Map<String, Object> charRes = slackAPIService.chat(slackPostRenderer.render(post));
-        }
-
         return post;
     }
 

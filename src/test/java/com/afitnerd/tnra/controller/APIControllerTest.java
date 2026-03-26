@@ -1,6 +1,5 @@
 package com.afitnerd.tnra.controller;
 
-import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
@@ -8,8 +7,6 @@ import com.afitnerd.tnra.repository.GoToGuySetRepository;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.PostService;
-import com.afitnerd.tnra.service.SlackPostRenderer;
-import com.afitnerd.tnra.slack.service.SlackAPIService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -17,12 +14,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.security.Principal;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,10 +28,6 @@ class APIControllerTest {
     private PostService postService;
     @Mock
     private EMailService eMailService;
-    @Mock
-    private SlackAPIService slackAPIService;
-    @Mock
-    private SlackPostRenderer slackPostRenderer;
     @Mock
     private UserRepository userRepository;
     @Mock
@@ -58,29 +49,6 @@ class APIControllerTest {
     }
 
     @Test
-    void notifyWhatAndWhensSendsLastFinishedPostsForEachPair() {
-        APIController controller = controller();
-        User caller = new User("Caller", "One", "caller@example.com");
-        User callee = new User("Callee", "Two", "callee@example.com");
-        GoToGuyPair pair = new GoToGuyPair();
-        pair.setCaller(caller);
-        pair.setCallee(callee);
-        GoToGuySet gtgSet = new GoToGuySet();
-        gtgSet.setGoToGuyPairs(List.of(pair));
-        Post callerPost = new Post(caller);
-        Post calleePost = new Post(callee);
-        when(goToGuySetRepository.findTopByOrderByStartDateDesc()).thenReturn(gtgSet);
-        when(postService.getLastFinishedPost(callee)).thenReturn(calleePost);
-        when(postService.getLastFinishedPost(caller)).thenReturn(callerPost);
-
-        GoToGuySet returned = controller.notifyWhatAndWhens();
-
-        assertSame(gtgSet, returned);
-        verify(eMailService).sendTextViaMail(callee, calleePost);
-        verify(eMailService).sendTextViaMail(callee, callerPost);
-    }
-
-    @Test
     void inProgressCompleteStartAndUpdateUseCurrentUser() {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
@@ -99,28 +67,24 @@ class APIControllerTest {
     }
 
     @Test
-    void finishPostSendsEmailAndSlackMessage() {
+    void finishPostSendsEmail() {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
         User user = new User("Test", "User", "user@example.com");
         Post post = new Post(user);
         when(userRepository.findByEmail("user@example.com")).thenReturn(user);
         when(postService.finishPost(user)).thenReturn(post);
-        when(slackPostRenderer.render(post)).thenReturn("finished");
 
         Post finished = controller.finishPost(principal);
 
         assertSame(post, finished);
         verify(eMailService).sendMailToAll(post);
-        verify(slackAPIService).chat(any(String.class));
     }
 
     private APIController controller() {
         return new APIController(
             postService,
             eMailService,
-            slackAPIService,
-            slackPostRenderer,
             userRepository,
             goToGuySetRepository
         );

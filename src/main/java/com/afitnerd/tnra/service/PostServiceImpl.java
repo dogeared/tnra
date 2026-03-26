@@ -231,7 +231,7 @@ public class PostServiceImpl implements PostService {
     private Post ensureCompletePost(User user) {
         Post post = ensureOneInProgressPost(user);
 
-        String errorBase = "Post for " + user.getSlackUsername() + " is not complete: ";
+        String errorBase = "Post for " + getUserDisplayName(user) + " is not complete: ";
 
         ensureIntro(errorBase, post);
         ensurePersonal(errorBase, post);
@@ -312,7 +312,7 @@ public class PostServiceImpl implements PostService {
 
     private Post ensureOneFinished(User user) {
         Optional<Post> post = postRepository.findFirstByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE);
-        return post.orElseThrow(() -> new PostException(user.getSlackUsername() + " has no finished posts."));
+        return post.orElseThrow(() -> new PostException(getUserDisplayName(user) + " has no finished posts."));
     }
 
     private void ensureNoInProgressPost(User user) {
@@ -321,7 +321,7 @@ public class PostServiceImpl implements PostService {
         if (posts != null && !posts.isEmpty()) {
             ensureDeterminateState(posts, user);
             throw new PostException(
-                "Can't start new post for " + user.getSlackUsername() + ". Existing post already in progress."
+                "Can't start new post for " + getUserDisplayName(user) + ". Existing post already in progress."
             );
         }
     }
@@ -330,16 +330,26 @@ public class PostServiceImpl implements PostService {
         // check to see if there's already post in progress
         List<Post> posts = postRepository.findByUserAndState(user, PostState.IN_PROGRESS);
         if (posts == null || posts.isEmpty()) {
-            throw new PostException("Expected an in progress post for " + user.getSlackUsername() + " but found none.");
+            throw new PostException("Expected an in progress post for " + getUserDisplayName(user) + " but found none.");
         }
         ensureDeterminateState(posts, user);
         return posts.get(0);
     }
 
+    private String getUserDisplayName(User user) {
+        if (user.getFirstName() != null && user.getLastName() != null) {
+            return user.getFirstName() + " " + user.getLastName();
+        }
+        if (user.getEmail() != null) {
+            return user.getEmail();
+        }
+        return "unknown user";
+    }
+
     private void ensureDeterminateState(List<Post> posts, User user) {
         if (posts != null && posts.size() > 1) {
             throw new PostException(
-                user.getSlackUsername() + " is in an indeterminate state with " + posts.size() + " posts in progress."
+                getUserDisplayName(user) + " is in an indeterminate state with " + posts.size() + " posts in progress."
             );
         }
     }

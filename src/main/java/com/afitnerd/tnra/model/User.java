@@ -46,22 +46,11 @@ public class User {
     @JsonView(JsonViews.Full.class)
     private Boolean active;
 
-    // TODO - need to uncouple this from slack
     @JsonView(JsonViews.Full.class)
-    @Column(nullable = false)
     private String slackUsername;
 
     @JsonView(JsonViews.Full.class)
-    @Column(nullable = false)
     private String slackUserId;
-
-    @JsonView(JsonViews.Full.class)
-    @Column(length = 4000)
-    private String pqAccessToken;
-
-    @JsonView(JsonViews.Full.class)
-    @Column(length = 4000)
-    private String pqRefreshToken;
 
     @JsonView(JsonViews.Full.class)
     @JsonIgnoreProperties("user")
@@ -74,11 +63,6 @@ public class User {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-    }
-
-    public User(String slackUserId, String slackUsername) {
-        this.slackUserId = slackUserId;
-        this.slackUsername = slackUsername;
     }
 
     public Long getId() {
@@ -167,22 +151,6 @@ public class User {
 
     public void setSlackUserId(String slackUserId) {
         this.slackUserId = slackUserId;
-    }
-
-    public String getPqAccessToken() {
-        return pqAccessToken;
-    }
-
-    public void setPqAccessToken(String pqAccessToken) {
-        this.pqAccessToken = pqAccessToken;
-    }
-
-    public String getPqRefreshToken() {
-        return pqRefreshToken;
-    }
-
-    public void setPqRefreshToken(String pqRefreshToken) {
-        this.pqRefreshToken = pqRefreshToken;
     }
 
     public Boolean getDarkMode() {
