@@ -337,10 +337,11 @@ public class PostServiceImpl implements PostService {
     }
 
     private String getUserDisplayName(User user) {
-        if (user.getFirstName() != null && user.getLastName() != null) {
+        if (user.getFirstName() != null && !user.getFirstName().isBlank()
+                && user.getLastName() != null && !user.getLastName().isBlank()) {
             return user.getFirstName() + " " + user.getLastName();
         }
-        if (user.getEmail() != null) {
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
             return user.getEmail();
         }
         return "unknown user";
