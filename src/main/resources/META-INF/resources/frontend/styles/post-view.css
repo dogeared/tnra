@@ -225,6 +225,11 @@
     margin-bottom: 0.25rem;
 }
 
+.empty-posts-message {
+    color: var(--tnra-text-secondary);
+    font-size: 0.9rem;
+}
+
 .selectors-layout {
     gap: 1rem;
     align-items: baseline;

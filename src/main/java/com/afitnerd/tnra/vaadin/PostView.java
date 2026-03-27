@@ -48,6 +48,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     // UI Components
     private ComboBox<User> userSelector;
     private ComboBox<Post> postSelector;
+    private Span noCompletedPostsLabel;
     private Button startNewPostButton;
     private StatsView statsView;
     
@@ -298,10 +299,14 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Add selectors to horizontal layout
         selectorsLayout.add(userSelector, postSelector);
 
+        noCompletedPostsLabel = new Span("No completed posts found for this user.");
+        noCompletedPostsLabel.addClassName("empty-posts-message");
+
         // Create pagination controls
         VerticalLayout paginationLayout = createPaginationControls();
 
-        completedLayout.add(selectorsLayout, paginationLayout);
+        completedLayout.add(selectorsLayout, noCompletedPostsLabel, paginationLayout);
+        updateCompletedPostsEmptyState();
         return completedLayout;
     }
 
@@ -369,6 +374,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         if (showingCompletedPosts) {
             updatePaginationControls();
             updatePostSelector();
+            updateCompletedPostsEmptyState();
             if (postSelector != null) {
                 postSelector.setValue(null);
             }
@@ -467,30 +473,49 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private void updatePaginationControls() {
         if (currentPageData == null) return;
-        
+
         int totalPages = currentPageData.getTotalPages();
-        
+        int pageValue = totalPages == 0 ? 1 : currentPage + 1;
+        int pageLimit = totalPages == 0 ? 1 : totalPages;
+        boolean canGoBack = totalPages > 0 && currentPage > 0;
+        boolean canGoForward = totalPages > 0 && currentPage < totalPages - 1;
+
         // Update button states
-        firstPageButton.setEnabled(currentPage > 0);
-        previousPageButton.setEnabled(currentPage > 0);
-        nextPageButton.setEnabled(currentPage < totalPages - 1);
-        lastPageButton.setEnabled(currentPage < totalPages - 1);
+        firstPageButton.setEnabled(canGoBack);
+        previousPageButton.setEnabled(canGoBack);
+        nextPageButton.setEnabled(canGoForward);
+        lastPageButton.setEnabled(canGoForward);
 
         // Update page number field
-        pageNumberField.setValue(currentPage + 1);
-        pageNumberField.setMax(totalPages);
+        pageNumberField.setValue(pageValue);
+        pageNumberField.setMax(pageLimit);
+        pageNumberField.setEnabled(totalPages > 0);
 
         // Update page info label
         pageInfoLabel.setText("of " + totalPages);
     }
 
     private void updatePostSelector() {
+        if (postSelector == null) {
+            return;
+        }
+
         if (currentPageData != null) {
             postSelector.setItems(currentPageData.getContent());
         } else {
             postSelector.setItems(new ArrayList<>());
         }
         postSelector.setValue(null);
+        updateCompletedPostsEmptyState();
+    }
+
+    private void updateCompletedPostsEmptyState() {
+        if (postSelector == null || noCompletedPostsLabel == null) {
+            return;
+        }
+        boolean hasItems = currentPageData != null && !currentPageData.getContent().isEmpty();
+        postSelector.setEnabled(hasItems);
+        noCompletedPostsLabel.setVisible(!hasItems);
     }
 
     private void goToFirstPage() {
