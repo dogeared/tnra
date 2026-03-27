@@ -1,8 +1,9 @@
 package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
@@ -22,18 +23,21 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     private final OidcUserService oidcUserService;
     private final PostService postService;
     private final EMailService eMailService;
+    private final StatDefinitionRepository statDefinitionRepository;
 
     @Value("#{ @environment['tnra.emailService.enabled'] ?: true }")
     private boolean emailServiceEnabled;
 
     public VaadinPostPresenterImpl(
         OidcUserService oidcUserService, UserService userService,
-        PostService postService, EMailService eMailService
+        PostService postService, EMailService eMailService,
+        StatDefinitionRepository statDefinitionRepository
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.postService = postService;
         this.eMailService = eMailService;
+        this.statDefinitionRepository = statDefinitionRepository;
     }
 
     @Override
@@ -82,8 +86,13 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     }
 
     @Override
-    public Post updateCompleteStats(Stats stats) {
-        return postService.updateCompleteStats(initializeUser(), stats);
+    public Post updateStatValue(StatDefinition statDef, Integer value) {
+        return postService.updateStatValue(initializeUser(), statDef, value);
+    }
+
+    @Override
+    public List<StatDefinition> getActiveStatDefinitions() {
+        return statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
     }
 
     @Override

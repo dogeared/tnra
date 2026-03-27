@@ -1,7 +1,7 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.Post;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -26,6 +26,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     private final VaadinPostPresenter vaadinPostPresenter;
     private Post currentPost;
     private List<StatCard> statCards = new ArrayList<>();
+    private List<StatDefinition> statDefinitions = new ArrayList<>();
     private boolean isReadOnly = false;
     private Runnable onStatsChanged;
 
@@ -37,19 +38,19 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         setPadding(false);
     }
 
-    // Static factory method for creating embedded StatsView
     public static StatsView createEmbedded(VaadinPostPresenter vaadinPostPresenter) {
         StatsView statsView = new StatsView(vaadinPostPresenter);
-        statsView.currentPost = new Post(); // Start with empty post
+        statsView.statDefinitions = vaadinPostPresenter.getActiveStatDefinitions();
+        statsView.currentPost = new Post();
         statsView.isReadOnly = true;
         statsView.createStatsView();
         statsView.setReadOnly(statsView.isReadOnly);
         return statsView;
     }
 
-    // only reachable if NOT embedded
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
+        statDefinitions = vaadinPostPresenter.getActiveStatDefinitions();
         initializePost();
         createStatsView();
     }
@@ -61,12 +62,8 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     }
 
     private void createStatsView() {
-        // Header section
         VerticalLayout headerSection = createHeaderSection();
-        
-        // Stats grid
         HorizontalLayout statsGrid = createStatsGrid();
-        
         add(headerSection, statsGrid);
     }
 
@@ -78,7 +75,6 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         header.setWidth("100%");
         header.addClassName("stats-header");
 
-        // Title and date row
         H1 title = new H1("Daily Stats");
         title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, "stats-title");
 
@@ -96,84 +92,26 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         grid.setJustifyContentMode(JustifyContentMode.CENTER);
         grid.addClassName("stats-grid");
 
-        // Clear previous stat cards
         statCards.clear();
 
-        // Create stat cards - new posts will have null stats, so inputs start empty
-        StatCard exerciseCard = new StatCard("Exercise", "💪", currentPost.getStats().getExercise());
-        StatCard meditateCard = new StatCard("Meditate", "🧘", currentPost.getStats().getMeditate());
-        StatCard prayCard = new StatCard("Pray", "🙏", currentPost.getStats().getPray());
-        StatCard readCard = new StatCard("Read", "📚", currentPost.getStats().getRead());
-        StatCard gtgCard = new StatCard("GTG", "👥", currentPost.getStats().getGtg());
-        StatCard meetingsCard = new StatCard("Meetings", "🤝", currentPost.getStats().getMeetings());
-        StatCard sponsorCard = new StatCard("Sponsor", "🤲", currentPost.getStats().getSponsor());
+        for (StatDefinition statDef : statDefinitions) {
+            Integer currentValue = currentPost != null ? currentPost.getStatValue(statDef.getName()) : null;
+            String emoji = statDef.getEmoji() != null ? statDef.getEmoji() : "";
 
-        // Add value change listeners
-        exerciseCard.setValueChangeListener(value -> updateStat("Exercise", value));
-        meditateCard.setValueChangeListener(value -> updateStat("Meditate", value));
-        prayCard.setValueChangeListener(value -> updateStat("Pray", value));
-        readCard.setValueChangeListener(value -> updateStat("Read", value));
-        gtgCard.setValueChangeListener(value -> updateStat("GTG", value));
-        meetingsCard.setValueChangeListener(value -> updateStat("Meetings", value));
-        sponsorCard.setValueChangeListener(value -> updateStat("Sponsor", value));
+            StatCard card = new StatCard(statDef.getLabel(), emoji, currentValue);
+            card.setValueChangeListener(value -> updateStat(statDef, value));
 
-        // Add to list for later access
-        statCards.addAll(List.of(exerciseCard, meditateCard, prayCard, readCard, gtgCard, meetingsCard, sponsorCard));
-
-        // Add all cards to grid
-        grid.add(exerciseCard, meditateCard, prayCard, readCard, gtgCard, meetingsCard, sponsorCard);
+            statCards.add(card);
+            grid.add(card);
+        }
 
         return grid;
     }
 
-
-
-    private void updateStat(String statName, Integer value) {
-        if (currentPost != null && currentPost.getStats() != null) {
-            // Create a new Stats object with the updated value
-            Stats stats = new Stats();
-            
-            // Copy current values
-            Stats currentStats = currentPost.getStats();
-            stats.setExercise(currentStats.getExercise());
-            stats.setGtg(currentStats.getGtg());
-            stats.setMeditate(currentStats.getMeditate());
-            stats.setMeetings(currentStats.getMeetings());
-            stats.setPray(currentStats.getPray());
-            stats.setRead(currentStats.getRead());
-            stats.setSponsor(currentStats.getSponsor());
-            
-            // Update the specific stat
-            switch (statName.toLowerCase()) {
-                case "exercise":
-                    stats.setExercise(value);
-                    break;
-                case "gtg":
-                    stats.setGtg(value);
-                    break;
-                case "meditate":
-                    stats.setMeditate(value);
-                    break;
-                case "meetings":
-                    stats.setMeetings(value);
-                    break;
-                case "pray":
-                    stats.setPray(value);
-                    break;
-                case "read":
-                    stats.setRead(value);
-                    break;
-                case "sponsor":
-                    stats.setSponsor(value);
-                    break;
-            }
-            
-            // Use updateCompleteStats to update stats (allows null values for unsetting)
+    private void updateStat(StatDefinition statDef, Integer value) {
+        if (currentPost != null) {
             try {
-                currentPost = vaadinPostPresenter.updateCompleteStats(stats);
-                String displayValue = value != null ? value.toString() : "empty";
-                
-                // Notify parent that stats have changed
+                currentPost = vaadinPostPresenter.updateStatValue(statDef, value);
                 if (onStatsChanged != null) {
                     onStatsChanged.run();
                 }
@@ -189,77 +127,41 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
             card.setReadOnly(readOnly);
         }
     }
-    
 
-    
     public void refreshStats() {
-        if (currentPost != null && currentPost.getStats() != null) {
-            Stats stats = currentPost.getStats();
-            
-            // Find and update each stat card
-            for (StatCard card : statCards) {
-                switch (card.getLabel().toLowerCase()) {
-                    case "exercise":
-                        card.setValue(stats.getExercise());
-                        break;
-                    case "meditate":
-                        card.setValue(stats.getMeditate());
-                        break;
-                    case "pray":
-                        card.setValue(stats.getPray());
-                        break;
-                    case "read":
-                        card.setValue(stats.getRead());
-                        break;
-                    case "gtg":
-                        card.setValue(stats.getGtg());
-                        break;
-                    case "meetings":
-                        card.setValue(stats.getMeetings());
-                        break;
-                    case "sponsor":
-                        card.setValue(stats.getSponsor());
-                        break;
-                }
+        if (currentPost != null) {
+            for (int i = 0; i < statCards.size() && i < statDefinitions.size(); i++) {
+                StatDefinition statDef = statDefinitions.get(i);
+                Integer value = currentPost.getStatValue(statDef.getName());
+                statCards.get(i).setValue(value);
             }
         }
     }
 
-    // Method to set the post externally (for embedded use)
     public void setPost(Post post) {
         this.currentPost = post;
-        if (post != null && post.getStats() != null) {
+        if (post != null) {
             refreshStats();
         } else {
-            // Clear all stat cards when post is null
             for (StatCard card : statCards) {
                 card.setValue(null);
             }
         }
     }
-    
-    /**
-     * Check if all stats have been set (not null)
-     */
+
     public boolean areAllStatsSet() {
-        if (currentPost == null || currentPost.getStats() == null) {
+        if (currentPost == null) {
             return false;
         }
-        
-        Stats stats = currentPost.getStats();
-        return stats.getExercise() != null &&
-               stats.getMeditate() != null &&
-               stats.getPray() != null &&
-               stats.getRead() != null &&
-               stats.getGtg() != null &&
-               stats.getMeetings() != null &&
-               stats.getSponsor() != null;
+        for (StatDefinition statDef : statDefinitions) {
+            if (currentPost.getStatValue(statDef.getName()) == null) {
+                return false;
+            }
+        }
+        return true;
     }
-    
-    /**
-     * Set callback to be called when stats change
-     */
+
     public void setOnStatsChanged(Runnable callback) {
         this.onStatsChanged = callback;
     }
-} 
+}

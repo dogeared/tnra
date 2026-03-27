@@ -1,7 +1,7 @@
 package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -16,6 +16,7 @@ public interface VaadinPostPresenter {
     Page<Post> getCompletedPostsPage(User me, Pageable pageable);
     Post startPost(User me);
     Post savePost(Post post);
-    Post updateCompleteStats(Stats stats);
+    Post updateStatValue(StatDefinition statDef, Integer value);
+    List<StatDefinition> getActiveStatDefinitions();
     List<User> getAllActiveUsers();
 }
