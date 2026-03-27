@@ -50,7 +50,11 @@ public class FileController {
     }
 
     private String determineContentType(String fileName) {
-        String extension = fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase();
+        int lastDot = fileName.lastIndexOf('.');
+        if (lastDot < 0 || lastDot == fileName.length() - 1) {
+            return "application/octet-stream";
+        }
+        String extension = fileName.substring(lastDot + 1).toLowerCase();
         return switch (extension) {
             case "jpg", "jpeg" -> "image/jpeg";
             case "png" -> "image/png";

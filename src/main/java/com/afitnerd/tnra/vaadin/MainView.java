@@ -114,10 +114,18 @@ public class MainView extends VerticalLayout {
                 "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
+
+            HorizontalLayout actionRow = new HorizontalLayout();
+            actionRow.addClassName("main-action-row");
+            actionRow.setSpacing(true);
+
+            Button continuePostButton = buildNavigationButton("Continue your post", "posts", true);
+            Button profileButton = buildNavigationButton("Edit profile", "profile", false);
+            actionRow.add(continuePostButton, profileButton);
             
             profileSection.add(profileImage, welcomeMessage);
             
-            add(title, profileSection);
+            add(title, profileSection, actionRow);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -156,5 +164,16 @@ public class MainView extends VerticalLayout {
             return currentUser.getEmail().trim();
         }
         return "there";
+    }
+
+    private Button buildNavigationButton(String label, String route, boolean primary) {
+        Button button = new Button(label, click -> getUI().ifPresent(ui -> ui.navigate(route)));
+        button.addClassName("main-action-button");
+        if (primary) {
+            button.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        } else {
+            button.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        }
+        return button;
     }
 }
