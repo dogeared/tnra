@@ -2,16 +2,17 @@
 
 /* Title Styles */
 .main-title {
+    font-family: var(--tnra-font-display);
     color: var(--tnra-text);
     font-weight: 700;
     letter-spacing: -0.02em;
-    font-size: 2.25rem;
+    font-size: 2.5rem;
 }
 
 .main-subtitle {
     color: var(--tnra-text-secondary);
-    font-weight: 400;
-    font-size: 1.1rem;
+    font-weight: 500;
+    font-size: 1.15rem;
     letter-spacing: -0.01em;
 }
 

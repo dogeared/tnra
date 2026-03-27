@@ -6,9 +6,11 @@
 }
 
 .stats-title {
+    font-family: var(--tnra-font-display);
     color: var(--tnra-text);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    font-size: 2rem;
+    letter-spacing: -0.01em;
     margin: 0;
 }
 
@@ -30,6 +32,7 @@
     border: 1px solid var(--tnra-border-subtle);
     border-radius: var(--tnra-radius-md);
     box-shadow: var(--tnra-shadow-sm);
+    padding: 0.75rem;
     min-width: 140px;
     max-width: 160px;
     text-align: center;
@@ -64,6 +67,8 @@
     color: var(--tnra-primary-text);
     text-align: center;
     margin: 0.25rem 0;
+    font-size: 1.15rem;
+    font-weight: 700;
 }
 
 .centered-input input {
@@ -88,7 +93,8 @@
     transform: scale(1.05);
 }
 
-.control-button:active {
+.control-button:active,
+.control-button-pressed {
     transform: scale(0.95);
 }
 

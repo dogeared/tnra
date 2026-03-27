@@ -109,9 +109,7 @@ public class AdminView extends VerticalLayout {
         Paragraph archivedNote = new Paragraph(
             "Archived stats still appear on older posts but won't show in new post forms."
         );
-        archivedNote.getStyle().set("color", "var(--tnra-text-muted)");
-        archivedNote.getStyle().set("font-size", "0.85rem");
-        archivedNote.getStyle().set("font-style", "italic");
+        archivedNote.addClassName("admin-archived-note");
 
         refreshStatsList(statsList);
 
@@ -129,7 +127,7 @@ public class AdminView extends VerticalLayout {
 
         if (allStats.isEmpty()) {
             Paragraph empty = new Paragraph("No stats configured yet. Add your first stat below.");
-            empty.getStyle().set("color", "var(--tnra-text-secondary)");
+            empty.addClassName("admin-empty-state");
             statsList.add(empty);
             return;
         }
@@ -144,29 +142,22 @@ public class AdminView extends VerticalLayout {
         HorizontalLayout row = new HorizontalLayout();
         row.setWidthFull();
         row.setAlignItems(Alignment.CENTER);
-        row.getStyle().set("padding", "0.5rem 0");
-        row.getStyle().set("border-bottom", "1px solid var(--tnra-border-subtle)");
+        row.addClassName("stat-row");
 
         if (stat.getArchived()) {
-            row.getStyle().set("opacity", "0.5");
+            row.addClassName("archived");
         }
 
         // Emoji + label
         Span emojiSpan = new Span(stat.getEmoji() != null ? stat.getEmoji() : "");
-        emojiSpan.getStyle().set("font-size", "1.5rem");
-        emojiSpan.getStyle().set("min-width", "2rem");
+        emojiSpan.addClassName("stat-row-emoji");
 
         Span labelSpan = new Span(stat.getLabel());
-        labelSpan.getStyle().set("font-weight", "500");
-        labelSpan.getStyle().set("flex-grow", "1");
+        labelSpan.addClassName("stat-row-label");
 
         if (stat.getArchived()) {
             Span archivedBadge = new Span("archived");
-            archivedBadge.getStyle().set("font-size", "0.75rem");
-            archivedBadge.getStyle().set("color", "var(--tnra-text-muted)");
-            archivedBadge.getStyle().set("background", "var(--tnra-surface-dim)");
-            archivedBadge.getStyle().set("padding", "0.1rem 0.5rem");
-            archivedBadge.getStyle().set("border-radius", "var(--tnra-radius-sm)");
+            archivedBadge.addClassName("stat-row-archived-badge");
             row.add(emojiSpan, labelSpan, archivedBadge);
         } else {
             // Up/down buttons for reordering (use active-only index)
@@ -368,14 +359,10 @@ public class AdminView extends VerticalLayout {
 
     private Div createInfoRow(String label, String value) {
         Div row = new Div();
-        row.getStyle().set("padding", "0.5rem 0");
-        row.getStyle().set("display", "flex");
-        row.getStyle().set("gap", "1rem");
+        row.addClassName("info-row");
 
         Span labelSpan = new Span(label + ":");
-        labelSpan.getStyle().set("font-weight", "600");
-        labelSpan.getStyle().set("min-width", "120px");
-        labelSpan.getStyle().set("color", "var(--tnra-text-secondary)");
+        labelSpan.addClassName("info-row-label");
 
         Span valueSpan = new Span(value != null ? value : "N/A");
 
@@ -471,7 +458,7 @@ public class AdminView extends VerticalLayout {
             try {
                 workingSet = callChainPresenter.createNewGoToGuySet(new java.util.ArrayList<>());
                 createNewSetBtn.setEnabled(false);
-                createNewSetBtn.getStyle().set("opacity", "0.5");
+                createNewSetBtn.addClassName("disabled");
                 contentSection.setVisible(true);
                 addPairBtn.setEnabled(true);
 

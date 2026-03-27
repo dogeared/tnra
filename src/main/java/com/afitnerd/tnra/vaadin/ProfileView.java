@@ -61,7 +61,7 @@ public class ProfileView extends VerticalLayout {
     private void initComponents() {
         // Header
         H2 header = new H2("Profile");
-        header.getStyle().set("margin", "0");
+        header.addClassName("profile-title");
         add(header);
 
         // Profile Image Section

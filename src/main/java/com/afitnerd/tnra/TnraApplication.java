@@ -3,6 +3,9 @@ package com.afitnerd.tnra;
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.PostRenderer;
+import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.component.page.Inline;
+import com.vaadin.flow.server.AppShellSettings;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,10 +17,30 @@ import org.springframework.context.annotation.Bean;
 import java.util.TimeZone;
 
 @SpringBootApplication
-public class TnraApplication {
+public class TnraApplication implements AppShellConfigurator {
 
     @Value("${application.timezone:UTC}")
     private String applicationTimeZone;
+
+    @Override
+    public void configurePage(AppShellSettings settings) {
+        // Inject font variables as inline <style> PREPENDED to <head> before
+        // any Vaadin/Lumo stylesheets. Prevents flash where Lumo's default
+        // font briefly renders before our override takes effect.
+        // All system sans-serif — zero external fonts, zero flash.
+        settings.addInlineWithContents(
+            Inline.Position.PREPEND,
+            "html, :root { " +
+                "--lumo-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important; " +
+                "--tnra-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; " +
+                "--tnra-font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; " +
+                "--tnra-font-data: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; " +
+                "font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; " +
+            "} " +
+            "h1, h2, h3 { font-family: var(--tnra-font-display); font-weight: 700; letter-spacing: -0.02em; }",
+            Inline.Wrapping.STYLESHEET
+        );
+    }
 
     public static void main(String[] args) {
         SpringApplication.run(TnraApplication.class, args);

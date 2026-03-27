@@ -7,7 +7,7 @@ import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+
 
 import java.util.function.Consumer;
 
@@ -28,12 +28,7 @@ public class StatCard extends Div {
         this.emoji = emoji;
         this.currentValue = initialValue;
         
-        addClassNames(
-            LumoUtility.Background.CONTRAST_5,
-            LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL,
-            "stat-card"
-        );
+        addClassName("stat-card");
 
         // Card header with emoji and label
         Div header = createHeader();
@@ -52,7 +47,7 @@ public class StatCard extends Div {
         emojiSpan.addClassName("stat-card-emoji");
         
         Span labelSpan = new Span(label);
-        labelSpan.addClassNames(LumoUtility.FontWeight.MEDIUM, LumoUtility.FontSize.SMALL, "stat-card-label");
+        labelSpan.addClassName("stat-card-label");
         
         header.add(emojiSpan, labelSpan);
         return header;
@@ -71,7 +66,7 @@ public class StatCard extends Div {
         valueField.setMax(99);
         valueField.setWidth("50px");
         valueField.setLabel(null);
-        valueField.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "stat-input", "centered-input");
+        valueField.addClassNames("stat-input", "centered-input");
 
         // Control buttons
         minusBtn = createControlButton(VaadinIcon.MINUS, "Decrease " + label);
@@ -210,11 +205,7 @@ public class StatCard extends Div {
     
     private Button createControlButton(VaadinIcon icon, String ariaLabel) {
         Button button = new Button(icon.create());
-        button.addClassNames(
-            LumoUtility.BorderRadius.MEDIUM,
-            LumoUtility.Padding.SMALL,
-            "control-button"
-        );
+        button.addClassName("control-button");
         button.setAriaLabel(ariaLabel);
 
         // Exclude from tab order - users should tab between input fields only
@@ -222,8 +213,8 @@ public class StatCard extends Div {
 
         // Click animation
         button.addClickListener(e -> {
-            button.getStyle().set("transform", "scale(0.95)");
-            button.getElement().executeJs("setTimeout(() => $0.style.transform = 'scale(1)', 100)");
+            button.addClassName("control-button-pressed");
+            button.getElement().executeJs("setTimeout(() => $0.classList.remove('control-button-pressed'), 100)");
         });
 
         return button;
