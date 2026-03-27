@@ -17,8 +17,11 @@ class OfflineSyncScriptTest {
         String script = Files.readString(scriptPath, StandardCharsets.UTF_8);
 
         assertTrue(script.contains("finish-post-button"));
+        assertTrue(script.contains("start-new-post-button"));
         assertTrue(script.contains("tnra-offline-finish-queued"));
+        assertTrue(script.contains("tnra-offline-start-redirected"));
         assertTrue(script.contains("finishAfterSync: true"));
+        assertTrue(script.contains("window.location.assign(\"/offline.html\")"));
         assertTrue(script.contains("event.stopImmediatePropagation()"));
         assertFalse(script.contains("if (!window.location.pathname.startsWith(\"/posts\")) {"));
     }
