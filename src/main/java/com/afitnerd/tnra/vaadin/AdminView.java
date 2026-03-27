@@ -169,18 +169,18 @@ public class AdminView extends VerticalLayout {
             archivedBadge.getStyle().set("border-radius", "var(--tnra-radius-sm)");
             row.add(emojiSpan, labelSpan, archivedBadge);
         } else {
-            // Up/down buttons for reordering
+            // Up/down buttons for reordering (use active-only index)
+            List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+            int activeIndex = findActiveIndex(activeStats, stat);
+
             Button upBtn = new Button(VaadinIcon.ARROW_UP.create());
             upBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-            upBtn.setEnabled(index > 0 && !stat.getArchived());
+            upBtn.setEnabled(activeIndex > 0);
             upBtn.addClickListener(e -> moveStatUp(stat, statsList));
 
             Button downBtn = new Button(VaadinIcon.ARROW_DOWN.create());
             downBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
-            // Find index among active stats only
-            List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
-            int activeIndex = activeStats.indexOf(stat);
-            downBtn.setEnabled(activeIndex < activeStats.size() - 1);
+            downBtn.setEnabled(activeIndex >= 0 && activeIndex < activeStats.size() - 1);
             downBtn.addClickListener(e -> moveStatDown(stat, statsList));
 
             // Archive button
@@ -203,15 +203,25 @@ public class AdminView extends VerticalLayout {
         return row;
     }
 
+    private int findActiveIndex(List<StatDefinition> activeStats, StatDefinition stat) {
+        for (int i = 0; i < activeStats.size(); i++) {
+            if (activeStats.get(i).getId().equals(stat.getId())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private void moveStatUp(StatDefinition stat, VerticalLayout statsList) {
         List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
-        int index = activeStats.indexOf(stat);
+        int index = findActiveIndex(activeStats, stat);
         if (index > 0) {
             StatDefinition prev = activeStats.get(index - 1);
-            int tempOrder = stat.getDisplayOrder();
-            stat.setDisplayOrder(prev.getDisplayOrder());
+            StatDefinition current = activeStats.get(index);
+            int tempOrder = current.getDisplayOrder();
+            current.setDisplayOrder(prev.getDisplayOrder());
             prev.setDisplayOrder(tempOrder);
-            statDefinitionRepository.save(stat);
+            statDefinitionRepository.save(current);
             statDefinitionRepository.save(prev);
             refreshStatsList(statsList);
         }
@@ -219,13 +229,14 @@ public class AdminView extends VerticalLayout {
 
     private void moveStatDown(StatDefinition stat, VerticalLayout statsList) {
         List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
-        int index = activeStats.indexOf(stat);
-        if (index < activeStats.size() - 1) {
+        int index = findActiveIndex(activeStats, stat);
+        if (index >= 0 && index < activeStats.size() - 1) {
             StatDefinition next = activeStats.get(index + 1);
-            int tempOrder = stat.getDisplayOrder();
-            stat.setDisplayOrder(next.getDisplayOrder());
+            StatDefinition current = activeStats.get(index);
+            int tempOrder = current.getDisplayOrder();
+            current.setDisplayOrder(next.getDisplayOrder());
             next.setDisplayOrder(tempOrder);
-            statDefinitionRepository.save(stat);
+            statDefinitionRepository.save(current);
             statDefinitionRepository.save(next);
             refreshStatsList(statsList);
         }

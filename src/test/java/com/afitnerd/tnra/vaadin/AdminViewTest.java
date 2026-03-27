@@ -148,6 +148,43 @@ class AdminViewTest {
         assertEquals("Unknown", method.invoke(view, new Object[]{null}));
     }
 
+    @Test
+    void findActiveIndexUsesIdNotObjectIdentity() throws Exception {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        // Create stat definitions with IDs (simulating DB-managed objects)
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰️", 0);
+        a.setId(10L);
+        StatDefinition b = new StatDefinition("beta", "Beta", "🅱️", 1);
+        b.setId(20L);
+        StatDefinition c = new StatDefinition("gamma", "Gamma", "🇬", 2);
+        c.setId(30L);
+
+        // These are "fresh query result" objects — different Java instances, same IDs
+        StatDefinition aFresh = new StatDefinition("alpha", "Alpha", "🅰️", 0);
+        aFresh.setId(10L);
+        StatDefinition bFresh = new StatDefinition("beta", "Beta", "🅱️", 1);
+        bFresh.setId(20L);
+
+        when(statDefinitionRepository.findAllByOrderByDisplayOrderAsc()).thenReturn(List.of());
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository);
+
+        Method method = AdminView.class.getDeclaredMethod("findActiveIndex", List.class, StatDefinition.class);
+        method.setAccessible(true);
+
+        List<StatDefinition> activeStats = List.of(a, b, c);
+
+        // Key test: lookup by a DIFFERENT object with the same ID should find the right index
+        assertEquals(0, method.invoke(view, activeStats, aFresh));
+        assertEquals(1, method.invoke(view, activeStats, bFresh));
+        assertEquals(2, method.invoke(view, activeStats, c));
+
+        // Non-existent ID returns -1
+        StatDefinition notFound = new StatDefinition("nope", "Nope", "", 0);
+        notFound.setId(999L);
+        assertEquals(-1, method.invoke(view, activeStats, notFound));
+    }
+
     private GoToGuySet sampleSet() {
         User caller = new User();
         caller.setId(1L);
