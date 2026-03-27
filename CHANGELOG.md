@@ -2,6 +2,19 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [5.1.0] - 2026-03-27
+
+### Added
+- Admin "Stats Config" tab for managing stat definitions (add, archive, restore, reorder)
+- Up/down arrow buttons for reordering active stats
+- Soft-delete (archive) for stats with "at least one active stat" validation
+- Restore button for archived stats (appends to end of active list)
+- Add Stat dialog with name, label, emoji fields and duplicate name validation
+- Archived stats shown greyed with badge in the admin list
+
+### Changed
+- Stat card control buttons bumped from 34px to 44px for WCAG touch target compliance
+
 ## [5.0.0] - 2026-03-27
 
 ### Added
