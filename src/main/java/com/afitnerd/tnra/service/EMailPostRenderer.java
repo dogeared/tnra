@@ -4,7 +4,7 @@ import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.PostStatValue;
 import com.afitnerd.tnra.model.User;
 import org.springframework.stereotype.Service;
 
@@ -57,27 +57,34 @@ public class EMailPostRenderer implements PostRenderer {
         sb.append("<h3>Best:</h3>\n").append(doAppend(work.getBest())).append("\n\n");
         sb.append("<h3>Worst:</h3>\n").append(doAppend(work.getWorst())).append("\n\n");
 
-        Stats stats = post.getStats();
         sb.append("<h2>Stats:</h2>\n\n");
-
-        sb.append("<p><strong>exercise:</strong> ")
-            .append(((stats.getExercise() != null) ? stats.getExercise() : "not set"));
-        sb.append(", <strong>gtg:</strong> ")
-            .append(((stats.getGtg() != null) ? stats.getGtg() : "not set"));
-        sb.append(", <strong>meditate:</strong> ")
-            .append(((stats.getMeditate() != null) ? stats.getMeditate() : "not set"));
-        sb.append(", <strong>meetings:</strong> ")
-            .append(((stats.getMeetings() != null) ? stats.getMeetings() : "not set"));
-        sb.append(", <strong>pray:</strong> ")
-            .append(((stats.getPray() != null) ? stats.getPray() : "not set"));
-        sb.append(", <strong>read:</strong> ")
-            .append(((stats.getRead() != null) ? stats.getRead() : "not set"));
-        sb.append(", <strong>sponsor:</strong> ")
-            .append(((stats.getSponsor() != null) ? stats.getSponsor() : "not set")).append("</p>\n");
+        if (post.getStatValues() == null || post.getStatValues().isEmpty()) {
+            sb.append("<p>No stats recorded</p>\n");
+        } else {
+            sb.append("<p>");
+            post.getStatValues().stream()
+                .sorted((a, b) -> a.getStatDefinition().getDisplayOrder()
+                    .compareTo(b.getStatDefinition().getDisplayOrder()))
+                .forEach(sv -> {
+                    sb.append("<strong>").append(escapeHtml(sv.getStatDefinition().getLabel())).append(":</strong> ");
+                    sb.append(sv.getValue() != null ? sv.getValue() : "not set");
+                    sb.append(", ");
+                });
+            // Remove trailing ", "
+            if (sb.length() > 2 && sb.substring(sb.length() - 2).equals(", ")) {
+                sb.setLength(sb.length() - 2);
+            }
+            sb.append("</p>\n");
+        }
 
         sb.append("</body></html>\n");
 
         return sb.toString();
+    }
+
+    private String escapeHtml(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private StringBuffer doAppend(String toAppend) {

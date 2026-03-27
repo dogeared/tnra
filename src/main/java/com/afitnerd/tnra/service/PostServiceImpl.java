@@ -5,9 +5,11 @@ import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.PostStatValue;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PostRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,10 +31,12 @@ public class PostServiceImpl implements PostService {
 
     private static Logger log = LoggerFactory.getLogger(PostServiceImpl.class);
 
-    private PostRepository postRepository;
+    private final PostRepository postRepository;
+    private final StatDefinitionRepository statDefinitionRepository;
 
-    public PostServiceImpl(PostRepository postRepository) {
+    public PostServiceImpl(PostRepository postRepository, StatDefinitionRepository statDefinitionRepository) {
         this.postRepository = postRepository;
+        this.statDefinitionRepository = statDefinitionRepository;
     }
 
     @Override
@@ -86,16 +90,10 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public Post replaceStats(User user, Stats stats) {
+    @Transactional
+    public Post updateStatValue(User user, StatDefinition statDef, Integer value) {
         Post post = ensureOneInProgressPost(user);
-        mergeReplace(post.getStats(), stats);
-        return postRepository.save(post);
-    }
-
-    @Override
-    public Post updateCompleteStats(User user, Stats stats) {
-        Post post = ensureOneInProgressPost(user);
-        mergeReplaceAllowNulls(post.getStats(), stats);
+        post.setStatValue(statDef, value);
         return postRepository.save(post);
     }
 
@@ -199,28 +197,9 @@ public class PostServiceImpl implements PostService {
             if ("class".equals(pd.getName())) { continue; }
             try {
                 Object getterResult = pd.getReadMethod().invoke(newOne);
-                // Only update if value is not null - preserve existing values when new value is null
                 if (getterResult != null) {
                     pd.getWriteMethod().invoke(origOne, getterResult);
                 }
-            } catch (IllegalAccessException | InvocationTargetException e) {
-                log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
-            }
-        }
-        return origOne;
-    }
-
-    private <T> T mergeReplaceAllowNulls(T origOne, T newOne) {
-        Assert.notNull(origOne, "Orig " + origOne.getClass().getName() + " must not be null." );
-        Assert.notNull(newOne, "New " + origOne.getClass().getName() + " must not be null." );
-
-        PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(origOne.getClass());
-        for (PropertyDescriptor pd : descriptors) {
-            if ("class".equals(pd.getName())) { continue; }
-            try {
-                Object getterResult = pd.getReadMethod().invoke(newOne);
-                // Allow all values including null to be set (for complete updates)
-                pd.getWriteMethod().invoke(origOne, getterResult);
             } catch (IllegalAccessException | InvocationTargetException e) {
                 log.error("Reflection error for {}: {}", pd.getName(), e.getMessage(), e);
             }
@@ -287,26 +266,12 @@ public class PostServiceImpl implements PostService {
 
     private void ensureStats(String errorBase, Post post) {
         String statsBase = errorBase + "stats - ";
-        if (ObjectUtils.isEmpty(post.getStats().getExercise())) {
-            throw new PostException(statsBase + "exercise");
-        }
-        if (ObjectUtils.isEmpty(post.getStats().getGtg())) {
-            throw new PostException(statsBase + "gtg");
-        }
-        if (ObjectUtils.isEmpty(post.getStats().getMeditate())) {
-            throw new PostException(statsBase + "meditate");
-        }
-        if (ObjectUtils.isEmpty(post.getStats().getMeetings())) {
-            throw new PostException(statsBase + "meetings");
-        }
-        if (ObjectUtils.isEmpty(post.getStats().getPray())) {
-            throw new PostException(statsBase + "pray");
-        }
-        if (ObjectUtils.isEmpty(post.getStats().getRead())) {
-            throw new PostException(statsBase + "read");
-        }
-        if (ObjectUtils.isEmpty(post.getStats().getSponsor())) {
-            throw new PostException(statsBase + "sponsor");
+        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        for (StatDefinition statDef : activeStats) {
+            Integer value = post.getStatValue(statDef.getName());
+            if (value == null) {
+                throw new PostException(statsBase + statDef.getLabel().toLowerCase());
+            }
         }
     }
 
@@ -316,7 +281,6 @@ public class PostServiceImpl implements PostService {
     }
 
     private void ensureNoInProgressPost(User user) {
-        // check to see if there's already post in progress
         List<Post> posts = postRepository.findByUserAndState(user, PostState.IN_PROGRESS);
         if (posts != null && !posts.isEmpty()) {
             ensureDeterminateState(posts, user);
@@ -327,7 +291,6 @@ public class PostServiceImpl implements PostService {
     }
 
     private Post ensureOneInProgressPost(User user) {
-        // check to see if there's already post in progress
         List<Post> posts = postRepository.findByUserAndState(user, PostState.IN_PROGRESS);
         if (posts == null || posts.isEmpty()) {
             throw new PostException("Expected an in progress post for " + getUserDisplayName(user) + " but found none.");

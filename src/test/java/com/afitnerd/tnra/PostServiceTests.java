@@ -3,21 +3,22 @@ package com.afitnerd.tnra;
 import com.afitnerd.tnra.exception.PostException;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PostRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.repository.UserRepository;
 import com.afitnerd.tnra.service.PostService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 
-import java.beans.PropertyDescriptor;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,12 +38,36 @@ public class PostServiceTests {
     @Autowired
     private PostRepository postRepository;
 
+    @Autowired
+    private StatDefinitionRepository statDefinitionRepository;
+
     User user;
+
+    // Stat definitions seeded in @BeforeEach, keyed by name
+    private Map<String, StatDefinition> statDefs;
 
     @BeforeEach
     public void setup() {
         user = new User("Test", "User", "test@afitnerd.com");
         user = userRepository.save(user);
+
+        // Seed the 7 default stat definitions (matching V3 migration)
+        statDefs = new LinkedHashMap<>();
+        seedStatDef("exercise", "Exercise", "\uD83D\uDCAA", 0);
+        seedStatDef("meditate", "Meditate", "\uD83E\uDDD8", 1);
+        seedStatDef("pray",     "Pray",     "\uD83D\uDE4F", 2);
+        seedStatDef("read",     "Read",     "\uD83D\uDCDA", 3);
+        seedStatDef("gtg",      "GTG",      "\uD83D\uDC65", 4);
+        seedStatDef("meetings", "Meetings", "\uD83E\uDD1D", 5);
+        seedStatDef("sponsor",  "Sponsor",  "\uD83E\uDD32", 6);
+    }
+
+    private void seedStatDef(String name, String label, String emoji, int displayOrder) {
+        StatDefinition sd = statDefinitionRepository.findByName(name).orElseGet(() -> {
+            StatDefinition newSd = new StatDefinition(name, label, emoji, displayOrder);
+            return statDefinitionRepository.save(newSd);
+        });
+        statDefs.put(name, sd);
     }
 
     @Test
@@ -143,98 +168,76 @@ public class PostServiceTests {
     }
 
     @Test
-    public void testReplaceStats_success_partial() {
-        Post post = postService.startPost(user);
+    public void testUpdateStatValue_success_partial() {
+        postService.startPost(user);
 
-        Stats stats = new Stats();
-        stats.setExercise(2);
-        stats.setGtg(3);
-        stats.setMeditate(4);
-        postService.replaceStats(user, stats);
+        postService.updateStatValue(user, statDefs.get("exercise"), 2);
+        postService.updateStatValue(user, statDefs.get("gtg"), 3);
+        postService.updateStatValue(user, statDefs.get("meditate"), 4);
 
         Post post2 = postService.getInProgressPost(user);
-        Stats stats2 = post2.getStats();
-        assertEquals(2, (int) stats2.getExercise());
-        assertEquals(3, (int) stats2.getGtg());
-        assertEquals(4, (int) stats2.getMeditate());
-        assertNull(stats2.getMeetings());
-        assertNull(stats2.getPray());
-        assertNull(stats2.getRead());
-        assertNull(stats2.getSponsor());
-    }
-    
-    @Test
-    public void testReplaceStats_success_mergeExercise() {
-        testReplaceStats_success_merge("gtg", "exercise");
+        assertEquals(2, (int) post2.getStatValue("exercise"));
+        assertEquals(3, (int) post2.getStatValue("gtg"));
+        assertEquals(4, (int) post2.getStatValue("meditate"));
+        assertNull(post2.getStatValue("meetings"));
+        assertNull(post2.getStatValue("pray"));
+        assertNull(post2.getStatValue("read"));
+        assertNull(post2.getStatValue("sponsor"));
     }
 
     @Test
-    public void testReplaceStats_success_mergeGtg() {
-        testReplaceStats_success_merge("exercise", "gtg");
+    public void testUpdateStatValue_success_independent() {
+        // Verify multiple stat values can be set independently
+        postService.startPost(user);
+
+        postService.updateStatValue(user, statDefs.get("exercise"), 2);
+        Post post1 = postService.getInProgressPost(user);
+        assertEquals(2, (int) post1.getStatValue("exercise"));
+        assertNull(post1.getStatValue("gtg"));
+
+        postService.updateStatValue(user, statDefs.get("gtg"), 3);
+        Post post2 = postService.getInProgressPost(user);
+        // exercise value is preserved when gtg is set independently
+        assertEquals(2, (int) post2.getStatValue("exercise"));
+        assertEquals(3, (int) post2.getStatValue("gtg"));
+
+        // all other stats remain null
+        assertNull(post2.getStatValue("meditate"));
+        assertNull(post2.getStatValue("meetings"));
+        assertNull(post2.getStatValue("pray"));
+        assertNull(post2.getStatValue("read"));
+        assertNull(post2.getStatValue("sponsor"));
     }
 
     @Test
-    public void testReplaceStats_success_mergeMeditation() {
-        testReplaceStats_success_merge("exercise", "meditate");
-    }
+    public void testUpdateStatValue_success_sequential() {
+        postService.startPost(user);
 
-    @Test
-    public void testReplaceStats_success_mergeMeetings() {
-        testReplaceStats_success_merge("exercise", "meetings");
-    }
+        // Set initial values
+        postService.updateStatValue(user, statDefs.get("exercise"), 2);
+        postService.updateStatValue(user, statDefs.get("gtg"), 3);
+        postService.updateStatValue(user, statDefs.get("meditate"), 4);
+        postService.updateStatValue(user, statDefs.get("meetings"), 5);
 
-    @Test
-    public void testReplaceStats_success_mergePray() {
-        testReplaceStats_success_merge("exercise", "pray");
-    }
-
-    @Test
-    public void testReplaceStats_success_mergeRead() {
-        testReplaceStats_success_merge("exercise", "read");
-    }
-
-    @Test
-    public void testReplaceStats_success_mergeSponsor() {
-        testReplaceStats_success_merge("exercise", "sponsor");
-    }
-
-    @Test
-    public void testReplaceStats_success_complex() {
-        Post post = postService.startPost(user);
-
-        Stats stats = new Stats();
-        stats.setExercise(2);
-        stats.setGtg(3);
-        stats.setMeditate(4);
-        stats.setMeetings(5);
-
-        postService.replaceStats(user, stats);
-
-        stats.setMeetings(6);
-        stats.setPray(7);
-
-        postService.replaceStats(user, stats);
+        // Update some values
+        postService.updateStatValue(user, statDefs.get("meetings"), 6);
+        postService.updateStatValue(user, statDefs.get("pray"), 7);
 
         Post post2 = postService.getInProgressPost(user);
-        Stats stats2 = post2.getStats();
 
-        assertEquals(2, (int) stats2.getExercise());
-        assertEquals(3, (int) stats2.getGtg());
-        assertEquals(4, (int) stats2.getMeditate());
-        assertEquals(6, (int) stats2.getMeetings());
-        assertEquals(7, (int) stats2.getPray());
-        assertNull(stats2.getRead());
-        assertNull(stats2.getSponsor());
+        assertEquals(2, (int) post2.getStatValue("exercise"));
+        assertEquals(3, (int) post2.getStatValue("gtg"));
+        assertEquals(4, (int) post2.getStatValue("meditate"));
+        assertEquals(6, (int) post2.getStatValue("meetings"));
+        assertEquals(7, (int) post2.getStatValue("pray"));
+        assertNull(post2.getStatValue("read"));
+        assertNull(post2.getStatValue("sponsor"));
     }
 
     @Test
-    public void testReplaceStats_fail_noInProgressPost() {
-        Stats stats = new Stats();
-        stats.setExercise(2);
-        stats.setGtg(3);
-        stats.setMeditate(4);
+    public void testUpdateStatValue_fail_noInProgressPost() {
         try {
-            postService.replaceStats(user, stats);
+            postService.updateStatValue(user, statDefs.get("exercise"), 2);
             fail();
         } catch (PostException p) {
             assertEquals("Expected an in progress post for Test User but found none.", p.getMessage());
@@ -256,7 +259,7 @@ public class PostServiceTests {
         assertEquals("kryptonite", post2.getIntro().getKryptonite());
         assertEquals("what and when", post2.getIntro().getWhatAndWhen());
     }
-    
+
     @Test
     public void testReplaceIntro_success_complex() {
         Post post = postService.startPost(user);
@@ -269,7 +272,7 @@ public class PostServiceTests {
         Post post2 = postService.getInProgressPost(user);
         post2.getIntro().setKryptonite("kryptonite2");
         postService.replaceIntro(user, post2.getIntro());
-        
+
         Post post3 = postService.getInProgressPost(user);
 
         assertEquals("widwytk", post3.getIntro().getWidwytk());
@@ -605,6 +608,8 @@ public class PostServiceTests {
         finishFailAssert(post, "work - worst");
     }
 
+    // Stats failure tests follow display_order: exercise(0), meditate(1), pray(2), read(3), gtg(4), meetings(5), sponsor(6)
+
     @Test
     public void testFinish_fail_stats_empty_exercise() {
         Props[] props = {
@@ -618,7 +623,7 @@ public class PostServiceTests {
     }
 
     @Test
-    public void testFinish_fail_stats_empty_gtg() {
+    public void testFinish_fail_stats_empty_meditate() {
         Props[] props = {
             Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
             Props.PERSONAL_BEST, Props.PERSONAL_WORST,
@@ -627,33 +632,7 @@ public class PostServiceTests {
             Props.EXERCISE
         };
         Post post = setupPostProps(props, true);
-        finishFailAssert(post, "stats - gtg");
-    }
-
-    @Test
-    public void testFinish_fail_stats_empty_meditate() {
-        Props[] props = {
-            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
-            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
-            Props.FAMILY_BEST, Props.FAMILY_WORST,
-            Props.WORK_BEST, Props.WORK_WORST,
-            Props.EXERCISE, Props.GTG
-        };
-        Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - meditate");
-    }
-
-    @Test
-    public void testFinish_fail_stats_empty_meetings() {
-        Props[] props = {
-            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
-            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
-            Props.FAMILY_BEST, Props.FAMILY_WORST,
-            Props.WORK_BEST, Props.WORK_WORST,
-            Props.EXERCISE, Props.GTG, Props.MEDITATE
-        };
-        Post post = setupPostProps(props, true);
-        finishFailAssert(post, "stats - meetings");
     }
 
     @Test
@@ -663,7 +642,7 @@ public class PostServiceTests {
             Props.PERSONAL_BEST, Props.PERSONAL_WORST,
             Props.FAMILY_BEST, Props.FAMILY_WORST,
             Props.WORK_BEST, Props.WORK_WORST,
-            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS
+            Props.EXERCISE, Props.MEDITATE
         };
         Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - pray");
@@ -676,10 +655,36 @@ public class PostServiceTests {
             Props.PERSONAL_BEST, Props.PERSONAL_WORST,
             Props.FAMILY_BEST, Props.FAMILY_WORST,
             Props.WORK_BEST, Props.WORK_WORST,
-            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS, Props.PRAY
+            Props.EXERCISE, Props.MEDITATE, Props.PRAY
         };
         Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - read");
+    }
+
+    @Test
+    public void testFinish_fail_stats_empty_gtg() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.MEDITATE, Props.PRAY, Props.READ
+        };
+        Post post = setupPostProps(props, true);
+        finishFailAssert(post, "stats - gtg");
+    }
+
+    @Test
+    public void testFinish_fail_stats_empty_meetings() {
+        Props[] props = {
+            Props.INTRO_WIDWYTK, Props.INTRO_KRYPTONITE, Props.INTRO_WHAT_AND_WHEN,
+            Props.PERSONAL_BEST, Props.PERSONAL_WORST,
+            Props.FAMILY_BEST, Props.FAMILY_WORST,
+            Props.WORK_BEST, Props.WORK_WORST,
+            Props.EXERCISE, Props.MEDITATE, Props.PRAY, Props.READ, Props.GTG
+        };
+        Post post = setupPostProps(props, true);
+        finishFailAssert(post, "stats - meetings");
     }
 
     @Test
@@ -689,7 +694,7 @@ public class PostServiceTests {
             Props.PERSONAL_BEST, Props.PERSONAL_WORST,
             Props.FAMILY_BEST, Props.FAMILY_WORST,
             Props.WORK_BEST, Props.WORK_WORST,
-            Props.EXERCISE, Props.GTG, Props.MEDITATE, Props.MEETINGS, Props.PRAY, Props.READ
+            Props.EXERCISE, Props.MEDITATE, Props.PRAY, Props.READ, Props.GTG, Props.MEETINGS
         };
         Post post = setupPostProps(props, true);
         finishFailAssert(post, "stats - sponsor");
@@ -733,7 +738,6 @@ public class PostServiceTests {
         List<Props> props = Arrays.asList(propsAry);
         Post post = postService.startPost(user);
 
-        String introWid = null;
         if (props.contains(Props.INTRO_WIDWYTK)) {
             post.getIntro().setWidwytk("widwytk");
         } else if (empties) {
@@ -788,35 +792,38 @@ public class PostServiceTests {
             post.getWork().setWorst("");
         }
 
-        if (props.contains(Props.EXERCISE)) {
-            post.getStats().setExercise(7);
-        }
+        // Save text fields first
+        postService.savePost(post);
 
-        if (props.contains(Props.GTG)) {
-            post.getStats().setGtg(7);
+        // Now set stat values via the service (which manages PostStatValue entities)
+        if (props.contains(Props.EXERCISE)) {
+            postService.updateStatValue(user, statDefs.get("exercise"), 7);
         }
 
         if (props.contains(Props.MEDITATE)) {
-            post.getStats().setMeditate(7);
-        }
-
-        if (props.contains(Props.MEETINGS)) {
-            post.getStats().setMeetings(7);
+            postService.updateStatValue(user, statDefs.get("meditate"), 7);
         }
 
         if (props.contains(Props.PRAY)) {
-            post.getStats().setPray(7);
+            postService.updateStatValue(user, statDefs.get("pray"), 7);
         }
 
         if (props.contains(Props.READ)) {
-            post.getStats().setRead(7);
+            postService.updateStatValue(user, statDefs.get("read"), 7);
+        }
+
+        if (props.contains(Props.GTG)) {
+            postService.updateStatValue(user, statDefs.get("gtg"), 7);
+        }
+
+        if (props.contains(Props.MEETINGS)) {
+            postService.updateStatValue(user, statDefs.get("meetings"), 7);
         }
 
         if (props.contains(Props.SPONSOR)) {
-            post.getStats().setSponsor(7);
+            postService.updateStatValue(user, statDefs.get("sponsor"), 7);
         }
 
-        postService.savePost(post);
         return post;
     }
 
@@ -826,38 +833,6 @@ public class PostServiceTests {
             fail();
         } catch (PostException p) {
             assertEquals("Post for " + user.getFirstName() + " " + user.getLastName() + " is not complete: " + expectedMessage, p.getMessage());
-        }
-    }
-
-    private void testReplaceStats_success_merge(String stat1, String stat2) {
-        try {
-            Post post = postService.startPost(user);
-            Stats stats = new Stats();
-
-            PropertyDescriptor pd1 = new PropertyDescriptor(stat1, Stats.class);
-            pd1.getWriteMethod().invoke(stats, 2);
-            postService.replaceStats(user, stats);
-
-            Stats stats2 = new Stats();
-            PropertyDescriptor pd2 = new PropertyDescriptor(stat2, Stats.class);
-            pd2.getWriteMethod().invoke(stats2, 3);
-            postService.replaceStats(user, stats2);
-
-            Post post2 = postService.getInProgressPost(user);
-            Stats stats3 = post2.getStats();
-            assertEquals(2, pd1.getReadMethod().invoke(stats3));
-            assertEquals(3, pd2.getReadMethod().invoke(stats3));
-
-            // assertNull for everything else
-            PropertyDescriptor[] descriptors = BeanUtils.getPropertyDescriptors(Stats.class);
-            for (PropertyDescriptor pd : descriptors) {
-                String name = pd.getName();
-                if (!stat1.equals(name) && !stat2.equals(name) && !"class".equals(name)) {
-                    assertNull(pd.getReadMethod().invoke(stats3));
-                }
-            }
-        } catch (Exception e) {
-            fail(e.getMessage());
         }
     }
 }

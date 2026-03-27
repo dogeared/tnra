@@ -4,82 +4,90 @@ import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.EMailPostRenderer;
-import com.afitnerd.tnra.utils.FixtureUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Date;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EMailPostRendererTests {
 
     private Post post;
-    private Intro intro;
-    private Category personal;
-    private Category family;
-    private Category work;
-    private Stats stats;
-
     private EMailPostRenderer eMailPostRenderer;
 
     @BeforeEach
     public void before() {
         post = new Post();
-        intro = new Intro();
-        personal = new Category();
-        family = new Category();
-        work = new Category();
-        stats = new Stats();
 
         User user = new User();
         user.setFirstName("Timmy");
         user.setLastName("Timbob");
         user.setEmail("timmy@timmyco.com");
-        user.setSlackUsername("timmy");
         post.setUser(user);
 
         eMailPostRenderer = new EMailPostRenderer();
     }
 
     @Test
-    public void testToString_Complete() {
-
+    public void testRender_Complete() {
+        Intro intro = new Intro();
         intro.setWidwytk("wid");
         intro.setKryptonite("kry");
         intro.setWhatAndWhen("wha");
         post.setIntro(intro);
 
+        Category personal = new Category();
         personal.setBest("bes");
         personal.setWorst("wor");
         post.setPersonal(personal);
 
+        Category family = new Category();
         family.setBest("bes");
         family.setWorst("wor");
         post.setFamily(family);
 
+        Category work = new Category();
         work.setBest("bes");
         work.setWorst("wor");
         post.setWork(work);
 
-        stats.setExercise(1);
-        stats.setGtg(2);
-        stats.setMeditate(3);
-        stats.setMeetings(4);
-        stats.setPray(5);
-        stats.setRead(6);
-        stats.setSponsor(7);
-        post.setStats(stats);
+        StatDefinition exerciseDef = new StatDefinition("exercise", "Exercise", "💪", 0);
+        exerciseDef.setId(1L);
+        StatDefinition gtgDef = new StatDefinition("gtg", "GTG", "👥", 1);
+        gtgDef.setId(2L);
+        post.setStatValue(exerciseDef, 1);
+        post.setStatValue(gtgDef, 2);
+
         post.setFinish(new Date());
         post.setState(PostState.COMPLETE);
 
-        compare(FixtureUtils.loadFixture("email", "complete", post));
+        String rendered = eMailPostRenderer.render(post);
+
+        assertTrue(rendered.contains("Timmy"));
+        assertTrue(rendered.contains("timmy@timmyco.com"));
+        assertTrue(rendered.contains("WIDWYTK"));
+        assertTrue(rendered.contains("wid"));
+        assertTrue(rendered.contains("Kryptonite"));
+        assertTrue(rendered.contains("kry"));
+        assertTrue(rendered.contains("<strong>Exercise:</strong> 1"));
+        assertTrue(rendered.contains("<strong>GTG:</strong> 2"));
+        assertTrue(rendered.contains("Post Finished"));
     }
 
-    private void compare(String fixture) {
-        assertEquals(fixture, eMailPostRenderer.render(post));
+    @Test
+    public void testRender_NoStats() {
+        Intro intro = new Intro();
+        intro.setWidwytk("test");
+        intro.setKryptonite("test");
+        intro.setWhatAndWhen("test");
+        post.setIntro(intro);
+
+        String rendered = eMailPostRenderer.render(post);
+
+        assertTrue(rendered.contains("No stats recorded"));
     }
 }

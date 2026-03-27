@@ -4,7 +4,7 @@ import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,24 +12,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class PostTests {
 
     private Post post;
-    private Intro intro;
-    private Category personal;
-    private Category family;
-    private Category work;
-    private Stats stats;
 
     @BeforeEach
     public void before() {
         post = new Post();
-        intro = new Intro();
-        personal = new Category();
-        family = new Category();
-        work = new Category();
-        stats = new Stats();
     }
 
     @Test
@@ -38,7 +29,8 @@ public class PostTests {
         assertNotNull(post.getPersonal());
         assertNotNull(post.getFamily());
         assertNotNull(post.getWork());
-        assertNotNull(post.getStats());
+        assertNotNull(post.getStatValues());
+        assertTrue(post.getStatValues().isEmpty());
     }
 
     @Test
@@ -59,8 +51,8 @@ public class PostTests {
     @Test
     public void test_User() {
         User user = new User();
-        user.setSlackUserId("slack");
+        user.setFirstName("Test");
         post = new Post(user);
-        assertEquals("slack", post.getUser().getSlackUserId());
+        assertEquals("Test", post.getUser().getFirstName());
     }
 }

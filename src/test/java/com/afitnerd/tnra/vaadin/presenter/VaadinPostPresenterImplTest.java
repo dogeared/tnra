@@ -1,15 +1,15 @@
 package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
-import com.afitnerd.tnra.model.Stats;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,6 +32,7 @@ class VaadinPostPresenterImplTest {
     private UserService userService;
     private PostService postService;
     private EMailService emailService;
+    private StatDefinitionRepository statDefinitionRepository;
     private VaadinPostPresenterImpl presenter;
 
     @BeforeEach
@@ -41,8 +41,9 @@ class VaadinPostPresenterImplTest {
         userService = mock(UserService.class);
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
+        statDefinitionRepository = mock(StatDefinitionRepository.class);
         presenter = new VaadinPostPresenterImpl(
-            oidcUserService, userService, postService, emailService
+            oidcUserService, userService, postService, emailService, statDefinitionRepository
         );
     }
 
@@ -81,7 +82,7 @@ class VaadinPostPresenterImplTest {
     void delegatesRemainingPostOperations() {
         User user = new User();
         Post post = new Post();
-        Stats stats = new Stats();
+        StatDefinition statDef = new StatDefinition("exercise", "Exercise", "💪", 0);
 
         when(postService.getOptionalInProgressPost(user)).thenReturn(Optional.of(post));
         when(postService.getCompletedPostsPage(eq(user), any())).thenReturn(new PageImpl<>(List.of(post)));
@@ -92,18 +93,23 @@ class VaadinPostPresenterImplTest {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         when(oidcUserService.getEmail()).thenReturn("user@example.com");
         when(userService.getUserByEmail("user@example.com")).thenReturn(user);
-        when(postService.updateCompleteStats(user, stats)).thenReturn(post);
+        when(postService.updateStatValue(user, statDef, 5)).thenReturn(post);
 
         assertEquals(Optional.of(post), presenter.getOptionalInProgressPost(user));
         assertEquals(1, presenter.getCompletedPostsPage(user, PageRequest.of(0, 5)).getTotalElements());
         assertSame(post, presenter.startPost(user));
         assertSame(post, presenter.savePost(post));
-        assertSame(post, presenter.updateCompleteStats(stats));
+        assertSame(post, presenter.updateStatValue(statDef, 5));
         assertEquals(1, presenter.getAllActiveUsers().size());
+    }
 
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(postService).updateCompleteStats(userCaptor.capture(), eq(stats));
-        assertSame(user, userCaptor.getValue());
+    @Test
+    void getActiveStatDefinitionsDelegatesToRepository() {
+        List<StatDefinition> defs = List.of(new StatDefinition("exercise", "Exercise", "💪", 0));
+        when(statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()).thenReturn(defs);
+
+        assertEquals(1, presenter.getActiveStatDefinitions().size());
+        verify(statDefinitionRepository).findByArchivedFalseOrderByDisplayOrderAsc();
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {

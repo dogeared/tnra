@@ -24,7 +24,7 @@ class PostFormattingTest {
         assertNotNull(post.getPersonal());
         assertNotNull(post.getFamily());
         assertNotNull(post.getWork());
-        assertNotNull(post.getStats());
+        assertNotNull(post.getStatValues());
     }
 
     @Test
@@ -34,7 +34,6 @@ class PostFormattingTest {
         post.setPersonal(null);
         post.setFamily(null);
         post.setWork(null);
-        post.setStats(null);
 
         String rendered = post.toString();
 
@@ -46,7 +45,7 @@ class PostFormattingTest {
     }
 
     @Test
-    void toStringFormatsConfiguredSectionsAndNormalizesLineBreaks() {
+    void toStringFormatsConfiguredSectionsAndStats() {
         Post post = new Post();
         Intro intro = new Intro();
         intro.setWidwytk("line1\nline2");
@@ -69,22 +68,20 @@ class PostFormattingTest {
         work.setWorst("work worst");
         post.setWork(work);
 
-        Stats stats = new Stats();
-        stats.setExercise(1);
-        stats.setGtg(2);
-        stats.setMeditate(3);
-        stats.setMeetings(4);
-        stats.setPray(5);
-        stats.setRead(6);
-        stats.setSponsor(7);
-        post.setStats(stats);
+        StatDefinition exerciseDef = new StatDefinition("exercise", "Exercise", "💪", 0);
+        exerciseDef.setId(1L);
+        StatDefinition gtgDef = new StatDefinition("gtg", "GTG", "👥", 1);
+        gtgDef.setId(2L);
+
+        post.setStatValue(exerciseDef, 5);
+        post.setStatValue(gtgDef, 3);
 
         String rendered = post.toString();
 
         assertTrue(rendered.contains("line1\n\tline2"));
         assertTrue(rendered.contains("\t*Best:* best"));
         assertTrue(rendered.contains("\t*Worst:* worst"));
-        assertTrue(rendered.contains("*exercise:* 1, *gtg:* 2, *meditate:* 3"));
-        assertTrue(rendered.contains("*sponsor:* 7"));
+        assertTrue(rendered.contains("*Exercise:* 5"));
+        assertTrue(rendered.contains("*GTG:* 3"));
     }
 }

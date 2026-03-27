@@ -3,16 +3,21 @@ package com.afitnerd.tnra.model;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import org.hibernate.annotations.GenericGenerator;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 public class Post {
@@ -55,8 +60,9 @@ public class Post {
     })
     private Category work;
 
-    @Embedded
-    private Stats stats;
+    @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonIgnoreProperties("post")
+    private List<PostStatValue> statValues = new ArrayList<>();
 
     @ManyToOne(optional = false)
     @JsonIgnoreProperties("posts")
@@ -140,13 +146,37 @@ public class Post {
         this.work = work;
     }
 
-    public Stats getStats() {
-        if (stats == null) { stats = new Stats(); }
-        return stats;
+    public List<PostStatValue> getStatValues() {
+        return statValues;
     }
 
-    public void setStats(Stats stats) {
-        this.stats = stats;
+    public void setStatValues(List<PostStatValue> statValues) {
+        this.statValues = statValues;
+    }
+
+    public Integer getStatValue(String statName) {
+        return statValues.stream()
+            .filter(sv -> sv.getStatDefinition().getName().equals(statName))
+            .map(PostStatValue::getValue)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public void setStatValue(StatDefinition statDef, Integer value) {
+        if (statDef == null || statDef.getId() == null) {
+            throw new IllegalArgumentException("StatDefinition and its ID must not be null");
+        }
+        PostStatValue existing = statValues.stream()
+            .filter(sv -> sv.getStatDefinition().getId().equals(statDef.getId()))
+            .findFirst()
+            .orElse(null);
+
+        if (existing != null) {
+            existing.setValue(value);
+        } else {
+            PostStatValue psv = new PostStatValue(this, statDef, value);
+            statValues.add(psv);
+        }
     }
 
     public User getUser() {
@@ -164,31 +194,26 @@ public class Post {
             sb.append("*Intro not set*\n\n");
         } else {
             sb.append("*Intro:*\n\n");
-
             sb.append("*WIDWYTK:*\n");
             sb.append("\t").append(doAppend(intro.getWidwytk()));
-
             sb.append("*Kryptonite:*\n");
             sb.append("\t").append(doAppend(intro.getKryptonite()));
-
             sb.append("*What and When:*\n");
             sb.append("\t").append(doAppend(intro.getWhatAndWhen()));
         }
-        
+
         if (personal == null) {
             sb.append("*Personal not set*\n\n");
         } else {
             sb.append("*Personal:*\n\n");
-
             sb.append("\t*Best:* ").append(doAppend(personal.getBest()));
             sb.append("\t*Worst:* ").append(doAppend(personal.getWorst()));
         }
-        
+
         if (family == null) {
             sb.append("*Family not set*\n\n");
         } else {
             sb.append("*Family:*\n\n");
-
             sb.append("\t*Best:* ").append(doAppend(family.getBest()));
             sb.append("\t*Worst:* ").append(doAppend(family.getWorst()));
         }
@@ -197,30 +222,22 @@ public class Post {
             sb.append("*Work not set*\n\n");
         } else {
             sb.append("*Work:*\n\n");
-
             sb.append("\t*Best:* ").append(doAppend(work.getBest()));
             sb.append("\t*Worst:* ").append(doAppend(work.getWorst()));
         }
 
-        if (stats == null) {
+        if (statValues == null || statValues.isEmpty()) {
             sb.append("*Stats not set*\n\n");
         } else {
             sb.append("*Stats:*\n\n");
-
-            sb.append("\t*exercise:* ")
-                .append(((stats.getExercise() != null) ? stats.getExercise() : "not set"));
-            sb.append(", *gtg:* ")
-                .append(((stats.getGtg() != null) ? stats.getGtg() : "not set"));
-            sb.append(", *meditate:* ")
-                .append(((stats.getMeditate() != null) ? stats.getMeditate() : "not set"));
-            sb.append(", *meetings:* ")
-                .append(((stats.getMeetings() != null) ? stats.getMeetings() : "not set"));
-            sb.append(", *pray:* ")
-                .append(((stats.getPray() != null) ? stats.getPray() : "not set"));
-            sb.append(", *read:* ")
-                .append(((stats.getRead() != null) ? stats.getRead() : "not set"));
-            sb.append(", *sponsor:* ")
-                .append(((stats.getSponsor() != null) ? stats.getSponsor() : "not set")).append("\n\n");
+            statValues.stream()
+                .sorted((a, b) -> a.getStatDefinition().getDisplayOrder().compareTo(b.getStatDefinition().getDisplayOrder()))
+                .forEach(sv -> {
+                    sb.append("\t*").append(sv.getStatDefinition().getLabel()).append(":* ");
+                    sb.append(sv.getValue() != null ? sv.getValue() : "not set");
+                    sb.append("\n");
+                });
+            sb.append("\n");
         }
 
         return sb.toString();
