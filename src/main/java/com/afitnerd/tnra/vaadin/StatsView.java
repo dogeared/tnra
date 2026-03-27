@@ -62,6 +62,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     }
 
     private void createStatsView() {
+        removeAll();
         VerticalLayout headerSection = createHeaderSection();
         HorizontalLayout statsGrid = createStatsGrid();
         add(headerSection, statsGrid);

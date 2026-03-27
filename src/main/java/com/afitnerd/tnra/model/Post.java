@@ -163,6 +163,9 @@ public class Post {
     }
 
     public void setStatValue(StatDefinition statDef, Integer value) {
+        if (statDef == null || statDef.getId() == null) {
+            throw new IllegalArgumentException("StatDefinition and its ID must not be null");
+        }
         PostStatValue existing = statValues.stream()
             .filter(sv -> sv.getStatDefinition().getId().equals(statDef.getId()))
             .findFirst()

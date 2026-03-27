@@ -66,7 +66,7 @@ public class EMailPostRenderer implements PostRenderer {
                 .sorted((a, b) -> a.getStatDefinition().getDisplayOrder()
                     .compareTo(b.getStatDefinition().getDisplayOrder()))
                 .forEach(sv -> {
-                    sb.append("<strong>").append(sv.getStatDefinition().getLabel()).append(":</strong> ");
+                    sb.append("<strong>").append(escapeHtml(sv.getStatDefinition().getLabel())).append(":</strong> ");
                     sb.append(sv.getValue() != null ? sv.getValue() : "not set");
                     sb.append(", ");
                 });
@@ -80,6 +80,11 @@ public class EMailPostRenderer implements PostRenderer {
         sb.append("</body></html>\n");
 
         return sb.toString();
+    }
+
+    private String escapeHtml(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
     }
 
     private StringBuffer doAppend(String toAppend) {
