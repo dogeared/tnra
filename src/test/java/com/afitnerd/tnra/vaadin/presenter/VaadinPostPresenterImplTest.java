@@ -6,9 +6,7 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
-import com.afitnerd.tnra.service.SlackPostRenderer;
 import com.afitnerd.tnra.service.UserService;
-import com.afitnerd.tnra.slack.service.SlackAPIService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -17,7 +15,6 @@ import org.springframework.data.domain.PageRequest;
 
 import java.lang.reflect.Field;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,8 +33,6 @@ class VaadinPostPresenterImplTest {
     private UserService userService;
     private PostService postService;
     private EMailService emailService;
-    private SlackAPIService slackApiService;
-    private SlackPostRenderer slackPostRenderer;
     private VaadinPostPresenterImpl presenter;
 
     @BeforeEach
@@ -46,33 +41,25 @@ class VaadinPostPresenterImplTest {
         userService = mock(UserService.class);
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
-        slackApiService = mock(SlackAPIService.class);
-        slackPostRenderer = mock(SlackPostRenderer.class);
         presenter = new VaadinPostPresenterImpl(
-            oidcUserService, userService, postService, emailService, slackApiService, slackPostRenderer
+            oidcUserService, userService, postService, emailService
         );
     }
 
     @Test
-    void finishPostRespectsServiceFlags() throws Exception {
+    void finishPostRespectsEmailServiceFlag() throws Exception {
         User user = new User();
         Post post = new Post();
         when(postService.finishPost(user)).thenReturn(post);
-        when(slackPostRenderer.render(post)).thenReturn("payload");
-        when(slackApiService.chat("payload")).thenReturn(Map.of("ok", true));
 
         setField(presenter, "emailServiceEnabled", true);
-        setField(presenter, "slackServiceEnabled", true);
 
         assertSame(post, presenter.finishPost(user));
         verify(emailService).sendMailToAll(post);
-        verify(slackApiService).chat("payload");
 
         setField(presenter, "emailServiceEnabled", false);
-        setField(presenter, "slackServiceEnabled", false);
         presenter.finishPost(user);
         verify(emailService, org.mockito.Mockito.times(1)).sendMailToAll(post);
-        verify(slackApiService, org.mockito.Mockito.times(1)).chat("payload");
     }
 
     @Test

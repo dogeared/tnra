@@ -7,5 +7,4 @@ public interface EMailService {
 
     void sendMailToMe(User user, Post post);
     void sendMailToAll(Post post);
-    void sendTextViaMail(User user, Post post);
 }

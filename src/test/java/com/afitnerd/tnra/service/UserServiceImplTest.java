@@ -70,8 +70,8 @@ class UserServiceImplTest {
         assertEquals("new.user@example.com", user.getEmail());
         assertEquals("New", user.getFirstName());
         assertEquals("User", user.getLastName());
-        assertEquals("oidc-new.user@example.com", user.getSlackUserId());
-        assertEquals("new.user", user.getSlackUsername());
+        assertNull(user.getSlackUserId());
+        assertNull(user.getSlackUsername());
         assertEquals(Boolean.TRUE, user.getActive());
         verify(userRepository).save(any(User.class));
     }
