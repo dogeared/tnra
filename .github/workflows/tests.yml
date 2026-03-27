@@ -73,3 +73,20 @@ jobs:
       - name: Fail job if verification failed
         if: steps.verify.outcome != 'success'
         run: exit 1
+
+      - name: Tag with version from VERSION file
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.verify.outcome == 'success'
+        run: |
+          if [ -f VERSION ]; then
+            VERSION=$(cat VERSION | tr -d '[:space:]')
+            if [ -n "$VERSION" ]; then
+              # Skip if tag already exists
+              if ! git rev-parse "$VERSION" >/dev/null 2>&1; then
+                git tag "$VERSION"
+                git push origin "$VERSION"
+                echo "Tagged $VERSION"
+              else
+                echo "Tag $VERSION already exists — skipping"
+              fi
+            fi
+          fi
