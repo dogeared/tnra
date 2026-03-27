@@ -72,8 +72,8 @@
 
 /* Control Buttons */
 .control-button {
-    min-width: 34px;
-    min-height: 34px;
+    min-width: 44px;
+    min-height: 44px;
     background-color: var(--tnra-primary);
     color: white;
     border: none;

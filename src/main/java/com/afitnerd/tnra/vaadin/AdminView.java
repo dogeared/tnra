@@ -2,7 +2,9 @@ package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
 import com.vaadin.flow.component.button.Button;
@@ -23,10 +25,13 @@ import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
+
+import java.util.List;
 
 @PageTitle("Admin Dashboard - TNRA")
 @Route(value = "admin", layout = MainLayout.class)
@@ -36,16 +41,22 @@ public class AdminView extends VerticalLayout {
 
     private final VaadinAdminPresenter vaadinAdminPresenter;
     private final CallChainPresenter callChainPresenter;
+    private final StatDefinitionRepository statDefinitionRepository;
     private GoToGuySet workingSet;
 
-    public AdminView(VaadinAdminPresenter vaadinAdminPresenter, CallChainPresenter callChainPresenter) {
+    public AdminView(
+        VaadinAdminPresenter vaadinAdminPresenter,
+        CallChainPresenter callChainPresenter,
+        StatDefinitionRepository statDefinitionRepository
+    ) {
         this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
-        
+        this.statDefinitionRepository = statDefinitionRepository;
+
         addClassName("admin-view");
         setSizeFull();
         setDefaultHorizontalComponentAlignment(Alignment.CENTER);
-        
+
         createHeader();
         createContent();
     }
@@ -53,28 +64,273 @@ public class AdminView extends VerticalLayout {
     private void createHeader() {
         H2 title = new H2("Admin Dashboard");
         title.addClassName("admin-title");
-        
+
         Paragraph subtitle = new Paragraph("Administrative tools and system management");
         subtitle.addClassName("admin-subtitle");
-        
+
         add(title, subtitle);
     }
 
     private void createContent() {
         TabSheet tabSheet = new TabSheet();
         tabSheet.setSizeFull();
-        
-        // Create GTG tab with existing admin content
-        VerticalLayout gtgContent = createGtgTabContent();
-        tabSheet.add("GTG", gtgContent);
 
-        // Create Build Info tab
-        VerticalLayout buildInfoContent = createBuildInfoTabContent();
-        tabSheet.add("Build Info", buildInfoContent);
+        tabSheet.add("GTG", createGtgTabContent());
+        tabSheet.add("Stats Config", createStatsConfigTabContent());
+        tabSheet.add("Build Info", createBuildInfoTabContent());
 
         add(tabSheet);
     }
-    
+
+    // ========================
+    // Stats Config Tab
+    // ========================
+
+    private VerticalLayout createStatsConfigTabContent() {
+        VerticalLayout content = new VerticalLayout();
+        content.setSizeFull();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        H3 header = new H3("Stats Configuration");
+        header.addClassName("section-header");
+
+        Paragraph description = new Paragraph(
+            "Configure the stats your group tracks weekly. Members will see these in their post form."
+        );
+        description.addClassName("admin-subtitle");
+
+        VerticalLayout statsList = new VerticalLayout();
+        statsList.setSpacing(false);
+        statsList.setPadding(false);
+        statsList.setWidth("100%");
+        statsList.setMaxWidth("600px");
+
+        Paragraph archivedNote = new Paragraph(
+            "Archived stats still appear on older posts but won't show in new post forms."
+        );
+        archivedNote.getStyle().set("color", "var(--tnra-text-muted)");
+        archivedNote.getStyle().set("font-size", "0.85rem");
+        archivedNote.getStyle().set("font-style", "italic");
+
+        refreshStatsList(statsList);
+
+        Button addStatBtn = new Button("Add Stat", VaadinIcon.PLUS.create());
+        addStatBtn.addClassName("admin-button");
+        addStatBtn.addClickListener(e -> openAddStatDialog(statsList));
+
+        content.add(header, description, statsList, archivedNote, addStatBtn);
+        return content;
+    }
+
+    private void refreshStatsList(VerticalLayout statsList) {
+        statsList.removeAll();
+        List<StatDefinition> allStats = statDefinitionRepository.findAllByOrderByDisplayOrderAsc();
+
+        if (allStats.isEmpty()) {
+            Paragraph empty = new Paragraph("No stats configured yet. Add your first stat below.");
+            empty.getStyle().set("color", "var(--tnra-text-secondary)");
+            statsList.add(empty);
+            return;
+        }
+
+        for (int i = 0; i < allStats.size(); i++) {
+            StatDefinition stat = allStats.get(i);
+            statsList.add(createStatRow(stat, i, allStats.size(), statsList));
+        }
+    }
+
+    private HorizontalLayout createStatRow(StatDefinition stat, int index, int totalCount, VerticalLayout statsList) {
+        HorizontalLayout row = new HorizontalLayout();
+        row.setWidthFull();
+        row.setAlignItems(Alignment.CENTER);
+        row.getStyle().set("padding", "0.5rem 0");
+        row.getStyle().set("border-bottom", "1px solid var(--tnra-border-subtle)");
+
+        if (stat.getArchived()) {
+            row.getStyle().set("opacity", "0.5");
+        }
+
+        // Emoji + label
+        Span emojiSpan = new Span(stat.getEmoji() != null ? stat.getEmoji() : "");
+        emojiSpan.getStyle().set("font-size", "1.5rem");
+        emojiSpan.getStyle().set("min-width", "2rem");
+
+        Span labelSpan = new Span(stat.getLabel());
+        labelSpan.getStyle().set("font-weight", "500");
+        labelSpan.getStyle().set("flex-grow", "1");
+
+        if (stat.getArchived()) {
+            Span archivedBadge = new Span("archived");
+            archivedBadge.getStyle().set("font-size", "0.75rem");
+            archivedBadge.getStyle().set("color", "var(--tnra-text-muted)");
+            archivedBadge.getStyle().set("background", "var(--tnra-surface-dim)");
+            archivedBadge.getStyle().set("padding", "0.1rem 0.5rem");
+            archivedBadge.getStyle().set("border-radius", "var(--tnra-radius-sm)");
+            row.add(emojiSpan, labelSpan, archivedBadge);
+        } else {
+            // Up/down buttons for reordering
+            Button upBtn = new Button(VaadinIcon.ARROW_UP.create());
+            upBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            upBtn.setEnabled(index > 0 && !stat.getArchived());
+            upBtn.addClickListener(e -> moveStatUp(stat, statsList));
+
+            Button downBtn = new Button(VaadinIcon.ARROW_DOWN.create());
+            downBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            // Find index among active stats only
+            List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+            int activeIndex = activeStats.indexOf(stat);
+            downBtn.setEnabled(activeIndex < activeStats.size() - 1);
+            downBtn.addClickListener(e -> moveStatDown(stat, statsList));
+
+            // Archive button
+            Button archiveBtn = new Button(VaadinIcon.CLOSE_SMALL.create());
+            archiveBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+            archiveBtn.setAriaLabel("Archive " + stat.getLabel());
+            archiveBtn.addClickListener(e -> archiveStat(stat, statsList));
+
+            row.add(emojiSpan, labelSpan, upBtn, downBtn, archiveBtn);
+        }
+
+        // Restore button for archived stats
+        if (stat.getArchived()) {
+            Button restoreBtn = new Button("Restore");
+            restoreBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            restoreBtn.addClickListener(e -> restoreStat(stat, statsList));
+            row.add(restoreBtn);
+        }
+
+        return row;
+    }
+
+    private void moveStatUp(StatDefinition stat, VerticalLayout statsList) {
+        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        int index = activeStats.indexOf(stat);
+        if (index > 0) {
+            StatDefinition prev = activeStats.get(index - 1);
+            int tempOrder = stat.getDisplayOrder();
+            stat.setDisplayOrder(prev.getDisplayOrder());
+            prev.setDisplayOrder(tempOrder);
+            statDefinitionRepository.save(stat);
+            statDefinitionRepository.save(prev);
+            refreshStatsList(statsList);
+        }
+    }
+
+    private void moveStatDown(StatDefinition stat, VerticalLayout statsList) {
+        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        int index = activeStats.indexOf(stat);
+        if (index < activeStats.size() - 1) {
+            StatDefinition next = activeStats.get(index + 1);
+            int tempOrder = stat.getDisplayOrder();
+            stat.setDisplayOrder(next.getDisplayOrder());
+            next.setDisplayOrder(tempOrder);
+            statDefinitionRepository.save(stat);
+            statDefinitionRepository.save(next);
+            refreshStatsList(statsList);
+        }
+    }
+
+    private void archiveStat(StatDefinition stat, VerticalLayout statsList) {
+        // Check if this is the last active stat
+        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        if (activeStats.size() <= 1) {
+            Notification notification = Notification.show("Cannot archive the last active stat. At least one stat is required.");
+            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            return;
+        }
+
+        stat.setArchived(true);
+        statDefinitionRepository.save(stat);
+        refreshStatsList(statsList);
+
+        Notification notification = Notification.show(stat.getLabel() + " archived");
+        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    private void restoreStat(StatDefinition stat, VerticalLayout statsList) {
+        stat.setArchived(false);
+        // Put restored stat at the end of the active list
+        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        int maxOrder = activeStats.stream()
+            .mapToInt(StatDefinition::getDisplayOrder)
+            .max()
+            .orElse(-1);
+        stat.setDisplayOrder(maxOrder + 1);
+        statDefinitionRepository.save(stat);
+        refreshStatsList(statsList);
+
+        Notification notification = Notification.show(stat.getLabel() + " restored");
+        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    private void openAddStatDialog(VerticalLayout statsList) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Add New Stat");
+
+        FormLayout formLayout = new FormLayout();
+
+        TextField nameField = new TextField("Internal Name");
+        nameField.setHelperText("Lowercase, no spaces (e.g., 'journaling')");
+        nameField.setPattern("[a-z_]+");
+
+        TextField labelField = new TextField("Display Label");
+        labelField.setHelperText("What members see (e.g., 'Journaling')");
+
+        TextField emojiField = new TextField("Emoji");
+        emojiField.setHelperText("Single emoji (e.g., '📝')");
+        emojiField.setMaxLength(10);
+        emojiField.setWidth("80px");
+
+        formLayout.add(nameField, labelField, emojiField);
+
+        Button saveBtn = new Button("Add Stat", VaadinIcon.CHECK.create());
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveBtn.addClickListener(e -> {
+            String name = nameField.getValue().trim().toLowerCase();
+            String label = labelField.getValue().trim();
+            String emoji = emojiField.getValue().trim();
+
+            if (name.isEmpty() || label.isEmpty()) {
+                Notification.show("Name and label are required");
+                return;
+            }
+
+            if (statDefinitionRepository.existsByName(name)) {
+                Notification notification = Notification.show("A stat with name '" + name + "' already exists");
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+            int nextOrder = activeStats.stream()
+                .mapToInt(StatDefinition::getDisplayOrder)
+                .max()
+                .orElse(-1) + 1;
+
+            StatDefinition newStat = new StatDefinition(name, label, emoji.isEmpty() ? null : emoji, nextOrder);
+            statDefinitionRepository.save(newStat);
+
+            refreshStatsList(statsList);
+            dialog.close();
+
+            Notification notification = Notification.show(label + " added");
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+
+        Button cancelBtn = new Button("Cancel", e -> dialog.close());
+
+        HorizontalLayout dialogButtons = new HorizontalLayout(saveBtn, cancelBtn);
+        dialogButtons.setJustifyContentMode(JustifyContentMode.END);
+
+        dialog.add(formLayout, dialogButtons);
+        dialog.open();
+    }
+
+    // ========================
+    // Build Info Tab
+    // ========================
+
     private VerticalLayout createBuildInfoTabContent() {
         VerticalLayout content = new VerticalLayout();
         content.setSizeFull();
@@ -116,61 +372,58 @@ public class AdminView extends VerticalLayout {
         return row;
     }
 
+    // ========================
+    // GTG Tab (existing)
+    // ========================
+
     private VerticalLayout createGtgTabContent() {
         VerticalLayout content = new VerticalLayout();
         content.setSizeFull();
         content.setSpacing(true);
         content.setPadding(true);
-        
-        // Header section
+
         H3 gtgHeader = new H3("Go To Guy Management");
         gtgHeader.addClassName("section-header");
-        
-        // Current GTG Set display
+
         VerticalLayout currentSetSection = createCurrentGTGSetSection();
-        
-        // Create new GTG Set section
         VerticalLayout newSetSection = createNewGTGSetSection();
-        
+
         content.add(gtgHeader, currentSetSection, newSetSection);
         return content;
     }
-    
+
     private VerticalLayout createCurrentGTGSetSection() {
         VerticalLayout section = new VerticalLayout();
         section.setSpacing(true);
         section.setPadding(false);
-        
+
         H3 sectionHeader = new H3("Current Go To Guy Set");
         sectionHeader.addClassName("subsection-header");
-        
+
         Grid<GoToGuyPair> currentGrid = new Grid<>(GoToGuyPair.class, false);
-        currentGrid.addColumn(new TextRenderer<>(pair -> 
+        currentGrid.addColumn(new TextRenderer<>(pair ->
             getUserDisplayName(pair.getCaller()))).setHeader("Caller");
-        currentGrid.addColumn(new TextRenderer<>(pair -> 
+        currentGrid.addColumn(new TextRenderer<>(pair ->
             getUserDisplayName(pair.getCallee()))).setHeader("Calls");
         currentGrid.setHeight("200px");
-        
-        // Load current data
+
         GoToGuySet currentSet = callChainPresenter.getCurrentGoToGuySet();
         if (currentSet != null && currentSet.getGoToGuyPairs() != null) {
             currentGrid.setItems(currentSet.getGoToGuyPairs());
         }
-        
+
         section.add(sectionHeader, currentGrid);
         return section;
     }
-    
+
     private VerticalLayout createNewGTGSetSection() {
         VerticalLayout section = new VerticalLayout();
         section.setSpacing(true);
         section.setPadding(false);
 
-        // Button to initiate creating new set - initially visible
         Button createNewSetBtn = new Button("Create New Go To Guy Set", VaadinIcon.PLUS.create());
         createNewSetBtn.addClassName("admin-button");
 
-        // Section content - initially hidden
         VerticalLayout contentSection = new VerticalLayout();
         contentSection.setSpacing(true);
         contentSection.setPadding(false);
@@ -188,12 +441,8 @@ public class AdminView extends VerticalLayout {
             Button deleteBtn = new Button(VaadinIcon.TRASH.create());
             deleteBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
             deleteBtn.addClickListener(e -> {
-                // Remove pair from the working set and database
                 workingSet = callChainPresenter.removePairFromSet(workingSet, pair);
-
-                // Refresh grid
                 pairsGrid.setItems(workingSet.getGoToGuyPairs());
-
                 Notification.show("Pair removed successfully");
             });
             return deleteBtn;
@@ -202,21 +451,18 @@ public class AdminView extends VerticalLayout {
 
         Button addPairBtn = new Button("Add Pair", VaadinIcon.PLUS.create());
         addPairBtn.addClassName("admin-button");
-        addPairBtn.setEnabled(false); // Initially disabled
+        addPairBtn.setEnabled(false);
         addPairBtn.addClickListener(e -> openAddPairDialog(pairsGrid));
 
         contentSection.add(sectionHeader, pairsGrid, addPairBtn);
 
-        // Click handler for the "Create New Go To Guy Set" button
         createNewSetBtn.addClickListener(e -> {
             try {
-                // Create an empty GoToGuySet and save it to the database
                 workingSet = callChainPresenter.createNewGoToGuySet(new java.util.ArrayList<>());
-
-                createNewSetBtn.setEnabled(false);  // Disable the button
-                createNewSetBtn.getStyle().set("opacity", "0.5"); // Make it visually greyed out
-                contentSection.setVisible(true);     // Show the section
-                addPairBtn.setEnabled(true);         // Enable Add Pair button
+                createNewSetBtn.setEnabled(false);
+                createNewSetBtn.getStyle().set("opacity", "0.5");
+                contentSection.setVisible(true);
+                addPairBtn.setEnabled(true);
 
                 Notification notification = Notification.show("New Go To Guy Set created");
                 notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
@@ -229,7 +475,7 @@ public class AdminView extends VerticalLayout {
         section.add(createNewSetBtn, contentSection);
         return section;
     }
-    
+
     private void openAddPairDialog(Grid<GoToGuyPair> pairsGrid) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Add Go To Guy Pair");
@@ -239,26 +485,21 @@ public class AdminView extends VerticalLayout {
         ComboBox<User> callerCombo = new ComboBox<>("Caller");
         ComboBox<User> calleeCombo = new ComboBox<>("Callee");
 
-        // Load active users
         java.util.List<User> activeUsers = callChainPresenter.getAllActiveUsers();
 
-        // Get current pairs from the working set
         java.util.List<GoToGuyPair> currentPairs = workingSet.getGoToGuyPairs() != null
             ? workingSet.getGoToGuyPairs()
             : new java.util.ArrayList<>();
 
-        // Filter callers: exclude users who are already assigned someone to call
         java.util.List<User> availableCallers = activeUsers.stream()
             .filter(user -> currentPairs.stream()
                 .noneMatch(pair -> pair.getCaller().getId().equals(user.getId())))
             .collect(java.util.stream.Collectors.toList());
 
         callerCombo.setItems(availableCallers);
-
         callerCombo.setItemLabelGenerator(this::getUserDisplayName);
         calleeCombo.setItemLabelGenerator(this::getUserDisplayName);
 
-        // Dynamic filtering of callee options based on selected caller
         callerCombo.addValueChangeListener(event -> {
             User selectedCaller = event.getValue();
             if (selectedCaller == null) {
@@ -266,22 +507,12 @@ public class AdminView extends VerticalLayout {
                 return;
             }
 
-            // Filter out invalid callee options based on the rules
             java.util.List<User> validCallees = activeUsers.stream()
                 .filter(user -> {
-                    // Rule 1: Can't call themselves
-                    if (user.getId().equals(selectedCaller.getId())) {
-                        return false;
-                    }
-
-                    // Rule 2: Can't call someone already being called by someone else
+                    if (user.getId().equals(selectedCaller.getId())) return false;
                     boolean alreadyBeingCalled = currentPairs.stream()
                         .anyMatch(pair -> pair.getCallee().getId().equals(user.getId()));
-                    if (alreadyBeingCalled) {
-                        return false;
-                    }
-
-                    return true;
+                    return !alreadyBeingCalled;
                 })
                 .collect(java.util.stream.Collectors.toList());
 
@@ -300,13 +531,8 @@ public class AdminView extends VerticalLayout {
                 GoToGuyPair pair = new GoToGuyPair();
                 pair.setCaller(caller);
                 pair.setCallee(callee);
-
-                // Add pair to the working set and save to database
                 workingSet = callChainPresenter.addPairToSet(workingSet, pair);
-
-                // Update grid with pairs from working set
                 pairsGrid.setItems(workingSet.getGoToGuyPairs());
-
                 dialog.close();
                 Notification.show("Pair added successfully");
             } else {
@@ -322,17 +548,15 @@ public class AdminView extends VerticalLayout {
         dialog.add(formLayout, dialogButtons);
         dialog.open();
     }
-    
+
     private void showValidationError(User caller, User callee, java.util.List<GoToGuyPair> existingPairs) {
         String errorMessage;
 
         if (caller == null || callee == null) {
             errorMessage = "Both caller and callee must be selected";
         } else if (caller.getId().equals(callee.getId())) {
-            // Rule 1: A person can't call themselves
             errorMessage = "A person cannot call themselves";
         } else {
-            // Rule 2: Check if callee is already being called by someone else
             java.util.Optional<GoToGuyPair> calleeAlreadyAssigned = existingPairs.stream()
                 .filter(pair -> pair.getCallee().getId().equals(callee.getId()))
                 .findFirst();
@@ -349,9 +573,13 @@ public class AdminView extends VerticalLayout {
         notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
     }
 
+    // ========================
+    // Utilities
+    // ========================
+
     private String getUserDisplayName(User user) {
         if (user == null) return "Unknown";
-        
+
         if (user.getFirstName() != null && !user.getFirstName().trim().isEmpty()) {
             String displayName = user.getFirstName();
             if (user.getLastName() != null && !user.getLastName().trim().isEmpty()) {
@@ -359,11 +587,11 @@ public class AdminView extends VerticalLayout {
             }
             return displayName;
         }
-        
+
         if (user.getEmail() != null && !user.getEmail().trim().isEmpty()) {
             return user.getEmail().split("@")[0];
         }
-        
+
         return "User #" + user.getId();
     }
 }
