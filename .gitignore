@@ -31,6 +31,7 @@ application.properties
 node_modules
 node
 *.sql
+!src/main/resources/db/migration/*.sql
 
 src/main/resources/public
 
