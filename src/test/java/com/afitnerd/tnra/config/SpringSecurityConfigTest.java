@@ -71,4 +71,48 @@ class SpringSecurityConfigTest {
         assertTrue(mapped.contains("ROLE_OPS"));
         assertTrue(mapped.contains("ROLE_QA"));
     }
+
+    @Test
+    void grantedAuthoritiesMapperExtractsKeycloakRealmAccessRoles() {
+        SpringSecurityConfig config = new SpringSecurityConfig();
+        GrantedAuthoritiesMapper mapper = config.grantedAuthoritiesMapper();
+        OidcIdToken token = new OidcIdToken(
+            "token",
+            Instant.now(),
+            Instant.now().plusSeconds(60),
+            Map.of("realm_access", Map.of("roles", List.of("admin", "member")))
+        );
+        OidcUserAuthority oidcAuthority = new OidcUserAuthority(token);
+
+        Set<String> mapped = mapper.mapAuthorities(Set.of(oidcAuthority))
+            .stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(java.util.stream.Collectors.toSet());
+
+        assertTrue(mapped.contains("ROLE_ADMIN"));
+        assertTrue(mapped.contains("ROLE_MEMBER"));
+    }
+
+    @Test
+    void grantedAuthoritiesMapperHandlesMissingRealmAccess() {
+        SpringSecurityConfig config = new SpringSecurityConfig();
+        GrantedAuthoritiesMapper mapper = config.grantedAuthoritiesMapper();
+        // Token with neither realm_access nor groups — just the base OIDC authority
+        OidcIdToken token = new OidcIdToken(
+            "token",
+            Instant.now(),
+            Instant.now().plusSeconds(60),
+            Map.of("sub", "user123")
+        );
+        OidcUserAuthority oidcAuthority = new OidcUserAuthority(token);
+
+        Set<String> mapped = mapper.mapAuthorities(Set.of(oidcAuthority))
+            .stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(java.util.stream.Collectors.toSet());
+
+        // Should still have the base OIDC authority, but no ROLE_ADMIN
+        assertTrue(mapped.stream().anyMatch(a -> a.equals("OIDC_USER")));
+        assertTrue(mapped.stream().noneMatch(a -> a.equals("ROLE_ADMIN")));
+    }
 }

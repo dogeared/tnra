@@ -28,9 +28,9 @@ class AuthNavigationServiceTest {
     }
 
     @Test
-    void fallsBackToOktaWhenValuesAreBlank() {
+    void fallsBackToKeycloakWhenValuesAreBlank() {
         AuthNavigationService service = new AuthNavigationService("", " ");
 
-        assertEquals("/oauth2/authorization/okta", service.getLoginPath());
+        assertEquals("/oauth2/authorization/keycloak", service.getLoginPath());
     }
 }

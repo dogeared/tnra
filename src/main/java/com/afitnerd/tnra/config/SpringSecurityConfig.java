@@ -89,7 +89,23 @@ public class SpringSecurityConfig {
     }
     
     private void extractGroups(Map<String, Object> claims, Set<GrantedAuthority> mappedAuthorities) {
-        // Try different possible group claim names
+        // Keycloak: extract from realm_access.roles (nested Map)
+        Object realmAccess = claims.get("realm_access");
+        if (realmAccess instanceof Map) {
+            Object realmRoles = ((Map<?, ?>) realmAccess).get("roles");
+            if (realmRoles instanceof Collection) {
+                Collection<?> rolesCollection = (Collection<?>) realmRoles;
+                mappedAuthorities.addAll(
+                    rolesCollection.stream()
+                        .map(Object::toString)
+                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase())
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toSet())
+                );
+            }
+        }
+
+        // Flat claims: groups, roles, authorities (Okta, Auth0, generic OIDC)
         Object groups = claims.get("groups");
         if (groups == null) {
             groups = claims.get("roles");
