@@ -114,10 +114,25 @@ public class MainView extends VerticalLayout {
                 "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
-            
+
             profileSection.add(profileImage, welcomeMessage);
-            
-            add(title, profileSection);
+
+            HorizontalLayout quickActions = new HorizontalLayout();
+            quickActions.addClassName("main-quick-actions");
+            quickActions.setSpacing(true);
+            quickActions.setAlignItems(Alignment.CENTER);
+
+            Button goToPostsButton = new Button("Go to Posts", click -> navigateTo("posts"));
+            goToPostsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+            goToPostsButton.addClassName("main-action-button");
+
+            Button viewProfileButton = new Button("View Profile", click -> navigateTo("profile"));
+            viewProfileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+            viewProfileButton.addClassName("main-action-button");
+
+            quickActions.add(goToPostsButton, viewProfileButton);
+
+            add(title, profileSection, quickActions);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -137,6 +152,10 @@ public class MainView extends VerticalLayout {
 
             log.warn("Error while rendering authenticated main view", e);
         }
+    }
+
+    private void navigateTo(String route) {
+        getUI().ifPresent(ui -> ui.getPage().setLocation("/" + route));
     }
 
     private String resolveDisplayName(String displayName, User currentUser) {
