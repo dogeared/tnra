@@ -2,6 +2,30 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [5.0.0] - 2026-03-27
+
+### Added
+- Dynamic `StatDefinition` model replacing hardcoded 7-field Stats embeddable
+- `PostStatValue` join table for per-post stat values
+- V3 Flyway migration: creates new tables, seeds default stats, migrates existing data, drops old columns
+- `StatDefinitionRepository` and `PostStatValueRepository` for stat management
+- `Post.getStatValue(name)` and `Post.setStatValue(def, value)` convenience methods
+- Production migration plan document (`MIGRATION-V3-STATS.md`)
+
+### Changed
+- `Post` entity: `@Embedded Stats` replaced with `@OneToMany PostStatValue` relationship
+- `PostService`: `replaceStats()`/`updateCompleteStats()` replaced with `updateStatValue()`
+- `VaadinPostPresenter`: new `updateStatValue()` and `getActiveStatDefinitions()` methods
+- `StatsView` renders dynamically from active `StatDefinition` entries
+- `EMailPostRenderer` renders stats dynamically from `PostStatValue` list
+- `Post.toString()` formats stats dynamically
+- `.gitignore`: Flyway migration SQL files now explicitly allowed
+
+### Removed
+- `Stats` embeddable class (replaced by dynamic model)
+- `CommandParser` and `Command` model classes (dead Slack code from Branch 1)
+- `replaceStats()` and `updateCompleteStats()` from PostService interface
+
 ## [4.15.0] - 2026-03-26
 
 ### Added
