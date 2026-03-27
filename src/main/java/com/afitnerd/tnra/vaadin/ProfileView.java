@@ -4,9 +4,11 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.notification.Notification;
@@ -40,6 +42,7 @@ public class ProfileView extends VerticalLayout {
     private Image profileImage;
     private Upload imageUpload;
     private Button saveButton;
+    private Checkbox notifyNewPostsCheckbox;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -102,16 +105,25 @@ public class ProfileView extends VerticalLayout {
         // Phone number field with formatting and validation
         phoneNumberField = createPhoneNumberField();
         
+        // Notification Preferences
+        H3 notifHeader = new H3("Email Notifications");
+        notifyNewPostsCheckbox = new Checkbox("Notify me when someone posts a weekly update");
+        notifyNewPostsCheckbox.setValue(true);
+
+        VerticalLayout notifSection = new VerticalLayout(notifHeader, notifyNewPostsCheckbox);
+        notifSection.setSpacing(true);
+        notifSection.setPadding(false);
+
         // Save Button
         saveButton = new Button("Save Changes");
         saveButton.addClickListener(e -> saveProfile());
-        
+
         // Layout
         VerticalLayout formLayout = new VerticalLayout();
         formLayout.setSpacing(true);
         formLayout.setPadding(false);
         formLayout.addClassName("form-section");
-        formLayout.add(firstNameField, lastNameField, phoneNumberField, saveButton);
+        formLayout.add(firstNameField, lastNameField, phoneNumberField, notifSection, saveButton);
         
         HorizontalLayout mainLayout = new HorizontalLayout();
         mainLayout.setSpacing(true);
@@ -228,7 +240,9 @@ public class ProfileView extends VerticalLayout {
             } else {
                 phoneNumberField.setValue("");
             }
-            
+
+            notifyNewPostsCheckbox.setValue(Boolean.TRUE.equals(currentUser.getNotifyNewPosts()));
+
             if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
                 String imageUrl = fileStorageService.getFileUrl(currentUser.getProfileImage());
                 profileImage.setSrc(imageUrl);
@@ -252,6 +266,7 @@ public class ProfileView extends VerticalLayout {
             currentUser.setLastName(lastNameField.getValue());
             // Store normalized phone number (digits only)
             currentUser.setPhoneNumber(normalizePhoneNumber(phoneNumber));
+            currentUser.setNotifyNewPosts(notifyNewPostsCheckbox.getValue());
             
             try {
                 userService.saveUser(currentUser);

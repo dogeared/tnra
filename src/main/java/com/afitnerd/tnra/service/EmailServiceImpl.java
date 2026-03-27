@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -22,8 +23,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 @Service
 public class EmailServiceImpl implements EMailService {
@@ -37,21 +36,22 @@ public class EmailServiceImpl implements EMailService {
     @Value("#{ @environment['mailgun.url'] }")
     private String mailgunUrl;
 
-    private PostRenderer emailPostRenderer;
-    private UserRepository userRepository;
+    @Value("${tnra.emailService.enabled:true}")
+    private boolean emailServiceEnabled;
 
-    private ObjectMapper mapper = new ObjectMapper();
-    private TypeReference<HashMap<String,Object>> typeRef = new TypeReference<HashMap<String,Object>>() {};
+    private final PostRenderer postRenderer;
+    private final UserRepository userRepository;
 
-    private ExecutorService executor = Executors.newFixedThreadPool(5);
+    private final ObjectMapper mapper = new ObjectMapper();
+    private final TypeReference<HashMap<String,Object>> typeRef = new TypeReference<>() {};
 
-    private static Logger log = LoggerFactory.getLogger(EmailServiceImpl.class);
+    private static final Logger log = LoggerFactory.getLogger(EmailServiceImpl.class);
 
     public EmailServiceImpl(
-        @Qualifier("emailPostRenderer") PostRenderer eMailPostRenderer,
+        @Qualifier("activityNotificationRenderer") PostRenderer postRenderer,
         UserRepository userRepository
     ) {
-        this.emailPostRenderer = eMailPostRenderer;
+        this.postRenderer = postRenderer;
         this.userRepository = userRepository;
     }
 
@@ -62,44 +62,55 @@ public class EmailServiceImpl implements EMailService {
 
     @Override
     public void sendMailToMe(User user, Post post) {
-        Runnable runnableTask = () -> {
-            try {
-                HttpEntity entity = MultipartEntityBuilder
-                    .create()
-                    .addTextBody("from", "bot@tnra.afitnerd.com")
-                    .addTextBody("to", user.getEmail())
-                    .addTextBody(
-                        "subject",
-                        "Post From " + post.getUser().getFirstName() + " " + post.getUser().getLastName()
-                    )
-                    .addTextBody(
-                        "html",
-                        emailPostRenderer.render(post),
-                        ContentType.create("text/hmtl", StandardCharsets.UTF_8)
-                    )
-                    .build();
+        if (!emailServiceEnabled) {
+            log.debug("Email service disabled — skipping email to {}", user.getEmail());
+            return;
+        }
 
-                InputStream responseStream = Request.post(mailgunUrl)
-                    .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
-                    .body(entity)
-                    .execute().returnContent().asStream();
-                Map<String, Object> response =  mapper.readValue(responseStream, typeRef);
-                log.info(
-                    "Sent email to {}. Got Mailgun response: {}",
-                    user.getEmail(), mapper.writeValueAsString(response)
-                );
-            } catch (IOException e) {
-                log.error("Error sending Mailgun email: {}", e.getMessage(), e);
-            }
-        };
+        try {
+            HttpEntity entity = MultipartEntityBuilder
+                .create()
+                .addTextBody("from", "bot@tnra.afitnerd.com")
+                .addTextBody("to", user.getEmail())
+                .addTextBody(
+                    "subject",
+                    "TNRA: New activity from " + post.getUser().getFirstName()
+                )
+                .addTextBody(
+                    "html",
+                    postRenderer.render(post),
+                    ContentType.create("text/html", StandardCharsets.UTF_8)
+                )
+                .build();
 
-        executor.execute(runnableTask);
+            InputStream responseStream = Request.post(mailgunUrl)
+                .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
+                .body(entity)
+                .execute().returnContent().asStream();
+            Map<String, Object> response = mapper.readValue(responseStream, typeRef);
+            log.info(
+                "Sent email to {}. Got Mailgun response: {}",
+                user.getEmail(), mapper.writeValueAsString(response)
+            );
+        } catch (IOException e) {
+            log.error("Error sending Mailgun email to {}: {}", user.getEmail(), e.getMessage(), e);
+        }
     }
 
     @Override
+    @Async("emailTaskExecutor")
     public void sendMailToAll(Post post) {
+        if (!emailServiceEnabled) {
+            log.debug("Email service disabled — skipping all notifications");
+            return;
+        }
+
         userRepository.findByActiveTrue().forEach(user -> {
-            sendMailToMe(user, post);
+            if (Boolean.TRUE.equals(user.getNotifyNewPosts())) {
+                sendMailToMe(user, post);
+            } else {
+                log.debug("Skipping email to {} — notifications disabled", user.getEmail());
+            }
         });
     }
 }

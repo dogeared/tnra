@@ -53,6 +53,10 @@ public class User {
     private String slackUserId;
 
     @JsonView(JsonViews.Full.class)
+    @Column(name = "notify_new_posts", nullable = false)
+    private Boolean notifyNewPosts = true;
+
+    @JsonView(JsonViews.Full.class)
     @JsonIgnoreProperties("user")
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Post> posts;
@@ -159,5 +163,13 @@ public class User {
 
     public void setDarkMode(Boolean darkMode) {
         this.darkMode = darkMode;
+    }
+
+    public Boolean getNotifyNewPosts() {
+        return notifyNewPosts;
+    }
+
+    public void setNotifyNewPosts(Boolean notifyNewPosts) {
+        this.notifyNewPosts = notifyNewPosts;
     }
 }
