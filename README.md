@@ -23,22 +23,23 @@ Built with Spring Boot 3.5, Vaadin Flow 24.9, Java 21, and MySQL 8.
 Tests use H2 automatically. For local dev with H2:
 
 ```bash
-# Set required env vars
-export OKTA_OAUTH2_ISSUER=https://your-issuer.example.com/oauth2/default
-export OKTA_OAUTH2_CLIENT_ID=your-client-id
+# Start local Keycloak (first time only — pre-configured realm auto-imports)
+docker compose up keycloak -d
 
 # Run with H2 (data resets on restart)
 ./mvnw spring-boot:run
 ```
 
-The app listens on port 8080. H2 uses `ddl-auto: create-drop` and Flyway is disabled.
+The app listens on port 8080. Keycloak runs on port 8180 with pre-configured `tnra` realm.
+Login with `admin@tnra.local` / `admin` (admin role) or `member@tnra.local` / `member`.
+H2 uses `ddl-auto: create-drop` and Flyway is disabled.
 
 ### Option 2: MySQL via Docker (persistent data, matches production)
 
-Start MySQL:
+Start MySQL and Keycloak:
 
 ```bash
-docker compose up mysql -d
+docker compose up mysql keycloak -d
 ```
 
 This starts MySQL on port 3307 (mapped from container's 3306). The database `tnra` is

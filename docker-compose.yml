@@ -24,8 +24,9 @@ services:
       MYSQL_DATABASE: tnra
       MYSQL_HOST: mysql
       MYSQL_PORT: 3306
-      OKTA_OAUTH2_CLIENT_ID: ${OKTA_OAUTH2_CLIENT_ID}
-      OKTA_OAUTH2_ISSUER: ${OKTA_OAUTH2_ISSUER}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-tnra-app}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-tnra-app-secret}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://keycloak:8080/realms/tnra}
       SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
       SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
       SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tnra
@@ -39,6 +40,18 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:26.0
+    command: start-dev --import-realm
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - '127.0.0.1:8180:8080'
+    volumes:
+      - './keycloak:/opt/keycloak/data/import:ro'
 
   mysql:
     container_name: mysql
