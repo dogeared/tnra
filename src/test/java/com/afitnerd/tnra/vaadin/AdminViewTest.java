@@ -12,6 +12,10 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.internal.CurrentInstance;
+import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -45,7 +50,11 @@ class AdminViewTest {
 
     @BeforeEach
     void setUp() {
-        UI.setCurrent(new UI());
+        UI ui = new UI();
+        VaadinSession session = mock(VaadinSession.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        org.mockito.Mockito.lenient().when(session.hasLock()).thenReturn(true);
+        ui.getInternals().setSession(session);
+        UI.setCurrent(ui);
         when(vaadinAdminPresenter.getGitTag()).thenReturn("v1.0.0");
         when(vaadinAdminPresenter.getGitCommitId()).thenReturn("abc123");
         when(vaadinAdminPresenter.getGitBranch()).thenReturn("main");
