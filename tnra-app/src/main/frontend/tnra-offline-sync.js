@@ -367,6 +367,17 @@
   function wireFinishButtonOfflineQueue() {
     document.addEventListener("click", (event) => {
       const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+      const startButton = path.find(
+        (node) => node instanceof HTMLElement && node.classList?.contains("start-new-post-button")
+      );
+      if (startButton && !navigator.onLine) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        window.dispatchEvent(new CustomEvent("tnra-offline-start-redirected"));
+        window.location.assign("/offline.html");
+        return;
+      }
+
       const finishButton = path.find(
         (node) => node instanceof HTMLElement && node.classList?.contains("finish-post-button")
       );
