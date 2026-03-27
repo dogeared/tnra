@@ -2,6 +2,22 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [5.2.0] - 2026-03-27
+
+### Added
+- DESIGN.md — living design system documentation with color palette, typography, spacing, layout, and motion specs
+- Inline `<style>` prepended to HTML head via AppShellConfigurator to prevent Vaadin/Lumo font flash
+
+### Changed
+- Complete color palette overhaul: forest green (#2D6A4F) primary, warm linen (#FDFBF7) backgrounds, dark goldenrod (#B8860B) accent
+- Typography: all system sans-serif with weight-based heading hierarchy (700/600), replacing Inter + generic blue
+- Lumo variables overridden in both light and dark mode (primary, error, success, text, font family, font sizes)
+- Dark mode: warm brown-blacks (#1A1610) instead of cool blue-blacks
+- Nav sizing: 64px navbar, 1rem drawer tabs, 1.5rem logo, 44px touch targets
+- All inline `getStyle().set()` calls moved to external CSS classes
+- All `LumoUtility` font/text classes replaced with custom CSS classes
+- Monospace font: system monospace stack (ui-monospace, SF Mono, Menlo, Consolas)
+
 ## [5.1.0] - 2026-03-27
 
 ### Added

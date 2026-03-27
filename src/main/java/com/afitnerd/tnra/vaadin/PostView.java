@@ -21,7 +21,7 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -192,7 +192,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         String startDate = "Post started " +
             DateTimeUtils.formatDateTime(currentPost.getStart());
         Span dateSpan = new Span(startDate);
-        dateSpan.addClassNames(LumoUtility.FontSize.SMALL, LumoUtility.TextColor.SECONDARY, "stats-date");
+        dateSpan.addClassName("stats-date");
         
         controlsLayout.add(showCompletedPostsButton, dateSpan);
         return controlsLayout;
@@ -646,7 +646,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         section.addClassName("post-section");
 
         H3 sectionTitle = new H3("Intro");
-        sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "section-title");
+        sectionTitle.addClassName("section-title");
 
         // WIDWYTK field
         widwytkField = new TextArea("What I Don't Want You To Know");
@@ -669,7 +669,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         section.addClassName("post-section");
 
         H3 sectionTitle = new H3(title);
-        sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "section-title");
+        sectionTitle.addClassName("section-title");
 
         TextArea bestField = new TextArea("Best");
         bestField.addClassName("post-textarea");
@@ -702,7 +702,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         section.addClassName("post-section");
 
         H3 sectionTitle = new H3("Stats");
-        sectionTitle.addClassNames(LumoUtility.FontSize.LARGE, LumoUtility.FontWeight.BOLD, "section-title");
+        sectionTitle.addClassName("section-title");
 
         // Create embedded StatsView
         statsView = StatsView.createEmbedded(vaadinPostPresenter);

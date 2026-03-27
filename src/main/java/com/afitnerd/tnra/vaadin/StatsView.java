@@ -13,7 +13,7 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-import com.vaadin.flow.theme.lumo.LumoUtility;
+
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +77,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         header.addClassName("stats-header");
 
         H1 title = new H1("Daily Stats");
-        title.addClassNames(LumoUtility.FontSize.XXXLARGE, LumoUtility.FontWeight.BOLD, "stats-title");
+        title.addClassName("stats-title");
 
         header.add(title);
         return header;

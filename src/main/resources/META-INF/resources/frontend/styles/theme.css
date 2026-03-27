@@ -1,9 +1,11 @@
 /* ===================================================
-   TNRA Global Theme — Light / Dark Mode + Modern Design
+   TNRA Global Theme — Organic/Grounded Design System
+   See DESIGN.md for full specification.
    =================================================== */
 
-/* --- Google Fonts: Inter --- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* All system sans-serif — one font family everywhere.
+   Headings differentiated by size and weight, not font family.
+   Zero external fonts, zero flash. */
 
 /* =========================================
    LIGHT MODE (default)
@@ -11,42 +13,45 @@
 :root,
 html {
     /* --- Typography --- */
-    --tnra-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --tnra-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --tnra-font-display: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --tnra-font-data: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
 
     /* --- Primary Palette --- */
-    --tnra-primary: #4f6df5;
-    --tnra-primary-hover: #3b5bdb;
-    --tnra-primary-light: rgba(79, 109, 245, 0.10);
-    --tnra-primary-text: #4f6df5;
+    --tnra-primary: #2D6A4F;
+    --tnra-primary-hover: #245740;
+    --tnra-primary-light: rgba(45, 106, 79, 0.10);
+    --tnra-primary-text: #2D6A4F;
 
     /* --- Accent --- */
-    --tnra-accent: #10b981;
-    --tnra-accent-hover: #059669;
+    --tnra-accent: #B8860B;
+    --tnra-accent-hover: #9A7209;
+    --tnra-accent-light: rgba(184, 134, 11, 0.10);
 
     /* --- Surfaces --- */
-    --tnra-bg: #f8f9fc;
+    --tnra-bg: #FDFBF7;
     --tnra-surface: #ffffff;
     --tnra-surface-raised: #ffffff;
-    --tnra-surface-dim: #f1f3f9;
+    --tnra-surface-dim: #F5F0EB;
 
     /* --- Borders --- */
-    --tnra-border: #e2e5f1;
-    --tnra-border-subtle: #eef0f6;
+    --tnra-border: #E0D6CC;
+    --tnra-border-subtle: #EBE4DB;
 
     /* --- Text --- */
-    --tnra-text: #1a1d2e;
-    --tnra-text-secondary: #64698b;
-    --tnra-text-muted: #9ba1bc;
+    --tnra-text: #2C2418;
+    --tnra-text-secondary: #6B5D4F;
+    --tnra-text-muted: #9B8E80;
 
     /* --- Shadows --- */
-    --tnra-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --tnra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.07), 0 1px 4px rgba(0, 0, 0, 0.04);
-    --tnra-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.04);
+    --tnra-shadow-sm: 0 1px 3px rgba(44, 36, 24, 0.06), 0 1px 2px rgba(44, 36, 24, 0.04);
+    --tnra-shadow-md: 0 4px 12px rgba(44, 36, 24, 0.07), 0 1px 4px rgba(44, 36, 24, 0.04);
+    --tnra-shadow-lg: 0 12px 40px rgba(44, 36, 24, 0.08), 0 4px 12px rgba(44, 36, 24, 0.04);
 
     /* --- Radii --- */
-    --tnra-radius-sm: 8px;
-    --tnra-radius-md: 12px;
-    --tnra-radius-lg: 16px;
+    --tnra-radius-sm: 6px;
+    --tnra-radius-md: 10px;
+    --tnra-radius-lg: 14px;
     --tnra-radius-full: 9999px;
 
     /* --- Transitions --- */
@@ -54,101 +59,150 @@ html {
 
     /* --- Header / Nav --- */
     --tnra-header-bg: #ffffff;
-    --tnra-header-border: #e2e5f1;
-    --tnra-drawer-bg: #f8f9fc;
-    --tnra-navbar-height: 56px;
+    --tnra-header-border: #E0D6CC;
+    --tnra-drawer-bg: #F5F0EB;
+    --tnra-navbar-height: 64px;
 
     /* --- Status --- */
-    --tnra-error: #ef4444;
-    --tnra-warning: #f59e0b;
-    --tnra-success: #10b981;
+    --tnra-error: #C53030;
+    --tnra-warning: #D4880F;
+    --tnra-success: #2D6A4F;
 
     /* --- Readonly --- */
-    --tnra-readonly-bg: #f1f3f9;
-    --tnra-readonly-text: #9ba1bc;
-    --tnra-readonly-border: #e2e5f1;
+    --tnra-readonly-bg: #F5F0EB;
+    --tnra-readonly-text: #9B8E80;
+    --tnra-readonly-border: #E0D6CC;
+
+    /* =============================================
+       Lumo variable overrides — Light Mode
+       Forces all Vaadin components (DrawerToggle,
+       Upload, buttons, icons, links) to use
+       our forest-green primary instead of Lumo blue.
+       ============================================= */
+
+    /* --- Primary color scale --- */
+    --lumo-primary-color: #2D6A4F;
+    --lumo-primary-color-10pct: rgba(45, 106, 79, 0.10);
+    --lumo-primary-color-50pct: rgba(45, 106, 79, 0.50);
+    --lumo-primary-text-color: #2D6A4F;
+    --lumo-primary-contrast-color: #ffffff;
+
+    /* --- Text color hierarchy --- */
+    --lumo-header-text-color: #2C2418;
+    --lumo-body-text-color: #2C2418;
+    --lumo-secondary-text-color: #6B5D4F;
+    --lumo-tertiary-text-color: #9B8E80;
+    --lumo-disabled-text-color: rgba(155, 142, 128, 0.4);
+
+    /* --- Error color scale --- */
+    --lumo-error-color: #C53030;
+    --lumo-error-color-10pct: rgba(197, 48, 48, 0.10);
+    --lumo-error-color-50pct: rgba(197, 48, 48, 0.50);
+    --lumo-error-text-color: #C53030;
+    --lumo-error-contrast-color: #ffffff;
+
+    /* --- Success color scale --- */
+    --lumo-success-color: #2D6A4F;
+    --lumo-success-color-10pct: rgba(45, 106, 79, 0.10);
+    --lumo-success-color-50pct: rgba(45, 106, 79, 0.50);
+    --lumo-success-text-color: #2D6A4F;
+    --lumo-success-contrast-color: #ffffff;
+
+    /* --- Font size scale (larger for desktop readability) --- */
+    --lumo-font-size-xxs: 0.8125rem;
+    --lumo-font-size-xs: 0.875rem;
+    --lumo-font-size-s: 0.9375rem;
+    --lumo-font-size-m: 1.0625rem;
+    --lumo-font-size-l: 1.1875rem;
+    --lumo-font-size-xl: 1.375rem;
+    --lumo-font-size-xxl: 1.625rem;
+    --lumo-font-size-xxxl: 2rem;
+
+    /* --- Base color (background for Vaadin components) --- */
+    --lumo-base-color: #FDFBF7;
 }
 
 
 /* =========================================
-   DARK MODE  —  GitHub-inspired palette
+   DARK MODE  —  Warm dark palette
    =========================================
-   Background scale:  #0d1117 → #161b22 → #1c2128 → #21262d
-   Text scale:        #e6edf3 (primary) → #8b949e (secondary) → #6e7681 (muted)
-   Border:            #30363d
-   Primary accent:    #58a6ff
+   Background scale:  #1A1610 → #231E17 → #2C261E → #3D352B
+   Text scale:        #EDE6DC (primary) → #A89A8A (secondary) → #7A6E60 (muted)
+   Border:            #3D352B
+   Primary accent:    #4DA47A
    ========================================= */
 html[theme~="dark"] {
     /* --- TNRA custom tokens --- */
-    --tnra-primary: #58a6ff;
-    --tnra-primary-hover: #79b8ff;
-    --tnra-primary-light: rgba(88, 166, 255, 0.15);
-    --tnra-primary-text: #58a6ff;
+    --tnra-primary: #4DA47A;
+    --tnra-primary-hover: #5FB88C;
+    --tnra-primary-light: rgba(77, 164, 122, 0.15);
+    --tnra-primary-text: #4DA47A;
 
-    --tnra-accent: #3fb950;
-    --tnra-accent-hover: #56d364;
+    --tnra-accent: #D4A01D;
+    --tnra-accent-hover: #E0B030;
+    --tnra-accent-light: rgba(212, 160, 29, 0.15);
 
-    --tnra-bg: #0d1117;
-    --tnra-surface: #161b22;
-    --tnra-surface-raised: #1c2128;
-    --tnra-surface-dim: #0d1117;
+    --tnra-bg: #1A1610;
+    --tnra-surface: #231E17;
+    --tnra-surface-raised: #2C261E;
+    --tnra-surface-dim: #141110;
 
-    --tnra-border: #30363d;
-    --tnra-border-subtle: #21262d;
+    --tnra-border: #3D352B;
+    --tnra-border-subtle: #2C261E;
 
-    --tnra-text: #e6edf3;
-    --tnra-text-secondary: #8b949e;
-    --tnra-text-muted: #6e7681;
+    --tnra-text: #EDE6DC;
+    --tnra-text-secondary: #A89A8A;
+    --tnra-text-muted: #7A6E60;
 
     --tnra-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
     --tnra-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4), 0 1px 4px rgba(0, 0, 0, 0.3);
     --tnra-shadow-lg: 0 12px 40px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.3);
 
-    --tnra-header-bg: #161b22;
-    --tnra-header-border: #30363d;
-    --tnra-drawer-bg: #0d1117;
+    --tnra-header-bg: #231E17;
+    --tnra-header-border: #3D352B;
+    --tnra-drawer-bg: #1A1610;
 
-    --tnra-error: #f85149;
-    --tnra-warning: #d29922;
-    --tnra-success: #3fb950;
+    --tnra-error: #FC8181;
+    --tnra-warning: #E0B030;
+    --tnra-success: #4DA47A;
 
-    --tnra-readonly-bg: #161b22;
-    --tnra-readonly-text: #6e7681;
-    --tnra-readonly-border: #30363d;
+    --tnra-readonly-bg: #231E17;
+    --tnra-readonly-text: #7A6E60;
+    --tnra-readonly-border: #3D352B;
 
     /* =============================================
        Comprehensive Lumo variable overrides
        ============================================= */
 
     /* --- Base & background --- */
-    --lumo-base-color: #0d1117;
+    --lumo-base-color: #1A1610;
 
     /* --- Primary color scale --- */
-    --lumo-primary-color: #58a6ff;
-    --lumo-primary-color-10pct: rgba(88, 166, 255, 0.10);
-    --lumo-primary-color-50pct: rgba(88, 166, 255, 0.50);
-    --lumo-primary-text-color: #58a6ff;
+    --lumo-primary-color: #4DA47A;
+    --lumo-primary-color-10pct: rgba(77, 164, 122, 0.10);
+    --lumo-primary-color-50pct: rgba(77, 164, 122, 0.50);
+    --lumo-primary-text-color: #4DA47A;
     --lumo-primary-contrast-color: #ffffff;
 
     /* --- Text color hierarchy (critical for readability) --- */
-    --lumo-header-text-color: #e6edf3;
-    --lumo-body-text-color: #e6edf3;
-    --lumo-secondary-text-color: #8b949e;
-    --lumo-tertiary-text-color: #6e7681;
-    --lumo-disabled-text-color: rgba(139, 148, 158, 0.4);
+    --lumo-header-text-color: #EDE6DC;
+    --lumo-body-text-color: #EDE6DC;
+    --lumo-secondary-text-color: #A89A8A;
+    --lumo-tertiary-text-color: #7A6E60;
+    --lumo-disabled-text-color: rgba(168, 154, 138, 0.4);
 
-    /* --- Contrast scale (white-based for dark backgrounds) --- */
-    --lumo-contrast: #e6edf3;
-    --lumo-contrast-5pct: rgba(230, 237, 243, 0.05);
-    --lumo-contrast-10pct: rgba(230, 237, 243, 0.10);
-    --lumo-contrast-20pct: rgba(230, 237, 243, 0.16);
-    --lumo-contrast-30pct: rgba(230, 237, 243, 0.24);
-    --lumo-contrast-40pct: rgba(230, 237, 243, 0.32);
-    --lumo-contrast-50pct: rgba(230, 237, 243, 0.45);
-    --lumo-contrast-60pct: rgba(230, 237, 243, 0.56);
-    --lumo-contrast-70pct: rgba(230, 237, 243, 0.67);
-    --lumo-contrast-80pct: rgba(230, 237, 243, 0.80);
-    --lumo-contrast-90pct: rgba(230, 237, 243, 0.90);
+    /* --- Contrast scale (warm white-based for dark backgrounds) --- */
+    --lumo-contrast: #EDE6DC;
+    --lumo-contrast-5pct: rgba(237, 230, 220, 0.05);
+    --lumo-contrast-10pct: rgba(237, 230, 220, 0.10);
+    --lumo-contrast-20pct: rgba(237, 230, 220, 0.16);
+    --lumo-contrast-30pct: rgba(237, 230, 220, 0.24);
+    --lumo-contrast-40pct: rgba(237, 230, 220, 0.32);
+    --lumo-contrast-50pct: rgba(237, 230, 220, 0.45);
+    --lumo-contrast-60pct: rgba(237, 230, 220, 0.56);
+    --lumo-contrast-70pct: rgba(237, 230, 220, 0.67);
+    --lumo-contrast-80pct: rgba(237, 230, 220, 0.80);
+    --lumo-contrast-90pct: rgba(237, 230, 220, 0.90);
 
     /* --- Tint scale (lighter overlays on dark) --- */
     --lumo-tint: #ffffff;
@@ -177,17 +231,17 @@ html[theme~="dark"] {
     --lumo-shade-90pct: rgba(0, 0, 0, 0.88);
 
     /* --- Error color scale --- */
-    --lumo-error-color: #f85149;
-    --lumo-error-color-10pct: rgba(248, 81, 73, 0.10);
-    --lumo-error-color-50pct: rgba(248, 81, 73, 0.50);
-    --lumo-error-text-color: #f85149;
+    --lumo-error-color: #FC8181;
+    --lumo-error-color-10pct: rgba(252, 129, 129, 0.10);
+    --lumo-error-color-50pct: rgba(252, 129, 129, 0.50);
+    --lumo-error-text-color: #FC8181;
     --lumo-error-contrast-color: #ffffff;
 
     /* --- Success color scale --- */
-    --lumo-success-color: #3fb950;
-    --lumo-success-color-10pct: rgba(63, 185, 80, 0.10);
-    --lumo-success-color-50pct: rgba(63, 185, 80, 0.50);
-    --lumo-success-text-color: #3fb950;
+    --lumo-success-color: #4DA47A;
+    --lumo-success-color-10pct: rgba(77, 164, 122, 0.10);
+    --lumo-success-color-50pct: rgba(77, 164, 122, 0.50);
+    --lumo-success-text-color: #4DA47A;
     --lumo-success-contrast-color: #ffffff;
 }
 
@@ -204,14 +258,22 @@ html {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* Override Lumo font everywhere */
-html,
-[theme],
-vaadin-app-layout,
-vaadin-app-layout::part(navbar),
-vaadin-app-layout::part(drawer) {
+/* Override Lumo font everywhere — set on :root so all
+   Vaadin components (buttons, combos, fields, uploads)
+   inherit through Shadow DOM custom property inheritance */
+:root {
     --lumo-font-family: var(--tnra-font-family);
 }
+
+/* Headings — same font family, differentiated by size and weight */
+h1, h2, h3 {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+h2 { font-weight: 600; }
+h3 { font-weight: 600; }
 
 
 /* =========================================
@@ -255,14 +317,12 @@ vaadin-app-layout::part(backdrop) {
 }
 
 vaadin-app-layout [slot="navbar"] h1 {
+    font-family: var(--tnra-font-display);
     font-weight: 700;
-    font-size: 1.35rem;
+    font-size: 1.5rem;
     letter-spacing: -0.02em;
     margin: 0;
-    background: linear-gradient(135deg, var(--tnra-primary), var(--tnra-accent));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--tnra-primary);
 }
 
 vaadin-app-layout [slot="navbar"] vaadin-drawer-toggle {
@@ -276,10 +336,10 @@ vaadin-app-layout [slot="navbar"] vaadin-drawer-toggle {
    ========================================= */
 
 .theme-toggle-button {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     border-radius: var(--tnra-radius-full);
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     padding: 0;
     color: var(--tnra-text-secondary);
     transition: color var(--tnra-transition), background var(--tnra-transition);
@@ -298,11 +358,11 @@ vaadin-app-layout [slot="navbar"] vaadin-drawer-toggle {
 vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab {
     border-radius: var(--tnra-radius-sm);
     margin: 2px 8px;
-    padding: 8px 12px;
+    padding: 10px 16px;
     transition: background var(--tnra-transition), color var(--tnra-transition);
     color: var(--tnra-text-secondary);
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 1rem;
 }
 
 vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab:hover {
@@ -319,6 +379,14 @@ vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab[selected] {
 vaadin-app-layout vaadin-tabs[slot="drawer"] vaadin-tab a {
     color: inherit;
     text-decoration: none;
+}
+
+/* Drawer nav icons */
+.drawer-nav-icon {
+    box-sizing: border-box;
+    margin-inline-end: var(--lumo-space-m);
+    margin-inline-start: var(--lumo-space-xs);
+    padding: var(--lumo-space-xs);
 }
 
 

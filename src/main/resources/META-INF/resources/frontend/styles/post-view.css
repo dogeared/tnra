@@ -31,9 +31,10 @@
 }
 
 .post-title {
+    font-family: var(--tnra-font-display);
     color: var(--tnra-text);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     margin: 0 0 1rem 0;
 }
 
@@ -90,14 +91,14 @@
    ========================================= */
 
 .section-title {
-    /* Use primary text color, NOT link blue */
+    font-family: var(--tnra-font-display);
     color: var(--tnra-text);
     font-weight: 600;
-    font-size: 1.1rem;
+    font-size: 1.25rem;
     letter-spacing: -0.01em;
     margin: 0 0 1.5rem 0;
 
-    /* Remove the link-like underline — use a subtle left accent instead */
+    /* Subtle left accent instead of underline */
     border-bottom: none;
     padding-bottom: 0;
     padding-left: 0.75rem;
@@ -123,7 +124,7 @@
 .post-textarea textarea {
     font-family: var(--tnra-font-family);
     line-height: 1.7;
-    font-size: 0.95rem;
+    font-size: 1rem;
 }
 
 .post-textfield {

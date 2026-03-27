@@ -6,10 +6,11 @@
 }
 
 .admin-title {
+    font-family: var(--tnra-font-display);
     color: var(--tnra-accent);
-    font-size: 2.25rem;
+    font-size: 2.5rem;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     margin-bottom: 0.5rem;
     text-align: center;
 }
@@ -22,8 +23,9 @@
 }
 
 .section-header {
+    font-family: var(--tnra-font-display);
     color: var(--tnra-text);
-    font-size: 1.35rem;
+    font-size: 1.5rem;
     font-weight: 600;
     margin: 2rem 0 1rem 0;
     border-bottom: 2px solid var(--tnra-border);
@@ -70,9 +72,80 @@
     border-radius: var(--tnra-radius-sm);
     border-left: 4px solid var(--tnra-primary);
     margin: 1rem 0;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.85rem;
     color: var(--tnra-text);
+}
+
+/* Subsection Headers */
+.subsection-header {
+    font-family: var(--tnra-font-display);
+    color: var(--tnra-text);
+    font-weight: 600;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+    margin: 1.5rem 0 0.75rem 0;
+}
+
+/* Stat Row — list item in admin stat configuration */
+.stat-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--tnra-border-subtle);
+}
+
+.stat-row.archived {
+    opacity: 0.5;
+}
+
+.stat-row-emoji {
+    font-size: 1.5rem;
+    min-width: 2rem;
+}
+
+.stat-row-label {
+    font-weight: 500;
+    flex-grow: 1;
+}
+
+.stat-row-archived-badge {
+    font-size: 0.75rem;
+    color: var(--tnra-text-muted);
+    background: var(--tnra-surface-dim);
+    padding: 0.1rem 0.5rem;
+    border-radius: var(--tnra-radius-sm);
+}
+
+/* Archived note */
+.admin-archived-note {
+    color: var(--tnra-text-muted);
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Empty state */
+.admin-empty-state {
+    color: var(--tnra-text-secondary);
+}
+
+/* Build info row */
+.info-row {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem 0;
+}
+
+.info-row-label {
+    font-weight: 600;
+    min-width: 120px;
+    color: var(--tnra-text-secondary);
+}
+
+/* Disabled button state */
+.admin-button.disabled {
+    opacity: 0.5;
 }
 
 /* Responsive design */

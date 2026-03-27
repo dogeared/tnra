@@ -2,9 +2,10 @@
 
 /* Error Title */
 .error-title {
+    font-family: var(--tnra-font-display);
     color: var(--tnra-error);
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.01em;
     margin-bottom: 1rem;
 }
 
@@ -22,7 +23,7 @@
     text-align: center;
     max-width: 600px;
     margin-bottom: 1rem;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.85rem;
     background-color: var(--tnra-surface-dim);
     color: var(--tnra-text);

@@ -108,7 +108,6 @@ public class MainLayout extends AppLayout {
         DrawerToggle drawerToggle = new DrawerToggle();
 
         H1 logo = new H1("TNRA");
-        logo.addClassNames(LumoUtility.FontSize.LARGE);
 
         // Theme toggle button — icon swaps between sun and moon
         themeToggleButton = new Button();
@@ -289,10 +288,7 @@ public class MainLayout extends AppLayout {
 
     private Tab createTab(String text, VaadinIcon viewIcon, Class<?> navigationTarget) {
         Icon icon = viewIcon.create();
-        icon.getStyle().set("box-sizing", "border-box")
-            .set("margin-inline-end", "var(--lumo-space-m)")
-            .set("margin-inline-start", "var(--lumo-space-xs)")
-            .set("padding", "var(--lumo-space-xs)");
+        icon.addClassName("drawer-nav-icon");
 
         RouterLink link = new RouterLink();
         link.add(icon, new Span(text));

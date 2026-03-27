@@ -6,11 +6,12 @@
 }
 
 .gtg-header {
+    font-family: var(--tnra-font-display);
     margin: 0;
     margin-bottom: 1.25rem;
     color: var(--tnra-text);
-    font-weight: 700;
-    letter-spacing: -0.02em;
+    font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
 .gtg-grid {
