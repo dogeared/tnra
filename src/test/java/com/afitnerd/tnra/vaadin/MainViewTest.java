@@ -244,6 +244,29 @@ class MainViewTest {
     }
 
     @Test
+    void testMainViewShowsQuickActionButtonsForAuthenticatedUsers() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasPostsButton = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .anyMatch(component -> component instanceof Button && "Open Posts".equals(((Button) component).getText()));
+        boolean hasStatsButton = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .anyMatch(component -> component instanceof Button && "View Stats".equals(((Button) component).getText()));
+        boolean hasProfileButton = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .anyMatch(component -> component instanceof Button && "Edit Profile".equals(((Button) component).getText()));
+
+        assertTrue(hasPostsButton, "Expected authenticated view to include Open Posts action");
+        assertTrue(hasStatsButton, "Expected authenticated view to include View Stats action");
+        assertTrue(hasProfileButton, "Expected authenticated view to include Edit Profile action");
+    }
+
+    @Test
     void testMainViewShowsLoginButtonForUnauthenticatedUsers() {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 

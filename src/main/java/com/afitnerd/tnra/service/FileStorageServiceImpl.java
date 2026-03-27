@@ -3,6 +3,8 @@ package com.afitnerd.tnra.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,6 +16,8 @@ import java.util.UUID;
 
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(FileStorageServiceImpl.class);
 
     @Value("${app.file-storage.upload-dir:uploads}")
     private String uploadDir;
@@ -45,14 +49,21 @@ public class FileStorageServiceImpl implements FileStorageService {
 
     @Override
     public void deleteFile(String fileName) {
-        if (fileName != null && !fileName.isEmpty()) {
-            try {
-                Path filePath = Paths.get(uploadDir, fileName);
-                Files.deleteIfExists(filePath);
-            } catch (IOException e) {
-                // Log error but don't throw - file might already be deleted
-                System.err.println("Error deleting file: " + fileName + " - " + e.getMessage());
+        if (!StringUtils.hasText(fileName)) {
+            return;
+        }
+
+        try {
+            Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Path filePath = uploadPath.resolve(fileName).normalize();
+            if (!filePath.startsWith(uploadPath)) {
+                log.warn("Blocked delete outside upload directory: {}", fileName);
+                return;
             }
+            Files.deleteIfExists(filePath);
+        } catch (IOException e) {
+            // Log error but don't throw - file might already be deleted
+            log.warn("Error deleting file {}: {}", fileName, e.getMessage());
         }
     }
 

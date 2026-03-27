@@ -116,8 +116,9 @@ public class MainView extends VerticalLayout {
             welcomeMessage.addClassName("welcome-message");
             
             profileSection.add(profileImage, welcomeMessage);
-            
-            add(title, profileSection);
+
+            HorizontalLayout quickActions = createAuthenticatedQuickActions();
+            add(title, profileSection, quickActions);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
@@ -132,11 +133,39 @@ public class MainView extends VerticalLayout {
                 "Note: Could not retrieve user details due to an error."
             );
             errorMessage.addClassName("error-message");
-            
-            add(title, welcomeMessage, errorMessage);
+
+            HorizontalLayout quickActions = createAuthenticatedQuickActions();
+            add(title, welcomeMessage, errorMessage, quickActions);
 
             log.warn("Error while rendering authenticated main view", e);
         }
+    }
+
+    private HorizontalLayout createAuthenticatedQuickActions() {
+        HorizontalLayout quickActions = new HorizontalLayout();
+        quickActions.addClassName("main-quick-actions");
+        quickActions.setSpacing(true);
+
+        Button postsButton = new Button("Open Posts", event ->
+            event.getSource().getUI().ifPresent(ui -> ui.navigate("posts"))
+        );
+        postsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        postsButton.addClassName("main-action-button");
+
+        Button statsButton = new Button("View Stats", event ->
+            event.getSource().getUI().ifPresent(ui -> ui.navigate("stats"))
+        );
+        statsButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        statsButton.addClassName("main-action-button");
+
+        Button profileButton = new Button("Edit Profile", event ->
+            event.getSource().getUI().ifPresent(ui -> ui.navigate("profile"))
+        );
+        profileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+        profileButton.addClassName("main-action-button");
+
+        quickActions.add(postsButton, statsButton, profileButton);
+        return quickActions;
     }
 
     private String resolveDisplayName(String displayName, User currentUser) {
