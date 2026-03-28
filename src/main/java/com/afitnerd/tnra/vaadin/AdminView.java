@@ -5,6 +5,7 @@ import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
+import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
 import com.vaadin.flow.component.button.Button;
@@ -42,16 +43,19 @@ public class AdminView extends VerticalLayout {
     private final VaadinAdminPresenter vaadinAdminPresenter;
     private final CallChainPresenter callChainPresenter;
     private final StatDefinitionRepository statDefinitionRepository;
+    private final UserService userService;
     private GoToGuySet workingSet;
 
     public AdminView(
         VaadinAdminPresenter vaadinAdminPresenter,
         CallChainPresenter callChainPresenter,
-        StatDefinitionRepository statDefinitionRepository
+        StatDefinitionRepository statDefinitionRepository,
+        UserService userService
     ) {
         this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
         this.statDefinitionRepository = statDefinitionRepository;
+        this.userService = userService;
 
         addClassName("admin-view");
         setSizeFull();
@@ -76,10 +80,103 @@ public class AdminView extends VerticalLayout {
         tabSheet.setSizeFull();
 
         tabSheet.add("GTG", createGtgTabContent());
+        tabSheet.add("Members", createMembersTabContent());
         tabSheet.add("Stats Config", createStatsConfigTabContent());
         tabSheet.add("Build Info", createBuildInfoTabContent());
 
         add(tabSheet);
+    }
+
+    // ========================
+    // Members Tab
+    // ========================
+
+    private VerticalLayout createMembersTabContent() {
+        VerticalLayout content = new VerticalLayout();
+        content.setSizeFull();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        H3 header = new H3("Group Members");
+        header.addClassName("section-header");
+
+        Paragraph description = new Paragraph(
+            "Invite members by email. They must create a Keycloak account with the same email to log in."
+        );
+        description.addClassName("admin-subtitle");
+
+        // Members grid
+        Grid<User> membersGrid = new Grid<>();
+        membersGrid.addColumn(User::getEmail).setHeader("Email").setFlexGrow(2);
+        membersGrid.addColumn(user -> {
+            String name = "";
+            if (user.getFirstName() != null) name += user.getFirstName();
+            if (user.getLastName() != null) name += (name.isEmpty() ? "" : " ") + user.getLastName();
+            return name.isEmpty() ? "(not yet logged in)" : name;
+        }).setHeader("Name").setFlexGrow(2);
+        membersGrid.addColumn(user -> Boolean.TRUE.equals(user.getActive()) ? "Active" : "Inactive")
+            .setHeader("Status").setFlexGrow(1);
+        membersGrid.setWidth("100%");
+        membersGrid.setMaxWidth("800px");
+
+        refreshMembersGrid(membersGrid);
+
+        // Invite button
+        Button inviteBtn = new Button("Invite Member", VaadinIcon.PLUS.create());
+        inviteBtn.addClassName("admin-button");
+        inviteBtn.addClickListener(e -> openInviteMemberDialog(membersGrid));
+
+        content.add(header, description, membersGrid, inviteBtn);
+        return content;
+    }
+
+    private void refreshMembersGrid(Grid<User> grid) {
+        grid.setItems(userService.getAllActiveUsers());
+    }
+
+    private void openInviteMemberDialog(Grid<User> membersGrid) {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Invite Member");
+
+        TextField emailField = new TextField("Email Address");
+        emailField.setWidth("100%");
+        emailField.setPlaceholder("member@example.com");
+
+        Paragraph hint = new Paragraph(
+            "The member will need to create a Keycloak account with this exact email address to log in."
+        );
+        hint.addClassName("admin-archived-note");
+
+        dialog.add(emailField, hint);
+
+        Button saveBtn = new Button("Invite", VaadinIcon.CHECK.create());
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveBtn.addClickListener(e -> {
+            String email = emailField.getValue().trim();
+            if (email.isEmpty() || !email.contains("@")) {
+                Notification notification = Notification.show("Please enter a valid email address");
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            User existing = userService.getUserByEmail(email);
+            if (existing != null) {
+                Notification notification = Notification.show("A member with this email already exists");
+                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            userService.inviteUser(email);
+            dialog.close();
+            refreshMembersGrid(membersGrid);
+            Notification notification = Notification.show("Member invited: " + email);
+            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+
+        Button cancelBtn = new Button("Cancel", e -> dialog.close());
+
+        dialog.getFooter().add(cancelBtn, saveBtn);
+        dialog.open();
     }
 
     // ========================

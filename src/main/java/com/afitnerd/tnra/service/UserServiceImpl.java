@@ -29,10 +29,28 @@ public class UserServiceImpl implements UserService {
         if (authentication != null && authentication.getPrincipal() instanceof OidcUser) {
             OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
             String email = oidcUser.getEmail();
-            String firstName = oidcUser.getGivenName();
-            String lastName = oidcUser.getFamilyName();
-            
-            return getOrCreateUserFromOidc(email, firstName, lastName);
+
+            User user = getUserByEmail(email);
+            if (user == null) {
+                // User has a valid Keycloak account but was not invited to this group.
+                // Admin must create the user record via "Invite Member" first.
+                return null;
+            }
+
+            // Populate name from OIDC claims if not yet set (first login after invite)
+            boolean updated = false;
+            if (user.getFirstName() == null && oidcUser.getGivenName() != null) {
+                user.setFirstName(oidcUser.getGivenName());
+                updated = true;
+            }
+            if (user.getLastName() == null && oidcUser.getFamilyName() != null) {
+                user.setLastName(oidcUser.getFamilyName());
+                updated = true;
+            }
+            if (updated) {
+                user = userRepository.save(user);
+            }
+            return user;
         }
         return null;
     }
@@ -43,15 +61,22 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getOrCreateUserFromOidc(String email, String firstName, String lastName) {
-        User user = getUserByEmail(email);
-        if (user == null) {
-            // Create new user from OIDC data
-            user = new User(firstName, lastName, email);
-            user.setActive(true);
-            user = userRepository.save(user);
+    public User inviteUser(String email) {
+        User existing = getUserByEmail(email);
+        if (existing != null) {
+            return existing;
         }
-        return user;
+        User user = new User(null, null, email);
+        user.setActive(true);
+        return userRepository.save(user);
+    }
+
+    @Override
+    @Deprecated
+    public User getOrCreateUserFromOidc(String email, String firstName, String lastName) {
+        // Kept for backward compatibility. New code should use inviteUser() for
+        // admin-controlled member creation and getCurrentUser() for login.
+        return inviteUser(email);
     }
 
     @Override

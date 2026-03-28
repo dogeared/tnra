@@ -8,6 +8,8 @@ public interface UserService {
     User getUserByEmail(String email);
     User getCurrentUser();
     User saveUser(User user);
+    User inviteUser(String email);
+    @Deprecated
     User getOrCreateUserFromOidc(String email, String firstName, String lastName);
     void deleteUser(User user);
     List<User> getAllActiveUsers();

@@ -304,7 +304,6 @@ public class MainLayout extends AppLayout {
             return false;
         }
         return authentication.getAuthorities().stream()
-            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()) ||
-                                 "ADMIN".equals(authority.getAuthority()));
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }

@@ -5,6 +5,7 @@ import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
+import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
 import com.vaadin.flow.component.Component;
@@ -53,6 +54,9 @@ class AdminViewTest {
     @Mock
     private StatDefinitionRepository statDefinitionRepository;
 
+    @Mock
+    private UserService userService;
+
     @BeforeEach
     void setUp() {
         UI ui = new UI();
@@ -67,6 +71,7 @@ class AdminViewTest {
         when(vaadinAdminPresenter.getVaadinVersion()).thenReturn("24.x");
         when(vaadinAdminPresenter.getJavaVersion()).thenReturn("21");
         when(vaadinAdminPresenter.getBuildTime()).thenReturn("2026-03-13T17:00Z");
+        when(userService.getAllActiveUsers()).thenReturn(List.of());
     }
 
     @AfterEach
@@ -78,7 +83,7 @@ class AdminViewTest {
     void buildsHeaderTabsAndCurrentSetGrid() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
 
         assertTrue(view.hasClassName("admin-view"));
         assertTrue(anyComponent(view, H2.class, h -> "Admin Dashboard".equals(h.getText())));
@@ -94,7 +99,7 @@ class AdminViewTest {
         newSet.setGoToGuyPairs(new ArrayList<>());
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenReturn(newSet);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
         Button addPairButton = firstComponent(view, Button.class, b -> "Add Pair".equals(b.getText()));
 
@@ -113,7 +118,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenThrow(new RuntimeException("boom"));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
 
         assertDoesNotThrow(createButton::click);
@@ -123,7 +128,7 @@ class AdminViewTest {
     @Test
     void getUserDisplayNameHandlesAllFallbacks() throws Exception {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
 
         Method method = AdminView.class.getDeclaredMethod("getUserDisplayName", User.class);
         method.setAccessible(true);
@@ -167,7 +172,7 @@ class AdminViewTest {
         bFresh.setId(20L);
 
         when(statDefinitionRepository.findAllByOrderByDisplayOrderAsc()).thenReturn(List.of());
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
 
         Method method = AdminView.class.getDeclaredMethod("findActiveIndex", List.class, StatDefinition.class);
         method.setAccessible(true);
