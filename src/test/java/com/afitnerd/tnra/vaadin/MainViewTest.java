@@ -53,7 +53,7 @@ class MainViewTest {
         lenient().when(oidcUserService.getEmail()).thenReturn("test@example.com");
         lenient().when(userService.getUserByEmail("test@example.com")).thenReturn(testUser);
         lenient().when(fileStorageService.getFileUrl(anyString())).thenReturn("http://example.com/profile.jpg");
-        lenient().when(authNavigationService.getLoginPath()).thenReturn("/oauth2/authorization/okta");
+        lenient().when(authNavigationService.getLoginPath()).thenReturn("/oauth2/authorization/keycloak");
     }
 
     @Test

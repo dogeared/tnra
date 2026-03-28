@@ -11,7 +11,7 @@ public class AuthNavigationService {
 
     public AuthNavigationService(
         @Value("${tnra.auth.login-path:}") String configuredLoginPath,
-        @Value("${tnra.auth.login-registration-id:okta}") String registrationId
+        @Value("${tnra.auth.login-registration-id:keycloak}") String registrationId
     ) {
         this.loginPath = resolveLoginPath(configuredLoginPath, registrationId);
     }
@@ -26,7 +26,7 @@ public class AuthNavigationService {
             return path.startsWith("/") ? path : "/" + path;
         }
 
-        String safeRegistrationId = StringUtils.hasText(registrationId) ? registrationId.trim() : "okta";
+        String safeRegistrationId = StringUtils.hasText(registrationId) ? registrationId.trim() : "keycloak";
         return "/oauth2/authorization/" + safeRegistrationId;
     }
 }

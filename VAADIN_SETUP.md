@@ -5,7 +5,7 @@ This document describes the Vaadin Flow frontend that has been added to the TNRA
 ## Features
 
 - **Vaadin Flow Frontend**: Modern web UI built with Vaadin Flow
-- **OIDC Authentication**: Integration with Okta for authentication using PKCE flow
+- **OIDC Authentication**: Integration with Keycloak for authentication using authorization code flow
 - **Responsive Design**: Clean, modern interface that works on all devices
 - **Anonymous Access**: Unauthenticated users can view the login page
 - **Secure Routes**: Protected routes require authentication
@@ -14,26 +14,28 @@ This document describes the Vaadin Flow frontend that has been added to the TNRA
 
 ### OIDC Settings
 
-The application is configured to use Okta for OIDC authentication. Update the following environment variables:
+The application is configured to use Keycloak for OIDC authentication. Set these environment variables for non-local deployments:
 
 ```bash
-export OKTA_CLIENT_ID=your-okta-client-id
-export OKTA_CLIENT_SECRET=your-okta-client-secret
-export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
+export KEYCLOAK_CLIENT_ID=tnra-app
+export KEYCLOAK_CLIENT_SECRET=your-client-secret
+export KEYCLOAK_ISSUER_URI=https://your-keycloak-server/realms/tnra
 ```
 
-### Okta Application Setup
+For local development, defaults point to `http://localhost:8180/realms/tnra` (Docker Compose Keycloak).
 
-1. Create a new OIDC application in your Okta developer console
-2. Set the redirect URI to: `https://tnra.afitnerd.local/login/oauth2/code/okta`
-3. Enable PKCE (Proof Key for Code Exchange) for enhanced security
-4. Configure the scopes: `openid`, `profile`, `email`
+### Local Keycloak Setup
+
+1. Start Keycloak: `docker compose up keycloak -d`
+2. The `tnra` realm is auto-imported with pre-configured client and test users
+3. Admin console: `http://localhost:8180/admin` (admin/admin)
+4. Test users: `admin@tnra.local` / `admin` (admin role), `member@tnra.local` / `member`
 
 ## Running the Application
 
 ### Local Development
 
-1. Set the environment variables for Okta configuration
+1. Start Keycloak: `docker compose up keycloak -d`
 2. Run the Spring Boot application:
    ```bash
    ./mvnw spring-boot:run
@@ -60,22 +62,22 @@ export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
 - `/` - Main application view (anonymous access allowed)
 - `/main` - Alias for main view
 - `/error` - Error handling page
-- `/oauth2/authorization/okta` - OIDC authorization endpoint
-- `/login/oauth2/code/okta` - OIDC callback endpoint
+- `/oauth2/authorization/keycloak` - OIDC authorization endpoint
+- `/login/oauth2/code/keycloak` - OIDC callback endpoint
 - `/logout` - Logout endpoint
 
 ## Testing
 
 ### Unauthenticated Access
 
-1. Visit `https://tnra.afitnerd.local`
-2. You should see the welcome page with a "Login with OIDC" button
+1. Visit `http://localhost:8080`
+2. You should see the welcome page with a "Login" button
 3. The page should be accessible without authentication
 
 ### Authentication Flow
 
-1. Click the "Login with OIDC" button
-2. You will be redirected to Okta for authentication
+1. Click the "Login" button
+2. You will be redirected to Keycloak for authentication
 3. After successful authentication, you'll be redirected back to the application
 4. The page should show a welcome message with your name and a logout button
 
@@ -89,8 +91,8 @@ export OKTA_ISSUER_URI=https://your-domain.okta.com/oauth2/default
 
 ### Common Issues
 
-1. **OIDC Configuration**: Ensure all environment variables are set correctly
-2. **Redirect URI**: Verify the redirect URI matches your Okta application configuration
+1. **OIDC Configuration**: Ensure Keycloak is running (`docker compose up keycloak -d`)
+2. **Redirect URI**: The realm export configures `http://localhost:8080/*` as the redirect URI
 3. **CORS Issues**: The application is configured to work with the existing NGINX setup
 4. **Vaadin Resources**: Ensure Vaadin resources are properly served (handled automatically)
 
@@ -103,8 +105,8 @@ The application includes debug logging for Spring Security and OIDC. Check the l
 
 ## Security Considerations
 
-- PKCE flow is used for enhanced security
+- Authorization code flow with client secret (confidential client)
 - Session management is handled by Spring Security
 - CSRF protection is configured for Vaadin
 - All sensitive endpoints require authentication
-- Logout properly invalidates sessions and clears cookies 
+- Logout properly invalidates sessions and clears cookies

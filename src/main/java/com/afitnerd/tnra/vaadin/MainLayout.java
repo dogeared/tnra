@@ -272,7 +272,7 @@ public class MainLayout extends AppLayout {
         Tab homeTab = createTab("Home", VaadinIcon.HOME, MainView.class);
         tabs.add(homeTab);
 
-        if (oidcUserService.isAuthenticated()) {
+        if (oidcUserService.isAuthenticated() && userService.getCurrentUser() != null) {
             tabs.add(createTab("Stats", VaadinIcon.CHART_LINE, StatsView.class));
             tabs.add(createTab("Posts", VaadinIcon.FILE_TEXT, PostView.class));
             tabs.add(createTab("Go To Guy", VaadinIcon.PHONE, GTGView.class));
@@ -304,7 +304,6 @@ public class MainLayout extends AppLayout {
             return false;
         }
         return authentication.getAuthorities().stream()
-            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()) ||
-                                 "ADMIN".equals(authority.getAuthority()));
+            .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 }

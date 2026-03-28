@@ -2,21 +2,23 @@ package com.afitnerd.tnra;
 
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.UserRepository;
-import com.afitnerd.tnra.service.PostRenderer;
 import com.vaadin.flow.component.page.AppShellConfigurator;
 import com.vaadin.flow.component.page.Inline;
 import com.vaadin.flow.server.AppShellSettings;
 import jakarta.annotation.PostConstruct;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 import java.util.TimeZone;
 
 @SpringBootApplication
+@EnableAsync
 public class TnraApplication implements AppShellConfigurator {
 
     @Value("${application.timezone:UTC}")
@@ -42,6 +44,16 @@ public class TnraApplication implements AppShellConfigurator {
         );
     }
 
+    @Bean
+    public TaskExecutor emailTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(5);
+        executor.setMaxPoolSize(5);
+        executor.setQueueCapacity(50);
+        executor.setThreadNamePrefix("email-");
+        return executor;
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(TnraApplication.class, args);
     }
@@ -53,8 +65,7 @@ public class TnraApplication implements AppShellConfigurator {
 
     @Bean
     public CommandLineRunner demo(
-        UserRepository userRepository, PostRepository postRepository,
-        @Qualifier("emailPostRenderer")PostRenderer emailPostRenderer
+        UserRepository userRepository, PostRepository postRepository
     ) {
         return (args) -> {
             // placeholder for testing
