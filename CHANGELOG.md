@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [6.0.1] - 2026-03-27
+
+### Added
+- Custom Keycloak login theme matching TNRA's organic/grounded design system (warm linen background, forest green buttons, system sans-serif fonts)
+- Docker volume for Keycloak data persistence between container restarts
+
 ## [6.0.0] - 2026-03-27
 
 ### Added
