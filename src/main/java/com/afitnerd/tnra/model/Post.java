@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CascadeType;
@@ -25,6 +26,7 @@ public class Post {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO, generator="native")
     @GenericGenerator(name = "native", strategy = "native")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private Long id;
 
     private Date start;
@@ -66,6 +68,7 @@ public class Post {
 
     @ManyToOne(optional = false)
     @JsonIgnoreProperties("posts")
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     private User user;
 
     public Post() {

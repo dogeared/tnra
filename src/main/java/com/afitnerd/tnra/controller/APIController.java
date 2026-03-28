@@ -15,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
+
 import java.security.Principal;
 import java.util.Optional;
 
@@ -63,7 +66,14 @@ public class APIController {
 
     @PostMapping("/in_progress")
     Post updatePost(Principal me, @RequestBody Post post) {
-        return postService.savePost(post);
+        User user = userRepository.findByEmail(me.getName());
+        Post existingPost = postService.getOptionalInProgressPost(user)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No in-progress post found"));
+        existingPost.setIntro(post.getIntro());
+        existingPost.setPersonal(post.getPersonal());
+        existingPost.setFamily(post.getFamily());
+        existingPost.setWork(post.getWork());
+        return postService.savePost(existingPost);
     }
 
     @GetMapping("/complete")
