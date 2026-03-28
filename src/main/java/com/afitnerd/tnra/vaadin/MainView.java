@@ -132,10 +132,25 @@ public class MainView extends VerticalLayout {
                 "Hello, " + resolvedDisplayName + "! You are now logged in."
             );
             welcomeMessage.addClassName("welcome-message");
-            
+
+            HorizontalLayout quickActions = new HorizontalLayout();
+            quickActions.addClassName("main-quick-actions");
+            quickActions.setSpacing(true);
+
+            Button postsButton = new Button("Go to Posts", click ->
+                getUI().ifPresent(ui -> ui.navigate("posts"))
+            );
+            postsButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+
+            Button profileButton = new Button("View Profile", click ->
+                getUI().ifPresent(ui -> ui.navigate("profile"))
+            );
+            profileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+            quickActions.add(postsButton, profileButton);
             profileSection.add(profileImage, welcomeMessage);
-            
-            add(title, profileSection);
+
+            add(title, profileSection, quickActions);
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");
