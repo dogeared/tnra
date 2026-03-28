@@ -1,0 +1,192 @@
+/* ===================================================
+   TNRA Keycloak Login Theme
+   Matches the organic/grounded design system.
+   =================================================== */
+
+/* --- Global background — override Keycloak's geometric pattern --- */
+.login-pf body,
+body.kc-login,
+body,
+html {
+    background: #FDFBF7 !important;
+    background-image: none !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* PatternFly 5 background container */
+.pf-v5-c-login,
+.pf-v5-c-background-image,
+.kc-login-container {
+    background: #FDFBF7 !important;
+    background-image: none !important;
+}
+
+/* --- Header / Brand --- */
+#kc-header-wrapper {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #2D6A4F;
+    padding-bottom: 24px;
+}
+
+/* --- Login Card --- */
+#kc-form-wrapper,
+.card-pf,
+#kc-login {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+#kc-content-wrapper {
+    background: #FFFFFF;
+    border: 1px solid #E0D6CC;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(44, 36, 24, 0.07), 0 1px 4px rgba(44, 36, 24, 0.04);
+    padding: 32px;
+}
+
+/* PatternFly card override */
+.card-pf {
+    background: #FFFFFF;
+    border: 1px solid #E0D6CC;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(44, 36, 24, 0.07), 0 1px 4px rgba(44, 36, 24, 0.04);
+}
+
+/* --- Form Labels --- */
+.login-pf .control-label,
+.login-pf label {
+    color: #6B5D4F;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+/* --- Text Inputs --- */
+.login-pf .form-control,
+.login-pf input[type="text"],
+.login-pf input[type="password"],
+.login-pf input[type="email"] {
+    background: #FFFFFF;
+    border: 1px solid #E0D6CC;
+    border-radius: 6px;
+    color: #2C2418;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-size: 1rem;
+    padding: 10px 14px;
+    transition: border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-pf .form-control:hover,
+.login-pf input[type="text"]:hover,
+.login-pf input[type="password"]:hover {
+    border-color: #9B8E80;
+}
+
+.login-pf .form-control:focus,
+.login-pf input[type="text"]:focus,
+.login-pf input[type="password"]:focus {
+    border-color: #2D6A4F;
+    box-shadow: 0 0 0 3px rgba(45, 106, 79, 0.10);
+    outline: none;
+}
+
+/* --- Primary Button (Login) --- */
+.login-pf .btn-primary,
+.login-pf input[type="submit"],
+#kc-login {
+    background-color: #2D6A4F;
+    border: none;
+    border-radius: 6px;
+    color: #FFFFFF;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 10px 20px;
+    box-shadow: 0 1px 3px rgba(44, 36, 24, 0.06), 0 1px 2px rgba(44, 36, 24, 0.04);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+
+.login-pf .btn-primary:hover,
+.login-pf input[type="submit"]:hover,
+#kc-login:hover {
+    background-color: #245740;
+    box-shadow: 0 4px 12px rgba(44, 36, 24, 0.07), 0 1px 4px rgba(44, 36, 24, 0.04);
+    transform: translateY(-1px);
+}
+
+.login-pf .btn-primary:active,
+.login-pf input[type="submit"]:active,
+#kc-login:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 3px rgba(44, 36, 24, 0.06);
+}
+
+/* --- Secondary / Link buttons --- */
+.login-pf .btn-default,
+.login-pf a {
+    color: #2D6A4F;
+}
+
+.login-pf a:hover {
+    color: #245740;
+}
+
+/* --- Error / Alert Messages --- */
+.login-pf .alert-error,
+.login-pf .kc-feedback-text {
+    color: #C53030;
+}
+
+.login-pf .alert-success {
+    color: #2D6A4F;
+}
+
+.login-pf .alert-warning {
+    color: #D4880F;
+}
+
+.login-pf .alert {
+    border-radius: 6px;
+    font-size: 0.9rem;
+}
+
+/* --- Info text --- */
+.login-pf .instruction,
+.login-pf #kc-info-message,
+#kc-registration span {
+    color: #6B5D4F;
+    font-size: 0.9rem;
+}
+
+/* --- Footer / Powered By --- */
+#kc-info-wrapper {
+    color: #9B8E80;
+    font-size: 0.8rem;
+}
+
+/* --- Remember me checkbox --- */
+.login-pf .checkbox label {
+    color: #6B5D4F;
+    font-size: 0.875rem;
+}
+
+/* --- Page title --- */
+#kc-page-title {
+    color: #2C2418;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+/* --- Social / Identity Provider buttons --- */
+.login-pf .kc-social-provider-name,
+.login-pf .kc-social-links .kc-social-item {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+/* --- Registration link --- */
+#kc-registration {
+    margin-top: 16px;
+}
