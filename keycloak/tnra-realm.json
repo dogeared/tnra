@@ -2,6 +2,7 @@
   "realm": "tnra",
   "enabled": true,
   "registrationAllowed": true,
+  "loginTheme": "tnra",
   "sslRequired": "none",
   "roles": {
     "realm": [
