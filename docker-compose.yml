@@ -51,6 +51,7 @@ services:
     ports:
       - '127.0.0.1:8180:8080'
     volumes:
+      - 'keycloak-data:/opt/keycloak/data'
       - './keycloak:/opt/keycloak/data/import:ro'
       - './keycloak/themes/tnra:/opt/keycloak/themes/tnra:ro'
 
@@ -84,4 +85,5 @@ services:
     links:
       - server
 volumes:
+  keycloak-data:
   mysql-db:
