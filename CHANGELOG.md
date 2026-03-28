@@ -2,6 +2,31 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [6.0.0] - 2026-03-27
+
+### Added
+- Keycloak OIDC authentication replacing Okta (realm_access.roles extraction with flat claim fallback)
+- Activity-only email notifications via ActivityNotificationRenderer (no post content in emails)
+- Per-user notification preference (notifyNewPosts) with V4 Flyway migration
+- Email notification toggle in ProfileView
+- Admin-controlled member invitations (Members tab in AdminView with invite dialog)
+- Local Keycloak development environment in Docker Compose with pre-configured tnra realm
+- Spring @Async email sending with bounded ThreadPoolTaskExecutor (5 threads)
+- P1 TODOs for email invitation flow, per-user billing, member deactivation
+
+### Changed
+- Auth provider: Okta → Keycloak (spring-boot-starter-oauth2-client, env var config)
+- Email content policy: full post content → activity-only summaries (security policy)
+- User creation: auto-creation on OIDC login disabled → admin must invite by email first
+- Email kill switch moved into EmailServiceImpl (covers both Vaadin and API callers)
+- First OIDC login populates name from claims if invited user has email-only record
+
+### Removed
+- okta-spring-boot-starter dependency
+- Okta configuration from application.yml, docker-compose.yml, README, VAADIN_SETUP.md
+- Auto-creation of user records on first OIDC login (replaced by admin invite)
+- Raw ExecutorService in EmailServiceImpl (replaced by Spring @Async)
+
 ## [5.2.0] - 2026-03-27
 
 ### Added
