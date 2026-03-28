@@ -2,6 +2,15 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [6.0.2] - 2026-03-28
+
+### Fixed
+- **IDOR vulnerability**: POST /api/v1/in_progress now enforces ownership — authenticated users can only update their own in-progress post
+- **Hardcoded DB password**: replaced with environment variable reference (no default, fails loud if unset)
+- **Dockerfile runs as root**: added non-root `appuser` (UID 1001)
+- **Keycloak SSL**: changed `sslRequired` from `none` to `external`
+- Added `@JsonProperty(READ_ONLY)` on Post.id and Post.user to prevent mass-assignment via JSON
+
 ## [6.0.1] - 2026-03-27
 
 ### Added

@@ -45,3 +45,4 @@ bundles
 uploads
 emails
 *.json
+.gstack/
