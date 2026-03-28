@@ -51,9 +51,10 @@ Run the app against MySQL:
 ./mvnw spring-boot:run
 ```
 
-The default `application.yml` points to `localhost:3307/tnra`. On first run against a
-fresh MySQL database, Flyway will run all migrations (V1 baseline + V2 schema cleanup).
-On subsequent runs, Flyway only runs new migrations.
+The default `application.yml` points to `localhost:3307/tnra`. You must set
+`SPRING_DATASOURCE_PASSWORD` as an environment variable (no default is provided).
+On first run against a fresh MySQL database, Flyway will run all migrations
+(V1 baseline + V2 schema cleanup). On subsequent runs, Flyway only runs new migrations.
 
 ### Option 3: Full stack via Docker Compose (app + MySQL + Nginx)
 
@@ -118,7 +119,7 @@ export TNRA_AUTH_LOGIN_REGISTRATION_ID=google
 ./mvnw clean test
 ```
 
-234 tests covering controllers, services, presenters, models, and Vaadin views.
+226 tests covering controllers, services, presenters, models, and Vaadin views.
 JaCoCo coverage reports are generated in `target/site/jacoco/`.
 
 ## Production Deployment (Vultr VPS)
@@ -178,11 +179,11 @@ deployment considerations:
 - **Before deploying:** Back up the database. The stats data migration is irreversible.
 - After deploy: verify old posts still display correctly with migrated stats.
 
-**Branch 3: Keycloak + Auth + Activity-Only Email** (upcoming)
-- Requires a running Keycloak instance before deploy.
-- Replaces Okta OAuth2. Update `OKTA_OAUTH2_*` env vars → Keycloak equivalents.
-- Email templates change from full-content to activity-only.
-- **Before deploying:** Set up Keycloak, create realm, configure Google social login.
+**Branch 3: Keycloak + Auth + Activity-Only Email** (shipped in v6.0.0)
+- Requires a running Keycloak instance.
+- Replaced Okta OAuth2 with Keycloak OIDC. Keycloak realm auto-imports on first start.
+- Email notifications are activity-only (no post content).
+- v6.0.2: hardcoded credentials removed, Dockerfile runs as non-root, Keycloak SSL enforced.
 
 **Branch 4: Provisioning + Infrastructure** (upcoming)
 - Introduces the provisioning CLI and per-group Docker Compose files.
