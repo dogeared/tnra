@@ -22,6 +22,8 @@ class OfflinePageTest {
             assertTrue(html.contains("/api/v1/in_progress"));
             assertTrue(html.contains("/api/v1/finish_from_app"));
             assertTrue(html.contains("response.status === 404"));
+            assertTrue(html.contains("window.addEventListener(\"focus\""));
+            assertTrue(html.contains("document.addEventListener(\"visibilitychange\""));
         }
     }
 }

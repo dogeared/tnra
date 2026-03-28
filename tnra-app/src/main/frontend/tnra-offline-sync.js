@@ -345,6 +345,11 @@
     window.addEventListener("online", () => {
       syncDraft();
     });
+    window.addEventListener("focus", () => {
+      if (navigator.onLine) {
+        syncDraft();
+      }
+    });
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "visible") {
         syncDraft();
