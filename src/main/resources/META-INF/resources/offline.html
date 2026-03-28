@@ -516,6 +516,16 @@
           refreshConnectionStatus();
           syncDraft();
         });
+        window.addEventListener("focus", () => {
+          if (navigator.onLine) {
+            syncDraft();
+          }
+        });
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            syncDraft();
+          }
+        });
 
         window.addEventListener("offline", refreshConnectionStatus);
         window.setInterval(syncDraft, SYNC_INTERVAL_MS);

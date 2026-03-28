@@ -23,6 +23,8 @@ class OfflineSyncScriptTest {
         assertTrue(script.contains("finishAfterSync: true"));
         assertTrue(script.contains("window.location.assign(\"/offline.html\")"));
         assertTrue(script.contains("event.stopImmediatePropagation()"));
+        assertTrue(script.contains("window.addEventListener(\"focus\""));
+        assertTrue(script.contains("document.addEventListener(\"visibilitychange\""));
         assertFalse(script.contains("if (!window.location.pathname.startsWith(\"/posts\")) {"));
     }
 }
