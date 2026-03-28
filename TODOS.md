@@ -1,5 +1,33 @@
 # TODOS
 
+## P0 — Security / Correctness
+
+### Unique Constraint on users.email
+Add `UNIQUE` constraint via V5 Flyway migration. Without it, concurrent invites for the same email can create duplicate user records, corrupting login lookups.
+- **Effort:** S (human: ~30 min / CC: ~5 min)
+- **Depends on:** Branch 3 shipped.
+
+### Keycloak Logout Should Revoke Keycloak Session
+Current logout only clears the Spring session. Keycloak session stays alive, so clicking "Login" silently re-authenticates. Use `OidcClientInitiatedLogoutSuccessHandler` to call Keycloak's `end_session_endpoint`.
+- **Effort:** S (human: ~1 hr / CC: ~10 min)
+- **Depends on:** Branch 3 shipped.
+
+### Narrow Keycloak Redirect URI
+Change `redirectUris: ["http://localhost:8080/*"]` in realm export to exact match `["http://localhost:8080/login/oauth2/code/keycloak"]`. Wildcard enables open-redirect attacks.
+- **Effort:** S (human: ~15 min / CC: ~5 min)
+
+### Move Debug Logging to Dev Profile
+Default `application.yml` has DEBUG logging for Spring Security and OAuth2. In production this logs tokens, headers, and PII. Move to a `dev` or `local` profile.
+- **Effort:** S (human: ~30 min / CC: ~5 min)
+
+### TaskExecutor Rejection Policy
+`emailTaskExecutor` uses default `AbortPolicy` — if queue fills (50 tasks), emails are silently dropped. Change to `CallerRunsPolicy` for backpressure. Add `setWaitForTasksToCompleteOnShutdown(true)`.
+- **Effort:** S (human: ~15 min / CC: ~5 min)
+
+### Reduce Session Timeout for Production
+30-day server-side session (`server.servlet.session.timeout: 30d`) is too long for a multi-user app with sensitive content. Reduce to 8-24 hours for production.
+- **Effort:** S (human: ~15 min / CC: ~5 min)
+
 ## P1 — Next Up
 
 ### Email Invitation Flow

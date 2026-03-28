@@ -28,7 +28,8 @@ public class UserServiceImpl implements UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof OidcUser) {
             OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-            String email = oidcUser.getEmail();
+            String email = oidcUser.getEmail() != null ? oidcUser.getEmail().toLowerCase() : null;
+            if (email == null) return null;
 
             User user = getUserByEmail(email);
             if (user == null) {
@@ -62,11 +63,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User inviteUser(String email) {
-        User existing = getUserByEmail(email);
+        String normalizedEmail = email != null ? email.toLowerCase().trim() : "";
+        User existing = getUserByEmail(normalizedEmail);
         if (existing != null) {
             return existing;
         }
-        User user = new User(null, null, email);
+        User user = new User(null, null, normalizedEmail);
         user.setActive(true);
         return userRepository.save(user);
     }

@@ -74,7 +74,8 @@ public class EmailServiceImpl implements EMailService {
                 .addTextBody("to", user.getEmail())
                 .addTextBody(
                     "subject",
-                    "TNRA: New activity from " + post.getUser().getFirstName()
+                    "TNRA: New activity from " +
+                        (post.getUser().getFirstName() != null ? post.getUser().getFirstName() : "a member")
                 )
                 .addTextBody(
                     "html",
@@ -83,15 +84,16 @@ public class EmailServiceImpl implements EMailService {
                 )
                 .build();
 
-            InputStream responseStream = Request.post(mailgunUrl)
+            try (InputStream responseStream = Request.post(mailgunUrl)
                 .addHeader("Authorization", "Basic " + Base64.getEncoder().encodeToString(("api:" + mailgunPrivateKey).getBytes("utf-8")))
                 .body(entity)
-                .execute().returnContent().asStream();
-            Map<String, Object> response = mapper.readValue(responseStream, typeRef);
-            log.info(
-                "Sent email to {}. Got Mailgun response: {}",
-                user.getEmail(), mapper.writeValueAsString(response)
-            );
+                .execute().returnContent().asStream()) {
+                Map<String, Object> response = mapper.readValue(responseStream, typeRef);
+                log.info(
+                    "Sent email to {}. Got Mailgun response: {}",
+                    user.getEmail(), mapper.writeValueAsString(response)
+                );
+            }
         } catch (IOException e) {
             log.error("Error sending Mailgun email to {}: {}", user.getEmail(), e.getMessage(), e);
         }
