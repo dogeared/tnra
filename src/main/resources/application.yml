@@ -21,8 +21,8 @@ spring:
       ddl-auto: validate
   datasource:
     url: jdbc:mysql://localhost:3307/tnra
-    username: tnra
-    password: 123456aA$
+    username: ${SPRING_DATASOURCE_USERNAME:tnra}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   flyway:
     baseline-on-migrate: true
     baseline-version: 1

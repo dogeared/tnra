@@ -18,6 +18,8 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.springframework.web.server.ResponseStatusException;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,17 +55,29 @@ class APIControllerTest {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
         User user = new User("Test", "User", "user@example.com");
-        Post post = new Post(user);
+        Post existingPost = new Post(user);
+        Post inputPost = new Post(user);
         when(userRepository.findByEmail("user@example.com")).thenReturn(user);
-        when(postService.getOptionalInProgressPost(user)).thenReturn(Optional.of(post));
-        when(postService.getOptionalCompletePost(user)).thenReturn(Optional.of(post));
-        when(postService.startPost(user)).thenReturn(post);
-        when(postService.savePost(post)).thenReturn(post);
+        when(postService.getOptionalInProgressPost(user)).thenReturn(Optional.of(existingPost));
+        when(postService.getOptionalCompletePost(user)).thenReturn(Optional.of(existingPost));
+        when(postService.startPost(user)).thenReturn(existingPost);
+        when(postService.savePost(existingPost)).thenReturn(existingPost);
 
-        assertEquals(Optional.of(post), controller.getInProgressPost(principal));
-        assertSame(post, controller.updatePost(principal, post));
-        assertEquals(Optional.of(post), controller.getCompletePost(principal));
-        assertSame(post, controller.startPost(principal));
+        assertEquals(Optional.of(existingPost), controller.getInProgressPost(principal));
+        assertSame(existingPost, controller.updatePost(principal, inputPost));
+        assertEquals(Optional.of(existingPost), controller.getCompletePost(principal));
+        assertSame(existingPost, controller.startPost(principal));
+    }
+
+    @Test
+    void updatePostThrowsWhenNoInProgressPost() {
+        APIController controller = controller();
+        Principal principal = () -> "user@example.com";
+        User user = new User("Test", "User", "user@example.com");
+        when(userRepository.findByEmail("user@example.com")).thenReturn(user);
+        when(postService.getOptionalInProgressPost(user)).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> controller.updatePost(principal, new Post(user)));
     }
 
     @Test
