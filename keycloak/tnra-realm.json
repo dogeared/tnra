@@ -1,6 +1,7 @@
 {
   "realm": "tnra",
   "enabled": true,
+  "registrationAllowed": true,
   "sslRequired": "none",
   "roles": {
     "realm": [

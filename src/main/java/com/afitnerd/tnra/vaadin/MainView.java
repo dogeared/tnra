@@ -51,12 +51,30 @@ public class MainView extends VerticalLayout {
         setJustifyContentMode(JustifyContentMode.CENTER);
 
         if (oidcUserService.isAuthenticated()) {
-            showAuthenticatedView();
+            User currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                showNotAMemberView();
+            } else {
+                showAuthenticatedView();
+            }
         } else {
             showUnauthenticatedView();
         }
     }
     
+    private void showNotAMemberView() {
+        H1 title = new H1("Not a Member");
+        title.addClassName("main-title");
+
+        Paragraph description = new Paragraph(
+            "You've signed in successfully, but you haven't been invited to this group yet. " +
+            "Please contact your group administrator to request an invitation."
+        );
+        description.addClassName("main-description");
+
+        add(title, description);
+    }
+
     private void showUnauthenticatedView() {
         H1 title = new H1("Welcome to TNRA");
         title.addClassName("main-title");
