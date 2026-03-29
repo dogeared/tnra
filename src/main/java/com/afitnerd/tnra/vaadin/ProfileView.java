@@ -1,17 +1,26 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -25,6 +34,7 @@ import com.vaadin.flow.router.Route;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Route(value = "profile", layout = MainLayout.class)
@@ -34,7 +44,10 @@ public class ProfileView extends VerticalLayout {
 
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private User currentUser;
+    private VerticalLayout myStatsList;
     
     private TextField firstNameField;
     private TextField lastNameField;
@@ -48,9 +61,15 @@ public class ProfileView extends VerticalLayout {
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
     private static final Pattern DIGITS_ONLY = Pattern.compile("[^0-9]");
 
-    public ProfileView(UserService userService, FileStorageService fileStorageService) {
+    public ProfileView(
+        UserService userService, FileStorageService fileStorageService,
+        StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository
+    ) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
+        this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         
         setSizeFull();
         setPadding(true);
@@ -132,6 +151,225 @@ public class ProfileView extends VerticalLayout {
         mainLayout.setFlexGrow(1, formLayout);
         
         add(mainLayout);
+
+        // My Stats section
+        add(createMyStatsSection());
+    }
+
+    private VerticalLayout createMyStatsSection() {
+        VerticalLayout section = new VerticalLayout();
+        section.setSpacing(true);
+        section.setPadding(false);
+
+        HorizontalLayout headerRow = new HorizontalLayout();
+        headerRow.setAlignItems(Alignment.CENTER);
+        H3 statsHeader = new H3("My Stats");
+        Button addStatBtn = new Button("Add Stat", VaadinIcon.PLUS.create());
+        addStatBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+        addStatBtn.addClickListener(e -> openAddPersonalStatDialog());
+        headerRow.add(statsHeader, addStatBtn);
+
+        myStatsList = new VerticalLayout();
+        myStatsList.setSpacing(false);
+        myStatsList.setPadding(false);
+
+        section.add(headerRow, myStatsList);
+        return section;
+    }
+
+    private void refreshMyStatsList() {
+        if (myStatsList == null || currentUser == null) return;
+        myStatsList.removeAll();
+
+        java.util.List<PersonalStatDefinition> allStats = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(currentUser);
+
+        if (allStats.isEmpty()) {
+            Paragraph empty = new Paragraph("No personal stats yet. Add your first to track something just for you.");
+            myStatsList.add(empty);
+            return;
+        }
+
+        java.util.List<PersonalStatDefinition> activeStats = allStats.stream().filter(s -> !s.getArchived()).toList();
+        java.util.List<PersonalStatDefinition> archivedStats = allStats.stream().filter(PersonalStatDefinition::getArchived).toList();
+
+        for (int i = 0; i < activeStats.size(); i++) {
+            PersonalStatDefinition stat = activeStats.get(i);
+            HorizontalLayout row = new HorizontalLayout();
+            row.setWidthFull();
+            row.setAlignItems(Alignment.CENTER);
+
+            Span emoji = new Span(stat.getEmoji() != null ? stat.getEmoji() : "");
+            Span label = new Span(stat.getLabel());
+
+            Button upBtn = new Button(VaadinIcon.ARROW_UP.create());
+            upBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            upBtn.setEnabled(i > 0);
+            upBtn.addClickListener(e -> movePersonalStatUp(stat));
+
+            Button downBtn = new Button(VaadinIcon.ARROW_DOWN.create());
+            downBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            downBtn.setEnabled(i < activeStats.size() - 1);
+            downBtn.addClickListener(e -> movePersonalStatDown(stat));
+
+            Button archiveBtn = new Button(VaadinIcon.CLOSE_SMALL.create());
+            archiveBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+            archiveBtn.addClickListener(e -> archivePersonalStat(stat));
+
+            row.add(emoji, label, upBtn, downBtn, archiveBtn);
+            myStatsList.add(row);
+        }
+
+        for (PersonalStatDefinition stat : archivedStats) {
+            HorizontalLayout row = new HorizontalLayout();
+            row.setWidthFull();
+            row.setAlignItems(Alignment.CENTER);
+            row.getStyle().set("opacity", "0.5");
+
+            Span emoji = new Span(stat.getEmoji() != null ? stat.getEmoji() : "");
+            Span label = new Span(stat.getLabel());
+            Span badge = new Span("archived");
+            badge.getStyle().set("font-size", "0.8em").set("color", "gray");
+
+            Button restoreBtn = new Button("Restore");
+            restoreBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            restoreBtn.addClickListener(e -> restorePersonalStat(stat));
+
+            row.add(emoji, label, badge, restoreBtn);
+            myStatsList.add(row);
+        }
+    }
+
+    private void openAddPersonalStatDialog() {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Add Personal Stat");
+
+        FormLayout form = new FormLayout();
+        TextField nameField = new TextField("Internal Name");
+        nameField.setHelperText("Lowercase, no spaces (e.g., 'guitar_practice')");
+        nameField.setPattern("[a-z_]+");
+
+        TextField labelField = new TextField("Display Label");
+        labelField.setHelperText("What you see (e.g., 'Guitar Practice')");
+
+        TextField emojiField = new TextField("Emoji");
+        emojiField.setMaxLength(10);
+        emojiField.setWidth("80px");
+
+        form.add(nameField, labelField, emojiField);
+
+        Button saveBtn = new Button("Add Stat", VaadinIcon.CHECK.create());
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveBtn.addClickListener(e -> {
+            String name = nameField.getValue().trim().toLowerCase();
+            String label = labelField.getValue().trim();
+            String emoji = emojiField.getValue().trim();
+
+            if (name.isEmpty() || label.isEmpty()) {
+                Notification.show("Name and label are required");
+                return;
+            }
+
+            // Check collision with global stats (active or archived)
+            if (statDefinitionRepository.existsGlobalByName(name)) {
+                Notification n = Notification.show("A group stat named '" + name + "' already exists");
+                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            // Check collision with own personal stats
+            if (personalStatDefinitionRepository.existsByNameAndUser(name, currentUser)) {
+                Notification n = Notification.show("You already have a stat named '" + name + "'");
+                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                return;
+            }
+
+            java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+                .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+            int nextOrder = activeStats.stream()
+                .mapToInt(PersonalStatDefinition::getDisplayOrder)
+                .max().orElse(-1) + 1;
+
+            PersonalStatDefinition newStat = new PersonalStatDefinition(
+                name, label, emoji.isEmpty() ? null : emoji, nextOrder, currentUser
+            );
+            personalStatDefinitionRepository.save(newStat);
+            refreshMyStatsList();
+            dialog.close();
+
+            Notification n = Notification.show(label + " added");
+            n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        });
+
+        Button cancelBtn = new Button("Cancel", e -> dialog.close());
+
+        dialog.add(form);
+        dialog.getFooter().add(cancelBtn, saveBtn);
+        dialog.open();
+    }
+
+    private void movePersonalStatUp(PersonalStatDefinition stat) {
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        for (int i = 1; i < activeStats.size(); i++) {
+            if (activeStats.get(i).getId().equals(stat.getId())) {
+                PersonalStatDefinition prev = activeStats.get(i - 1);
+                int temp = stat.getDisplayOrder();
+                stat.setDisplayOrder(prev.getDisplayOrder());
+                prev.setDisplayOrder(temp);
+                personalStatDefinitionRepository.save(stat);
+                personalStatDefinitionRepository.save(prev);
+                break;
+            }
+        }
+        refreshMyStatsList();
+    }
+
+    private void movePersonalStatDown(PersonalStatDefinition stat) {
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        for (int i = 0; i < activeStats.size() - 1; i++) {
+            if (activeStats.get(i).getId().equals(stat.getId())) {
+                PersonalStatDefinition next = activeStats.get(i + 1);
+                int temp = stat.getDisplayOrder();
+                stat.setDisplayOrder(next.getDisplayOrder());
+                next.setDisplayOrder(temp);
+                personalStatDefinitionRepository.save(stat);
+                personalStatDefinitionRepository.save(next);
+                break;
+            }
+        }
+        refreshMyStatsList();
+    }
+
+    private void archivePersonalStat(PersonalStatDefinition stat) {
+        stat.setArchived(true);
+        personalStatDefinitionRepository.save(stat);
+        refreshMyStatsList();
+        Notification n = Notification.show(stat.getLabel() + " archived");
+        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+    }
+
+    private void restorePersonalStat(PersonalStatDefinition stat) {
+        // Check if a global stat now has this name
+        if (statDefinitionRepository.existsGlobalByName(stat.getName())) {
+            Notification n = Notification.show(
+                "Can't restore: a group stat named '" + stat.getName() + "' now exists"
+            );
+            n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            return;
+        }
+
+        stat.setArchived(false);
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        int maxOrder = activeStats.stream()
+            .mapToInt(PersonalStatDefinition::getDisplayOrder)
+            .max().orElse(-1);
+        stat.setDisplayOrder(maxOrder + 1);
+        personalStatDefinitionRepository.save(stat);
+        refreshMyStatsList();
+        Notification n = Notification.show(stat.getLabel() + " restored");
+        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
     private void processProfileImageUpload(String fileName, String contentType, byte[] data) {
@@ -250,6 +488,8 @@ public class ProfileView extends VerticalLayout {
                 // Set default avatar
                 profileImage.setSrc("/uploads/placeholder.png");
             }
+
+            refreshMyStatsList();
         }
     }
 
