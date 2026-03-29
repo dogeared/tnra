@@ -1,6 +1,8 @@
 package com.afitnerd.tnra.repository;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.StatDefinition;
+import com.afitnerd.tnra.model.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,15 +22,27 @@ class StatDefinitionRepositoryTest {
     @Autowired
     private StatDefinitionRepository statDefinitionRepository;
 
+    @Autowired
+    private PersonalStatDefinitionRepository personalStatDefinitionRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
     private final List<Long> testStatIds = new ArrayList<>();
+    private final List<Long> testPersonalStatIds = new ArrayList<>();
+    private final List<Long> testUserIds = new ArrayList<>();
 
     // Use display_order 100+ to avoid conflicts with PostServiceTests' seeded stats (0-6)
     private static final int BASE_ORDER = 100;
 
     @AfterEach
     void tearDown() {
+        testPersonalStatIds.forEach(id -> personalStatDefinitionRepository.deleteById(id));
+        testPersonalStatIds.clear();
         testStatIds.forEach(id -> statDefinitionRepository.deleteById(id));
         testStatIds.clear();
+        testUserIds.forEach(id -> userRepository.deleteById(id));
+        testUserIds.clear();
     }
 
     private StatDefinition saveTestStat(String name, String label, String emoji, int order) {
@@ -173,5 +187,58 @@ class StatDefinitionRepositoryTest {
 
         assertTrue(statDefinitionRepository.existsGlobalByName("test_unique"));
         assertFalse(statDefinitionRepository.existsGlobalByName("test_nonexistent"));
+    }
+
+    @Test
+    void findGlobalActive_excludesPersonalStats() {
+        // Create a global stat
+        saveTestStat("test_global_only", "Global Only", "🌍", 0);
+
+        // Create a personal stat with a different name
+        User user = new User("Test", "User", "testglobal@test.com");
+        user.setSlackUserId("U_TEST_GLOBAL");
+        user.setSlackUsername("testglobal");
+        user.setActive(true);
+        user = userRepository.save(user);
+        testUserIds.add(user.getId());
+
+        PersonalStatDefinition personal = new PersonalStatDefinition(
+            "test_personal_only", "Personal Only", "👤", BASE_ORDER + 1, user
+        );
+        personal = personalStatDefinitionRepository.save(personal);
+        testPersonalStatIds.add(personal.getId());
+
+        // findGlobalActive should only return the global stat
+        List<StatDefinition> globalActive = filterTestStats(
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
+        );
+        assertEquals(1, globalActive.size());
+        assertEquals("test_global_only", globalActive.get(0).getName());
+    }
+
+    @Test
+    void existsGlobalByName_ignoresPersonalStats() {
+        // Create only a personal stat
+        User user = new User("Test", "User", "testignore@test.com");
+        user.setSlackUserId("U_TEST_IGNORE");
+        user.setSlackUsername("testignore");
+        user.setActive(true);
+        user = userRepository.save(user);
+        testUserIds.add(user.getId());
+
+        PersonalStatDefinition personal = new PersonalStatDefinition(
+            "test_shared_name", "Shared Name", "🔗", BASE_ORDER, user
+        );
+        personal = personalStatDefinitionRepository.save(personal);
+        testPersonalStatIds.add(personal.getId());
+
+        // existsGlobalByName should NOT detect the personal stat
+        assertFalse(statDefinitionRepository.existsGlobalByName("test_shared_name"));
+
+        // Now create a global stat with the same name
+        saveTestStat("test_shared_name", "Shared Name Global", "🌐", 0);
+
+        // Now it should detect it
+        assertTrue(statDefinitionRepository.existsGlobalByName("test_shared_name"));
     }
 }

@@ -5,9 +5,13 @@ import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +20,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -259,5 +265,35 @@ class ProfileViewTest {
         // Assert
         assertNotNull(profileView);
         assertTrue(profileView.getChildren().count() > 0);
+    }
+
+    @Test
+    void myStatsSectionIsRendered() {
+        // Arrange
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        // Act
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Assert - find the "My Stats" H3 header somewhere in the component tree
+        boolean hasMyStatsHeader = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof H3 && "My Stats".equals(((H3) c).getText()));
+        assertTrue(hasMyStatsHeader, "Profile view should contain a 'My Stats' header");
+
+        // Assert - find the "Add Stat" button somewhere in the component tree
+        boolean hasAddStatButton = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof Button && ((Button) c).getText().contains("Add Stat"));
+        assertTrue(hasAddStatButton, "Profile view should contain an 'Add Stat' button");
+    }
+
+    /**
+     * Recursively stream all descendant components.
+     */
+    private Stream<Component> findAllDescendants(Component root) {
+        return Stream.concat(
+            root.getChildren(),
+            root.getChildren().flatMap(this::findAllDescendants)
+        );
     }
 }
