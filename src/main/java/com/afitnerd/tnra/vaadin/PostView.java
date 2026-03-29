@@ -65,7 +65,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private Button showCompletedPostsButton;
     private Button switchToInProgressButton;
     private Button finishPostButton;
-    private Paragraph successMessage;
+    private boolean showPostSuccess = false;
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
@@ -142,16 +142,24 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void createPostView() {
         // Clear existing content
         removeAll();
-        
+
+        // Show success banner if post was just completed
+        if (showPostSuccess) {
+            Paragraph banner = new Paragraph("Post completed successfully!");
+            banner.addClassName("post-success-message");
+            add(banner);
+            showPostSuccess = false;
+        }
+
         // Header section with post selector and start new post button
         VerticalLayout headerSection = createHeaderSection();
-        
+
         // Main content sections
         VerticalLayout contentSection = createContentSection();
-        
+
         // Footer section for in-progress posts
         VerticalLayout footerSection = createFooterSection();
-        
+
         add(headerSection, contentSection, footerSection);
         
         // If no current post is selected, clear form data and set fields to read-only
@@ -577,27 +585,16 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         try {
             vaadinPostPresenter.finishPost(currentUser);
 
-            // Show success message in the footer before switching views
-            if (finishPostButton != null) {
-                finishPostButton.setVisible(false);
-            }
-            if (successMessage != null) {
-                successMessage.setVisible(true);
-            }
-
             // Switch to completed posts view
             showingCompletedPosts = true;
+            showPostSuccess = true;
 
             // Reload completed posts
             loadCurrentPage();
 
-            // Clear form data
-            clearFormData();
-
-            // Recreate header with completed posts view
-            recreateHeader();
-
-            Notification.show("Post completed successfully!", 3000, Notification.Position.TOP_CENTER);
+            // Rebuild the entire view with success banner
+            createPostView();
+            setupDataBinding();
         } catch (Exception e) {
             Notification.show("Error finishing post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
@@ -640,12 +637,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             finishPostButton.setEnabled(false); // Initially disabled
             finishPostButton.addClickListener(e -> finishPost());
 
-            // Success message (hidden initially)
-            successMessage = new Paragraph("Post completed successfully!");
-            successMessage.addClassName("post-success-message");
-            successMessage.setVisible(false);
-
-            footer.add(finishPostButton, successMessage);
+            footer.add(finishPostButton);
             footer.setAlignItems(Alignment.CENTER);
             footer.setVisible(true);
         } else {

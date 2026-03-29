@@ -53,6 +53,8 @@
     font-size: 1.75rem;
     display: block;
     margin-bottom: 0.25rem;
+    min-height: 1.75rem;
+    line-height: 1.75rem;
 }
 
 .stat-card-label {
