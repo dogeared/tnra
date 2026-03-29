@@ -2,11 +2,6 @@
 
 ## P0 — Security / Correctness
 
-### Unique Constraint on users.email
-Add `UNIQUE` constraint via V5 Flyway migration. Without it, concurrent invites for the same email can create duplicate user records, corrupting login lookups.
-- **Effort:** S (human: ~30 min / CC: ~5 min)
-- **Depends on:** Branch 3 shipped.
-
 ### Keycloak Logout Should Revoke Keycloak Session
 Current logout only clears the Spring session. Keycloak session stays alive, so clicking "Login" silently re-authenticates. Use `OidcClientInitiatedLogoutSuccessHandler` to call Keycloak's `end_session_endpoint`.
 - **Effort:** S (human: ~1 hr / CC: ~10 min)
@@ -82,3 +77,9 @@ Structured annual reflection form per member per year, viewable by the group.
 - **Effort:** S-M (human: ~3 days / CC: ~30 min)
 - **Depends on:** Core wedge shipped, at least one group onboarded.
 - **Context:** Recovery and faith groups often build their year around the retreat. Having the prep format built in signals TNRA understands the full cadence. Similar to the weekly post form but for annual reflection.
+
+## Completed
+
+### Unique Constraint on users.email
+Add `UNIQUE` constraint via Flyway migration.
+- **Completed:** v7.0.0 (2026-03-29) — bundled into V5 migration with personal stats

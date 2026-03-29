@@ -4,6 +4,7 @@ import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
@@ -43,6 +44,7 @@ public class AdminView extends VerticalLayout {
     private final VaadinAdminPresenter vaadinAdminPresenter;
     private final CallChainPresenter callChainPresenter;
     private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final UserService userService;
     private GoToGuySet workingSet;
 
@@ -50,11 +52,13 @@ public class AdminView extends VerticalLayout {
         VaadinAdminPresenter vaadinAdminPresenter,
         CallChainPresenter callChainPresenter,
         StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository,
         UserService userService
     ) {
         this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
         this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.userService = userService;
 
         addClassName("admin-view");
@@ -220,7 +224,7 @@ public class AdminView extends VerticalLayout {
 
     private void refreshStatsList(VerticalLayout statsList) {
         statsList.removeAll();
-        List<StatDefinition> allStats = statDefinitionRepository.findAllByOrderByDisplayOrderAsc();
+        List<StatDefinition> allStats = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc();
 
         if (allStats.isEmpty()) {
             Paragraph empty = new Paragraph("No stats configured yet. Add your first stat below.");
@@ -258,7 +262,7 @@ public class AdminView extends VerticalLayout {
             row.add(emojiSpan, labelSpan, archivedBadge);
         } else {
             // Up/down buttons for reordering (use active-only index)
-            List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+            List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
             int activeIndex = findActiveIndex(activeStats, stat);
 
             Button upBtn = new Button(VaadinIcon.ARROW_UP.create());
@@ -301,7 +305,7 @@ public class AdminView extends VerticalLayout {
     }
 
     private void moveStatUp(StatDefinition stat, VerticalLayout statsList) {
-        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         int index = findActiveIndex(activeStats, stat);
         if (index > 0) {
             StatDefinition prev = activeStats.get(index - 1);
@@ -316,7 +320,7 @@ public class AdminView extends VerticalLayout {
     }
 
     private void moveStatDown(StatDefinition stat, VerticalLayout statsList) {
-        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         int index = findActiveIndex(activeStats, stat);
         if (index >= 0 && index < activeStats.size() - 1) {
             StatDefinition next = activeStats.get(index + 1);
@@ -332,7 +336,7 @@ public class AdminView extends VerticalLayout {
 
     private void archiveStat(StatDefinition stat, VerticalLayout statsList) {
         // Check if this is the last active stat
-        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         if (activeStats.size() <= 1) {
             Notification notification = Notification.show("Cannot archive the last active stat. At least one stat is required.");
             notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
@@ -350,7 +354,7 @@ public class AdminView extends VerticalLayout {
     private void restoreStat(StatDefinition stat, VerticalLayout statsList) {
         stat.setArchived(false);
         // Put restored stat at the end of the active list
-        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+        List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         int maxOrder = activeStats.stream()
             .mapToInt(StatDefinition::getDisplayOrder)
             .max()
@@ -395,13 +399,13 @@ public class AdminView extends VerticalLayout {
                 return;
             }
 
-            if (statDefinitionRepository.existsByName(name)) {
+            if (statDefinitionRepository.existsGlobalByName(name) || personalStatDefinitionRepository.existsByNameAndArchivedFalse(name)) {
                 Notification notification = Notification.show("A stat with name '" + name + "' already exists");
                 notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
                 return;
             }
 
-            List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+            List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
             int nextOrder = activeStats.stream()
                 .mapToInt(StatDefinition::getDisplayOrder)
                 .max()

@@ -8,6 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -140,16 +141,16 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void createPostView() {
         // Clear existing content
         removeAll();
-        
+
         // Header section with post selector and start new post button
         VerticalLayout headerSection = createHeaderSection();
-        
+
         // Main content sections
         VerticalLayout contentSection = createContentSection();
-        
+
         // Footer section for in-progress posts
         VerticalLayout footerSection = createFooterSection();
-        
+
         add(headerSection, contentSection, footerSection);
         
         // If no current post is selected, clear form data and set fields to read-only
@@ -574,20 +575,24 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void finishPost() {
         try {
             vaadinPostPresenter.finishPost(currentUser);
-            
+
+            // Show success notification (floating, visible regardless of scroll position)
+            Notification success = new Notification();
+            success.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_SUCCESS);
+            success.setText("Post completed successfully!");
+            success.setDuration(5000);
+            success.setPosition(Notification.Position.MIDDLE);
+            success.open();
+
             // Switch to completed posts view
             showingCompletedPosts = true;
-            
+
             // Reload completed posts
             loadCurrentPage();
-            
-            // Clear form data
-            clearFormData();
-            
-            // Recreate header with completed posts view
-            recreateHeader();
-            
-            Notification.show("Post completed successfully!", 3000, Notification.Position.TOP_CENTER);
+
+            // Rebuild the view
+            createPostView();
+            setupDataBinding();
         } catch (Exception e) {
             Notification.show("Error finishing post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
         }
@@ -629,7 +634,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             finishPostButton.addClassName("finish-post-button");
             finishPostButton.setEnabled(false); // Initially disabled
             finishPostButton.addClickListener(e -> finishPost());
-            
+
             footer.add(finishPostButton);
             footer.setAlignItems(Alignment.CENTER);
             footer.setVisible(true);
@@ -705,7 +710,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         sectionTitle.addClassName("section-title");
 
         // Create embedded StatsView
-        statsView = StatsView.createEmbedded(vaadinPostPresenter);
+        statsView = StatsView.createEmbedded(vaadinPostPresenter, currentUser);
         statsView.addClassName("stats-view");
         statsView.setOnStatsChanged(this::updateFinishButtonState);
 
@@ -725,7 +730,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
             // Update stats view with current post data
             if (statsView != null) {
-                statsView.setPost(currentPost);
+                if (showingCompletedPosts) {
+                    statsView.loadFromPost(currentPost);
+                } else {
+                    statsView.setPost(currentPost);
+                }
             }
         } finally {
             // Re-enable updates

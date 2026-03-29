@@ -1,8 +1,10 @@
 package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
@@ -24,6 +26,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     private final PostService postService;
     private final EMailService eMailService;
     private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
 
     @Value("#{ @environment['tnra.emailService.enabled'] ?: true }")
     private boolean emailServiceEnabled;
@@ -31,13 +34,15 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     public VaadinPostPresenterImpl(
         OidcUserService oidcUserService, UserService userService,
         PostService postService, EMailService eMailService,
-        StatDefinitionRepository statDefinitionRepository
+        StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.postService = postService;
         this.eMailService = eMailService;
         this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
     }
 
     @Override
@@ -91,8 +96,13 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     }
 
     @Override
-    public List<StatDefinition> getActiveStatDefinitions() {
-        return statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+    public List<StatDefinition> getActiveGlobalStatDefinitions() {
+        return statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
+    }
+
+    @Override
+    public List<PersonalStatDefinition> getActivePersonalStatDefinitions(User user) {
+        return personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(user);
     }
 
     @Override

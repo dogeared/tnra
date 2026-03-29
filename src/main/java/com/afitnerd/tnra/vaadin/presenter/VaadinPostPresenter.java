@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import org.springframework.data.domain.Page;
@@ -17,6 +18,7 @@ public interface VaadinPostPresenter {
     Post startPost(User me);
     Post savePost(Post post);
     Post updateStatValue(StatDefinition statDef, Integer value);
-    List<StatDefinition> getActiveStatDefinitions();
+    List<StatDefinition> getActiveGlobalStatDefinitions();
+    List<PersonalStatDefinition> getActivePersonalStatDefinitions(User user);
     List<User> getAllActiveUsers();
 }

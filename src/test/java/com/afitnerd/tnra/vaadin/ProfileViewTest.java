@@ -1,11 +1,17 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.upload.Upload;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +20,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.Optional;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,6 +37,12 @@ class ProfileViewTest {
 
     @Mock
     private FileStorageService fileStorageService;
+
+    @Mock
+    private StatDefinitionRepository statDefinitionRepository;
+
+    @Mock
+    private PersonalStatDefinitionRepository personalStatDefinitionRepository;
 
     private User testUser;
     private ProfileView profileView;
@@ -51,7 +65,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewCreation() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -62,7 +76,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewLayoutProperties() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         // ProfileView uses default alignment properties, not custom ones
@@ -74,7 +88,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewContainsExpectedComponents() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         // Check for header
@@ -93,7 +107,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -103,7 +117,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewWithUserWithProfileImage() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -118,7 +132,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -133,7 +147,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getFileUrl through loadUserData, so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -144,7 +158,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -158,7 +172,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -169,7 +183,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullUserService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(null, fileStorageService);
+            new ProfileView(null, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -177,7 +191,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullFileService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(userService, null);
+            new ProfileView(userService, null, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -188,7 +202,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(emptyUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -203,7 +217,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -218,7 +232,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -233,7 +247,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getCurrentUser() in loadUserData(), so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -246,10 +260,40 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
         assertTrue(profileView.getChildren().count() > 0);
+    }
+
+    @Test
+    void myStatsSectionIsRendered() {
+        // Arrange
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        // Act
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Assert - find the "My Stats" H3 header somewhere in the component tree
+        boolean hasMyStatsHeader = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof H3 && "My Stats".equals(((H3) c).getText()));
+        assertTrue(hasMyStatsHeader, "Profile view should contain a 'My Stats' header");
+
+        // Assert - find the "Add Stat" button somewhere in the component tree
+        boolean hasAddStatButton = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof Button && ((Button) c).getText().contains("Add Stat"));
+        assertTrue(hasAddStatButton, "Profile view should contain an 'Add Stat' button");
+    }
+
+    /**
+     * Recursively stream all descendant components.
+     */
+    private Stream<Component> findAllDescendants(Component root) {
+        return Stream.concat(
+            root.getChildren(),
+            root.getChildren().flatMap(this::findAllDescendants)
+        );
     }
 }

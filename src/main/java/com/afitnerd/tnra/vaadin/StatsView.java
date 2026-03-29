@@ -1,6 +1,8 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.Post;
+import com.afitnerd.tnra.model.PostStatValue;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
@@ -38,9 +40,11 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         setPadding(false);
     }
 
-    public static StatsView createEmbedded(VaadinPostPresenter vaadinPostPresenter) {
+    public static StatsView createEmbedded(VaadinPostPresenter vaadinPostPresenter, User currentUser) {
         StatsView statsView = new StatsView(vaadinPostPresenter);
-        statsView.statDefinitions = vaadinPostPresenter.getActiveStatDefinitions();
+        List<StatDefinition> allStats = new ArrayList<>(vaadinPostPresenter.getActiveGlobalStatDefinitions());
+        allStats.addAll(vaadinPostPresenter.getActivePersonalStatDefinitions(currentUser));
+        statsView.statDefinitions = allStats;
         statsView.currentPost = new Post();
         statsView.isReadOnly = true;
         statsView.createStatsView();
@@ -50,7 +54,10 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        statDefinitions = vaadinPostPresenter.getActiveStatDefinitions();
+        User currentUser = vaadinPostPresenter.initializeUser();
+        List<StatDefinition> allStats = new ArrayList<>(vaadinPostPresenter.getActiveGlobalStatDefinitions());
+        allStats.addAll(vaadinPostPresenter.getActivePersonalStatDefinitions(currentUser));
+        statDefinitions = allStats;
         initializePost();
         createStatsView();
     }
@@ -148,6 +155,25 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                 card.setValue(null);
             }
         }
+    }
+
+    public void loadFromPost(Post post) {
+        this.currentPost = post;
+        if (post == null || post.getStatValues() == null) return;
+
+        // Derive stat definitions from the post's actual values (globals first, then personals)
+        List<StatDefinition> defs = post.getStatValues().stream()
+            .map(PostStatValue::getStatDefinition)
+            .sorted((a, b) -> {
+                boolean aGlobal = !(a instanceof PersonalStatDefinition);
+                boolean bGlobal = !(b instanceof PersonalStatDefinition);
+                if (aGlobal != bGlobal) return aGlobal ? -1 : 1;
+                return a.getDisplayOrder().compareTo(b.getDisplayOrder());
+            })
+            .toList();
+        this.statDefinitions = new ArrayList<>(defs);
+        createStatsView();
+        refreshStats();
     }
 
     public boolean areAllStatsSet() {
