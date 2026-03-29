@@ -234,7 +234,12 @@ public class Post {
         } else {
             sb.append("*Stats:*\n\n");
             statValues.stream()
-                .sorted((a, b) -> a.getStatDefinition().getDisplayOrder().compareTo(b.getStatDefinition().getDisplayOrder()))
+                .sorted((a, b) -> {
+                    boolean aGlobal = !(a.getStatDefinition() instanceof PersonalStatDefinition);
+                    boolean bGlobal = !(b.getStatDefinition() instanceof PersonalStatDefinition);
+                    if (aGlobal != bGlobal) return aGlobal ? -1 : 1;
+                    return a.getStatDefinition().getDisplayOrder().compareTo(b.getStatDefinition().getDisplayOrder());
+                })
                 .forEach(sv -> {
                     sb.append("\t*").append(sv.getStatDefinition().getLabel()).append(":* ");
                     sb.append(sv.getValue() != null ? sv.getValue() : "not set");

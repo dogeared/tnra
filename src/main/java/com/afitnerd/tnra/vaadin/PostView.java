@@ -705,7 +705,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         sectionTitle.addClassName("section-title");
 
         // Create embedded StatsView
-        statsView = StatsView.createEmbedded(vaadinPostPresenter);
+        statsView = StatsView.createEmbedded(vaadinPostPresenter, currentUser);
         statsView.addClassName("stats-view");
         statsView.setOnStatsChanged(this::updateFinishButtonState);
 
@@ -725,7 +725,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
             // Update stats view with current post data
             if (statsView != null) {
-                statsView.setPost(currentPost);
+                if (showingCompletedPosts) {
+                    statsView.loadFromPost(currentPost);
+                } else {
+                    statsView.setPost(currentPost);
+                }
             }
         } finally {
             // Re-enable updates
