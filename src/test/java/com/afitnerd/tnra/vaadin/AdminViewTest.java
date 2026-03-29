@@ -57,11 +57,15 @@ class AdminViewTest {
     @Mock
     private UserService userService;
 
+    private UI ui;
+
     @BeforeEach
     void setUp() {
-        UI ui = new UI();
+        ui = new UI();
         VaadinSession session = mock(VaadinSession.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
         org.mockito.Mockito.lenient().when(session.hasLock()).thenReturn(true);
+        VaadinService service = mock(VaadinService.class);
+        org.mockito.Mockito.lenient().when(session.getService()).thenReturn(service);
         ui.getInternals().setSession(session);
         UI.setCurrent(ui);
         when(vaadinAdminPresenter.getGitTag()).thenReturn("v1.0.0");
@@ -100,6 +104,7 @@ class AdminViewTest {
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenReturn(newSet);
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
+        ui.add(view);
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
         Button addPairButton = firstComponent(view, Button.class, b -> "Add Pair".equals(b.getText()));
 
@@ -119,6 +124,7 @@ class AdminViewTest {
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenThrow(new RuntimeException("boom"));
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, userService);
+        ui.add(view);
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
 
         assertDoesNotThrow(createButton::click);

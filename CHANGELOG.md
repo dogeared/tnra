@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [6.0.4] - 2026-03-29
+
+### Changed
+- Renamed "Go To Guy" menu item and view header to "Daily Calls"
+
 ## [6.0.3] - 2026-03-29
 
 ### Fixed
