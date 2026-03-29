@@ -581,7 +581,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             success.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_SUCCESS);
             success.setText("Post completed successfully!");
             success.setDuration(5000);
-            success.setPosition(Notification.Position.TOP_STRETCH);
+            success.setPosition(Notification.Position.MIDDLE);
             success.open();
 
             // Switch to completed posts view
