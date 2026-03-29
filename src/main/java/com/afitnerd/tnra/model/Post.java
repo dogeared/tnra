@@ -160,8 +160,8 @@ public class Post {
     public Integer getStatValue(String statName) {
         return statValues.stream()
             .filter(sv -> sv.getStatDefinition().getName().equals(statName))
-            .map(PostStatValue::getValue)
             .findFirst()
+            .map(PostStatValue::getValue)
             .orElse(null);
     }
 
