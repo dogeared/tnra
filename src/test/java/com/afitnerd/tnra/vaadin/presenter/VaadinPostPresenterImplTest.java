@@ -3,6 +3,7 @@ package com.afitnerd.tnra.vaadin.presenter;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
@@ -33,6 +34,7 @@ class VaadinPostPresenterImplTest {
     private PostService postService;
     private EMailService emailService;
     private StatDefinitionRepository statDefinitionRepository;
+    private PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private VaadinPostPresenterImpl presenter;
 
     @BeforeEach
@@ -42,8 +44,9 @@ class VaadinPostPresenterImplTest {
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
         statDefinitionRepository = mock(StatDefinitionRepository.class);
+        personalStatDefinitionRepository = mock(PersonalStatDefinitionRepository.class);
         presenter = new VaadinPostPresenterImpl(
-            oidcUserService, userService, postService, emailService, statDefinitionRepository
+            oidcUserService, userService, postService, emailService, statDefinitionRepository, personalStatDefinitionRepository
         );
     }
 
@@ -106,10 +109,10 @@ class VaadinPostPresenterImplTest {
     @Test
     void getActiveStatDefinitionsDelegatesToRepository() {
         List<StatDefinition> defs = List.of(new StatDefinition("exercise", "Exercise", "💪", 0));
-        when(statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()).thenReturn(defs);
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(defs);
 
-        assertEquals(1, presenter.getActiveStatDefinitions().size());
-        verify(statDefinitionRepository).findByArchivedFalseOrderByDisplayOrderAsc();
+        assertEquals(1, presenter.getActiveGlobalStatDefinitions().size());
+        verify(statDefinitionRepository).findGlobalActiveOrderByDisplayOrderAsc();
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {
