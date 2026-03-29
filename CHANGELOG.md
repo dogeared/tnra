@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [6.0.3] - 2026-03-29
+
+### Fixed
+- **application.yml untracked from git**: credentials no longer committed to the public repo. Added `application.yml.sample` with placeholders for new developer setup.
+- Updated README with copy-and-configure instructions for local development
+
 ## [6.0.2] - 2026-03-28
 
 ### Fixed
