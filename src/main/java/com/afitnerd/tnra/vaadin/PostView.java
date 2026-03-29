@@ -8,6 +8,7 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.notification.Notification;
@@ -64,6 +65,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private Button showCompletedPostsButton;
     private Button switchToInProgressButton;
     private Button finishPostButton;
+    private Paragraph successMessage;
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
@@ -574,19 +576,27 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void finishPost() {
         try {
             vaadinPostPresenter.finishPost(currentUser);
-            
+
+            // Show success message in the footer before switching views
+            if (finishPostButton != null) {
+                finishPostButton.setVisible(false);
+            }
+            if (successMessage != null) {
+                successMessage.setVisible(true);
+            }
+
             // Switch to completed posts view
             showingCompletedPosts = true;
-            
+
             // Reload completed posts
             loadCurrentPage();
-            
+
             // Clear form data
             clearFormData();
-            
+
             // Recreate header with completed posts view
             recreateHeader();
-            
+
             Notification.show("Post completed successfully!", 3000, Notification.Position.TOP_CENTER);
         } catch (Exception e) {
             Notification.show("Error finishing post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
@@ -629,8 +639,13 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             finishPostButton.addClassName("finish-post-button");
             finishPostButton.setEnabled(false); // Initially disabled
             finishPostButton.addClickListener(e -> finishPost());
-            
-            footer.add(finishPostButton);
+
+            // Success message (hidden initially)
+            successMessage = new Paragraph("Post completed successfully!");
+            successMessage.addClassName("post-success-message");
+            successMessage.setVisible(false);
+
+            footer.add(finishPostButton, successMessage);
             footer.setAlignItems(Alignment.CENTER);
             footer.setVisible(true);
         } else {
