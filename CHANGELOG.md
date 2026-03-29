@@ -2,6 +2,28 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [6.0.5] - 2026-03-29
+
+### Added
+- **Personal stats**: members can create, archive, restore, and reorder their own stats from the Profile page. Personal stats appear after global stats in the post form and are visible to all group members on completed posts.
+- SINGLE_TABLE JPA inheritance on StatDefinition with discriminator column (`scope = GLOBAL | PERSONAL`). PersonalStatDefinition extends StatDefinition with a user FK.
+- Bidirectional name collision prevention: personal stat names can't match global stat names (active or archived). Admin can't create a global stat matching any active personal stat name. Restoring an archived personal stat is blocked if a global stat now has that name.
+- Grace period for mid-post stat changes: stats created after a post was started are not required for that post.
+- Completed posts derive their stat list from saved PostStatValue entries (shows the post author's stats, not the viewer's).
+- Clear enabled/disabled styling for the Finish Post button (green accent when enabled, grayed out when disabled)
+- Floating success notification after completing a post
+
+### Fixed
+- NPE in `Post.getStatValue()` when a PostStatValue exists but its value is null
+- V5 migration: correct table name (`users` not `user`) and index name (`uk_stat_definition_name`)
+
+### Changed
+- All StatDefinitionRepository queries are now global-scoped (old unscoped queries deleted). Every call site in AdminView, PostServiceImpl, and VaadinPostPresenterImpl updated.
+- `StatsView.createEmbedded()` now takes a User parameter to load personal stats
+- `PostServiceImpl.ensureStats()` loads global + personal stats for the post's user
+- Email unique constraint added via V5 migration (bundled from TODOS P0)
+- Stat cards without emojis now render the same height as those with emojis
+
 ## [6.0.4] - 2026-03-29
 
 ### Changed
