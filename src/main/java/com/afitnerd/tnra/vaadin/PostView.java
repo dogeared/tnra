@@ -65,7 +65,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private Button showCompletedPostsButton;
     private Button switchToInProgressButton;
     private Button finishPostButton;
-    private boolean showPostSuccess = false;
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
@@ -142,14 +141,6 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void createPostView() {
         // Clear existing content
         removeAll();
-
-        // Show success banner if post was just completed
-        if (showPostSuccess) {
-            Paragraph banner = new Paragraph("Post completed successfully!");
-            banner.addClassName("post-success-message");
-            add(banner);
-            showPostSuccess = false;
-        }
 
         // Header section with post selector and start new post button
         VerticalLayout headerSection = createHeaderSection();
@@ -585,14 +576,21 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         try {
             vaadinPostPresenter.finishPost(currentUser);
 
+            // Show success notification (floating, visible regardless of scroll position)
+            Notification success = new Notification();
+            success.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_SUCCESS);
+            success.setText("Post completed successfully!");
+            success.setDuration(5000);
+            success.setPosition(Notification.Position.MIDDLE);
+            success.open();
+
             // Switch to completed posts view
             showingCompletedPosts = true;
-            showPostSuccess = true;
 
             // Reload completed posts
             loadCurrentPage();
 
-            // Rebuild the entire view with success banner
+            // Rebuild the view
             createPostView();
             setupDataBinding();
         } catch (Exception e) {
