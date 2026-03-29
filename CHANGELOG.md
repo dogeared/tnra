@@ -2,7 +2,7 @@
 
 All notable changes to TNRA are documented in this file.
 
-## [6.0.5] - 2026-03-29
+## [7.0.0] - 2026-03-29
 
 ### Added
 - **Personal stats**: members can create, archive, restore, and reorder their own stats from the Profile page. Personal stats appear after global stats in the post form and are visible to all group members on completed posts.

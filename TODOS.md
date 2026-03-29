@@ -82,4 +82,4 @@ Structured annual reflection form per member per year, viewable by the group.
 
 ### Unique Constraint on users.email
 Add `UNIQUE` constraint via Flyway migration.
-- **Completed:** v6.0.5 (2026-03-29) — bundled into V5 migration with personal stats
+- **Completed:** v7.0.0 (2026-03-29) — bundled into V5 migration with personal stats
