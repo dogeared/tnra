@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.StatDefinition;
@@ -68,12 +69,13 @@ class StatsViewTest {
         inProgressPost.setStatValue(prayDef, 15);
 
         lenient().when(vaadinPostPresenter.initializeUser()).thenReturn(testUser);
-        lenient().when(vaadinPostPresenter.getActiveStatDefinitions()).thenReturn(defaultStatDefs);
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(defaultStatDefs);
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(List.of());
     }
 
     @Test
     void testCreateEmbeddedStatsView() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
 
         assertNotNull(embeddedStatsView);
         assertEquals(2, embeddedStatsView.getComponentCount());
@@ -113,7 +115,7 @@ class StatsViewTest {
 
     @Test
     void testSetPost() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
 
         assertTrue(embeddedStatsView.areAllStatsSet());
@@ -121,7 +123,7 @@ class StatsViewTest {
 
     @Test
     void testSetPostWithNull() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
         embeddedStatsView.setPost(null);
 
@@ -130,7 +132,7 @@ class StatsViewTest {
 
     @Test
     void testAreAllStatsSetWithCompleteStats() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
 
         assertTrue(embeddedStatsView.areAllStatsSet());
@@ -143,7 +145,7 @@ class StatsViewTest {
         incompletePost.setStatValue(exerciseDef, 30);
         // meditate and pray are missing
 
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(incompletePost);
 
         assertFalse(embeddedStatsView.areAllStatsSet());
@@ -151,7 +153,7 @@ class StatsViewTest {
 
     @Test
     void testAreAllStatsSetWithNullPost() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(null);
 
         assertFalse(embeddedStatsView.areAllStatsSet());
@@ -159,7 +161,7 @@ class StatsViewTest {
 
     @Test
     void testSetReadOnly() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
 
         assertDoesNotThrow(() -> embeddedStatsView.setReadOnly(false));
@@ -168,7 +170,7 @@ class StatsViewTest {
 
     @Test
     void testRefreshStats() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
         embeddedStatsView.refreshStats();
 

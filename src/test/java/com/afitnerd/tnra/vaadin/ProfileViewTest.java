@@ -1,6 +1,8 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
@@ -30,6 +32,12 @@ class ProfileViewTest {
     @Mock
     private FileStorageService fileStorageService;
 
+    @Mock
+    private StatDefinitionRepository statDefinitionRepository;
+
+    @Mock
+    private PersonalStatDefinitionRepository personalStatDefinitionRepository;
+
     private User testUser;
     private ProfileView profileView;
 
@@ -51,7 +59,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewCreation() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -62,7 +70,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewLayoutProperties() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         // ProfileView uses default alignment properties, not custom ones
@@ -74,7 +82,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewContainsExpectedComponents() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         // Check for header
@@ -93,7 +101,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -103,7 +111,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewWithUserWithProfileImage() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -118,7 +126,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -133,7 +141,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getFileUrl through loadUserData, so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -144,7 +152,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -158,7 +166,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -169,7 +177,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullUserService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(null, fileStorageService);
+            new ProfileView(null, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -177,7 +185,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullFileService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(userService, null);
+            new ProfileView(userService, null, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -188,7 +196,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(emptyUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -203,7 +211,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -218,7 +226,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);
@@ -233,7 +241,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getCurrentUser() in loadUserData(), so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
         });
     }
 
@@ -246,7 +254,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
         // Assert
         assertNotNull(profileView);

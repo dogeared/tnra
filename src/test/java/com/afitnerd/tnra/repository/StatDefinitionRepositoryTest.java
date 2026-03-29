@@ -52,7 +52,7 @@ class StatDefinitionRepositoryTest {
 
         // Verify initial order
         List<StatDefinition> ordered = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         assertEquals("test_alpha", ordered.get(0).getName());
         assertEquals("test_beta", ordered.get(1).getName());
@@ -60,7 +60,7 @@ class StatDefinitionRepositoryTest {
 
         // Simulate moveStatDown on alpha: swap alpha and beta using ID-based lookup
         List<StatDefinition> fresh = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         StatDefinition freshAlpha = fresh.stream()
             .filter(s -> s.getId().equals(a.getId())).findFirst().orElseThrow();
@@ -75,7 +75,7 @@ class StatDefinitionRepositoryTest {
 
         // Verify new order: beta, alpha, gamma
         List<StatDefinition> reordered = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         assertEquals("test_beta", reordered.get(0).getName());
         assertEquals("test_alpha", reordered.get(1).getName());
@@ -90,7 +90,7 @@ class StatDefinitionRepositoryTest {
 
         // Move beta UP using ID-based lookup (the fix this tests)
         List<StatDefinition> fresh = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         int betaIndex = -1;
         for (int i = 0; i < fresh.size(); i++) {
@@ -108,7 +108,7 @@ class StatDefinitionRepositoryTest {
 
         // Verify: beta, alpha, gamma
         List<StatDefinition> reordered = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         assertEquals("test_beta", reordered.get(0).getName());
         assertEquals("test_alpha", reordered.get(1).getName());
@@ -125,14 +125,14 @@ class StatDefinitionRepositoryTest {
         saveTestStat("test_gamma", "Gamma", "🇬", 2);
 
         List<StatDefinition> activeTestStats = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         assertEquals(2, activeTestStats.size());
         assertEquals("test_alpha", activeTestStats.get(0).getName());
         assertEquals("test_gamma", activeTestStats.get(1).getName());
 
         List<StatDefinition> allTestStats = filterTestStats(
-            statDefinitionRepository.findAllByOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
         );
         assertEquals(3, allTestStats.size());
     }
@@ -147,7 +147,7 @@ class StatDefinitionRepositoryTest {
         statDefinitionRepository.save(a);
 
         List<StatDefinition> active = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         assertEquals(1, active.size());
         assertEquals("test_beta", active.get(0).getName());
@@ -160,7 +160,7 @@ class StatDefinitionRepositoryTest {
         statDefinitionRepository.save(archivedAlpha);
 
         List<StatDefinition> restored = filterTestStats(
-            statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()
+            statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()
         );
         assertEquals(2, restored.size());
         assertEquals("test_beta", restored.get(0).getName());
@@ -171,7 +171,7 @@ class StatDefinitionRepositoryTest {
     void existsByNameDetectsDuplicates() {
         saveTestStat("test_unique", "Unique", "✨", 0);
 
-        assertTrue(statDefinitionRepository.existsByName("test_unique"));
-        assertFalse(statDefinitionRepository.existsByName("test_nonexistent"));
+        assertTrue(statDefinitionRepository.existsGlobalByName("test_unique"));
+        assertFalse(statDefinitionRepository.existsGlobalByName("test_nonexistent"));
     }
 }
