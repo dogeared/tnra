@@ -51,8 +51,14 @@ Run the app against MySQL:
 ./mvnw spring-boot:run
 ```
 
-The default `application.yml` points to `localhost:3307/tnra`. You must set
-`SPRING_DATASOURCE_PASSWORD` as an environment variable (no default is provided).
+Copy the sample config and fill in your credentials:
+
+```bash
+cp src/main/resources/application.yml.sample src/main/resources/application.yml
+# Edit application.yml with your DB username/password
+```
+
+The default config points to `localhost:3307/tnra`.
 On first run against a fresh MySQL database, Flyway will run all migrations
 (V1 baseline + V2 schema cleanup). On subsequent runs, Flyway only runs new migrations.
 
