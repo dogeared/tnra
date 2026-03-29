@@ -19,7 +19,7 @@ import java.util.List;
 
 @Route(value = "gtg", layout = MainLayout.class)
 @CssImport("./styles/gtg-view.css")
-@PageTitle("Go To Guy Chain | TNRA")
+@PageTitle("Daily Calls | TNRA")
 public class GTGView extends VerticalLayout {
 
     private final CallChainPresenter callChainPresenter;
@@ -40,7 +40,7 @@ public class GTGView extends VerticalLayout {
 
     private void initComponents() {
         // Header
-        header = new H2("Go To Guy Call Chain");
+        header = new H2("Daily Calls");
         header.addClassName("gtg-header");
         add(header);
 
@@ -137,15 +137,15 @@ public class GTGView extends VerticalLayout {
                 if (latestSet.getStartDate() != null) {
                     dateStr = DateTimeUtils.formatDateTime(latestSet.getStartDate());
                 }
-                header.setText("Go To Guy Call Chain - " + dateStr);
+                header.setText("Daily Calls - " + dateStr);
                 
                 grid.setItems(pairs);
             } else {
-                header.setText("Go To Guy Call Chain - No Data Available");
+                header.setText("Daily Calls - No Data Available");
                 grid.setItems();
             }
         } catch (Exception e) {
-            header.setText("Go To Guy Call Chain - Error Loading Data");
+            header.setText("Daily Calls - Error Loading Data");
             grid.setItems();
         }
     }
