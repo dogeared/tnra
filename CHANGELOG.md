@@ -2,6 +2,20 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.1.0] - 2026-03-29
+
+### Security
+- **Admin view access control enforced**: non-admin users could access the Admin Dashboard by navigating directly to `/admin`. Replaced manual Spring Security filter chain with `VaadinSecurityConfigurer`, which enforces `@RolesAllowed` annotations on Vaadin views at the framework level.
+- Custom "Page not found" view replaces default Vaadin error page that leaked all available route paths.
+- Simplified role mapping to Keycloak-only `realm_access.roles` extraction, removing legacy Okta/Auth0/generic IdP fallback code.
+
+### Fixed
+- Daily Calls route changed from `/gtg` to `/daily-calls` to match the nav label. Bookmarks and direct URLs now work.
+
+### Changed
+- Added `@PermitAll` to StatsView, PostView, DailyCallsView, ProfileView (required by `VaadinSecurityConfigurer` — unannotated views are denied by default).
+- Renamed `GTGView` to `DailyCallsView` to align class name with route and nav label.
+
 ## [7.0.0] - 2026-03-29
 
 ### Added
