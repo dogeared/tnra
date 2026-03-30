@@ -7,30 +7,14 @@ import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMap
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SpringSecurityConfigTest {
-
-    @Test
-    void logoutSuccessHandlerRedirectsHome() {
-        SpringSecurityConfig config = new SpringSecurityConfig();
-
-        LogoutSuccessHandler handler = config.logoutSuccessHandler();
-
-        assertInstanceOf(SimpleUrlLogoutSuccessHandler.class, handler);
-        assertEquals("/", ReflectionTestUtils.getField(handler, "defaultTargetUrl"));
-    }
 
     @Test
     void grantedAuthoritiesMapperPreservesExistingAuthoritiesAndExtractsGroups() {

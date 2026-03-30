@@ -14,10 +14,12 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.data.renderer.ComponentRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 import java.util.List;
 
-@Route(value = "gtg", layout = MainLayout.class)
+@Route(value = "daily-calls", layout = MainLayout.class)
+@PermitAll
 @CssImport("./styles/gtg-view.css")
 @PageTitle("Daily Calls | TNRA")
 public class GTGView extends VerticalLayout {
