@@ -22,14 +22,14 @@ import java.util.List;
 @PermitAll
 @CssImport("./styles/gtg-view.css")
 @PageTitle("Daily Calls | TNRA")
-public class GTGView extends VerticalLayout {
+public class DailyCallsView extends VerticalLayout {
 
     private final CallChainPresenter callChainPresenter;
     
     private H2 header;
     private Grid<GoToGuyPair> grid;
 
-    public GTGView(CallChainPresenter callChainPresenter) {
+    public DailyCallsView(CallChainPresenter callChainPresenter) {
         this.callChainPresenter = callChainPresenter;
         setSizeFull();
         setPadding(true);

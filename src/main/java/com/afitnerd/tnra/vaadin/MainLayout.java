@@ -275,7 +275,7 @@ public class MainLayout extends AppLayout {
         if (oidcUserService.isAuthenticated() && userService.getCurrentUser() != null) {
             tabs.add(createTab("Stats", VaadinIcon.CHART_LINE, StatsView.class));
             tabs.add(createTab("Posts", VaadinIcon.FILE_TEXT, PostView.class));
-            tabs.add(createTab("Daily Calls", VaadinIcon.PHONE, GTGView.class));
+            tabs.add(createTab("Daily Calls", VaadinIcon.PHONE, DailyCallsView.class));
             tabs.add(createTab("Profile", VaadinIcon.USER, ProfileView.class));
 
             if (hasAdminRole()) {
