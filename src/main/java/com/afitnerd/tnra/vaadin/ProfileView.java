@@ -30,6 +30,7 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 @Route(value = "profile", layout = MainLayout.class)
+@PermitAll
 @CssImport("./styles/profile-view.css")
 @PageTitle("Profile | TNRA")
 public class ProfileView extends VerticalLayout {

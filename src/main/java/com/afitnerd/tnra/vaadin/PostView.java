@@ -22,6 +22,7 @@ import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -33,6 +34,7 @@ import java.util.Optional;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
+@PermitAll
 @CssImport("./styles/post-view.css")
 public class PostView extends VerticalLayout implements AfterNavigationObserver {
 

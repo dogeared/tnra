@@ -25,12 +25,12 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class GTGViewTest {
+class DailyCallsViewTest {
 
     @Mock
     private CallChainPresenter callChainPresenter;
 
-    private GTGView gtgView;
+    private DailyCallsView dailyCallsView;
     private GoToGuySet testGoToGuySet;
     private User user1, user2, user3;
     private GoToGuyPair pair1, pair2;
@@ -84,81 +84,81 @@ class GTGViewTest {
     }
 
     @Test
-    void testGTGViewCreation() {
+    void testDailyCallsViewCreation() {
         // Arrange
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
-        assertTrue(gtgView.hasClassName("gtg-view"));
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
+        assertTrue(dailyCallsView.hasClassName("gtg-view"));
     }
 
     @Test
-    void testGTGViewWithNoData() {
+    void testDailyCallsViewWithNoData() {
         // Arrange
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
     }
 
     @Test
-    void testGTGViewWithEmptyPairs() {
+    void testDailyCallsViewWithEmptyPairs() {
         // Arrange
         testGoToGuySet.setGoToGuyPairs(Collections.emptyList());
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
     }
 
     @Test
-    void testGTGViewLayoutProperties() {
+    void testDailyCallsViewLayoutProperties() {
         // Arrange
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertTrue(gtgView.isPadding());
-        assertTrue(gtgView.isSpacing());
-        assertTrue(gtgView.hasClassName("gtg-view"));
+        assertTrue(dailyCallsView.isPadding());
+        assertTrue(dailyCallsView.isSpacing());
+        assertTrue(dailyCallsView.hasClassName("gtg-view"));
     }
 
     @Test
-    void testGTGViewContainsExpectedComponents() {
+    void testDailyCallsViewContainsExpectedComponents() {
         // Arrange
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
         // Check that view contains expected component types
-        boolean hasHeader = gtgView.getChildren()
+        boolean hasHeader = dailyCallsView.getChildren()
             .anyMatch(component -> component instanceof H2);
         assertTrue(hasHeader, "GTG view should have a header");
 
-        boolean hasGrid = gtgView.getChildren()
+        boolean hasGrid = dailyCallsView.getChildren()
             .anyMatch(component -> component instanceof Grid);
         assertTrue(hasGrid, "GTG view should have a grid");
     }
 
     @Test
-    void testGTGViewWithUsersHavingProfileImages() {
+    void testDailyCallsViewWithUsersHavingProfileImages() {
         // Arrange
         user1.setProfileImage("user1.jpg");
         user2.setProfileImage("user2.jpg");
@@ -167,30 +167,30 @@ class GTGViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
     }
 
     @Test
-    void testGTGViewWithUsersWithoutPhoneNumbers() {
+    void testDailyCallsViewWithUsersWithoutPhoneNumbers() {
         // Arrange
         user1.setPhoneNumber(null);
         user2.setPhoneNumber(null);
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
     }
 
     @Test
-    void testGTGViewHandlesFileStorageServiceFailure() {
+    void testDailyCallsViewHandlesFileStorageServiceFailure() {
         // Arrange
         user1.setProfileImage("user1.jpg");
         lenient().when(callChainPresenter.getFileUrl("user1.jpg")).thenThrow(new RuntimeException("Storage error"));
@@ -198,48 +198,48 @@ class GTGViewTest {
 
         // Act & Assert
         assertDoesNotThrow(() -> {
-            gtgView = new GTGView(callChainPresenter);
+            dailyCallsView = new DailyCallsView(callChainPresenter);
         });
     }
 
     @Test
-    void testGTGViewConstructorWithNullPresenter() {
+    void testDailyCallsViewConstructorWithNullPresenter() {
         // Act & Assert
-        // GTGView constructor may not validate null parameters, so just test it doesn't crash
+        // DailyCallsView constructor may not validate null parameters, so just test it doesn't crash
         assertDoesNotThrow(() -> {
-            GTGView view = new GTGView(null);
+            DailyCallsView view = new DailyCallsView(null);
             assertNotNull(view);
         });
     }
 
     @Test
-    void testGTGViewConstructorWithNullFileService() {
+    void testDailyCallsViewConstructorWithNullFileService() {
         // Arrange
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
+        assertNotNull(dailyCallsView);
     }
 
     @Test
-    void testGTGViewWithSinglePair() {
+    void testDailyCallsViewWithSinglePair() {
         // Arrange
         testGoToGuySet.setGoToGuyPairs(Arrays.asList(pair1));
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
     }
 
     @Test
-    void testGTGViewWithUsersMissingNames() {
+    void testDailyCallsViewWithUsersMissingNames() {
         // Arrange
         user1.setFirstName(null);
         user1.setLastName(null);
@@ -248,26 +248,26 @@ class GTGViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
 
         // Act
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
         // Assert
-        assertNotNull(gtgView);
-        assertTrue(gtgView.getChildren().count() > 0);
+        assertNotNull(dailyCallsView);
+        assertTrue(dailyCallsView.getChildren().count() > 0);
     }
 
     @Test
     void testFormatPhoneNumberVariantsViaReflection() throws Exception {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
-        Method formatPhoneNumber = GTGView.class.getDeclaredMethod("formatPhoneNumber", String.class);
+        Method formatPhoneNumber = DailyCallsView.class.getDeclaredMethod("formatPhoneNumber", String.class);
         formatPhoneNumber.setAccessible(true);
 
-        assertEquals("(555) 111-2222", formatPhoneNumber.invoke(gtgView, "5551112222"));
-        assertEquals("(555) 111-2222", formatPhoneNumber.invoke(gtgView, "15551112222"));
-        assertEquals("12", formatPhoneNumber.invoke(gtgView, "12"));
-        assertEquals("No phone", formatPhoneNumber.invoke(gtgView, ""));
-        assertEquals("No phone", formatPhoneNumber.invoke(gtgView, new Object[]{null}));
+        assertEquals("(555) 111-2222", formatPhoneNumber.invoke(dailyCallsView, "5551112222"));
+        assertEquals("(555) 111-2222", formatPhoneNumber.invoke(dailyCallsView, "15551112222"));
+        assertEquals("12", formatPhoneNumber.invoke(dailyCallsView, "12"));
+        assertEquals("No phone", formatPhoneNumber.invoke(dailyCallsView, ""));
+        assertEquals("No phone", formatPhoneNumber.invoke(dailyCallsView, new Object[]{null}));
     }
 
     @Test
@@ -275,33 +275,33 @@ class GTGViewTest {
         // Null start date branch
         testGoToGuySet.setStartDate(null);
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
-        assertDoesNotThrow(() -> new GTGView(callChainPresenter));
+        assertDoesNotThrow(() -> new DailyCallsView(callChainPresenter));
 
         // Exception branch
         when(callChainPresenter.getCurrentGoToGuySet()).thenThrow(new RuntimeException("boom"));
-        assertDoesNotThrow(() -> new GTGView(callChainPresenter));
+        assertDoesNotThrow(() -> new DailyCallsView(callChainPresenter));
     }
 
     @Test
     void testCreateUserComponentBranchesViaReflection() throws Exception {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(testGoToGuySet);
         when(callChainPresenter.getFileUrl("avatar.jpg")).thenReturn("http://cdn/avatar.jpg");
-        gtgView = new GTGView(callChainPresenter);
+        dailyCallsView = new DailyCallsView(callChainPresenter);
 
-        Method createUserComponent = GTGView.class.getDeclaredMethod("createUserComponent", User.class);
+        Method createUserComponent = DailyCallsView.class.getDeclaredMethod("createUserComponent", User.class);
         createUserComponent.setAccessible(true);
 
         User withImage = new User();
         withImage.setFirstName("A");
         withImage.setPhoneNumber("5551112222");
         withImage.setProfileImage("avatar.jpg");
-        HorizontalLayout withImageLayout = (HorizontalLayout) createUserComponent.invoke(gtgView, withImage);
+        HorizontalLayout withImageLayout = (HorizontalLayout) createUserComponent.invoke(dailyCallsView, withImage);
         assertTrue(withImageLayout.getChildren().count() >= 2);
 
         User withoutImage = new User();
         withoutImage.setEmail("fallback@example.com");
         withoutImage.setPhoneNumber(null);
-        HorizontalLayout withoutImageLayout = (HorizontalLayout) createUserComponent.invoke(gtgView, withoutImage);
+        HorizontalLayout withoutImageLayout = (HorizontalLayout) createUserComponent.invoke(dailyCallsView, withoutImage);
         assertTrue(withoutImageLayout.getChildren().count() >= 2);
     }
 }
