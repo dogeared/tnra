@@ -10,15 +10,12 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
-import org.springframework.security.oauth2.core.user.OAuth2UserAuthority;
 import org.springframework.security.web.SecurityFilterChain;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 @Configuration
 @EnableWebSecurity
@@ -54,18 +51,10 @@ public class SpringSecurityConfig {
             Set<GrantedAuthority> mappedAuthorities = new HashSet<>();
 
             authorities.forEach(authority -> {
-                // Keep existing authorities
                 mappedAuthorities.add(authority);
 
-                // Extract groups from OIDC ID token
-                if (authority instanceof OidcUserAuthority) {
-                    OidcUserAuthority oidcUserAuthority = (OidcUserAuthority) authority;
-                    extractGroups(oidcUserAuthority.getIdToken().getClaims(), mappedAuthorities);
-                }
-                // Extract groups from OAuth2 user info
-                else if (authority instanceof OAuth2UserAuthority) {
-                    OAuth2UserAuthority oauth2UserAuthority = (OAuth2UserAuthority) authority;
-                    extractGroups(oauth2UserAuthority.getAttributes(), mappedAuthorities);
+                if (authority instanceof OidcUserAuthority oidcUserAuthority) {
+                    extractKeycloakRoles(oidcUserAuthority.getIdToken().getClaims(), mappedAuthorities);
                 }
             });
 
@@ -73,53 +62,12 @@ public class SpringSecurityConfig {
         };
     }
 
-    private void extractGroups(Map<String, Object> claims, Set<GrantedAuthority> mappedAuthorities) {
-        // Keycloak: extract from realm_access.roles (nested Map)
-        Object realmAccess = claims.get("realm_access");
-        if (realmAccess instanceof Map) {
-            Object realmRoles = ((Map<?, ?>) realmAccess).get("roles");
-            if (realmRoles instanceof Collection) {
-                Collection<?> rolesCollection = (Collection<?>) realmRoles;
-                mappedAuthorities.addAll(
-                    rolesCollection.stream()
-                        .map(Object::toString)
-                        .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase())
-                        .map(SimpleGrantedAuthority::new)
-                        .collect(Collectors.toSet())
-                );
-            }
-        }
-
-        // Flat claims: groups, roles, authorities (Okta, Auth0, generic OIDC)
-        Object groups = claims.get("groups");
-        if (groups == null) {
-            groups = claims.get("roles");
-        }
-        if (groups == null) {
-            groups = claims.get("authorities");
-        }
-
-        if (groups instanceof Collection) {
-            Collection<?> groupsCollection = (Collection<?>) groups;
-            mappedAuthorities.addAll(
-                groupsCollection.stream()
-                    .map(Object::toString)
-                    .map(group -> group.startsWith("ROLE_") ? group : "ROLE_" + group.toUpperCase())
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toSet())
-            );
-        } else if (groups instanceof String) {
-            String groupsString = (String) groups;
-            // Handle comma-separated groups
-            String[] groupArray = groupsString.split(",");
-            mappedAuthorities.addAll(
-                Arrays.stream(groupArray)
-                    .map(String::trim)
-                    .filter(group -> !group.isEmpty())
-                    .map(group -> group.startsWith("ROLE_") ? group : "ROLE_" + group.toUpperCase())
-                    .map(SimpleGrantedAuthority::new)
-                    .collect(Collectors.toSet())
-            );
+    private void extractKeycloakRoles(Map<String, Object> claims, Set<GrantedAuthority> mappedAuthorities) {
+        if (claims.get("realm_access") instanceof Map<?, ?> realmAccess
+                && realmAccess.get("roles") instanceof Collection<?> roles) {
+            roles.stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.toString().toUpperCase()))
+                .forEach(mappedAuthorities::add);
         }
     }
 }
