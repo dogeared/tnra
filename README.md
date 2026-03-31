@@ -1,123 +1,167 @@
 [![Build](https://github.com/dogeared/tnra/actions/workflows/tests.yml/badge.svg)](https://github.com/dogeared/tnra/actions/workflows/tests.yml)
 [![Test Coverage](.github/badges/jacoco.svg)](https://github.com/dogeared/tnra/actions/workflows/tests.yml)
 
-# TNRA — Structured Accountability for Groups
+# TNRA - Structured Accountability for Groups
 
 TNRA is a structured accountability group app. Members track daily/weekly/monthly/yearly
 cadences: daily call chains, weekly posts (intro, kryptonite, commitments, personal/family/work
 best & worst, stats), monthly meetings, and yearly retreats.
 
-Built with Spring Boot 3.5, Vaadin Flow 24.9, Java 21, and MySQL 8.
+## Architecture
 
-## Post View Modes
+| Layer          | Technology                          |
+|----------------|-------------------------------------|
+| Backend        | Spring Boot 3.5, Java 21           |
+| Frontend       | Vaadin Flow 24.9 (server-side Java UI) |
+| Database       | MySQL 8 with Flyway migrations     |
+| Authentication | Keycloak 26 via OIDC/OAuth2 (PKCE) |
+| Proxy          | Nginx (SSL termination, WebSocket)  |
+| Runtime        | Docker Compose                      |
+
+### Entity Model
+
+```
+User --(has many)--> Post
+Post contains:
+  - Intro (widwytk, kryptonite, whatAndWhen)
+  - Category x3 (personal, family, work -- each with best/worst)
+  - Stats (configurable via stat_definition + post_stat_value tables)
+  - PostState (IN_PROGRESS or COMPLETE)
+```
+
+### File Uploads
+
+Profile images are stored on the filesystem in the `uploads/` directory (not base64 in the
+database). Files are UUID-named and served via `/uploads/{filename}`. Max size: 5MB, images only.
+
+### Post View Modes
 
 |                     | Completed View                                                                  | In Progress View                                                        |
 |---------------------|---------------------------------------------------------------------------------|-------------------------------------------------------------------------|
 | In Progress Post    | - switch to in progress button - completed posts dropdown - pagination controls | - switch to completed button - post started date & time - finish button |
 | No In Progress Post | - start new post button - completed posts dropdown - pagination controls        | XXXX                                                                    |
 
-## Running Locally
+## Prerequisites
 
-### Option 1: H2 in-memory (quick start, no Docker)
+- Docker and Docker Compose
+- Java 21 (for running outside Docker)
+- Maven (or use the included `./mvnw` wrapper)
 
-Tests use H2 automatically. For local dev with H2:
+## Local Development Setup
+
+### 1. Clone the repository
 
 ```bash
-# Start local Keycloak (first time only — pre-configured realm auto-imports)
+git clone https://github.com/dogeared/tnra
+cd tnra
+```
+
+### 2. Create your `.env` file
+
+```bash
+cp .env.template .env
+```
+
+At minimum, set:
+
+```bash
+SPRING_DATASOURCE_USERNAME=root
+SPRING_DATASOURCE_PASSWORD=<choose_a_password>
+VAADIN_PRODUCTIONMODE=false
+```
+
+Keycloak defaults work out of the box for local dev (`tnra-app` / `tnra-app-secret` /
+`http://localhost:8180/realms/tnra`). Only set `KEYCLOAK_*` variables if you customize Keycloak.
+
+### 3. Choose a run option
+
+#### Option A: H2 in-memory (quick start, no MySQL needed)
+
+Tests use H2 automatically. For local dev with H2 (data resets on restart):
+
+```bash
+# Start Keycloak (pre-configured realm auto-imports on first start)
 docker compose up keycloak -d
 
-# Run with H2 (data resets on restart)
+# Run with H2
 ./mvnw spring-boot:run
 ```
 
-The app listens on port 8080. Keycloak runs on port 8180 with pre-configured `tnra` realm.
-Login with `admin@tnra.local` / `admin` (admin role) or `member@tnra.local` / `member`.
 H2 uses `ddl-auto: create-drop` and Flyway is disabled.
 
-### Option 2: MySQL via Docker (persistent data, matches production)
-
-Start MySQL and Keycloak:
+#### Option B: MySQL via Docker (persistent data, matches production)
 
 ```bash
+# Start MySQL and Keycloak
 docker compose up mysql keycloak -d
-```
 
-This starts MySQL on port 3307 (mapped from container's 3306). The database `tnra` is
-created automatically.
+# Wait for MySQL to be healthy
+docker compose exec mysql mysqladmin ping -h localhost --wait=30
 
-Run the app against MySQL:
-
-```bash
+# Run the app
 ./mvnw spring-boot:run
 ```
 
-Copy the sample config and fill in your credentials:
+MySQL is available at `localhost:3307` (mapped from container port 3306). The `tnra` database
+is created automatically by Docker. Flyway runs all migrations on first start.
+
+**Optional: create a non-root database user**
 
 ```bash
-cp src/main/resources/application.yml.sample src/main/resources/application.yml
-# Edit application.yml with your DB username/password
+docker compose exec mysql mysql -uroot -p<your_password> -e "
+  CREATE USER 'tnra' IDENTIFIED BY '<user_password>';
+  GRANT ALL PRIVILEGES ON tnra.* TO 'tnra'@'%';
+  FLUSH PRIVILEGES;
+"
 ```
 
-The default config points to `localhost:3307/tnra`.
-On first run against a fresh MySQL database, Flyway will run all migrations
-(V1 baseline + V2 schema cleanup). On subsequent runs, Flyway only runs new migrations.
+Then update `application.yml` datasource credentials to match.
 
-### Option 3: Full stack via Docker Compose (app + MySQL + Nginx)
+#### Option C: Full stack via Docker Compose (app + MySQL + Keycloak + Nginx)
 
 ```bash
-# Copy and fill in environment variables
-cp .env.template .env
-# Edit .env with your values
-
-# Build the jar
+# Build the production JAR
 ./mvnw clean package -DskipTests -Pproduction
 
 # Start everything
 docker compose up --build -d
 ```
 
-The app is available at https://localhost:443 (via Nginx proxy).
+The app is available at `https://localhost:443` via Nginx proxy (requires SSL certs, see below).
 
-## Database Migrations (Flyway)
+### 4. SSL Certificates for Local Nginx
 
-This project uses [Flyway](https://flywaydb.org/) for versioned database migrations.
-
-**Migration files:** `src/main/resources/db/migration/`
-
-| Migration | Description |
-|-----------|-------------|
-| V1__baseline.sql | Initial schema (users, post, go_to_guy_set, go_to_guy_pair) |
-| V2__remove_slack_pq_columns.sql | Make slack columns nullable, drop PQ token columns |
-
-**How it works:**
-- On startup, Flyway checks the `flyway_schema_history` table to see which migrations have run.
-- New migrations are applied automatically. Already-applied migrations are skipped.
-- `baseline-on-migrate: true` means existing databases (from the pre-Flyway era) are
-  automatically baselined at V1 — Flyway won't try to re-create existing tables.
-- Hibernate `ddl-auto: validate` verifies the schema matches the entity model but never
-  modifies the database. All schema changes go through Flyway migrations.
-
-**Adding a new migration:**
-1. Create `src/main/resources/db/migration/V{N}__{description}.sql`
-2. Write the SQL (use `ALTER TABLE` for schema changes, `INSERT/UPDATE` for data migrations)
-3. Test locally against MySQL (not H2 — migration SQL may differ)
-4. The migration runs automatically on next app startup
-
-**Tests:** Flyway is disabled in tests (`spring.flyway.enabled=false`). Tests use H2 with
-`ddl-auto: create-drop` for speed. The Flyway migrations are MySQL-specific SQL.
-
-## Auth Configuration
-
-Login navigation is configurable through `AuthNavigationService`.
-
-- `tnra.auth.login-path`: explicit login URL path (e.g., `/oauth2/authorization/google`)
-- `tnra.auth.login-registration-id`: provider registration id used when `login-path` is not set
-
-Resolution: `login-path` > `/oauth2/authorization/{login-registration-id}` > `/oauth2/authorization/okta`
+Only needed for Option C. Place certs in `nginx/.cert/`:
 
 ```bash
-export TNRA_AUTH_LOGIN_REGISTRATION_ID=google
+mkdir -p nginx/.cert
+
+# Option 1: mkcert (trusted local certs)
+mkcert -install
+mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem localhost
+
+# Option 2: Self-signed (browser will show warning)
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+  -keyout nginx/.cert/key.pem -out nginx/.cert/cert.pem \
+  -subj "/CN=localhost"
 ```
+
+### 5. Create a test user in Keycloak
+
+1. Go to `http://localhost:8180/admin` (admin/admin)
+2. Select the `tnra` realm
+3. Go to Users > Add user
+4. Set username, email, first name, last name
+5. Go to Credentials tab > Set password (disable "Temporary")
+6. Log in to the app with this user
+
+Pre-configured test accounts: `admin@tnra.local` / `admin` (admin role),
+`member@tnra.local` / `member`.
+
+### 6. Access the application
+
+- **Options A/B:** `http://localhost:8080`
+- **Option C:** `https://localhost:443`
 
 ## Running Tests
 
@@ -125,110 +169,60 @@ export TNRA_AUTH_LOGIN_REGISTRATION_ID=google
 ./mvnw clean test
 ```
 
-226 tests covering controllers, services, presenters, models, and Vaadin views.
 JaCoCo coverage reports are generated in `target/site/jacoco/`.
 
-## Production Deployment (Vultr VPS)
+Tests use H2 with `ddl-auto: create-drop` (Flyway disabled). Flyway migrations are
+MySQL-specific SQL and are not run during tests.
 
-### Current Setup
+## Auth Configuration
 
-The app runs on a Vultr VPS with Docker Compose: app container + MySQL container + Nginx
-proxy with SSL termination.
+Login navigation is configurable through `AuthNavigationService`:
 
-```bash
-# Check service status
-systemctl status tnra.service
+- `tnra.auth.login-path`: explicit login URL path (e.g., `/oauth2/authorization/google`)
+- `tnra.auth.login-registration-id`: provider registration id (fallback)
 
-# View logs
-docker compose logs -f server
-```
+Resolution order: `login-path` > `/oauth2/authorization/{login-registration-id}` >
+`/oauth2/authorization/okta`
 
-### Deploying a New Release
+## Database Migrations (Flyway)
 
-After merging a PR to main:
+Migration files: `src/main/resources/db/migration/`
 
-```bash
-# On the VPS
-cd ~/tnra
-git pull origin main
+| Migration | Description |
+|-----------|-------------|
+| V1 | Baseline schema (users, posts with embedded stats) |
+| V2 | Make slack columns nullable, drop PQ token columns |
+| V3 | Configurable stats (stat_definition + post_stat_value) |
+| V4 | Notification preferences |
+| V5 | Personal stats and email unique constraint |
 
-# Rebuild and restart
-./mvnw clean package -DskipTests -Pproduction
-docker compose up --build -d
+Flyway runs automatically on startup. `baseline-on-migrate: true` handles pre-Flyway databases.
+Hibernate `ddl-auto: validate` ensures schema matches entities without modifying the database.
 
-# Flyway migrations run automatically on startup
-# Verify the app started correctly:
-docker compose logs -f server
-# Look for: "Started TnraApplication" and "Successfully applied N migrations"
-```
+**Adding a new migration:**
 
-### Branch-by-Branch Deployment Notes
+1. Create `src/main/resources/db/migration/V{N}__{description}.sql`
+2. Write the SQL (`ALTER TABLE` for schema, `INSERT/UPDATE` for data)
+3. Test locally against MySQL (not H2 -- migration SQL may differ)
+4. Migration runs automatically on next app startup
 
-This project is being productionized in 5 sequential branches. Each branch has specific
-deployment considerations:
+See `MIGRATION-V3-STATS.md` for the detailed V3 configurable stats migration plan.
 
-**Branch 1: Flyway + Remove Slack/SMS/PQ** (this branch)
-- First deploy with Flyway. On the existing production database:
-  - Flyway will baseline at V1 (existing schema, no changes)
-  - V2 runs: makes `slack_username`/`slack_user_id` nullable, drops `pq_access_token`/`pq_refresh_token`
-- Slack, SMS, and PQ features are removed. If any external integration was hitting
-  the old `/api/v1/post`, `/api/v1/pq`, or other Slack endpoints — they will now
-  return 403 (authentication required).
-- The `tnra.notify.schedule` property remains but the scheduled SMS notification
-  is removed. No scheduled tasks will run.
-- **Rollback:** Revert to previous Docker image. V2 column drops are irreversible
-  (PQ tokens are lost) but slack columns are only made nullable, not dropped.
-
-**Branch 2: Configurable Stats** (upcoming)
-- V3 migration: creates `stat_definition` and `post_stat_value` tables, migrates
-  existing embedded stats data.
-- **Before deploying:** Back up the database. The stats data migration is irreversible.
-- After deploy: verify old posts still display correctly with migrated stats.
-
-**Branch 3: Keycloak + Auth + Activity-Only Email** (shipped in v6.0.0)
-- Requires a running Keycloak instance.
-- Replaced Okta OAuth2 with Keycloak OIDC. Keycloak realm auto-imports on first start.
-- Email notifications are activity-only (no post content).
-- v6.0.2: hardcoded credentials removed, Dockerfile runs as non-root, Keycloak SSL enforced.
-
-**Branch 4: Provisioning + Infrastructure** (upcoming)
-- Introduces the provisioning CLI and per-group Docker Compose files.
-- Changes the deployment model from single-instance to shared-infra multi-group.
-- **Deployment is a migration**, not just an update — the entire infrastructure changes.
-
-**Branch 5: Landing Page + Encryption** (upcoming)
-- Adds a public landing page route (unauthenticated).
-- Enables database encryption at rest.
-- **Before deploying:** Configure DB encryption (MySQL TDE or PostgreSQL equivalent).
-
-## SSL Certificate Renewal
-
-### On local machine
+## Project Structure
 
 ```
-certbot certonly \
-  --config-dir ~/letsencrypt/config \
-  --work-dir ~/letsencrypt/work \
-  --logs-dir ~/letsencrypt/logs \
-  --dns-cloudflare --dns-cloudflare-credentials ~/cloudflare-creds.ini \
-  -d tnra.afitnerd.com
-scp \
-  /Users/micahsilverman/letsencrypt/config/live/tnra.afitnerd.com/fullchain.pem \
-  /Users/micahsilverman/letsencrypt/config/live/tnra.afitnerd.com/privkey.pem \
-  tnra@108.61.192.65:~/
-```
-
-### On Vultr
-
-```
-mv privkey.pem tnra/nginx/.cert/key.pem
-mv fullchain.pem tnra/nginx/.cert/cert.pem
-```
-
-## Helpful Commands
-
-Dump the database:
-
-```bash
-mysqldump -h <host> -u<username> -p --skip-column-statistics --no-tablespaces <database> > ~/tnra.sql
+tnra/
+├── src/main/java/com/afitnerd/tnra/
+│   ├── vaadin/          # Vaadin Flow views
+│   ├── model/           # JPA entities
+│   ├── service/         # Business logic
+│   └── repository/      # Spring Data JPA repositories
+├── src/main/resources/
+│   ├── application.yml  # Spring Boot configuration
+│   └── db/migration/    # Flyway SQL migrations
+├── keycloak/            # Realm config (tnra-realm.json) and custom themes
+├── nginx/               # Nginx config templates and SSL certs
+├── docker-compose.yml   # Docker Compose service definitions
+├── Dockerfile           # App server container (eclipse-temurin:21, non-root user)
+└── uploads/             # Profile image storage (created at runtime)
 ```

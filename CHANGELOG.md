@@ -2,6 +2,16 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.1.1] - 2026-03-31
+
+### Changed
+- Consolidated 7 scattered markdown files (Dockerize, DatabaseSetup, HostingSetup, FILE_UPLOAD_SETUP, Vaadin_Cursor_Notes, SUBDOMAIN_SETUP, post-entity-diagram) into two comprehensive docs.
+- **README.md** rewritten with architecture overview, entity model, three local development options (H2, MySQL, full Docker Compose), Keycloak setup, test instructions, Flyway migration reference, and project structure.
+- **PRODUCTION.md** created with VPS provisioning, SSL certificate management, build/deploy workflow, systemd service setup, firewall rules, MySQL hardening, Keycloak hardening, and database migration from V1.
+
+### Removed
+- `Dockerize.md`, `DatabaseSetup.md`, `HostingSetup.md`, `FILE_UPLOAD_SETUP.md`, `Vaadin_Cursor_Notes.md`, `nginx/SUBDOMAIN_SETUP.md`, `post-entity-diagram.md`
+
 ## [7.1.0] - 2026-03-29
 
 ### Security
