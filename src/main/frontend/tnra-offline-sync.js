@@ -18,6 +18,7 @@
   ];
 
   let initialized = false;
+  let postRouteInitialized = false;
   let syncing = false;
   let restoring = false;
   let syncTimerId = null;
@@ -362,6 +363,48 @@
     }, SYNC_INTERVAL_MS);
   }
 
+  function isPostRoute() {
+    return window.location.pathname.startsWith("/posts");
+  }
+
+  function ensurePostRouteFeatures() {
+    if (!isPostRoute()) {
+      return;
+    }
+    if (!postRouteInitialized) {
+      listenForFieldChanges();
+      wireFinishButtonOfflineQueue();
+      postRouteInitialized = true;
+    }
+    restoreDraftFromStorage();
+  }
+
+  function installRouteObserver() {
+    const originalPushState = window.history.pushState;
+    const originalReplaceState = window.history.replaceState;
+    const notifyLocationChange = () => {
+      window.dispatchEvent(new CustomEvent("tnra-locationchange"));
+    };
+
+    window.history.pushState = function (...args) {
+      const result = originalPushState.apply(this, args);
+      notifyLocationChange();
+      return result;
+    };
+
+    window.history.replaceState = function (...args) {
+      const result = originalReplaceState.apply(this, args);
+      notifyLocationChange();
+      return result;
+    };
+
+    window.addEventListener("popstate", notifyLocationChange);
+    window.addEventListener("tnra-locationchange", () => {
+      ensurePostRouteFeatures();
+      syncDraft();
+    });
+  }
+
   function queueFinishAfterReconnect() {
     const nextActions = { ...getStoredActions(), finishAfterSync: true };
     saveActions(nextActions);
@@ -404,12 +447,9 @@
       return;
     }
     initialized = true;
+    installRouteObserver();
     initSyncLoop();
-    if (window.location.pathname.startsWith("/posts")) {
-      listenForFieldChanges();
-      wireFinishButtonOfflineQueue();
-      restoreDraftFromStorage();
-    }
+    ensurePostRouteFeatures();
     syncDraft();
   }
 

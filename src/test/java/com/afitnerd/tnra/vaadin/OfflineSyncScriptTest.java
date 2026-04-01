@@ -25,6 +25,10 @@ class OfflineSyncScriptTest {
         assertTrue(script.contains("event.stopImmediatePropagation()"));
         assertTrue(script.contains("window.addEventListener(\"focus\""));
         assertTrue(script.contains("document.addEventListener(\"visibilitychange\""));
+        assertTrue(script.contains("window.history.pushState = function (...args)"));
+        assertTrue(script.contains("window.history.replaceState = function (...args)"));
+        assertTrue(script.contains("window.addEventListener(\"tnra-locationchange\""));
+        assertTrue(script.contains("ensurePostRouteFeatures();"));
         assertFalse(script.contains("if (!window.location.pathname.startsWith(\"/posts\")) {"));
     }
 }
