@@ -305,6 +305,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         VerticalLayout paginationLayout = createPaginationControls();
 
         completedLayout.add(selectorsLayout, paginationLayout);
+        updatePostSelector();
         return completedLayout;
     }
 
@@ -470,17 +471,19 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
     private void updatePaginationControls() {
         if (currentPageData == null) return;
-        
-        int totalPages = currentPageData.getTotalPages();
+
+        int totalPages = Math.max(currentPageData.getTotalPages(), 1);
+        boolean hasContent = currentPageData.hasContent();
         
         // Update button states
-        firstPageButton.setEnabled(currentPage > 0);
-        previousPageButton.setEnabled(currentPage > 0);
-        nextPageButton.setEnabled(currentPage < totalPages - 1);
-        lastPageButton.setEnabled(currentPage < totalPages - 1);
+        firstPageButton.setEnabled(hasContent && currentPage > 0);
+        previousPageButton.setEnabled(hasContent && currentPage > 0);
+        nextPageButton.setEnabled(hasContent && currentPage < totalPages - 1);
+        lastPageButton.setEnabled(hasContent && currentPage < totalPages - 1);
 
         // Update page number field
-        pageNumberField.setValue(currentPage + 1);
+        pageNumberField.setEnabled(hasContent);
+        pageNumberField.setValue(hasContent ? currentPage + 1 : 1);
         pageNumberField.setMax(totalPages);
 
         // Update page info label
@@ -493,6 +496,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         } else {
             postSelector.setItems(new ArrayList<>());
         }
+        boolean hasPosts = currentPageData != null && currentPageData.hasContent();
+        postSelector.setEnabled(hasPosts);
+        postSelector.setPlaceholder(hasPosts ? "Select a post..." : "No completed posts yet");
         postSelector.setValue(null);
     }
 
