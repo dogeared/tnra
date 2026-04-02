@@ -43,6 +43,10 @@ nginx/.cert
 generated
 bundles
 uploads
+provision
 emails
 *.json
+!groups.json.example
+!keycloak/*.json
 .gstack/
+cli/dependency-reduced-pom.xml

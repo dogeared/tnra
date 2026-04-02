@@ -2,6 +2,20 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.3.0] - 2026-04-02
+
+### Added
+- **Provisioning CLI** for multi-group support. Run `java -jar tnra-cli.jar provision <group-name> --domain tnra.app` to generate all config files for a new group: Docker Compose, Keycloak realm, Nginx server block, MySQL init script, environment variables, and operator instructions.
+- **Shared Docker network** (`tnra-shared`) so per-group containers can reach MySQL and Keycloak by hostname.
+- **Per-group Nginx routing** via `nginx/sites/` directory with `include` directive for subdomain-based routing.
+- **Group registry** (`groups.json.example`) tracks provisioned groups with auto-assigned ports.
+- **CLI CI job** in GitHub Actions (`cli-test`) runs CLI tests on push and PR.
+- Multi-group local development and production deployment docs in README.md and PRODUCTION.md.
+
+### Changed
+- `.env.template`: removed stale Okta vars, added Keycloak and Vaadin production mode vars.
+- `.gitignore`: added `provision/` (CLI output) and `groups.json` (deployment state).
+
 ## [7.2.1] - 2026-04-02
 
 ### Changed

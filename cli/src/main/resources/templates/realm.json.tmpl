@@ -1,0 +1,55 @@
+{
+  "realm": "{{REALM_NAME}}",
+  "enabled": true,
+  "registrationAllowed": false,
+  "loginTheme": "tnra",
+  "sslRequired": "external",
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Group administrator — configures stats, manages members, creates call chains"
+      },
+      {
+        "name": "member",
+        "description": "Group member — creates posts, views call chain, views other members' posts"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "{{GROUP_NAME}}-app",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "{{KEYCLOAK_CLIENT_SECRET}}",
+      "redirectUris": [
+        "https://{{GROUP_NAME}}.{{DOMAIN}}/login/oauth2/code/keycloak"
+      ],
+      "postLogoutRedirectUris": [
+        "https://{{GROUP_NAME}}.{{DOMAIN}}/*"
+      ],
+      "webOrigins": [
+        "https://{{GROUP_NAME}}.{{DOMAIN}}"
+      ],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}
