@@ -2,6 +2,23 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.2.0] - 2026-04-02
+
+### Security
+- **Keycloak logout now revokes the Keycloak session.** Previously, logout only cleared the Spring session. Clicking "Login" after logout would silently re-authenticate. Now uses `OidcClientInitiatedLogoutSuccessHandler` with `issuer-uri` for OIDC RP-Initiated Logout.
+- **Narrowed Keycloak redirect URI** from wildcard `/*` to exact match `/login/oauth2/code/keycloak`, closing an open-redirect vulnerability.
+- **Moved DEBUG logging to local profile.** Production no longer logs Spring Security tokens, OAuth2 headers, or PII. DEBUG levels are in `application-local.yml` only.
+- **Session timeout reduced from 30 days to 24 hours.**
+
+### Fixed
+- `emailTaskExecutor` now uses `CallerRunsPolicy` instead of `AbortPolicy`. Emails are no longer silently dropped when the queue fills. Graceful shutdown waits up to 30 seconds for in-flight emails.
+- Added `issuer-uri` to Keycloak provider config and `postLogoutRedirectUris` to realm export, enabling OIDC logout discovery.
+
+### Added
+- `application-local.yml.sample` for local-only DEBUG logging configuration.
+- Test coverage section in `CLAUDE.md` (minimum: 60%, target: 80%).
+- 23 new tests: `EmailServiceImplTest` (4), `PostServiceImplTest` (16), `NotFoundViewTest` (3).
+
 ## [7.1.1] - 2026-03-31
 
 ### Changed
