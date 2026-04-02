@@ -182,7 +182,7 @@ Login navigation is configurable through `AuthNavigationService`:
 - `tnra.auth.login-registration-id`: provider registration id (fallback)
 
 Resolution order: `login-path` > `/oauth2/authorization/{login-registration-id}` >
-`/oauth2/authorization/okta`
+`/oauth2/authorization/keycloak`
 
 ## Database Migrations (Flyway)
 
