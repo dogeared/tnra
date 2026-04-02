@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.2.1] - 2026-04-02
+
+### Changed
+- Removed stale `VAADIN_SETUP.md` (content already covered by README.md, contained outdated redirect URI and debug logging info).
+- Fixed auth config fallback reference from Okta to Keycloak in README.md.
+- Added Branch 5 encryption plan to TODOS.md (app-level AES-256-GCM per-tenant keys, landing page with request access form).
+
 ## [7.2.0] - 2026-04-02
 
 ### Security
