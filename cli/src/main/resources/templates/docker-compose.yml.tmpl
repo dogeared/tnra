@@ -1,0 +1,27 @@
+services:
+  tnra-{{GROUP_NAME}}:
+    container_name: tnra-{{GROUP_NAME}}
+    image: tnra
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/{{DB_NAME}}
+      SPRING_DATASOURCE_USERNAME: {{DB_USER}}
+      SPRING_DATASOURCE_PASSWORD: {{DB_PASSWORD}}
+      KEYCLOAK_CLIENT_ID: {{GROUP_NAME}}-app
+      KEYCLOAK_CLIENT_SECRET: {{KEYCLOAK_CLIENT_SECRET}}
+      KEYCLOAK_ISSUER_URI: http://keycloak:8080/realms/{{REALM_NAME}}
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: 1
+      SPRING_JPA_HIBERNATE_DDL-AUTO: validate
+      VAADIN_PRODUCTIONMODE: "true"
+    volumes:
+      - ./uploads/{{GROUP_NAME}}:/uploads:rw
+    networks:
+      - tnra-shared
+
+networks:
+  tnra-shared:
+    external: true
+    name: tnra-shared
