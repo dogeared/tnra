@@ -43,8 +43,9 @@ nginx/.cert
 generated
 bundles
 uploads
+provision
 emails
 *.json
-!groups.json
+!groups.json.example
 !keycloak/*.json
 .gstack/

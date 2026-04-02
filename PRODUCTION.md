@@ -437,9 +437,9 @@ docker compose exec mysql mysqldump -uroot -p<password> \
 
 ### Group registry
 
-All provisioned groups are tracked in `groups.json` at the repo root. The CLI
-auto-assigns ports and prevents duplicate group names. Keep this file in sync with
-your production deployment.
+All provisioned groups are tracked in `groups.json` (gitignored, not checked in). Copy
+`groups.json.example` to `groups.json` before first use. The CLI auto-assigns ports and
+prevents duplicate group names. Keep this file backed up on the VPS.
 
 ### Migrating the existing group
 
