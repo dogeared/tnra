@@ -254,4 +254,28 @@ class MainViewTest {
 
         assertTrue(hasLoginButton, "Expected unauthenticated view to include a log in button");
     }
+
+    @Test
+    void testMainViewShowsQuickActionButtonsForAuthenticatedUsers() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasPostsButton = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Button)
+            .map(component -> (Button) component)
+            .anyMatch(button -> "Go to Posts".equals(button.getText()));
+
+        boolean hasProfileButton = mainView.getChildren()
+            .flatMap(component -> component.getChildren())
+            .filter(component -> component instanceof Button)
+            .map(component -> (Button) component)
+            .anyMatch(button -> "View Profile".equals(button.getText()));
+
+        assertTrue(hasPostsButton, "Expected authenticated view to include a Go to Posts button");
+        assertTrue(hasProfileButton, "Expected authenticated view to include a View Profile button");
+    }
 }
