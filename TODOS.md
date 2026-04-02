@@ -23,6 +23,24 @@ Admin can deactivate/remove members from the Members tab.
 - **Depends on:** Branch 3 shipped.
 - **Context:** Set `user.active = false`, which already excludes them from email notifications and active user queries. Don't delete — preserve post history.
 
+## P1.5 — Branch 5 (Landing Page + Encryption)
+
+### App-Level Column Encryption (Per-Tenant Keys)
+Encrypt sensitive post content (intro.widwytk, intro.kryptonite, intro.whatAndWhen, personal.best, personal.worst, family.best, family.worst, work.best, work.worst) at the application layer before writing to MySQL. Each group gets its own encryption key.
+- **Why:** Post content is deeply personal (recovery/accountability). TDE alone doesn't protect against compromised DB credentials. Per-tenant keys limit blast radius of a breach to one group.
+- **Approach:** AES-256-GCM column encryption in Java. Key-per-group stored in a separate `encryption_keys` table, encrypted with a master key. Master key stored outside the DB (env var or Keycloak).
+- **Effort:** M (human: ~1 week / CC: ~30 min)
+- **Depends on:** Branch 4 (provisioning CLI generates keys per group).
+- **Context:** Activity-only email (Branch 3) already established the security posture of not transmitting post content. App-level encryption completes it. No need for TDE since the primary threat is DB credential compromise, not disk theft.
+- **Constraints:** No WHERE/search on encrypted columns (not needed, TNRA never searches post content). Existing data requires a one-time migration to encrypt in place.
+
+### Landing Page with Request Access Form
+Static or Vaadin public route for prospective groups. Form: group name, contact name, email, estimated size, description. Submissions stored in `request_access` table + email notification to founder.
+- **Why:** Need somewhere to point prospective groups. Supports go-to-market.
+- **Effort:** S (human: ~2 days / CC: ~15 min)
+- **Depends on:** Branch 4 shipped.
+- **Context:** Requires Spring Security rule for anonymous access without exposing other routes. Rate limiting on form (max 5/hour per IP).
+
 ## P2 — After MVP Ships
 
 ### Meeting Notes Capture
