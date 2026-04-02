@@ -298,6 +298,155 @@ docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
   alpine tar czf /backup/keycloak-data-$(date +%Y%m%d).tar.gz -C /data .
 ```
 
+## Provisioning New Groups
+
+Each TNRA group runs as its own Docker container with its own MySQL database, Keycloak
+realm, and subdomain. The `tnra-cli` tool generates all config files. The operator applies
+them manually.
+
+### Architecture
+
+```
+                    ┌──────────────────────────────────────┐
+                    │           Shared VPS                  │
+                    │                                       │
+  group-a.tnra.app ─►│  Nginx ──► tnra-group-a:8080        │
+  group-b.tnra.app ─►│        ──► tnra-group-b:8080        │
+                    │                                       │
+                    │  MySQL (shared instance)              │
+                    │    ├── tnra_group_a (database)        │
+                    │    └── tnra_group_b (database)        │
+                    │                                       │
+                    │  Keycloak (shared instance)           │
+                    │    ├── group-a (realm)                │
+                    │    └── group-b (realm)                │
+                    └──────────────────────────────────────┘
+```
+
+All containers share the `tnra-shared` Docker network. Each group's container connects to
+MySQL and Keycloak using internal Docker hostnames (`mysql`, `keycloak`).
+
+### Step 1: Build the CLI (on your local machine)
+
+```bash
+cd cli && mvn package -DskipTests && cd ..
+```
+
+### Step 2: Provision
+
+```bash
+java -jar cli/target/tnra-cli.jar provision <group-name> --domain tnra.app
+```
+
+Replace `tnra.app` with your production domain. This generates 6 files in
+`provision/<group-name>/`.
+
+### Step 3: DNS
+
+Add an `A` record for `<group-name>.tnra.app` pointing to your VPS IP. If using a
+wildcard cert, a single `*.tnra.app` record works for all groups.
+
+### Step 4: SSL certificate
+
+Either use a wildcard certificate:
+
+```bash
+certbot certonly \
+  --dns-cloudflare --dns-cloudflare-credentials ~/cloudflare-creds.ini \
+  -d "*.tnra.app"
+```
+
+Or generate a per-subdomain cert and update the Nginx config to reference it.
+
+### Step 5: Copy files to VPS
+
+```bash
+scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
+```
+
+### Step 6: Initialize the database
+
+```bash
+docker compose exec -T mysql mysql -uroot -p<root_password> \
+  < ~/<group-name>/init-db.sql
+```
+
+### Step 7: Import the Keycloak realm
+
+```bash
+cp ~/<group-name>/<group-name>-realm.json ~/tnra/keycloak/
+docker compose restart keycloak
+```
+
+Verify via SSH tunnel (`ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`):
+- `http://localhost:8180/admin` > realm dropdown shows `<group-name>`
+- Client `<group-name>-app` is configured with correct redirect URIs
+
+### Step 8: Deploy the group's app container
+
+```bash
+cd ~/tnra
+cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
+docker compose -f docker-compose.<group-name>.yml up --build -d
+```
+
+Watch logs:
+```bash
+docker compose -f docker-compose.<group-name>.yml logs -f
+```
+
+Look for: `Started TnraApplication` and Flyway migration messages.
+
+### Step 9: Configure Nginx
+
+```bash
+cp ~/<group-name>/<group-name>.conf ~/tnra/nginx/sites/
+docker compose restart proxy
+```
+
+### Step 10: Create the first admin user
+
+1. SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
+2. Open `http://localhost:8180/admin`
+3. Switch to the `<group-name>` realm
+4. Users > Add user (set email, first name, last name)
+5. Credentials > Set password (disable "Temporary")
+6. Role Mappings > Assign `admin` and `member` roles
+
+### Step 11: Verify
+
+Visit `https://<group-name>.tnra.app` and log in with the admin user.
+
+### Managing multiple groups
+
+```bash
+# View all running group containers
+docker ps --filter "name=tnra-"
+
+# View logs for a specific group
+docker compose -f docker-compose.<group-name>.yml logs -f
+
+# Restart a specific group
+docker compose -f docker-compose.<group-name>.yml restart
+
+# Back up a specific group's database
+docker compose exec mysql mysqldump -uroot -p<password> \
+  --skip-column-statistics --no-tablespaces <db_name> \
+  > ~/backups/<group-name>-$(date +%Y%m%d).sql
+```
+
+### Group registry
+
+All provisioned groups are tracked in `groups.json` at the repo root. The CLI
+auto-assigns ports and prevents duplicate group names. Keep this file in sync with
+your production deployment.
+
+### Migrating the existing group
+
+The existing single-tenant deployment is registered as the first group in `groups.json`
+(name: "tnra", port: 8080). After adding the `tnra-shared` network to `docker-compose.yml`
+and restarting, it continues to work as before. No data migration required.
+
 ## Database Migration from V1
 
 If you have an existing V1 database (pre-Flyway, with hardcoded embedded stats), follow this
