@@ -11,6 +11,7 @@ spring:
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
         provider:
           keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}
             authorization-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}/protocol/openid-connect/auth
             token-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}/protocol/openid-connect/token
             user-info-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}/protocol/openid-connect/userinfo

@@ -25,6 +25,9 @@
       "redirectUris": [
         "http://localhost:8080/login/oauth2/code/keycloak"
       ],
+      "postLogoutRedirectUris": [
+        "http://localhost:8080/*"
+      ],
       "webOrigins": [
         "http://localhost:8080"
       ],
