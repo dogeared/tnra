@@ -114,6 +114,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             loadPostData();
             updateReadOnlyState();
         }
+
     }
 
     private void initializeUser() {

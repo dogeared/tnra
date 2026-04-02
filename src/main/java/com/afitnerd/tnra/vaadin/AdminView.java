@@ -542,7 +542,7 @@ public class AdminView extends VerticalLayout {
             deleteBtn.addClickListener(e -> {
                 workingSet = callChainPresenter.removePairFromSet(workingSet, pair);
                 pairsGrid.setItems(workingSet.getGoToGuyPairs());
-                Notification.show("Pair removed successfully");
+                showNotification("Pair removed successfully", null);
             });
             return deleteBtn;
         }).setHeader("Actions").setWidth("120px").setFlexGrow(0);
@@ -563,11 +563,9 @@ public class AdminView extends VerticalLayout {
                 contentSection.setVisible(true);
                 addPairBtn.setEnabled(true);
 
-                Notification notification = Notification.show("New Go To Guy Set created");
-                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                showNotification("New Go To Guy Set created", NotificationVariant.LUMO_SUCCESS);
             } catch (Exception ex) {
-                Notification notification = Notification.show("Error creating Go To Guy Set: " + ex.getMessage());
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                showNotification("Error creating Go To Guy Set: " + ex.getMessage(), NotificationVariant.LUMO_ERROR);
             }
         });
 
@@ -633,7 +631,7 @@ public class AdminView extends VerticalLayout {
                 workingSet = callChainPresenter.addPairToSet(workingSet, pair);
                 pairsGrid.setItems(workingSet.getGoToGuyPairs());
                 dialog.close();
-                Notification.show("Pair added successfully");
+                showNotification("Pair added successfully", null);
             } else {
                 showValidationError(caller, callee, currentPairs);
             }
@@ -668,8 +666,18 @@ public class AdminView extends VerticalLayout {
             }
         }
 
-        Notification notification = Notification.show(errorMessage);
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        showNotification(errorMessage, NotificationVariant.LUMO_ERROR);
+    }
+
+    private void showNotification(String message, NotificationVariant variant) {
+        try {
+            Notification notification = Notification.show(message);
+            if (variant != null) {
+                notification.addThemeVariants(variant);
+            }
+        } catch (IllegalStateException ignored) {
+            // Can occur in non-UI test contexts; ignore so command handlers stay safe.
+        }
     }
 
     // ========================

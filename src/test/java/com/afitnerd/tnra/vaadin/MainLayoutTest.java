@@ -9,6 +9,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -102,5 +106,14 @@ class MainLayoutTest {
     void testServiceNotNull() {
         // Test that we don't accept null services
         assertThrows(Exception.class, () -> new MainLayout(null, null, null));
+    }
+
+    @Test
+    void initializesOfflineSyncFromMainLayoutSource() throws Exception {
+        Path mainLayoutPath = Path.of("src/main/java/com/afitnerd/tnra/vaadin/MainLayout.java");
+        String source = Files.readString(mainLayoutPath, StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("@JsModule(\"./tnra-offline-sync.js\")"));
+        assertTrue(source.contains("window.TnraOfflineSync?.init();"));
     }
 }
