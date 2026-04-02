@@ -6,6 +6,23 @@ Available skills: `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/pla
 
 If gstack skills aren't working, run `cd .claude/skills/gstack && ./setup` to build the binary and register skills.
 
+## Testing
+
+Run command: `./mvnw clean test`
+Test directory: `src/test/java/com/afitnerd/tnra/`
+
+- 100% test coverage is the goal — tests make vibe coding safe
+- When writing new functions, write a corresponding test
+- When fixing a bug, write a regression test
+- When adding error handling, write a test that triggers the error
+- When adding a conditional (if/else, switch), write tests for BOTH paths
+- Never commit code that makes existing tests fail
+
+## Test Coverage
+
+Minimum: 60%
+Target: 80%
+
 ## Design System
 Always read DESIGN.md before making any visual or UI decisions.
 All font choices, colors, spacing, and aesthetic direction are defined there.

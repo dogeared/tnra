@@ -43,7 +43,7 @@ server:
   servlet:
     context-path: /
     session:
-      timeout: 30d
+      timeout: 24h
   forward-headers-strategy: native
 vaadin:
   productionMode: false
@@ -52,11 +52,9 @@ vaadin:
     hostsAllowed: tnra.afitnerd.local
 logging:
   level:
-    org.springframework.security: DEBUG
-    com.vaadin: DEBUG
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.web.servlet: DEBUG
+    org.springframework.security: WARN
+    com.vaadin: INFO
+    org.springframework.web: WARN
 mailgun:
   key:
     private: YOUR_MAILGUN_PRIVATE_KEY

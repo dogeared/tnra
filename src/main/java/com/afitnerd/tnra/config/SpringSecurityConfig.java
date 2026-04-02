@@ -9,8 +9,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.oidc.web.logout.OidcClientInitiatedLogoutSuccessHandler;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -23,6 +26,12 @@ public class SpringSecurityConfig {
 
     @Value("${tnra.auth.login-registration-id:keycloak}")
     private String loginRegistrationId;
+
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    public SpringSecurityConfig(ClientRegistrationRepository clientRegistrationRepository) {
+        this.clientRegistrationRepository = clientRegistrationRepository;
+    }
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -37,12 +46,19 @@ public class SpringSecurityConfig {
                 )
             )
             .logout(logout -> logout
-                .logoutSuccessUrl("/")
+                .logoutSuccessHandler(oidcLogoutSuccessHandler())
                 .invalidateHttpSession(true)
                 .clearAuthentication(true)
                 .deleteCookies("JSESSIONID"));
 
         return http.build();
+    }
+
+    private LogoutSuccessHandler oidcLogoutSuccessHandler() {
+        OidcClientInitiatedLogoutSuccessHandler handler =
+            new OidcClientInitiatedLogoutSuccessHandler(clientRegistrationRepository);
+        handler.setPostLogoutRedirectUri("{baseUrl}");
+        return handler;
     }
 
     @Bean
