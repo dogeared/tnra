@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.authority.mapping.GrantedAuthoritiesMapper;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
 import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.user.OidcUserAuthority;
 
@@ -14,12 +15,16 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 class SpringSecurityConfigTest {
 
+    private final ClientRegistrationRepository clientRegistrationRepository =
+        mock(ClientRegistrationRepository.class);
+
     @Test
     void extractsKeycloakRealmAccessRoles() {
-        SpringSecurityConfig config = new SpringSecurityConfig();
+        SpringSecurityConfig config = new SpringSecurityConfig(clientRegistrationRepository);
         GrantedAuthoritiesMapper mapper = config.grantedAuthoritiesMapper();
         OidcIdToken token = new OidcIdToken(
             "token",
@@ -40,7 +45,7 @@ class SpringSecurityConfigTest {
 
     @Test
     void preservesExistingAuthorities() {
-        SpringSecurityConfig config = new SpringSecurityConfig();
+        SpringSecurityConfig config = new SpringSecurityConfig(clientRegistrationRepository);
         GrantedAuthoritiesMapper mapper = config.grantedAuthoritiesMapper();
         OidcIdToken token = new OidcIdToken(
             "token",
@@ -61,7 +66,7 @@ class SpringSecurityConfigTest {
 
     @Test
     void handlesMissingRealmAccess() {
-        SpringSecurityConfig config = new SpringSecurityConfig();
+        SpringSecurityConfig config = new SpringSecurityConfig(clientRegistrationRepository);
         GrantedAuthoritiesMapper mapper = config.grantedAuthoritiesMapper();
         OidcIdToken token = new OidcIdToken(
             "token",
