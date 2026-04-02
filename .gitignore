@@ -45,4 +45,6 @@ bundles
 uploads
 emails
 *.json
+!groups.json
+!keycloak/*.json
 .gstack/
