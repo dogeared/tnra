@@ -65,4 +65,16 @@ class FileControllerTest {
 
         assertEquals(MediaType.APPLICATION_OCTET_STREAM, response.getHeaders().getContentType());
     }
+
+    @Test
+    void serveFileFallsBackToOctetStreamWhenNoExtension() throws IOException {
+        FileController controller = new FileController();
+        ReflectionTestUtils.setField(controller, "uploadDir", tempDir.toString());
+        Files.writeString(tempDir.resolve("avatar"), "data");
+
+        ResponseEntity<Resource> response = controller.serveFile("avatar");
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(MediaType.APPLICATION_OCTET_STREAM, response.getHeaders().getContentType());
+    }
 }
