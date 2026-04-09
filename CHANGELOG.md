@@ -2,6 +2,24 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.3.1] - 2026-04-08
+
+### Changed
+- **Root `docker-compose.yml` is now infrastructure-only.** Removed the `server` service entirely. App containers are per-group, provisioned by the CLI.
+- **`.env.template` simplified to one variable:** `MYSQL_ROOT_PASSWORD`. Keycloak vars removed (now per-group via CLI).
+- **CLI templates use `env_file` instead of hardcoding secrets.** Per-group `docker-compose.yml` loads credentials from `.env` and overrides Docker-internal URLs in the `environment` block.
+- **CLI `.env` template uses host-accessible URLs** (`localhost:3307` for MySQL, `localhost:8180` for Keycloak) for IDE development. Docker compose overrides to internal hostnames.
+- **Nginx default config stripped to catch-all 444 + per-group includes.** No more fallback proxy to a non-existent `server` container.
+- **Duplicate `map` block removed from per-group nginx template.** Now defined once in the default config.
+- `VAADIN_PRODUCTIONMODE` explicitly set in per-group Docker compose to prevent dev mode in production.
+- README rewritten around unified provisioning flow: Quick Start (H2), Local Dev (MySQL + CLI), and Multi-Tenant.
+
+### Removed
+- `server` service from root `docker-compose.yml` (replaced by per-group containers).
+- `MYSQL_DATABASE` from MySQL service (CLI creates per-group databases).
+- Dead `MYSQL_DATABASE`, `MYSQL_HOST`, `MYSQL_PORT` env vars from former server service.
+- `.env.production.template` (CLI generates per-group env files).
+
 ## [7.3.0] - 2026-04-02
 
 ### Added
