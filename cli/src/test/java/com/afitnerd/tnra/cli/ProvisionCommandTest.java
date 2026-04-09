@@ -45,10 +45,18 @@ class ProvisionCommandTest {
         assertTrue(realm.contains("recovery-guys.example.com"));
         assertFalse(realm.contains("admin@tnra.local")); // test users stripped
 
-        // Verify docker-compose uses correct DB
+        // Verify docker-compose uses env_file and Docker-internal URLs
         String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
-        assertTrue(compose.contains("tnra_recovery_guys"));
+        assertTrue(compose.contains("env_file:"), "should use env_file for credentials");
         assertTrue(compose.contains("tnra-shared"));
+        assertTrue(compose.contains("mysql:3306/tnra_recovery_guys"), "should use Docker-internal MySQL URL");
+        assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should use Docker-internal Keycloak URL");
+        assertFalse(compose.contains("DB_PASSWORD"), "credentials should come from .env, not hardcoded");
+
+        // Verify .env uses host-accessible URLs for IDE dev
+        String env = Files.readString(groupDir.resolve(".env"));
+        assertTrue(env.contains("localhost:3307"), ".env should use host-mapped MySQL port");
+        assertTrue(env.contains("localhost:8180"), ".env should use host-mapped Keycloak port");
 
         // Verify SQL
         String sql = Files.readString(groupDir.resolve("init-db.sql"));

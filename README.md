@@ -44,215 +44,180 @@ database). Files are UUID-named and served via `/uploads/{filename}`. Max size: 
 ## Prerequisites
 
 - Docker and Docker Compose
-- Java 21 (for running outside Docker)
+- Java 21
 - Maven (or use the included `./mvnw` wrapper)
+- [mkcert](https://github.com/FiloSottile/mkcert) for local HTTPS
 
-## Local Development Setup
+## How It Works
 
-### 1. Clone the repository
+TNRA is multi-tenant. Each group gets its own database, Keycloak realm, and subdomain.
+The `tnra-cli` tool provisions everything for a new group. The root `docker-compose.yml`
+runs shared infrastructure only (MySQL, Keycloak, Nginx). App containers are per-group.
+
+This means local development, local multi-tenant testing, and production all work the
+same way: start infrastructure, provision a group with the CLI, run the app.
+
+## Quick Start (H2, no infrastructure needed)
+
+For quick iteration without MySQL or multi-tenant setup:
 
 ```bash
 git clone https://github.com/dogeared/tnra
 cd tnra
-```
 
-### 2. Create your `.env` file
-
-```bash
-cp .env.template .env
-```
-
-At minimum, set:
-
-```bash
-SPRING_DATASOURCE_USERNAME=root
-SPRING_DATASOURCE_PASSWORD=<choose_a_password>
-VAADIN_PRODUCTIONMODE=false
-```
-
-Keycloak defaults work out of the box for local dev (`tnra-app` / `tnra-app-secret` /
-`http://localhost:8180/realms/tnra`). Only set `KEYCLOAK_*` variables if you customize Keycloak.
-
-### 3. Choose a run option
-
-#### Option A: H2 in-memory (quick start, no MySQL needed)
-
-Tests use H2 automatically. For local dev with H2 (data resets on restart):
-
-```bash
 # Start Keycloak (pre-configured realm auto-imports on first start)
 docker compose up keycloak -d
 
-# Run with H2
+# Run with H2 in-memory database (data resets on restart)
 ./mvnw spring-boot:run
 ```
 
-H2 uses `ddl-auto: create-drop` and Flyway is disabled.
-
-#### Option B: MySQL via Docker (persistent data, matches production)
-
-```bash
-# Start MySQL and Keycloak
-docker compose up mysql keycloak -d
-
-# Wait for MySQL to be healthy
-docker compose exec mysql mysqladmin ping -h localhost --wait=30
-
-# Run the app
-./mvnw spring-boot:run
-```
-
-MySQL is available at `localhost:3307` (mapped from container port 3306). The `tnra` database
-is created automatically by Docker. Flyway runs all migrations on first start.
-
-**Optional: create a non-root database user**
-
-```bash
-docker compose exec mysql mysql -uroot -p<your_password> -e "
-  CREATE USER 'tnra' IDENTIFIED BY '<user_password>';
-  GRANT ALL PRIVILEGES ON tnra.* TO 'tnra'@'%';
-  FLUSH PRIVILEGES;
-"
-```
-
-Then update `application.yml` datasource credentials to match.
-
-#### Option C: Full stack via Docker Compose (app + MySQL + Keycloak + Nginx)
-
-```bash
-# Build the production JAR
-./mvnw clean package -DskipTests -Pproduction
-
-# Start everything
-docker compose up --build -d
-```
-
-The app is available at `https://localhost:443` via Nginx proxy (requires SSL certs, see below).
-
-### 4. SSL Certificates for Local Nginx
-
-Only needed for Option C. Place certs in `nginx/.cert/`:
-
-```bash
-mkdir -p nginx/.cert
-
-# Option 1: mkcert (trusted local certs)
-mkcert -install
-mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem localhost
-
-# Option 2: Self-signed (browser will show warning)
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/.cert/key.pem -out nginx/.cert/cert.pem \
-  -subj "/CN=localhost"
-```
-
-### 5. Create a test user in Keycloak
-
-1. Go to `http://localhost:8180/admin` (admin/admin)
-2. Select the `tnra` realm
-3. Go to Users > Add user
-4. Set username, email, first name, last name
-5. Go to Credentials tab > Set password (disable "Temporary")
-6. Log in to the app with this user
+H2 uses `ddl-auto: create-drop` and Flyway is disabled. Access at `http://localhost:8080`.
 
 Pre-configured test accounts: `admin@tnra.local` / `admin` (admin role),
 `member@tnra.local` / `member`.
 
-### 6. Access the application
+## Local Development Setup (MySQL)
 
-- **Options A/B:** `http://localhost:8080`
-- **Option C:** `https://localhost:443`
+This is the standard development workflow. It uses the same provisioning as production.
 
-## Running Multiple Groups Locally
+### 1. Start infrastructure
 
-Each TNRA group runs as its own container with its own database and Keycloak realm. The
-`tnra-cli` tool generates all the config files you need to provision a new group.
+```bash
+git clone https://github.com/dogeared/tnra
+cd tnra
 
-### Prerequisites
+# Create .env with your MySQL root password
+cp .env.template .env
+# Edit .env and set MYSQL_ROOT_PASSWORD
 
-- The base infrastructure running (`docker compose up mysql keycloak -d`)
-- [mkcert](https://github.com/FiloSottile/mkcert) installed for local HTTPS
-- Java 21 (to run the CLI)
+# Start infrastructure (first time)
+docker compose up -d
 
-### 1. Build the CLI
+# Or, restart existing containers from a previous run
+docker compose start
+```
+
+### 2. Set up local HTTPS (one-time)
+
+```bash
+mkdir -p nginx/.cert
+mkcert -install
+mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem \
+  localhost "*.afitnerd.local"
+```
+
+### 3. Build the CLI and provision a group
 
 ```bash
 cd cli && mvn package -DskipTests && cd ..
+
+# Provision a group (generates DB, Keycloak realm, Nginx config, etc.)
+java -jar cli/target/tnra-cli.jar provision my-group --domain afitnerd.local
 ```
 
-### 2. Provision a new group
-
-```bash
-java -jar cli/target/tnra-cli.jar provision recovery-guys --domain afitnerd.local
-```
-
-This generates 6 files in `provision/recovery-guys/`:
+This generates 6 files in `provision/my-group/`:
 - `docker-compose.yml` — app container on the shared network
-- `recovery-guys-realm.json` — Keycloak realm with client and roles
-- `recovery-guys.conf` — Nginx subdomain routing
+- `my-group-realm.json` — Keycloak realm with client and roles
+- `my-group.conf` — Nginx subdomain routing
 - `init-db.sql` — MySQL database and user creation
 - `.env` — group-specific credentials
 - `INSTRUCTIONS.md` — step-by-step guide
 
-### 3. Set up local DNS
+### 4. Initialize the group's database
+
+```bash
+docker compose exec -T mysql mysql -uroot -p<your_MYSQL_ROOT_PASSWORD> \
+  < provision/my-group/init-db.sql
+```
+
+### 5. Import the Keycloak realm
+
+```bash
+cp provision/my-group/my-group-realm.json keycloak/
+docker compose restart keycloak
+```
+
+Verify at `http://localhost:8180/admin` (admin/admin): the `my-group` realm should appear.
+
+### 6. Set up local DNS
 
 Add to `/etc/hosts`:
 
 ```
-127.0.0.1 recovery-guys.afitnerd.local
+127.0.0.1 my-group.afitnerd.local
 ```
 
-### 4. Set up local HTTPS (one-time)
+### 7. Copy the Nginx config and reload
 
 ```bash
-mkcert -install
-mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem \
-  localhost tnra.afitnerd.local "*.afitnerd.local"
-```
-
-### 5. Initialize the database
-
-```bash
-docker compose exec -T mysql mysql -uroot -p<password> \
-  < provision/recovery-guys/init-db.sql
-```
-
-### 6. Import the Keycloak realm
-
-```bash
-cp provision/recovery-guys/recovery-guys-realm.json keycloak/
-docker compose restart keycloak
-```
-
-Verify at `http://localhost:8180/admin`: the `recovery-guys` realm should appear.
-
-### 7. Start the group's container
-
-```bash
-docker compose -f provision/recovery-guys/docker-compose.yml up --build -d
-```
-
-### 8. Copy the Nginx config and reload
-
-```bash
-cp provision/recovery-guys/recovery-guys.conf nginx/sites/
+cp provision/my-group/my-group.conf nginx/sites/
 docker compose restart proxy
+```
+
+### 8. Run the app from your IDE
+
+Configure your IDE or command line to use the group's environment variables from
+`provision/my-group/.env`. The key variables are:
+
+- `SPRING_DATASOURCE_URL` — points to the group's database
+- `SPRING_DATASOURCE_USERNAME` / `SPRING_DATASOURCE_PASSWORD` — group's DB credentials
+- `KEYCLOAK_CLIENT_ID` / `KEYCLOAK_CLIENT_SECRET` — group's Keycloak client
+- `KEYCLOAK_ISSUER_URI` — group's Keycloak realm
+
+Or run from the command line:
+
+```bash
+# Source the group's env vars and run
+set -a && source provision/my-group/.env && set +a
+./mvnw spring-boot:run
 ```
 
 ### 9. Create an admin user
 
 1. Go to `http://localhost:8180/admin`
-2. Switch to the `recovery-guys` realm
+2. Switch to the `my-group` realm
 3. Users > Add user (set email, name)
 4. Credentials > Set password
 5. Role Mappings > Assign `admin` and `member`
 
-### 10. Access the group
+### 10. Access the app
 
-Visit `https://recovery-guys.afitnerd.local` and log in.
+Visit `https://my-group.afitnerd.local` and log in.
 
-The original group continues to work at its existing URL. Each group has fully isolated
-data, users, and authentication.
+## Running Multiple Groups Locally
+
+The same provisioning flow supports multiple groups. Each group is fully isolated
+with its own database, Keycloak realm, and subdomain.
+
+To add another group, repeat steps 3-7 with a different group name:
+
+```bash
+java -jar cli/target/tnra-cli.jar provision another-group --domain afitnerd.local
+
+docker compose exec -T mysql mysql -uroot -p<your_MYSQL_ROOT_PASSWORD> \
+  < provision/another-group/init-db.sql
+
+cp provision/another-group/another-group-realm.json keycloak/
+docker compose restart keycloak
+
+# Add to /etc/hosts: 127.0.0.1 another-group.afitnerd.local
+
+cp provision/another-group/another-group.conf nginx/sites/
+docker compose restart proxy
+```
+
+To run a group as a Docker container (instead of from your IDE):
+
+```bash
+# Build the production JAR first
+./mvnw clean package -DskipTests -Pproduction
+
+# Start the group's container
+docker compose -f provision/another-group/docker-compose.yml up --build -d
+```
+
+Visit `https://another-group.afitnerd.local` and log in.
 
 ### Group registry
 
@@ -320,12 +285,13 @@ tnra/
 ├── cli/                 # Provisioning CLI (separate Maven project, not in app build)
 │   ├── pom.xml
 │   └── src/main/java/   # TnraCli, ProvisionCommand, GroupRegistry, etc.
-├── keycloak/            # Realm config (tnra-realm.json) and custom themes
+├── keycloak/            # Realm config and custom themes
 ├── nginx/
 │   ├── templates/       # Default Nginx config template
 │   ├── sites/           # Per-group Nginx server blocks (generated by CLI)
 │   └── .cert/           # SSL certificates
-├── docker-compose.yml   # Base infrastructure (app, MySQL, Keycloak, Nginx)
+├── provision/           # Per-group configs (generated by CLI, gitignored)
+├── docker-compose.yml   # Infrastructure only (MySQL, Keycloak, Nginx)
 ├── groups.json.example  # Template for group registry (copy to groups.json)
 ├── Dockerfile           # App server container (eclipse-temurin:21, non-root user)
 └── uploads/             # Profile image storage (created at runtime)
