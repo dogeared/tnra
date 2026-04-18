@@ -20,10 +20,6 @@ services:
       MAILGUN_KEY_PRIVATE: ${MAILGUN_KEY_PRIVATE}
       MAILGUN_KEY_PUBLIC: ${MAILGUN_KEY_PUBLIC}
       MAILGUN_URL: ${MAILGUN_URL}
-      MYSQL_ROOT_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      MYSQL_DATABASE: tnra
-      MYSQL_HOST: mysql
-      MYSQL_PORT: 3306
       KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-tnra-app}
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-tnra-app-secret}
       KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://localhost:8180/realms/tnra}
@@ -50,6 +46,10 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: https://auth.dev.dogeared.dev
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: "true"
     ports:
       - '127.0.0.1:8180:8080'
     volumes:
@@ -68,21 +68,18 @@ services:
       timeout: 3s
       retries: 30
     environment:
-      MYSQL_ROOT_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: tnra
     ports:
       - '127.0.0.1:3307:3306'
     volumes:
       - 'mysql-db:/var/lib/mysql'
+      - './mysql:/docker-entrypoint-initdb.d:ro'
     networks:
       - tnra-shared
   proxy:
     container_name: proxy
     image: nginx:latest
-    environment:
-      # requests will be forwarded to http://<DOCKER_HOST>:<TARGET_PORT>
-      # This will be similar to accessing: http://localhost:8080
-      - APP_PORT=8080
     volumes:
       - './nginx/templates:/etc/nginx/templates'
       - './nginx/.cert:/etc/nginx/certs'

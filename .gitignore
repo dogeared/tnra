@@ -32,6 +32,7 @@ node_modules
 node
 *.sql
 !src/main/resources/db/migration/*.sql
+!mysql/*.sql
 
 src/main/resources/public
 
@@ -42,7 +43,8 @@ nginx/.cert
 .vscode
 generated
 bundles
-uploads
+uploads/*
+!uploads/placeholder.png
 provision
 emails
 *.json
