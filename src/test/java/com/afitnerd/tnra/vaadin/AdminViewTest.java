@@ -38,8 +38,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -198,6 +201,345 @@ class AdminViewTest {
         StatDefinition notFound = new StatDefinition("nope", "Nope", "", 0);
         notFound.setId(999L);
         assertEquals(-1, method.invoke(view, activeStats, notFound));
+    }
+
+    // =============================================
+    // moveStatUp / moveStatDown tests
+    // =============================================
+
+    @Test
+    void moveStatUpSwapsDisplayOrdersOfAdjacentStats() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        a.setId(1L);
+        StatDefinition b = new StatDefinition("beta", "Beta", "🅱", 1);
+        b.setId(2L);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(a, b)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.moveStatUp(b, statsList);
+
+        assertEquals(0, b.getDisplayOrder());
+        assertEquals(1, a.getDisplayOrder());
+        verify(statDefinitionRepository).save(b);
+        verify(statDefinitionRepository).save(a);
+    }
+
+    @Test
+    void moveStatUpDoesNothingWhenAlreadyFirst() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        a.setId(1L);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(a)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.moveStatUp(a, statsList);
+
+        // index=0, so nothing should be saved
+        verify(statDefinitionRepository, never()).save(any(StatDefinition.class));
+    }
+
+    @Test
+    void moveStatDownSwapsDisplayOrdersOfAdjacentStats() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        a.setId(1L);
+        StatDefinition b = new StatDefinition("beta", "Beta", "🅱", 1);
+        b.setId(2L);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(a, b)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.moveStatDown(a, statsList);
+
+        assertEquals(1, a.getDisplayOrder());
+        assertEquals(0, b.getDisplayOrder());
+        verify(statDefinitionRepository).save(a);
+        verify(statDefinitionRepository).save(b);
+    }
+
+    @Test
+    void moveStatDownDoesNothingWhenAlreadyLast() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        a.setId(1L);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(a)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.moveStatDown(a, statsList);
+
+        verify(statDefinitionRepository, never()).save(any(StatDefinition.class));
+    }
+
+    // =============================================
+    // archiveStat tests
+    // =============================================
+
+    @Test
+    void archiveStatSetsArchivedAndSaves() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        a.setId(1L);
+        a.setArchived(false);
+        StatDefinition b = new StatDefinition("beta", "Beta", "🅱", 1);
+        b.setId(2L);
+        b.setArchived(false);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(a, b)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.archiveStat(a, statsList);
+
+        assertTrue(a.getArchived());
+        verify(statDefinitionRepository).save(a);
+    }
+
+    @Test
+    void archiveStatBlockedWhenOnlyOneActiveStatRemains() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition a = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        a.setId(1L);
+        a.setArchived(false);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(a)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.archiveStat(a, statsList);
+
+        // Should NOT be archived — the last active stat cannot be archived
+        assertFalse(a.getArchived());
+        verify(statDefinitionRepository, never()).save(any(StatDefinition.class));
+    }
+
+    // =============================================
+    // restoreStat tests
+    // =============================================
+
+    @Test
+    void restoreStatUnarchivedAndAppendsToEnd() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition active = new StatDefinition("beta", "Beta", "🅱", 0);
+        active.setId(2L);
+        active.setArchived(false);
+
+        StatDefinition archived = new StatDefinition("alpha", "Alpha", "🅰", 5);
+        archived.setId(1L);
+        archived.setArchived(true);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>(List.of(active)));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.restoreStat(archived, statsList);
+
+        assertFalse(archived.getArchived());
+        assertEquals(1, archived.getDisplayOrder()); // max(0) + 1
+        verify(statDefinitionRepository).save(archived);
+    }
+
+    @Test
+    void restoreStatWhenNoActiveStatsExist() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition archived = new StatDefinition("alpha", "Alpha", "🅰", 5);
+        archived.setId(1L);
+        archived.setArchived(true);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(new ArrayList<>());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.restoreStat(archived, statsList);
+
+        assertFalse(archived.getArchived());
+        assertEquals(0, archived.getDisplayOrder()); // max(-1) + 1 = 0
+        verify(statDefinitionRepository).save(archived);
+    }
+
+    // =============================================
+    // refreshStatsList tests
+    // =============================================
+
+    @Test
+    void refreshStatsListShowsEmptyStateWhenNoStats() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.refreshStatsList(statsList);
+
+        // Should have an empty state paragraph
+        boolean hasEmptyState = statsList.getChildren()
+            .anyMatch(c -> c instanceof com.vaadin.flow.component.html.Paragraph);
+        assertTrue(hasEmptyState, "Should show empty state when no stats configured");
+    }
+
+    @Test
+    void refreshStatsListRendersActiveAndArchivedStats() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        StatDefinition active = new StatDefinition("alpha", "Alpha", "🅰", 0);
+        active.setId(1L);
+        active.setArchived(false);
+
+        StatDefinition archived = new StatDefinition("beta", "Beta", "🅱", 1);
+        archived.setId(2L);
+        archived.setArchived(true);
+
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc())
+            .thenReturn(List.of(active, archived));
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
+            .thenReturn(List.of(active));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        view.refreshStatsList(statsList);
+
+        assertEquals(2, statsList.getComponentCount(), "Should have one row per stat");
+    }
+
+    // =============================================
+    // openAddStatDialog tests
+    // =============================================
+
+    @Test
+    void openAddStatDialogDoesNotThrow() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        VerticalLayout statsList = new VerticalLayout();
+        assertDoesNotThrow(() -> view.openAddStatDialog(statsList));
+    }
+
+    // =============================================
+    // openInviteMemberDialog tests
+    // =============================================
+
+    @Test
+    void openInviteMemberDialogDoesNotThrow() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        com.vaadin.flow.component.grid.Grid<User> membersGrid = new com.vaadin.flow.component.grid.Grid<>();
+        assertDoesNotThrow(() -> view.openInviteMemberDialog(membersGrid));
+    }
+
+    // =============================================
+    // showValidationError tests
+    // =============================================
+
+    @Test
+    void showValidationErrorWithNullCallerOrCallee() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        // Should not throw
+        assertDoesNotThrow(() -> view.showValidationError(null, null, List.of()));
+    }
+
+    @Test
+    void showValidationErrorWhenCallerEqualCallee() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User user = new User();
+        user.setId(1L);
+        user.setFirstName("Bob");
+
+        assertDoesNotThrow(() -> view.showValidationError(user, user, List.of()));
+    }
+
+    @Test
+    void showValidationErrorWhenCalleeAlreadyAssigned() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User caller = new User();
+        caller.setId(1L);
+        caller.setFirstName("Alice");
+        User callee = new User();
+        callee.setId(2L);
+        callee.setFirstName("Bob");
+        User existingCaller = new User();
+        existingCaller.setId(3L);
+        existingCaller.setFirstName("Charlie");
+
+        GoToGuyPair existing = new GoToGuyPair();
+        existing.setCaller(existingCaller);
+        existing.setCallee(callee);
+
+        assertDoesNotThrow(() -> view.showValidationError(caller, callee, List.of(existing)));
+    }
+
+    @Test
+    void showValidationErrorFallsBackToGenericMessage() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User caller = new User();
+        caller.setId(1L);
+        caller.setFirstName("Alice");
+        User callee = new User();
+        callee.setId(2L);
+        callee.setFirstName("Bob");
+
+        // No existing pairs, caller != callee -> falls through to "Invalid pair configuration"
+        assertDoesNotThrow(() -> view.showValidationError(caller, callee, List.of()));
     }
 
     private GoToGuySet sampleSet() {

@@ -78,7 +78,7 @@ public class MainLayout extends AppLayout {
      * Resolve initial dark mode: prefer authenticated user's DB preference,
      * fall back to the cookie value.
      */
-    private boolean resolveInitialDarkMode() {
+    boolean resolveInitialDarkMode() {
         if (oidcUserService.isAuthenticated()) {
             try {
                 User user = userService.getCurrentUser();
@@ -196,7 +196,7 @@ public class MainLayout extends AppLayout {
         getUI().ifPresent(ui -> ui.getPage().setLocation("/logout"));
     }
 
-    private void toggleTheme() {
+    void toggleTheme() {
         darkMode = !darkMode;
 
         // Update the UI theme attribute
@@ -247,7 +247,7 @@ public class MainLayout extends AppLayout {
         return false;
     }
 
-    private void writeDarkModeCookie(boolean dark) {
+    void writeDarkModeCookie(boolean dark) {
         VaadinResponse response = VaadinService.getCurrentResponse();
         if (response instanceof HttpServletResponse httpResponse) {
             Cookie cookie = new Cookie(DARK_MODE_COOKIE, String.valueOf(dark));

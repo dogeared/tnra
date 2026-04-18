@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
@@ -10,6 +11,8 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -26,7 +29,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -368,6 +373,444 @@ class ProfileViewTest {
         verify(userService).saveUser(testUser);
     }
 
+    // =============================================
+    // formatPhoneNumber tests
+    // =============================================
+
+    @Test
+    void formatPhoneNumberReturnsEmptyForNull() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("", profileView.formatPhoneNumber(null));
+    }
+
+    @Test
+    void formatPhoneNumberReturnsEmptyForBlank() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("", profileView.formatPhoneNumber("   "));
+    }
+
+    @Test
+    void formatPhoneNumberReturnsEmptyForNonDigitInput() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("", profileView.formatPhoneNumber("abc"));
+    }
+
+    @Test
+    void formatPhoneNumberFormatsThreeDigitsAsIs() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("555", profileView.formatPhoneNumber("555"));
+    }
+
+    @Test
+    void formatPhoneNumberFormatsFourToSixDigitsWithAreaCode() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("(555) 123", profileView.formatPhoneNumber("555123"));
+    }
+
+    @Test
+    void formatPhoneNumberFormatsSevenToTenDigitsFull() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("(555) 123-4567", profileView.formatPhoneNumber("5551234567"));
+    }
+
+    @Test
+    void formatPhoneNumberTruncatesMoreThanTenDigits() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("(555) 123-4567", profileView.formatPhoneNumber("555123456789"));
+    }
+
+    @Test
+    void formatPhoneNumberStripsExistingFormatting() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("(555) 123-4567", profileView.formatPhoneNumber("(555) 123-4567"));
+    }
+
+    @Test
+    void formatPhoneNumberHandlesPartialInput() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        // 5 digits
+        assertEquals("(555) 12", profileView.formatPhoneNumber("55512"));
+    }
+
+    // =============================================
+    // isValidPhoneNumber tests
+    // =============================================
+
+    @Test
+    void isValidPhoneNumberReturnsTrueForNull() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertTrue(profileView.isValidPhoneNumber(null));
+    }
+
+    @Test
+    void isValidPhoneNumberReturnsTrueForEmpty() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertTrue(profileView.isValidPhoneNumber(""));
+    }
+
+    @Test
+    void isValidPhoneNumberReturnsTrueForFormattedNumber() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertTrue(profileView.isValidPhoneNumber("(555) 123-4567"));
+    }
+
+    @Test
+    void isValidPhoneNumberReturnsTrueForDashSeparated() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertTrue(profileView.isValidPhoneNumber("555-123-4567"));
+    }
+
+    @Test
+    void isValidPhoneNumberReturnsFalseForTooShort() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertFalse(profileView.isValidPhoneNumber("555"));
+    }
+
+    @Test
+    void isValidPhoneNumberReturnsFalseForLetters() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertFalse(profileView.isValidPhoneNumber("abc-def-ghij"));
+    }
+
+    // =============================================
+    // normalizePhoneNumber tests
+    // =============================================
+
+    @Test
+    void normalizePhoneNumberReturnsEmptyForNull() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("", profileView.normalizePhoneNumber(null));
+    }
+
+    @Test
+    void normalizePhoneNumberReturnsEmptyForBlank() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("", profileView.normalizePhoneNumber("   "));
+    }
+
+    @Test
+    void normalizePhoneNumberStripsFormattingToDigitsOnly() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("5551234567", profileView.normalizePhoneNumber("(555) 123-4567"));
+    }
+
+    @Test
+    void normalizePhoneNumberPassesThroughDigitsOnly() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertEquals("5551234567", profileView.normalizePhoneNumber("5551234567"));
+    }
+
+    // =============================================
+    // saveProfile tests
+    // =============================================
+
+    @Test
+    void saveProfilePersistsNormalizedPhoneAndNames() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Simulate user editing fields — access via reflection since fields are private
+        setTextField(profileView, "firstNameField", "Jane");
+        setTextField(profileView, "lastNameField", "Smith");
+        setTextField(profileView, "phoneNumberField", "(555) 123-4567");
+
+        profileView.saveProfile();
+
+        verify(userService).saveUser(testUser);
+        assertEquals("Jane", testUser.getFirstName());
+        assertEquals("Smith", testUser.getLastName());
+        assertEquals("5551234567", testUser.getPhoneNumber());
+    }
+
+    @Test
+    void saveProfileRejectsInvalidPhoneNumber() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Use a partial number that is too short to be valid (2 digits).
+        // formatPhoneNumber("12") returns "12", which fails isValidPhoneNumber.
+        setTextField(profileView, "phoneNumberField", "12");
+
+        profileView.saveProfile();
+
+        // saveUser should NOT be called when phone is invalid
+        verify(userService, never()).saveUser(any());
+    }
+
+    @Test
+    void saveProfileHandsExceptionGracefully() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        setTextField(profileView, "phoneNumberField", "");
+        when(userService.saveUser(any())).thenThrow(new RuntimeException("DB down"));
+
+        // Should not propagate exception
+        assertDoesNotThrow(() -> profileView.saveProfile());
+    }
+
+    @Test
+    void saveProfileAllowsEmptyPhone() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        setTextField(profileView, "firstNameField", "Jane");
+        setTextField(profileView, "lastNameField", "Smith");
+        setTextField(profileView, "phoneNumberField", "");
+
+        profileView.saveProfile();
+
+        verify(userService).saveUser(testUser);
+        assertEquals("", testUser.getPhoneNumber());
+    }
+
+    @Test
+    void saveProfileSavesNotifyNewPostsPreference() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        setTextField(profileView, "phoneNumberField", "");
+        setCheckboxValue(profileView, "notifyNewPostsCheckbox", false);
+
+        profileView.saveProfile();
+
+        verify(userService).saveUser(testUser);
+        assertFalse(testUser.getNotifyNewPosts());
+    }
+
+    // =============================================
+    // refreshMyStatsList tests
+    // =============================================
+
+    @Test
+    void refreshMyStatsListShowsEmptyMessageWhenNoStats() {
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // refreshMyStatsList is called during construction; verify the empty message
+        boolean hasEmptyMessage = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof Paragraph
+                && ((Paragraph) c).getText().contains("No personal stats yet"));
+        assertTrue(hasEmptyMessage, "Should show empty state message when no stats");
+    }
+
+    @Test
+    void refreshMyStatsListRendersActiveAndArchivedStats() {
+        PersonalStatDefinition activeStat = new PersonalStatDefinition("pushups", "Push-ups", "💪", 0, testUser);
+        activeStat.setId(1L);
+        activeStat.setArchived(false);
+
+        PersonalStatDefinition archivedStat = new PersonalStatDefinition("running", "Running", "🏃", 1, testUser);
+        archivedStat.setId(2L);
+        archivedStat.setArchived(true);
+
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(activeStat, archivedStat));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Active stat label should be present
+        boolean hasActiveLabel = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof Span && "Push-ups".equals(((Span) c).getText()));
+        assertTrue(hasActiveLabel, "Should render active stat label");
+
+        // Archived badge should be present
+        boolean hasArchivedBadge = findAllDescendants(profileView)
+            .anyMatch(c -> c instanceof Span && "archived".equals(((Span) c).getText()));
+        assertTrue(hasArchivedBadge, "Should render archived badge");
+    }
+
+    @Test
+    void refreshMyStatsListRendersUpDownButtonsForActiveStats() {
+        PersonalStatDefinition stat1 = new PersonalStatDefinition("a", "Alpha", "🅰", 0, testUser);
+        stat1.setId(1L);
+        stat1.setArchived(false);
+
+        PersonalStatDefinition stat2 = new PersonalStatDefinition("b", "Beta", "🅱", 1, testUser);
+        stat2.setId(2L);
+        stat2.setArchived(false);
+
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(stat1, stat2));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // There should be at least one Button that is a Restore button (none here) — check that Buttons exist for arrows
+        long buttonCount = findAllDescendants(profileView)
+            .filter(c -> c instanceof Button)
+            .count();
+        // At minimum: Add Stat button + (up, down, archive) x 2 active stats = 7 buttons
+        assertTrue(buttonCount >= 7, "Should have buttons for reordering and archiving active stats, got " + buttonCount);
+    }
+
+    // =============================================
+    // movePersonalStatUp / Down tests
+    // =============================================
+
+    @Test
+    void movePersonalStatUpSwapsDisplayOrders() {
+        PersonalStatDefinition stat1 = new PersonalStatDefinition("a", "Alpha", "🅰", 0, testUser);
+        stat1.setId(1L);
+        stat1.setArchived(false);
+
+        PersonalStatDefinition stat2 = new PersonalStatDefinition("b", "Beta", "🅱", 1, testUser);
+        stat2.setId(2L);
+        stat2.setArchived(false);
+
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any()))
+            .thenReturn(new ArrayList<>(List.of(stat1, stat2)));
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(stat1, stat2));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.movePersonalStatUp(stat2);
+
+        // stat2 should get stat1's order and vice versa
+        assertEquals(0, stat2.getDisplayOrder());
+        assertEquals(1, stat1.getDisplayOrder());
+        verify(personalStatDefinitionRepository).save(stat2);
+        verify(personalStatDefinitionRepository).save(stat1);
+    }
+
+    @Test
+    void movePersonalStatDownSwapsDisplayOrders() {
+        PersonalStatDefinition stat1 = new PersonalStatDefinition("a", "Alpha", "🅰", 0, testUser);
+        stat1.setId(1L);
+        stat1.setArchived(false);
+
+        PersonalStatDefinition stat2 = new PersonalStatDefinition("b", "Beta", "🅱", 1, testUser);
+        stat2.setId(2L);
+        stat2.setArchived(false);
+
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any()))
+            .thenReturn(new ArrayList<>(List.of(stat1, stat2)));
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(stat1, stat2));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.movePersonalStatDown(stat1);
+
+        assertEquals(1, stat1.getDisplayOrder());
+        assertEquals(0, stat2.getDisplayOrder());
+        verify(personalStatDefinitionRepository).save(stat1);
+        verify(personalStatDefinitionRepository).save(stat2);
+    }
+
+    @Test
+    void movePersonalStatUpDoesNothingForFirstStat() {
+        PersonalStatDefinition stat1 = new PersonalStatDefinition("a", "Alpha", "🅰", 0, testUser);
+        stat1.setId(1L);
+        stat1.setArchived(false);
+
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any()))
+            .thenReturn(new ArrayList<>(List.of(stat1)));
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(stat1));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.movePersonalStatUp(stat1);
+
+        // save should not be called for swap since it's first item (no match in loop starting at i=1)
+        verify(personalStatDefinitionRepository, never()).save(any());
+    }
+
+    @Test
+    void movePersonalStatDownDoesNothingForLastStat() {
+        PersonalStatDefinition stat1 = new PersonalStatDefinition("a", "Alpha", "🅰", 0, testUser);
+        stat1.setId(1L);
+        stat1.setArchived(false);
+
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any()))
+            .thenReturn(new ArrayList<>(List.of(stat1)));
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(stat1));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.movePersonalStatDown(stat1);
+
+        verify(personalStatDefinitionRepository, never()).save(any());
+    }
+
+    // =============================================
+    // archivePersonalStat tests
+    // =============================================
+
+    @Test
+    void archivePersonalStatSetsArchivedAndSaves() {
+        PersonalStatDefinition stat = new PersonalStatDefinition("pushups", "Push-ups", "💪", 0, testUser);
+        stat.setId(1L);
+        stat.setArchived(false);
+
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.archivePersonalStat(stat);
+
+        assertTrue(stat.getArchived());
+        verify(personalStatDefinitionRepository).save(stat);
+    }
+
+    // =============================================
+    // restorePersonalStat tests
+    // =============================================
+
+    @Test
+    void restorePersonalStatSetsUnarchivedAndAppendsToEnd() {
+        PersonalStatDefinition activeStatExisting = new PersonalStatDefinition("active", "Active", "✅", 0, testUser);
+        activeStatExisting.setId(1L);
+        activeStatExisting.setArchived(false);
+
+        PersonalStatDefinition archivedStat = new PersonalStatDefinition("pushups", "Push-ups", "💪", 5, testUser);
+        archivedStat.setId(2L);
+        archivedStat.setArchived(true);
+
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(activeStatExisting, archivedStat));
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any()))
+            .thenReturn(new ArrayList<>(List.of(activeStatExisting)));
+        when(statDefinitionRepository.existsGlobalByName("pushups")).thenReturn(false);
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.restorePersonalStat(archivedStat);
+
+        assertFalse(archivedStat.getArchived());
+        assertEquals(1, archivedStat.getDisplayOrder()); // maxOrder(0) + 1
+        verify(personalStatDefinitionRepository).save(archivedStat);
+    }
+
+    @Test
+    void restorePersonalStatBlockedByGlobalStatCollision() {
+        PersonalStatDefinition archivedStat = new PersonalStatDefinition("pushups", "Push-ups", "💪", 0, testUser);
+        archivedStat.setId(1L);
+        archivedStat.setArchived(true);
+
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(List.of(archivedStat));
+        when(statDefinitionRepository.existsGlobalByName("pushups")).thenReturn(true);
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        profileView.restorePersonalStat(archivedStat);
+
+        // Should remain archived — save should NOT be called
+        assertTrue(archivedStat.getArchived());
+        verify(personalStatDefinitionRepository, never()).save(archivedStat);
+    }
+
+    // =============================================
+    // openAddPersonalStatDialog tests
+    // =============================================
+
+    @Test
+    void openAddPersonalStatDialogDoesNotThrow() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        assertDoesNotThrow(() -> profileView.openAddPersonalStatDialog());
+    }
+
     /**
      * Recursively stream all descendant components.
      */
@@ -376,5 +819,27 @@ class ProfileViewTest {
             root.getChildren(),
             root.getChildren().flatMap(this::findAllDescendants)
         );
+    }
+
+    private void setTextField(ProfileView view, String fieldName, String value) {
+        try {
+            java.lang.reflect.Field field = ProfileView.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            TextField tf = (TextField) field.get(view);
+            tf.setValue(value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void setCheckboxValue(ProfileView view, String fieldName, boolean value) {
+        try {
+            java.lang.reflect.Field field = ProfileView.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            com.vaadin.flow.component.checkbox.Checkbox cb = (com.vaadin.flow.component.checkbox.Checkbox) field.get(view);
+            cb.setValue(value);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

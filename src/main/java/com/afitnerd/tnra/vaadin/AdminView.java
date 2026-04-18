@@ -134,11 +134,11 @@ public class AdminView extends VerticalLayout {
         return content;
     }
 
-    private void refreshMembersGrid(Grid<User> grid) {
+    void refreshMembersGrid(Grid<User> grid) {
         grid.setItems(userService.getAllActiveUsers());
     }
 
-    private void openInviteMemberDialog(Grid<User> membersGrid) {
+    void openInviteMemberDialog(Grid<User> membersGrid) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Invite Member");
 
@@ -222,7 +222,7 @@ public class AdminView extends VerticalLayout {
         return content;
     }
 
-    private void refreshStatsList(VerticalLayout statsList) {
+    void refreshStatsList(VerticalLayout statsList) {
         statsList.removeAll();
         List<StatDefinition> allStats = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc();
 
@@ -304,7 +304,7 @@ public class AdminView extends VerticalLayout {
         return -1;
     }
 
-    private void moveStatUp(StatDefinition stat, VerticalLayout statsList) {
+    void moveStatUp(StatDefinition stat, VerticalLayout statsList) {
         List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         int index = findActiveIndex(activeStats, stat);
         if (index > 0) {
@@ -319,7 +319,7 @@ public class AdminView extends VerticalLayout {
         }
     }
 
-    private void moveStatDown(StatDefinition stat, VerticalLayout statsList) {
+    void moveStatDown(StatDefinition stat, VerticalLayout statsList) {
         List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         int index = findActiveIndex(activeStats, stat);
         if (index >= 0 && index < activeStats.size() - 1) {
@@ -334,7 +334,7 @@ public class AdminView extends VerticalLayout {
         }
     }
 
-    private void archiveStat(StatDefinition stat, VerticalLayout statsList) {
+    void archiveStat(StatDefinition stat, VerticalLayout statsList) {
         // Check if this is the last active stat
         List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         if (activeStats.size() <= 1) {
@@ -351,7 +351,7 @@ public class AdminView extends VerticalLayout {
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
-    private void restoreStat(StatDefinition stat, VerticalLayout statsList) {
+    void restoreStat(StatDefinition stat, VerticalLayout statsList) {
         stat.setArchived(false);
         // Put restored stat at the end of the active list
         List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
@@ -367,7 +367,7 @@ public class AdminView extends VerticalLayout {
         notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
-    private void openAddStatDialog(VerticalLayout statsList) {
+    void openAddStatDialog(VerticalLayout statsList) {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Add New Stat");
 
@@ -648,7 +648,7 @@ public class AdminView extends VerticalLayout {
         dialog.open();
     }
 
-    private void showValidationError(User caller, User callee, java.util.List<GoToGuyPair> existingPairs) {
+    void showValidationError(User caller, User callee, java.util.List<GoToGuyPair> existingPairs) {
         String errorMessage;
 
         if (caller == null || callee == null) {

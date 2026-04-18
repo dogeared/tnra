@@ -179,7 +179,7 @@ public class ProfileView extends VerticalLayout {
         return section;
     }
 
-    private void refreshMyStatsList() {
+    void refreshMyStatsList() {
         if (myStatsList == null || currentUser == null) return;
         myStatsList.removeAll();
 
@@ -241,7 +241,7 @@ public class ProfileView extends VerticalLayout {
         }
     }
 
-    private void openAddPersonalStatDialog() {
+    void openAddPersonalStatDialog() {
         Dialog dialog = new Dialog();
         dialog.setHeaderTitle("Add Personal Stat");
 
@@ -309,7 +309,7 @@ public class ProfileView extends VerticalLayout {
         dialog.open();
     }
 
-    private void movePersonalStatUp(PersonalStatDefinition stat) {
+    void movePersonalStatUp(PersonalStatDefinition stat) {
         java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
             .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
         for (int i = 1; i < activeStats.size(); i++) {
@@ -326,7 +326,7 @@ public class ProfileView extends VerticalLayout {
         refreshMyStatsList();
     }
 
-    private void movePersonalStatDown(PersonalStatDefinition stat) {
+    void movePersonalStatDown(PersonalStatDefinition stat) {
         java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
             .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
         for (int i = 0; i < activeStats.size() - 1; i++) {
@@ -343,7 +343,7 @@ public class ProfileView extends VerticalLayout {
         refreshMyStatsList();
     }
 
-    private void archivePersonalStat(PersonalStatDefinition stat) {
+    void archivePersonalStat(PersonalStatDefinition stat) {
         stat.setArchived(true);
         personalStatDefinitionRepository.save(stat);
         refreshMyStatsList();
@@ -351,7 +351,7 @@ public class ProfileView extends VerticalLayout {
         n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
-    private void restorePersonalStat(PersonalStatDefinition stat) {
+    void restorePersonalStat(PersonalStatDefinition stat) {
         // Check if a global stat now has this name
         if (statDefinitionRepository.existsGlobalByName(stat.getName())) {
             Notification n = Notification.show(
@@ -430,7 +430,7 @@ public class ProfileView extends VerticalLayout {
         return phoneField;
     }
     
-    private String formatPhoneNumber(String input) {
+    String formatPhoneNumber(String input) {
         if (input == null || input.trim().isEmpty()) {
             return "";
         }
@@ -453,14 +453,14 @@ public class ProfileView extends VerticalLayout {
         }
     }
     
-    private boolean isValidPhoneNumber(String phoneNumber) {
+    boolean isValidPhoneNumber(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
             return true; // Allow empty phone numbers
         }
         return PHONE_PATTERN.matcher(phoneNumber).matches();
     }
     
-    private String normalizePhoneNumber(String phoneNumber) {
+    String normalizePhoneNumber(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
             return "";
         }
@@ -496,7 +496,7 @@ public class ProfileView extends VerticalLayout {
         }
     }
 
-    private void saveProfile() {
+    void saveProfile() {
         if (currentUser != null) {
             // Validate phone number before saving
             String phoneNumber = phoneNumberField.getValue();
