@@ -13,13 +13,19 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.InputStream;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -46,9 +52,18 @@ class ProfileViewTest {
 
     private User testUser;
     private ProfileView profileView;
+    private UI ui;
 
     @BeforeEach
     void setUp() {
+        ui = new UI();
+        VaadinSession session = mock(VaadinSession.class, Mockito.RETURNS_DEEP_STUBS);
+        lenient().when(session.hasLock()).thenReturn(true);
+        VaadinService service = mock(VaadinService.class);
+        lenient().when(session.getService()).thenReturn(service);
+        ui.getInternals().setSession(session);
+        UI.setCurrent(ui);
+
         testUser = new User();
         testUser.setId(1L);
         testUser.setSlackUserId("test-user");
@@ -60,6 +75,11 @@ class ProfileViewTest {
 
         lenient().when(userService.getCurrentUser()).thenReturn(testUser);
         lenient().when(fileStorageService.getFileUrl(anyString())).thenReturn("http://example.com/profile.jpg");
+    }
+
+    @AfterEach
+    void tearDown() {
+        UI.setCurrent(null);
     }
 
     @Test
@@ -285,6 +305,67 @@ class ProfileViewTest {
         boolean hasAddStatButton = findAllDescendants(profileView)
             .anyMatch(c -> c instanceof Button && ((Button) c).getText().contains("Add Stat"));
         assertTrue(hasAddStatButton, "Profile view should contain an 'Add Stat' button");
+    }
+
+    @Test
+    void testProfileImageUploadPersistsToDatabase() throws Exception {
+        // Arrange
+        testUser.setProfileImage(null);
+        when(userService.getCurrentUser()).thenReturn(testUser);
+        when(fileStorageService.storeFile(any(InputStream.class), anyString(), anyString()))
+            .thenReturn("abc123.jpg");
+        when(fileStorageService.getFileUrl("abc123.jpg"))
+            .thenReturn("/uploads/abc123.jpg");
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Act
+        profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
+
+        // Assert — saveUser must be called to persist the profile_image to DB
+        verify(userService).saveUser(testUser);
+        assertEquals("abc123.jpg", testUser.getProfileImage());
+    }
+
+    @Test
+    void testProfileImageUploadDeletesOldImage() throws Exception {
+        // Arrange — user already has a profile image
+        testUser.setProfileImage("old-image.jpg");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+        when(fileStorageService.storeFile(any(InputStream.class), anyString(), anyString()))
+            .thenReturn("new-image.jpg");
+        when(fileStorageService.getFileUrl("new-image.jpg"))
+            .thenReturn("/uploads/new-image.jpg");
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Act
+        profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
+
+        // Assert — old image deleted, new one saved
+        verify(fileStorageService).deleteFile("old-image.jpg");
+        verify(userService).saveUser(testUser);
+        assertEquals("new-image.jpg", testUser.getProfileImage());
+    }
+
+    @Test
+    void testProfileImageUploadHandlesEmptyOldImage() throws Exception {
+        // Arrange — user has empty string for profile image
+        testUser.setProfileImage("");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+        when(fileStorageService.storeFile(any(InputStream.class), anyString(), anyString()))
+            .thenReturn("new-image.jpg");
+        when(fileStorageService.getFileUrl("new-image.jpg"))
+            .thenReturn("/uploads/new-image.jpg");
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+
+        // Act
+        profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
+
+        // Assert — should NOT try to delete empty filename
+        verify(fileStorageService, never()).deleteFile(anyString());
+        verify(userService).saveUser(testUser);
     }
 
     /**

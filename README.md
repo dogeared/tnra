@@ -65,13 +65,12 @@ cp .env.template .env
 At minimum, set:
 
 ```bash
-SPRING_DATASOURCE_USERNAME=root
-SPRING_DATASOURCE_PASSWORD=<choose_a_password>
-VAADIN_PRODUCTIONMODE=false
+MYSQL_ROOT_PASSWORD=<choose_a_root_password>
 ```
 
-Keycloak defaults work out of the box for local dev (`tnra-app` / `tnra-app-secret` /
-`http://localhost:8180/realms/tnra`). Only set `KEYCLOAK_*` variables if you customize Keycloak.
+The `tnra` database user (matching `application.yml` defaults) is auto-created by
+`mysql/init-local-user.sql` on first MySQL container start. Keycloak defaults work
+out of the box for local dev (`tnra-app` / `tnra-app-secret` / `http://localhost:8180/realms/tnra`).
 
 ### 3. Choose a run option
 
@@ -92,8 +91,11 @@ H2 uses `ddl-auto: create-drop` and Flyway is disabled.
 #### Option B: MySQL via Docker (persistent data, matches production)
 
 ```bash
-# Start MySQL and Keycloak
+# Start MySQL and Keycloak (first time)
 docker compose up mysql keycloak -d
+
+# Or, restart existing containers from a previous run
+docker compose start mysql keycloak
 
 # Wait for MySQL to be healthy
 docker compose exec mysql mysqladmin ping -h localhost --wait=30
@@ -103,19 +105,11 @@ docker compose exec mysql mysqladmin ping -h localhost --wait=30
 ```
 
 MySQL is available at `localhost:3307` (mapped from container port 3306). The `tnra` database
-is created automatically by Docker. Flyway runs all migrations on first start.
+and a `tnra` user (matching `application.yml` defaults) are created automatically on first
+container start. Flyway runs all migrations on first app start.
 
-**Optional: create a non-root database user**
-
-```bash
-docker compose exec mysql mysql -uroot -p<your_password> -e "
-  CREATE USER 'tnra' IDENTIFIED BY '<user_password>';
-  GRANT ALL PRIVILEGES ON tnra.* TO 'tnra'@'%';
-  FLUSH PRIVILEGES;
-"
-```
-
-Then update `application.yml` datasource credentials to match.
+> **Note:** If you already have a MySQL Docker volume, the init script won't re-run.
+> Reset with: `docker compose down -v && docker compose up mysql keycloak -d`
 
 #### Option C: Full stack via Docker Compose (app + MySQL + Keycloak + Nginx)
 
@@ -155,8 +149,11 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
 5. Go to Credentials tab > Set password (disable "Temporary")
 6. Log in to the app with this user
 
-Pre-configured test accounts: `admin@tnra.local` / `admin` (admin role),
-`member@tnra.local` / `member`.
+Pre-configured demo accounts (imported with realm):
+- `jerry@seinfeld.com` / `heap9PUMPKIN@joanne` (admin + member)
+- `kramer@seinfeld.com` / `heap9PUMPKIN@joanne` (member)
+- `elaine@seinfeld.com` / `limbo5unfair!PRETTY` (member)
+- `george@seinfeld.com` / `VETO7rugs@connors` (member)
 
 ### 6. Access the application
 
@@ -170,7 +167,7 @@ Each TNRA group runs as its own container with its own database and Keycloak rea
 
 ### Prerequisites
 
-- The base infrastructure running (`docker compose up mysql keycloak -d`)
+- The base infrastructure running (`docker compose up mysql keycloak -d` for first run, or `docker compose start mysql keycloak` to restart existing containers)
 - [mkcert](https://github.com/FiloSottile/mkcert) installed for local HTTPS
 - Java 21 (to run the CLI)
 
@@ -183,76 +180,131 @@ cd cli && mvn package -DskipTests && cd ..
 ### 2. Provision a new group
 
 ```bash
-java -jar cli/target/tnra-cli.jar provision recovery-guys --domain afitnerd.local
+java -jar cli/target/tnra-cli.jar provision tnra1 \
+  --domain dev.dogeared.dev \
+  --admin-email jerry@seinfeld.com \
+  --admin-first-name Jerry \
+  --admin-last-name Seinfeld
 ```
 
-This generates 6 files in `provision/recovery-guys/`:
+Save the temporary admin password shown in the output. The admin must change it on first login.
+
+This generates 7 files in `provision/tnra1/`:
 - `docker-compose.yml` — app container on the shared network
-- `recovery-guys-realm.json` — Keycloak realm with client and roles
-- `recovery-guys.conf` — Nginx subdomain routing
+- `tnra1-realm.json` — Keycloak realm with client, roles, and admin user
+- `tnra1.conf` — Nginx subdomain routing
 - `init-db.sql` — MySQL database and user creation
-- `.env` — group-specific credentials
-- `INSTRUCTIONS.md` — step-by-step guide
+- `seed-admin.sql` — inserts the admin user into the app database
+- `.env` — group-specific credentials (host-accessible URLs for IDE dev)
+- `INSTRUCTIONS.md` — step-by-step guide (covers IDE dev, Docker, and production)
 
 ### 3. Set up local DNS
 
 Add to `/etc/hosts`:
 
 ```
-127.0.0.1 recovery-guys.afitnerd.local
+127.0.0.1 auth.dev.dogeared.dev tnra1.dev.dogeared.dev
 ```
 
 ### 4. Set up local HTTPS (one-time)
 
 ```bash
+mkdir -p nginx/.cert
 mkcert -install
 mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem \
-  localhost tnra.afitnerd.local "*.afitnerd.local"
+  localhost auth.dev.dogeared.dev "*.dev.dogeared.dev"
 ```
 
 ### 5. Initialize the database
 
 ```bash
-docker compose exec -T mysql mysql -uroot -p<password> \
-  < provision/recovery-guys/init-db.sql
+docker compose exec -T mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> \
+  < provision/tnra1/init-db.sql
 ```
 
 ### 6. Import the Keycloak realm
 
 ```bash
-cp provision/recovery-guys/recovery-guys-realm.json keycloak/
+cp provision/tnra1/tnra1-realm.json keycloak/
 docker compose restart keycloak
 ```
 
-Verify at `http://localhost:8180/admin`: the `recovery-guys` realm should appear.
+Verify at `https://auth.dev.dogeared.dev/admin` (admin/admin): the `tnra1` realm should appear
+with the admin user pre-created.
 
 ### 7. Start the group's container
 
 ```bash
-docker compose -f provision/recovery-guys/docker-compose.yml up --build -d
+# Build the production JAR first (if not already built)
+./mvnw clean package -DskipTests -Pproduction
+
+docker compose -f provision/tnra1/docker-compose.yml up --build -d
 ```
 
-### 8. Copy the Nginx config and reload
+### 8. Seed the admin user
+
+After the app has started and Flyway has created the schema:
 
 ```bash
-cp provision/recovery-guys/recovery-guys.conf nginx/sites/
+docker compose exec -T mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> \
+  < provision/tnra1/seed-admin.sql
+```
+
+To load demo data instead (optional, requires a SQL dump file):
+
+```bash
+docker compose exec -T mysql mysql -utnra_tnra1 -p<password_from_provision/.env> tnra_tnra1 \
+  < /path/to/demo-data.sql
+```
+
+### 9. Copy the Nginx config and reload
+
+```bash
+cp provision/tnra1/tnra1.conf nginx/sites/
 docker compose restart proxy
 ```
 
-### 9. Create an admin user
-
-1. Go to `http://localhost:8180/admin`
-2. Switch to the `recovery-guys` realm
-3. Users > Add user (set email, name)
-4. Credentials > Set password
-5. Role Mappings > Assign `admin` and `member`
-
 ### 10. Access the group
 
-Visit `https://recovery-guys.afitnerd.local` and log in.
+Visit `https://tnra1.dev.dogeared.dev` and log in with the admin credentials from step 2.
+The admin will be prompted to change their password on first login.
 
-The original group continues to work at its existing URL. Each group has fully isolated
-data, users, and authentication.
+Each group has fully isolated data, users, and authentication.
+
+### Removing a group
+
+To fully remove a provisioned group (e.g., `tnra1`):
+
+```bash
+# 1. Stop the group's container
+docker compose -f provision/tnra1/docker-compose.yml down
+
+# 2. Remove the Nginx config and reload
+rm nginx/sites/tnra1.conf
+docker compose restart proxy
+
+# 3. Drop the database and user
+docker compose exec mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> -e "
+  DROP DATABASE IF EXISTS tnra_tnra1;
+  DROP USER IF EXISTS 'tnra_tnra1'@'%';
+  FLUSH PRIVILEGES;
+"
+
+# 4. Remove the Keycloak realm
+# Option A: Delete via admin console at https://auth.dev.dogeared.dev/admin
+#   Select the realm > Realm Settings > Action dropdown > Delete
+# Option B: Reset Keycloak data (re-imports all realm JSONs from scratch)
+rm keycloak/tnra1-realm.json
+docker compose down keycloak
+docker volume rm tnra_keycloak-data
+docker compose up keycloak -d
+# Note: simply restarting Keycloak does NOT remove existing realms.
+# Keycloak only imports realm JSONs on first start with an empty database.
+
+# 5. Remove provisioned files and registry entry
+rm -rf provision/tnra1
+# Edit groups.json and remove the tnra1 entry
+```
 
 ### Group registry
 

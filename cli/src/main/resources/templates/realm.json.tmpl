@@ -25,9 +25,9 @@
       "redirectUris": [
         "https://{{GROUP_NAME}}.{{DOMAIN}}/login/oauth2/code/keycloak"
       ],
-      "postLogoutRedirectUris": [
-        "https://{{GROUP_NAME}}.{{DOMAIN}}/*"
-      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://{{GROUP_NAME}}.{{DOMAIN}}/*"
+      },
       "webOrigins": [
         "https://{{GROUP_NAME}}.{{DOMAIN}}"
       ],
@@ -49,6 +49,27 @@
             "userinfo.token.claim": "true"
           }
         }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "{{ADMIN_EMAIL}}",
+      "email": "{{ADMIN_EMAIL}}",
+      "firstName": "{{ADMIN_FIRST_NAME}}",
+      "lastName": "{{ADMIN_LAST_NAME}}",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "{{ADMIN_PASSWORD}}",
+          "temporary": true
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "member"
       ]
     }
   ]

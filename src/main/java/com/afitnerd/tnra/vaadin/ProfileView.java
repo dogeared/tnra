@@ -374,7 +374,7 @@ public class ProfileView extends VerticalLayout {
         n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
     }
 
-    private void processProfileImageUpload(String fileName, String contentType, byte[] data) {
+    void processProfileImageUpload(String fileName, String contentType, byte[] data) {
         try (InputStream inputStream = new ByteArrayInputStream(data)) {
             if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
                 fileStorageService.deleteFile(currentUser.getProfileImage());
@@ -382,6 +382,7 @@ public class ProfileView extends VerticalLayout {
 
             String storedFileName = fileStorageService.storeFile(inputStream, fileName, contentType);
             currentUser.setProfileImage(storedFileName);
+            userService.saveUser(currentUser);
 
             String imageUrl = fileStorageService.getFileUrl(storedFileName);
             profileImage.setSrc(imageUrl);

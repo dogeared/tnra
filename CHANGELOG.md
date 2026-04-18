@@ -2,6 +2,39 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.4.0] - 2026-04-18
+
+### Added
+- **Admin user provisioning**: CLI now requires `--admin-email`, `--admin-first-name`, `--admin-last-name`. Generates a Keycloak user with temporary UUID password (must change on first login) and `seed-admin.sql` to insert the user into the app database.
+- **MySQL init script** (`mysql/init-local-user.sql`): auto-creates the `tnra` database user matching `application.yml` defaults on first container start.
+- **Nginx catch-all server block** returning 444 for unrecognized hostnames, preventing hostname enumeration.
+- **Keycloak reverse proxy** at `auth.dev.dogeared.dev` via nginx, with `KC_HOSTNAME` set for consistent token issuer across browser and container access.
+- **Placeholder image provisioning**: CLI creates `uploads/<group>/placeholder.png` during provisioning, copied from project root.
+- **V6 migration**: converts `post.state` from TINYINT to VARCHAR for Hibernate 6 (enum default changed from ORDINAL to STRING).
+- **Seinfeld demo users** in base Keycloak realm: Jerry (admin), Kramer, Elaine, George (member).
+- 3 new profile image upload tests (regression + edge cases).
+
+### Changed
+- **`.env.template`** converted from shell `export` format to plain `KEY=VALUE` for Docker Compose compatibility. Organized by category with `MYSQL_ROOT_PASSWORD` as independent variable.
+- **CLI `docker-compose.yml` template** uses `env_file` for credentials instead of hardcoding secrets. Docker-internal URLs for MySQL and Keycloak backend endpoints set as environment overrides.
+- **CLI `.env` template** uses host-accessible URLs (`localhost:3307`, `https://auth.DOMAIN`) for IDE development.
+- **CLI instructions template** covers both IDE dev (Step 4a) and Docker container (Step 4b) paths.
+- **Nginx per-group template**: removed duplicate `map $http_upgrade` block (defined once in default config).
+- **WebSocket upgrade headers** added to nginx localhost server block.
+- **Keycloak base realm**: disabled self-registration, replaced `postLogoutRedirectUris` with Keycloak 26 `attributes` format.
+- **V1 migration** made idempotent for pre-existing databases (conditionally adds `dark_mode` column).
+- README rewritten for unified provisioning flow with group removal instructions.
+- Local dev domain changed to `dev.dogeared.dev` (real TLD avoids browser cookie restrictions).
+
+### Fixed
+- **Profile image upload not persisting**: `processProfileImageUpload` stored the file on disk but never called `saveUser`, leaving `profile_image` NULL in database.
+- **`MYSQL_ROOT_PASSWORD`** decoupled from `SPRING_DATASOURCE_PASSWORD` (were incorrectly shared).
+- Dead env vars removed from server service (`MYSQL_DATABASE`, `MYSQL_HOST`, `MYSQL_PORT`).
+- Per-group Docker compose build context set to `../..` (project root has the Dockerfile).
+
+### Removed
+- Old test accounts (`admin@tnra.local`, `member@tnra.local`) replaced by Seinfeld demo users.
+
 ## [7.3.0] - 2026-04-02
 
 ### Added

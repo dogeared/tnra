@@ -18,15 +18,24 @@ class ProvisionCommandTest {
         return new CommandLine(new TnraCli()).execute(args);
     }
 
+    private String[] provisionArgs(String groupName, String domain, Path registry, Path output) {
+        return new String[]{
+            "provision", groupName,
+            "--domain", domain,
+            "--registry", registry.toString(),
+            "--output", output.toString(),
+            "--admin-email", "admin@example.com",
+            "--admin-first-name", "Test",
+            "--admin-last-name", "Admin"
+        };
+    }
+
     @Test
     void happyPath() throws Exception {
         Path registry = tempDir.resolve("groups.json");
         Path output = tempDir.resolve("output");
 
-        int code = run("provision", "recovery-guys",
-            "--domain", "example.com",
-            "--registry", registry.toString(),
-            "--output", output.toString());
+        int code = run(provisionArgs("recovery-guys", "example.com", registry, output));
 
         assertEquals(0, code);
 
@@ -35,24 +44,44 @@ class ProvisionCommandTest {
         assertTrue(Files.exists(groupDir.resolve("recovery-guys-realm.json")));
         assertTrue(Files.exists(groupDir.resolve("recovery-guys.conf")));
         assertTrue(Files.exists(groupDir.resolve("init-db.sql")));
+        assertTrue(Files.exists(groupDir.resolve("seed-admin.sql")));
         assertTrue(Files.exists(groupDir.resolve(".env")));
         assertTrue(Files.exists(groupDir.resolve("INSTRUCTIONS.md")));
 
-        // Verify realm JSON contains group-specific values
+        // Verify realm JSON contains group-specific values and admin user
         String realm = Files.readString(groupDir.resolve("recovery-guys-realm.json"));
         assertTrue(realm.contains("\"realm\": \"recovery-guys\""));
         assertTrue(realm.contains("\"clientId\": \"recovery-guys-app\""));
         assertTrue(realm.contains("recovery-guys.example.com"));
-        assertFalse(realm.contains("admin@tnra.local")); // test users stripped
+        assertTrue(realm.contains("admin@example.com"), "realm should include admin user");
+        assertTrue(realm.contains("\"temporary\": true"), "admin password should be temporary");
 
-        // Verify docker-compose uses correct DB
+        // Verify docker-compose uses env_file and Docker-internal URL overrides
         String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
-        assertTrue(compose.contains("tnra_recovery_guys"));
+        assertTrue(compose.contains("env_file:"), "should use env_file for credentials");
+        assertTrue(compose.contains("mysql:3306/tnra_recovery_guys"), "should override to Docker-internal MySQL");
+        assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should override to Docker-internal Keycloak");
         assertTrue(compose.contains("tnra-shared"));
+
+        // Verify .env has host-accessible URLs for IDE dev
+        String env = Files.readString(groupDir.resolve(".env"));
+        assertTrue(env.contains("localhost:3307"), ".env should use host-mapped MySQL port");
+        assertTrue(env.contains("auth.example.com"), ".env should use Keycloak domain");
+        assertTrue(env.contains("tnra_recovery_guys"), ".env should reference the group database");
 
         // Verify SQL
         String sql = Files.readString(groupDir.resolve("init-db.sql"));
         assertTrue(sql.contains("tnra_recovery_guys"));
+
+        // Verify seed-admin.sql creates the admin user in the database
+        String seed = Files.readString(groupDir.resolve("seed-admin.sql"));
+        assertTrue(seed.contains("admin@example.com"), "seed should insert admin email");
+        assertTrue(seed.contains("tnra_recovery_guys"), "seed should target group database");
+
+        // Verify uploads directory is created (placeholder copied only when
+        // uploads/placeholder.png exists at project root, not during tests)
+        assertTrue(Files.exists(groupDir.resolve("uploads/recovery-guys")),
+            "should create uploads directory for the group");
 
         // Verify registry updated
         assertTrue(Files.exists(registry));
@@ -65,7 +94,10 @@ class ProvisionCommandTest {
         Path registry = tempDir.resolve("groups.json");
         int code = run("provision", "BAD NAME!",
             "--registry", registry.toString(),
-            "--output", tempDir.resolve("out").toString());
+            "--output", tempDir.resolve("out").toString(),
+            "--admin-email", "a@b.com",
+            "--admin-first-name", "A",
+            "--admin-last-name", "B");
         assertEquals(1, code);
     }
 
@@ -74,8 +106,8 @@ class ProvisionCommandTest {
         Path registry = tempDir.resolve("groups.json");
         String outDir = tempDir.resolve("out").toString();
 
-        run("provision", "my-group", "--registry", registry.toString(), "--output", outDir);
-        int code = run("provision", "my-group", "--registry", registry.toString(), "--output", outDir);
+        run(provisionArgs("my-group", "tnra.app", registry, Path.of(outDir)));
+        int code = run(provisionArgs("my-group", "tnra.app", registry, Path.of(outDir)));
 
         assertEquals(1, code);
     }
@@ -84,7 +116,10 @@ class ProvisionCommandTest {
     void reservedNameFails() {
         int code = run("provision", "www",
             "--registry", tempDir.resolve("groups.json").toString(),
-            "--output", tempDir.resolve("out").toString());
+            "--output", tempDir.resolve("out").toString(),
+            "--admin-email", "a@b.com",
+            "--admin-first-name", "A",
+            "--admin-last-name", "B");
         assertEquals(1, code);
     }
 }

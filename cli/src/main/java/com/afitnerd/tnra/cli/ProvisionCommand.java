@@ -7,9 +7,11 @@ import picocli.CommandLine.Parameters;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 @Command(name = "provision", description = "Provision a new TNRA group")
@@ -26,6 +28,15 @@ public class ProvisionCommand implements Callable<Integer> {
 
     @Option(names = "--output", defaultValue = "provision", description = "Output directory")
     private String outputDir;
+
+    @Option(names = "--admin-email", required = true, description = "Admin user email address")
+    private String adminEmail;
+
+    @Option(names = "--admin-first-name", required = true, description = "Admin user first name")
+    private String adminFirstName;
+
+    @Option(names = "--admin-last-name", required = true, description = "Admin user last name")
+    private String adminLastName;
 
     private final TemplateRenderer renderer = new TemplateRenderer();
     private final SecretGenerator secrets = new SecretGenerator();
@@ -58,6 +69,7 @@ public class ProvisionCommand implements Callable<Integer> {
         String dbUser = "tnra_" + groupName.replace("-", "_");
         String dbPassword = secrets.generate();
         String keycloakSecret = secrets.generate();
+        String adminPassword = UUID.randomUUID().toString();
         String realmName = groupName;
         String date = LocalDate.now().toString();
 
@@ -70,6 +82,10 @@ public class ProvisionCommand implements Callable<Integer> {
         vars.put("REALM_NAME", realmName);
         vars.put("DOMAIN", domain);
         vars.put("DATE", date);
+        vars.put("ADMIN_EMAIL", adminEmail);
+        vars.put("ADMIN_FIRST_NAME", adminFirstName);
+        vars.put("ADMIN_LAST_NAME", adminLastName);
+        vars.put("ADMIN_PASSWORD", adminPassword);
 
         Path outDir = Path.of(outputDir, groupName);
         Files.createDirectories(outDir);
@@ -78,8 +94,17 @@ public class ProvisionCommand implements Callable<Integer> {
         writeFile(outDir, groupName + "-realm.json", renderer.render("realm.json.tmpl", vars));
         writeFile(outDir, groupName + ".conf", renderer.render("nginx.conf.tmpl", vars));
         writeFile(outDir, "init-db.sql", renderer.render("init-db.sql.tmpl", vars));
+        writeFile(outDir, "seed-admin.sql", renderer.render("seed-admin.sql.tmpl", vars));
         writeFile(outDir, ".env", renderer.render("env.tmpl", vars));
         writeFile(outDir, "INSTRUCTIONS.md", renderer.render("instructions.md.tmpl", vars));
+
+        // Create uploads directory with placeholder image from project root
+        Path uploadsDir = outDir.resolve("uploads").resolve(groupName);
+        Files.createDirectories(uploadsDir);
+        Path placeholderSource = Path.of("uploads", "placeholder.png");
+        if (Files.exists(placeholderSource)) {
+            Files.copy(placeholderSource, uploadsDir.resolve("placeholder.png"), StandardCopyOption.REPLACE_EXISTING);
+        }
 
         GroupRegistry.GroupEntry entry = registry.register(groupName, dbName, realmName, domain);
 
@@ -89,6 +114,9 @@ public class ProvisionCommand implements Callable<Integer> {
         System.out.println("  Realm:     " + realmName);
         System.out.println("  Port:      " + entry.port);
         System.out.println("  Output:    " + outDir.toAbsolutePath());
+        System.out.println();
+        System.out.println("  Admin:     " + adminEmail);
+        System.out.println("  Password:  " + adminPassword + " (temporary — must change on first login)");
         System.out.println();
         System.out.println("Next: read " + outDir.resolve("INSTRUCTIONS.md"));
 

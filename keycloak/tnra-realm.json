@@ -1,7 +1,7 @@
 {
   "realm": "tnra",
   "enabled": true,
-  "registrationAllowed": true,
+  "registrationAllowed": false,
   "loginTheme": "tnra",
   "sslRequired": "external",
   "roles": {
@@ -25,9 +25,9 @@
       "redirectUris": [
         "http://localhost:8080/login/oauth2/code/keycloak"
       ],
-      "postLogoutRedirectUris": [
-        "http://localhost:8080/*"
-      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8080/*"
+      },
       "webOrigins": [
         "http://localhost:8080"
       ],
@@ -54,16 +54,16 @@
   ],
   "users": [
     {
-      "username": "admin@tnra.local",
-      "email": "admin@tnra.local",
-      "firstName": "Admin",
-      "lastName": "User",
+      "username": "jerry@seinfeld.com",
+      "email": "jerry@seinfeld.com",
+      "firstName": "Jerry",
+      "lastName": "Seinfeld",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "admin",
+          "value": "123456aA$",
           "temporary": false
         }
       ],
@@ -73,16 +73,52 @@
       ]
     },
     {
-      "username": "member@tnra.local",
-      "email": "member@tnra.local",
-      "firstName": "Test",
-      "lastName": "Member",
+      "username": "kramer@seinfeld.com",
+      "email": "kramer@seinfeld.com",
+      "firstName": "Cosmo",
+      "lastName": "Kramer",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
         {
           "type": "password",
-          "value": "member",
+          "value": "123456aA$",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "elaine@seinfeld.com",
+      "email": "elaine@seinfeld.com",
+      "firstName": "Elaine",
+      "lastName": "Benes",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "123456aA$",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "member"
+      ]
+    },
+    {
+      "username": "george@seinfeld.com",
+      "email": "george@seinfeld.com",
+      "firstName": "George",
+      "lastName": "Costanza",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "123456aA$",
           "temporary": false
         }
       ],
