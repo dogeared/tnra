@@ -5,21 +5,14 @@ Domain: {{GROUP_NAME}}.{{DOMAIN}}
 
 ## Prerequisites
 
-- VPS with Docker and Docker Compose installed
 - TNRA base infrastructure running (MySQL, Keycloak, Nginx)
-- DNS `A` record pointing `{{GROUP_NAME}}.{{DOMAIN}}` to the VPS IP
-- SSL wildcard certificate for `*.{{DOMAIN}}` (or generate one with certbot)
+- DNS or `/etc/hosts` entry for `{{GROUP_NAME}}.{{DOMAIN}}`
+- SSL certificate covering `{{GROUP_NAME}}.{{DOMAIN}}`
 
-## Step 1: Copy files to VPS
-
-```bash
-scp -r provision/{{GROUP_NAME}}/ tnra@<VPS_IP>:~/
-```
-
-## Step 2: Initialize the database
+## Step 1: Initialize the database
 
 ```bash
-docker compose exec -T mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> < ~/{{GROUP_NAME}}/init-db.sql
+docker compose exec -T mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> < provision/{{GROUP_NAME}}/init-db.sql
 ```
 
 Verify:
@@ -27,61 +20,95 @@ Verify:
 docker compose exec mysql mysql -u{{DB_USER}} -p'{{DB_PASSWORD}}' -e "USE {{DB_NAME}}; SELECT 1;"
 ```
 
-## Step 3: Import Keycloak realm
+## Step 2: Import Keycloak realm
 
 ```bash
-cp ~/{{GROUP_NAME}}/{{GROUP_NAME}}-realm.json ~/tnra/keycloak/
-```
-
-Restart Keycloak to import the new realm:
-```bash
+cp provision/{{GROUP_NAME}}/{{GROUP_NAME}}-realm.json keycloak/
 docker compose restart keycloak
 ```
 
-Verify at `http://localhost:8180/admin` (via SSH tunnel):
+Verify at `http://localhost:8180/admin` (admin/admin):
 - New realm `{{REALM_NAME}}` should appear in the realm dropdown
 - Client `{{GROUP_NAME}}-app` should be configured
 
-## Step 4: Configure Nginx
+## Step 3: Configure Nginx
 
 ```bash
-mkdir -p ~/tnra/nginx/sites
-cp ~/{{GROUP_NAME}}/{{GROUP_NAME}}.conf ~/tnra/nginx/sites/
+cp provision/{{GROUP_NAME}}/{{GROUP_NAME}}.conf nginx/sites/
 docker compose restart proxy
 ```
 
-## Step 5: Start the group's app container
+## Step 4a: Run from IDE (local development)
+
+The `.env` file has host-accessible URLs (`localhost:3307` for MySQL,
+`localhost:8180` for Keycloak). Load it as environment variables:
 
 ```bash
-cd ~/tnra
-cp ~/{{GROUP_NAME}}/docker-compose.yml ~/tnra/docker-compose.{{GROUP_NAME}}.yml
-docker compose -f docker-compose.{{GROUP_NAME}}.yml up --build -d
+set -a && source provision/{{GROUP_NAME}}/.env && set +a
+./mvnw spring-boot:run
 ```
+
+Or configure your IDE to load `provision/{{GROUP_NAME}}/.env` as
+environment variables for the run configuration.
+
+Add to `/etc/hosts`:
+```
+127.0.0.1 {{GROUP_NAME}}.{{DOMAIN}}
+```
+
+Access at `https://{{GROUP_NAME}}.{{DOMAIN}}`.
+
+## Step 4b: Run as Docker container (local testing / production)
+
+```bash
+# Build the production JAR first (if not already built)
+./mvnw clean package -DskipTests -Pproduction
+
+# Start the group's container
+docker compose -f provision/{{GROUP_NAME}}/docker-compose.yml up --build -d
+```
+
+The container loads credentials from `.env` via `env_file`. Docker-internal
+URLs for MySQL (`mysql:3306`) and Keycloak (`keycloak:8080`) are set as
+overrides in the compose `environment` block.
 
 Watch logs:
 ```bash
-docker compose -f docker-compose.{{GROUP_NAME}}.yml logs -f
+docker compose -f provision/{{GROUP_NAME}}/docker-compose.yml logs -f
 ```
 
 Look for: `Started TnraApplication` and Flyway migration messages.
 
-## Step 6: Create the first admin user
+## Step 5: Seed the admin user
 
-1. Open Keycloak admin: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
-2. Navigate to `http://localhost:8180/admin`
-3. Switch to the `{{REALM_NAME}}` realm
-4. Go to Users > Add user
-5. Set username (email), first name, last name
-6. Go to Credentials > Set password (disable "Temporary")
-7. Go to Role Mappings > Assign `admin` and `member` roles
+After the app has started and Flyway has created the schema, seed the admin user:
 
-## Step 7: Verify
+```bash
+docker compose exec -T mysql mysql -uroot -p<MYSQL_ROOT_PASSWORD> \
+  < provision/{{GROUP_NAME}}/seed-admin.sql
+```
 
-Visit `https://{{GROUP_NAME}}.{{DOMAIN}}` and log in with the admin user.
+The admin user ({{ADMIN_EMAIL}}) was already created in Keycloak via the realm
+import in Step 2. The temporary password was displayed when you ran the CLI.
+The user must change their password on first login.
+
+## Step 6: Verify
+
+Visit `https://{{GROUP_NAME}}.{{DOMAIN}}` and log in with the admin credentials
+shown in the CLI output.
 
 ## Troubleshooting
 
-- **App can't connect to MySQL:** Verify the database and user were created in Step 2.
-- **App can't connect to Keycloak:** Verify the realm was imported in Step 3. Check that `KEYCLOAK_ISSUER_URI` uses `keycloak:8080` (internal Docker hostname).
+- **App can't connect to MySQL:** Verify the database and user were created in Step 1.
+- **App can't connect to Keycloak:** From IDE, use `localhost:8180`. From Docker container, the compose file overrides to `keycloak:8080`.
 - **Nginx returns 502:** The app container may not be running. Check `docker ps` and container logs.
-- **SSL errors:** Ensure the wildcard cert covers `{{GROUP_NAME}}.{{DOMAIN}}`.
+- **SSL errors:** Ensure the cert covers `{{GROUP_NAME}}.{{DOMAIN}}`.
+
+## Production Deployment
+
+For VPS deployment:
+1. Copy provisioned files to the VPS: `scp -r provision/{{GROUP_NAME}}/ user@<VPS_IP>:~/`
+2. Set up DNS A record for `{{GROUP_NAME}}.{{DOMAIN}}` pointing to the VPS IP
+3. Use certbot or a wildcard cert for `*.{{DOMAIN}}`
+4. Follow Steps 1-4b above on the VPS
+5. For Keycloak admin access via SSH tunnel: `ssh -L 8180:127.0.0.1:8180 user@<VPS_IP>`
