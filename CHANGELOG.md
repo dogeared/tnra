@@ -2,6 +2,14 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.4.1] - 2026-04-18
+
+### Added
+- 64 new tests raising JaCoCo instruction coverage from 70% to 83%.
+  - ProfileView (28): phone formatting/validation/normalization, saveProfile, personal stat CRUD (add, move, archive, restore).
+  - AdminView (16): global stat management, member invitation with email validation, validation error display.
+  - MainLayout (10): dark mode cookie read/write, theme toggle, initial dark mode resolution, admin role detection.
+
 ## [7.4.0] - 2026-04-18
 
 ### Added
