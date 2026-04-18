@@ -42,6 +42,14 @@ CREATE TABLE IF NOT EXISTS post (
     CONSTRAINT fk_post_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
+-- Add dark_mode if migrating from a pre-V1 database (column was missing from original Hibernate schema)
+SET @col_exists = (SELECT COUNT(*) FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'users' AND column_name = 'dark_mode');
+SET @sql = IF(@col_exists = 0, 'ALTER TABLE users ADD COLUMN dark_mode BIT', 'SELECT 1');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
 CREATE TABLE IF NOT EXISTS go_to_guy_set (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     start_date DATETIME(6)
