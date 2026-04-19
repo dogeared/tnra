@@ -253,6 +253,18 @@ public class StatCard extends Div {
         this.currentValue = value;  // Update internal state
         valueField.setValue(value); // null values will show as empty
     }
+
+    /**
+     * Set the UI value without triggering the value change listener.
+     * Simulates the state where a user has typed a value but the event
+     * hasn't been sent to the server yet (Vaadin event batching).
+     */
+    void setValueSilently(Integer value) {
+        this.currentValue = value;
+        isUpdatingFromButton = true;
+        valueField.setValue(value);
+        isUpdatingFromButton = false;
+    }
     
     public Integer getValue() {
         return valueField.getValue();

@@ -205,4 +205,8 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     public void setOnStatsChanged(Runnable callback) {
         this.onStatsChanged = callback;
     }
+
+    List<StatCard> getStatCards() {
+        return statCards;
+    }
 }
