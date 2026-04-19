@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.4.2] - 2026-04-18
+
+### Fixed
+- **Stat values typed directly into fields not persisting on Finish.** When a user typed a stat value and immediately clicked Finish without tabbing out, the Vaadin value change event hadn't fired, leaving the value unpersisted. Now `flushPendingValues()` syncs all StatCard UI values to the database before finish validation runs. Also backported to v4.14.7.
+
 ## [7.4.1] - 2026-04-18
 
 ### Added
