@@ -576,6 +576,10 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     
     private void finishPost() {
         try {
+            // Flush any stat values typed directly into fields but not yet persisted
+            if (statsView != null) {
+                statsView.flushPendingValues();
+            }
             vaadinPostPresenter.finishPost(currentUser);
 
             // Show success notification (floating, visible regardless of scroll position)

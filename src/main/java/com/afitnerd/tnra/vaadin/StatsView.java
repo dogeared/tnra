@@ -177,6 +177,19 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         refreshStats();
     }
 
+    public void flushPendingValues() {
+        if (currentPost == null) return;
+        for (int i = 0; i < statCards.size() && i < statDefinitions.size(); i++) {
+            StatCard card = statCards.get(i);
+            StatDefinition statDef = statDefinitions.get(i);
+            Integer cardValue = card.getValue();
+            Integer dbValue = currentPost.getStatValue(statDef.getName());
+            if ((cardValue != null && !cardValue.equals(dbValue)) || (cardValue == null && dbValue != null)) {
+                currentPost = vaadinPostPresenter.updateStatValue(statDef, cardValue);
+            }
+        }
+    }
+
     public boolean areAllStatsSet() {
         if (currentPost == null) {
             return false;
