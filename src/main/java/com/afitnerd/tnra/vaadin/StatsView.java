@@ -239,6 +239,40 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
     }
     
     /**
+     * Flush any stat values typed directly into fields but not yet persisted.
+     * Compares each StatCard's UI value against the database and syncs differences.
+     */
+    public void flushPendingValues() {
+        if (currentPost == null || currentPost.getStats() == null || statCards.size() < 7) return;
+
+        Stats dbStats = currentPost.getStats();
+        Stats uiStats = new Stats();
+        uiStats.setExercise(statCards.get(0).getValue());
+        uiStats.setMeditate(statCards.get(1).getValue());
+        uiStats.setPray(statCards.get(2).getValue());
+        uiStats.setRead(statCards.get(3).getValue());
+        uiStats.setGtg(statCards.get(4).getValue());
+        uiStats.setMeetings(statCards.get(5).getValue());
+        uiStats.setSponsor(statCards.get(6).getValue());
+
+        boolean dirty = !java.util.Objects.equals(uiStats.getExercise(), dbStats.getExercise())
+            || !java.util.Objects.equals(uiStats.getMeditate(), dbStats.getMeditate())
+            || !java.util.Objects.equals(uiStats.getPray(), dbStats.getPray())
+            || !java.util.Objects.equals(uiStats.getRead(), dbStats.getRead())
+            || !java.util.Objects.equals(uiStats.getGtg(), dbStats.getGtg())
+            || !java.util.Objects.equals(uiStats.getMeetings(), dbStats.getMeetings())
+            || !java.util.Objects.equals(uiStats.getSponsor(), dbStats.getSponsor());
+
+        if (dirty) {
+            try {
+                currentPost = vaadinPostPresenter.updateCompleteStats(uiStats);
+            } catch (Exception e) {
+                Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            }
+        }
+    }
+
+    /**
      * Check if all stats have been set (not null)
      */
     public boolean areAllStatsSet() {
