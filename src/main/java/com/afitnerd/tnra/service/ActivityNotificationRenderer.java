@@ -32,8 +32,9 @@ public class ActivityNotificationRenderer implements PostRenderer {
             sb.append(" on ").append(PostRenderer.formatDate(post.getFinish()));
         }
         sb.append(".</p>");
-        sb.append("<p>Log in to <a href=\"").append(escapeHtml(baseUrl));
-        sb.append("\">TNRA</a> to view the full post.</p>");
+        String postLink = baseUrl + "/posts/" + post.getId();
+        sb.append("<p><a href=\"").append(escapeHtml(postLink));
+        sb.append("\">View post</a></p>");
         sb.append("</body></html>");
 
         return sb.toString();

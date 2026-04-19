@@ -20,6 +20,9 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
+import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
@@ -36,12 +39,13 @@ import java.util.Optional;
 @Route(value = "posts", layout = MainLayout.class)
 @PermitAll
 @CssImport("./styles/post-view.css")
-public class PostView extends VerticalLayout implements AfterNavigationObserver {
+public class PostView extends VerticalLayout implements AfterNavigationObserver, HasUrlParameter<Long> {
 
     private final VaadinPostPresenter vaadinPostPresenter;
     private User currentUser;
     private User selectedUser;
     private Post currentPost;
+    private Long deepLinkPostId;
     
     // Server-side pagination fields
     private int currentPage = 0;
@@ -101,6 +105,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     }
 
     @Override
+    public void setParameter(BeforeEvent event, @OptionalParameter Long postId) {
+        this.deepLinkPostId = postId;
+    }
+
+    @Override
     public void afterNavigation(AfterNavigationEvent event) {
         initializeUser();
         createPostView();
@@ -120,6 +129,26 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // TODO implement and handle exceptions
         currentUser = vaadinPostPresenter.initializeUser();
         selectedUser = currentUser; // Default to current authenticated user
+
+        // Deep link: if a postId was provided via URL parameter, load that specific post
+        if (deepLinkPostId != null) {
+            Optional<Post> deepLinkedPost = vaadinPostPresenter.getPostById(deepLinkPostId);
+            if (deepLinkedPost.isPresent()) {
+                currentPost = deepLinkedPost.get();
+                // Set selectedUser to the post's owner so the UI reflects correctly
+                selectedUser = currentPost.getUser();
+                showingCompletedPosts = currentPost.getState() != PostState.IN_PROGRESS
+                    || !currentPost.getUser().equals(currentUser);
+                if (showingCompletedPosts) {
+                    loadCurrentPage();
+                }
+                return;
+            } else {
+                // Post not found — fall through to default behavior with a notification
+                Notification.show("Post not found.", 3000, Notification.Position.TOP_CENTER);
+            }
+        }
+
         Optional<Post> inProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser);
         if (inProgressPost.isPresent()) {
             // Show in-progress post by default
