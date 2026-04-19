@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.4.3] - 2026-04-19
+
+### Added
+- 5 regression tests for `flushPendingValues` stat sync: card differs from DB, card matches DB (no-op), card cleared to null, multiple mismatches, null post safety. Added `setValueSilently()` to StatCard for simulating Vaadin event batching in tests.
+
 ## [7.4.2] - 2026-04-18
 
 ### Fixed
