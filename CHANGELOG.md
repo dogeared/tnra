@@ -5,7 +5,7 @@ All notable changes to TNRA are documented in this file.
 ## [7.4.2] - 2026-04-18
 
 ### Fixed
-- **Stat values typed directly into fields not persisting on Finish.** When a user typed a stat value and immediately clicked Finish without tabbing out, the Vaadin value change event hadn't fired, leaving the value unpersisted. Now `flushPendingValues()` syncs all StatCard UI values to the database before finish validation runs. Also backported to v4.14.7.
+- **Finish Post fails with "stats - exercise" even after entering all stat values.** The stat value change events could arrive at the server out of order or be lost entirely due to Vaadin event batching, causing the database to be out of sync with the UI when finish validation runs. Now `flushPendingValues()` explicitly syncs all StatCard UI values to the database before finish validation, regardless of whether value change events fired. Also backported to v4.14.7.
 
 ## [7.4.1] - 2026-04-18
 
