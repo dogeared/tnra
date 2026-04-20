@@ -11,6 +11,7 @@ import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
+import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -447,6 +448,140 @@ class PostViewTest {
             // Act - We can test that completed posts are handled
             ComboBox<Post> selector = findComponentOfType(postView, ComboBox.class);
             assertNotNull(selector, "Should have post selector for completed posts");
+        }
+    }
+
+    @Test
+    void testDeepLinkLoadsSpecificCompletedPost() {
+        // Arrange: deep link to a completed post
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getPostById(2L)).thenReturn(Optional.of(completedPost1));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), 2L);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: should be in completed posts mode with the deep-linked post loaded
+            assertTrue(postView.showingCompletedPosts, "Deep-linked completed post should show completed view");
+            verify(vaadinPostPresenter).getPostById(2L);
+        }
+    }
+
+    @Test
+    void testDeepLinkLoadsOwnInProgressPost() {
+        // Arrange: deep link to current user's own in-progress post
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getPostById(1L)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), 1L);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: should show in-progress view for own in-progress post
+            assertFalse(postView.showingCompletedPosts, "Own in-progress post should show in-progress view");
+        }
+    }
+
+    @Test
+    void testDeepLinkPostNotFound() {
+        // Arrange: deep link to a non-existent post
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getPostById(999L)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), 999L);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: should fall through to default behavior (no in-progress → completed view)
+            assertTrue(postView.showingCompletedPosts, "Should fall through to completed view when post not found");
+            verify(vaadinPostPresenter).getPostById(999L);
+        }
+    }
+
+    @Test
+    void testNoDeepLinkParameterWorksAsDefault() {
+        // Arrange: no deep link (null parameter)
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), null);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: default behavior — shows in-progress post
+            assertFalse(postView.showingCompletedPosts, "Null parameter should use default behavior");
+        }
+    }
+
+    @Test
+    void testDeepLinkToOtherUsersInProgressPostBlocked() {
+        // Arrange: deep link to another user's in-progress post — should be blocked
+        User otherUser = new User();
+        otherUser.setId(2L);
+        Post otherInProgressPost = new Post();
+        otherInProgressPost.setId(20L);
+        otherInProgressPost.setUser(otherUser);
+        otherInProgressPost.setState(PostState.IN_PROGRESS);
+        otherInProgressPost.setStart(new Date());
+
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getPostById(20L)).thenReturn(Optional.of(otherInProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), 20L);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: should fall through to default behavior, NOT show the other user's post
+            assertTrue(postView.showingCompletedPosts, "Should fall through to completed view when blocked");
+            verify(vaadinPostPresenter).getPostById(20L);
+        }
+    }
+
+    @Test
+    void testDeepLinkToOtherUsersCompletedPost() {
+        // Arrange: deep link to another user's completed post
+        User otherUser = new User();
+        otherUser.setId(2L);
+        Post otherUserPost = new Post();
+        otherUserPost.setId(10L);
+        otherUserPost.setUser(otherUser);
+        otherUserPost.setState(PostState.COMPLETE);
+        otherUserPost.setFinish(new Date());
+
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getPostById(10L)).thenReturn(Optional.of(otherUserPost));
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(otherUser), any(Pageable.class))).thenReturn(new PageImpl<>(Arrays.asList(otherUserPost)));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), 10L);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: should show completed view for the other user's post
+            assertTrue(postView.showingCompletedPosts, "Other user's post should show completed view");
+            verify(vaadinPostPresenter).getPostById(10L);
         }
     }
 

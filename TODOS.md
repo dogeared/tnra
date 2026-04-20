@@ -2,6 +2,16 @@
 
 ## P1 — Next Up
 
+### Normalize Notifications
+Audit and fix all `Notification` usage across the app. Standardize position, duration, and theme variants. Ensure all notifications are visible regardless of nav drawer state.
+- **Why:** Notifications are inconsistent — some use `Notification.show()`, others use `new Notification().open()`. Positions vary (TOP_CENTER, MIDDLE, default lower-left). Some are hidden behind the nav drawer or don't appear at all.
+- **Effort:** S (human: ~1 day / CC: ~15 min)
+- **Depends on:** None.
+- **Known issues:**
+  - AdminView: "Please enter a valid email address" error notification renders in the lower left, hidden behind the nav drawer when it's open.
+  - PostView: "New post started!" notification (`Notification.show()` in `startNewPost()`) does not appear — likely same navigation timing issue as deep link notifications.
+- **Scope:** All views (PostView, AdminView, ProfileView, StatsView). Pick a consistent position (e.g., MIDDLE or TOP_CENTER), consistent duration (e.g., 3000ms), and use the explicit `new Notification().open()` pattern everywhere. Use theme variants (LUMO_SUCCESS, LUMO_ERROR) consistently for success/error states.
+
 ### Email Invitation Flow
 Send Keycloak registration link when admin invites a member.
 - **Why:** Currently admin enters an email and tells the member out-of-band to create a Keycloak account. An email invitation with a registration link is the expected UX.

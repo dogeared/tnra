@@ -51,11 +51,12 @@ class ActivityNotificationRendererTest {
     }
 
     @Test
-    void renderIncludesLoginLink() {
+    void renderIncludesDeepLinkToPost() {
         Post post = createPost("John", "Doe");
+        post.setId(42L);
         String html = renderer.render(post);
-        assertTrue(html.contains("https://tnra.example.com"));
-        assertTrue(html.contains("TNRA</a>"));
+        assertTrue(html.contains("https://tnra.example.com/posts/42"));
+        assertTrue(html.contains("View post</a>"));
     }
 
     @Test

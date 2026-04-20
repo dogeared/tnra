@@ -13,7 +13,7 @@ public class ActivityNotificationRenderer implements PostRenderer {
     public ActivityNotificationRenderer(
         @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
-        this.baseUrl = baseUrl;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
     @Override
@@ -32,8 +32,14 @@ public class ActivityNotificationRenderer implements PostRenderer {
             sb.append(" on ").append(PostRenderer.formatDate(post.getFinish()));
         }
         sb.append(".</p>");
-        sb.append("<p>Log in to <a href=\"").append(escapeHtml(baseUrl));
-        sb.append("\">TNRA</a> to view the full post.</p>");
+        if (post.getId() != null) {
+            String postLink = baseUrl + "/posts/" + post.getId();
+            sb.append("<p><a href=\"").append(escapeHtml(postLink));
+            sb.append("\">View post</a></p>");
+        } else {
+            sb.append("<p><a href=\"").append(escapeHtml(baseUrl));
+            sb.append("\">View on TNRA</a></p>");
+        }
         sb.append("</body></html>");
 
         return sb.toString();

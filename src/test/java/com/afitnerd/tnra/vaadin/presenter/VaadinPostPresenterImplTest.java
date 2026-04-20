@@ -4,6 +4,7 @@ import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
@@ -33,6 +34,7 @@ class VaadinPostPresenterImplTest {
     private UserService userService;
     private PostService postService;
     private EMailService emailService;
+    private PostRepository postRepository;
     private StatDefinitionRepository statDefinitionRepository;
     private PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private VaadinPostPresenterImpl presenter;
@@ -43,10 +45,11 @@ class VaadinPostPresenterImplTest {
         userService = mock(UserService.class);
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
+        postRepository = mock(PostRepository.class);
         statDefinitionRepository = mock(StatDefinitionRepository.class);
         personalStatDefinitionRepository = mock(PersonalStatDefinitionRepository.class);
         presenter = new VaadinPostPresenterImpl(
-            oidcUserService, userService, postService, emailService, statDefinitionRepository, personalStatDefinitionRepository
+            oidcUserService, userService, postService, emailService, postRepository, statDefinitionRepository, personalStatDefinitionRepository
         );
     }
 
@@ -104,6 +107,18 @@ class VaadinPostPresenterImplTest {
         assertSame(post, presenter.savePost(post));
         assertSame(post, presenter.updateStatValue(statDef, 5));
         assertEquals(1, presenter.getAllActiveUsers().size());
+    }
+
+    @Test
+    void getPostByIdDelegatesToRepository() {
+        Post post = new Post();
+        when(postRepository.findById(42L)).thenReturn(Optional.of(post));
+        when(postRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertEquals(Optional.of(post), presenter.getPostById(42L));
+        assertEquals(Optional.empty(), presenter.getPostById(999L));
+        verify(postRepository).findById(42L);
+        verify(postRepository).findById(999L);
     }
 
     @Test

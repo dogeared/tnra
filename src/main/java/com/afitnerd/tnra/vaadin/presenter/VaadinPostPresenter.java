@@ -21,4 +21,5 @@ public interface VaadinPostPresenter {
     List<StatDefinition> getActiveGlobalStatDefinitions();
     List<PersonalStatDefinition> getActivePersonalStatDefinitions(User user);
     List<User> getAllActiveUsers();
+    Optional<Post> getPostById(Long postId);
 }
