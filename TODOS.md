@@ -76,6 +76,13 @@ Proper SMS notifications using a real provider (Twilio, AWS SNS, or similar).
 
 ## P3 — Future Enhancements
 
+### Deactivated User Read-Only Mode
+Refine deactivated user behavior: allow login in read-only mode to view own posts, but not other users' posts. No new post creation, no stat updates, no profile changes.
+- **Why:** Currently deactivated users are hard-blocked. Read-only access lets departing members retrieve their own history without full app access.
+- **Effort:** S (human: ~1 day / CC: ~15 min)
+- **Depends on:** Member Deactivation UI (shipped).
+- **Context:** Requires a "read-only" session state that restricts Vaadin views. PostView should filter to own posts only, hide "Start New Post", disable form fields. Other views (Admin, Profile, DailyCallsView) should be hidden or redirect.
+
 ### Yearly Retreat Prep Format
 Structured annual reflection form per member per year, viewable by the group.
 - **Why:** The yearly retreat is the anchor event for TNRA groups. A specific prep format exists in practice but isn't digitized.

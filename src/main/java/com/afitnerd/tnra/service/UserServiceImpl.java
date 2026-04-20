@@ -38,6 +38,10 @@ public class UserServiceImpl implements UserService {
                 return null;
             }
 
+            if (!Boolean.TRUE.equals(user.getActive())) {
+                return null;
+            }
+
             // Populate name from OIDC claims if not yet set (first login after invite)
             boolean updated = false;
             if (user.getFirstName() == null && oidcUser.getGivenName() != null) {

@@ -22,6 +22,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -80,13 +81,28 @@ class VaadinPostPresenterImplTest {
         assertThrows(IllegalStateException.class, () -> presenter.initializeUser());
 
         User user = new User();
+        user.setActive(true);
         when(userService.getUserByEmail("user@example.com")).thenReturn(user);
         assertSame(user, presenter.initializeUser());
     }
 
     @Test
+    void initializeUserThrowsForDeactivatedUser() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getEmail()).thenReturn("deactivated@example.com");
+        User deactivated = new User();
+        deactivated.setActive(false);
+        when(userService.getUserByEmail("deactivated@example.com")).thenReturn(deactivated);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> presenter.initializeUser());
+        assertTrue(ex.getMessage().contains("deactivated"));
+    }
+
+    @Test
     void delegatesRemainingPostOperations() {
         User user = new User();
+        user.setActive(true);
         Post post = new Post();
         StatDefinition statDef = new StatDefinition("exercise", "Exercise", "💪", 0);
 

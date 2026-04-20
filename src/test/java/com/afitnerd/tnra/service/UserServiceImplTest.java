@@ -40,6 +40,7 @@ class UserServiceImplTest {
         OidcUser oidcUser = org.mockito.Mockito.mock(OidcUser.class);
         when(oidcUser.getEmail()).thenReturn("user@example.com");
         User existing = new User("Test", "User", "user@example.com");
+        existing.setActive(true);
         when(userRepository.findByEmail("user@example.com")).thenReturn(existing);
         SecurityContextHolder.getContext().setAuthentication(
             new TestingAuthenticationToken(oidcUser, null, List.of(new SimpleGrantedAuthority("ROLE_USER")))
@@ -48,6 +49,23 @@ class UserServiceImplTest {
         UserServiceImpl service = new UserServiceImpl(userRepository);
 
         assertSame(existing, service.getCurrentUser());
+    }
+
+    @Test
+    void getCurrentUserReturnsNullForDeactivatedUser() {
+        OidcUser oidcUser = org.mockito.Mockito.mock(OidcUser.class);
+        when(oidcUser.getEmail()).thenReturn("deactivated@example.com");
+        User deactivated = new User("Test", "User", "deactivated@example.com");
+        deactivated.setActive(false);
+        when(userRepository.findByEmail("deactivated@example.com")).thenReturn(deactivated);
+        SecurityContextHolder.getContext().setAuthentication(
+            new TestingAuthenticationToken(oidcUser, null, List.of(new SimpleGrantedAuthority("ROLE_USER")))
+        );
+
+        UserServiceImpl service = new UserServiceImpl(userRepository);
+
+        assertNull(service.getCurrentUser());
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
@@ -94,6 +112,7 @@ class UserServiceImplTest {
         OidcUser oidcUser = org.mockito.Mockito.mock(OidcUser.class);
         when(oidcUser.getEmail()).thenReturn("user@example.com");
         User existing = new User("Original", "Name", "user@example.com");
+        existing.setActive(true);
         when(userRepository.findByEmail("user@example.com")).thenReturn(existing);
         SecurityContextHolder.getContext().setAuthentication(
             new TestingAuthenticationToken(oidcUser, null, List.of(new SimpleGrantedAuthority("ROLE_USER")))
