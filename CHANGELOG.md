@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.5.2] - 2026-04-20
+
+### Fixed
+- **REST API deactivation bypass.** API endpoints (`/api/v1/in_progress`, `/start_from_app`, `/finish_from_app`, etc.) now check active status via `resolveActiveUser()`. Deactivated users get 403 Forbidden instead of full API access.
+- **Email case normalization.** Admin invite dialog normalizes email to lowercase before uniqueness check, matching `UserServiceImpl.inviteUser()` behavior.
+
 ## [7.5.1] - 2026-04-20
 
 ### Added
