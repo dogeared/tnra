@@ -2,6 +2,20 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.5.0] - 2026-04-20
+
+### Added
+- **Deep-linkable posts.** `/posts/{postId}` URL parameter loads a specific post directly. Works for own in-progress posts, own completed posts, and other group members' completed posts. Other users' in-progress posts are blocked with a notification.
+- **Email notification deep links.** Activity notification emails now include a direct `/posts/{postId}` link instead of a generic homepage link. Clicking the link authenticates via Keycloak and lands on the specific post.
+- **Post-login redirect.** Vaadin's `VaadinSavedRequestAwareAuthenticationSuccessHandler` preserves the original URL through the Keycloak OAuth2 flow, so unauthenticated deep link clicks land on the correct post after login.
+- `getPostById()` method on `VaadinPostPresenter` for post lookup by ID.
+- 8 new tests covering deep link routing: completed posts, own in-progress posts, other users' completed posts, blocked in-progress posts, post-not-found, null parameter default behavior.
+
+### Changed
+- **Local dev setup.** Added `nginx/sites/tnra-dev.conf` to route `tnra.dev.dogeared.dev` through nginx to the IDE on `host.docker.internal:8080`. Updated Keycloak realm with HTTPS redirect URIs for the new dev hostname.
+- `ActivityNotificationRenderer` strips trailing slash from `baseUrl` and handles null post ID gracefully.
+- Added `Normalize Notifications` task to TODOS.md (P1) for standardizing notification position, duration, and display pattern across all views.
+
 ## [7.4.3] - 2026-04-19
 
 ### Added
