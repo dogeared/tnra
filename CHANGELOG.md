@@ -2,6 +2,23 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.5.1] - 2026-04-20
+
+### Added
+- **Member deactivation UI.** Admin Members tab shows all users (active first, then inactive) with Deactivate/Reactivate action buttons. Admins cannot deactivate themselves. Deactivated users are soft-deleted (post history preserved) and excluded from email notifications, post selectors, and Go-To-Guy pair assignments.
+- **Deactivated user hard block.** Deactivated users see an error page after Keycloak auth: "Your account has been deactivated. Contact your group admin." No app access until reactivated.
+- **`AppNotification` utility class.** Centralized notification display with consistent MIDDLE position, 3s success / 5s error duration, and LUMO theme variants. Replaces all `Notification.show()` calls across PostView, AdminView, ProfileView, and StatsView.
+- `deactivateUser()`, `reactivateUser()`, and `getAllUsers()` methods on UserService.
+- 5 new tests for deactivation, reactivation, active-check blocking, and getAllUsers delegation.
+
+### Changed
+- Moved Email Invitation Flow and Per-User Billing Integration from P1 to P2 in TODOS.md (require external service setup).
+- Added P3 "Deactivated User Read-Only Mode" task to TODOS.md for future refinement.
+
+### Fixed
+- Notifications hidden behind nav drawer (AdminView email validation) now display at MIDDLE position.
+- "New post started!" notification now appears (was silently lost with `Notification.show()`).
+
 ## [7.5.0] - 2026-04-20
 
 ### Added

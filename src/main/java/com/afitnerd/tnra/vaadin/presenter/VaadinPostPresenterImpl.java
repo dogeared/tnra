@@ -73,6 +73,11 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
                 throw new IllegalStateException("No user found with email: " + email);
             }
 
+            if (!Boolean.TRUE.equals(currentUser.getActive())) {
+                throw new IllegalStateException(
+                    "Your account has been deactivated. Contact your group admin.");
+            }
+
             return currentUser;
         } else {
             throw new IllegalStateException("User is not authenticated");

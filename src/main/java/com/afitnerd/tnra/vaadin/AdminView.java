@@ -22,8 +22,6 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
@@ -109,7 +107,7 @@ public class AdminView extends VerticalLayout {
         );
         description.addClassName("admin-subtitle");
 
-        // Members grid
+        // Members grid — shows all users (active first, then inactive)
         Grid<User> membersGrid = new Grid<>();
         membersGrid.addColumn(User::getEmail).setHeader("Email").setFlexGrow(2);
         membersGrid.addColumn(user -> {
@@ -120,6 +118,33 @@ public class AdminView extends VerticalLayout {
         }).setHeader("Name").setFlexGrow(2);
         membersGrid.addColumn(user -> Boolean.TRUE.equals(user.getActive()) ? "Active" : "Inactive")
             .setHeader("Status").setFlexGrow(1);
+
+        User currentUser = userService.getCurrentUser();
+        membersGrid.addComponentColumn(user -> {
+            boolean isSelf = currentUser != null && currentUser.getId().equals(user.getId());
+            if (isSelf) {
+                return new Span(); // No action for self
+            }
+            boolean isActive = Boolean.TRUE.equals(user.getActive());
+            Button actionBtn = new Button(isActive ? "Deactivate" : "Reactivate");
+            if (isActive) {
+                actionBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+                actionBtn.addClickListener(e -> {
+                    userService.deactivateUser(user);
+                    refreshMembersGrid(membersGrid);
+                    AppNotification.success(getUserDisplayName(user) + " deactivated");
+                });
+            } else {
+                actionBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+                actionBtn.addClickListener(e -> {
+                    userService.reactivateUser(user);
+                    refreshMembersGrid(membersGrid);
+                    AppNotification.success(getUserDisplayName(user) + " reactivated");
+                });
+            }
+            return actionBtn;
+        }).setHeader("Actions").setFlexGrow(1);
+
         membersGrid.setWidth("100%");
         membersGrid.setMaxWidth("800px");
 
@@ -135,7 +160,7 @@ public class AdminView extends VerticalLayout {
     }
 
     void refreshMembersGrid(Grid<User> grid) {
-        grid.setItems(userService.getAllActiveUsers());
+        grid.setItems(userService.getAllUsers());
     }
 
     void openInviteMemberDialog(Grid<User> membersGrid) {
@@ -158,23 +183,20 @@ public class AdminView extends VerticalLayout {
         saveBtn.addClickListener(e -> {
             String email = emailField.getValue().trim();
             if (email.isEmpty() || !email.contains("@")) {
-                Notification notification = Notification.show("Please enter a valid email address");
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                AppNotification.error("Please enter a valid email address");
                 return;
             }
 
             User existing = userService.getUserByEmail(email);
             if (existing != null) {
-                Notification notification = Notification.show("A member with this email already exists");
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                AppNotification.error("A member with this email already exists");
                 return;
             }
 
             userService.inviteUser(email);
             dialog.close();
             refreshMembersGrid(membersGrid);
-            Notification notification = Notification.show("Member invited: " + email);
-            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            AppNotification.success("Member invited: " + email);
         });
 
         Button cancelBtn = new Button("Cancel", e -> dialog.close());
@@ -338,17 +360,14 @@ public class AdminView extends VerticalLayout {
         // Check if this is the last active stat
         List<StatDefinition> activeStats = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
         if (activeStats.size() <= 1) {
-            Notification notification = Notification.show("Cannot archive the last active stat. At least one stat is required.");
-            notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            AppNotification.error("Cannot archive the last active stat. At least one stat is required.");
             return;
         }
 
         stat.setArchived(true);
         statDefinitionRepository.save(stat);
         refreshStatsList(statsList);
-
-        Notification notification = Notification.show(stat.getLabel() + " archived");
-        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        AppNotification.success(stat.getLabel() + " archived");
     }
 
     void restoreStat(StatDefinition stat, VerticalLayout statsList) {
@@ -362,9 +381,7 @@ public class AdminView extends VerticalLayout {
         stat.setDisplayOrder(maxOrder + 1);
         statDefinitionRepository.save(stat);
         refreshStatsList(statsList);
-
-        Notification notification = Notification.show(stat.getLabel() + " restored");
-        notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        AppNotification.success(stat.getLabel() + " restored");
     }
 
     void openAddStatDialog(VerticalLayout statsList) {
@@ -395,13 +412,12 @@ public class AdminView extends VerticalLayout {
             String emoji = emojiField.getValue().trim();
 
             if (name.isEmpty() || label.isEmpty()) {
-                Notification.show("Name and label are required");
+                AppNotification.error("Name and label are required");
                 return;
             }
 
             if (statDefinitionRepository.existsGlobalByName(name) || personalStatDefinitionRepository.existsByNameAndArchivedFalse(name)) {
-                Notification notification = Notification.show("A stat with name '" + name + "' already exists");
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                AppNotification.error("A stat with name '" + name + "' already exists");
                 return;
             }
 
@@ -416,9 +432,7 @@ public class AdminView extends VerticalLayout {
 
             refreshStatsList(statsList);
             dialog.close();
-
-            Notification notification = Notification.show(label + " added");
-            notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            AppNotification.success(label + " added");
         });
 
         Button cancelBtn = new Button("Cancel", e -> dialog.close());
@@ -542,7 +556,7 @@ public class AdminView extends VerticalLayout {
             deleteBtn.addClickListener(e -> {
                 workingSet = callChainPresenter.removePairFromSet(workingSet, pair);
                 pairsGrid.setItems(workingSet.getGoToGuyPairs());
-                Notification.show("Pair removed successfully");
+                AppNotification.success("Pair removed successfully");
             });
             return deleteBtn;
         }).setHeader("Actions").setWidth("120px").setFlexGrow(0);
@@ -563,11 +577,9 @@ public class AdminView extends VerticalLayout {
                 contentSection.setVisible(true);
                 addPairBtn.setEnabled(true);
 
-                Notification notification = Notification.show("New Go To Guy Set created");
-                notification.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+                AppNotification.success("New Go To Guy Set created");
             } catch (Exception ex) {
-                Notification notification = Notification.show("Error creating Go To Guy Set: " + ex.getMessage());
-                notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                AppNotification.error("Error creating Go To Guy Set: " + ex.getMessage());
             }
         });
 
@@ -633,7 +645,7 @@ public class AdminView extends VerticalLayout {
                 workingSet = callChainPresenter.addPairToSet(workingSet, pair);
                 pairsGrid.setItems(workingSet.getGoToGuyPairs());
                 dialog.close();
-                Notification.show("Pair added successfully");
+                AppNotification.success("Pair added successfully");
             } else {
                 showValidationError(caller, callee, currentPairs);
             }
@@ -668,8 +680,7 @@ public class AdminView extends VerticalLayout {
             }
         }
 
-        Notification notification = Notification.show(errorMessage);
-        notification.addThemeVariants(NotificationVariant.LUMO_ERROR);
+        AppNotification.error(errorMessage);
     }
 
     // ========================

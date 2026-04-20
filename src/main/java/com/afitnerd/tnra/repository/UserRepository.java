@@ -11,4 +11,5 @@ public interface UserRepository extends CrudRepository<User, Long> {
     User findByEmail(String email);
     Iterable<User> findByActiveTrue();
     List<User> findByActiveTrueOrderByFirstName();
+    List<User> findAllByOrderByActiveDescFirstNameAsc();
 }

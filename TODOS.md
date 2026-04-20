@@ -1,38 +1,5 @@
 # TODOS
 
-## P1 — Next Up
-
-### Normalize Notifications
-Audit and fix all `Notification` usage across the app. Standardize position, duration, and theme variants. Ensure all notifications are visible regardless of nav drawer state.
-- **Why:** Notifications are inconsistent — some use `Notification.show()`, others use `new Notification().open()`. Positions vary (TOP_CENTER, MIDDLE, default lower-left). Some are hidden behind the nav drawer or don't appear at all.
-- **Effort:** S (human: ~1 day / CC: ~15 min)
-- **Depends on:** None.
-- **Known issues:**
-  - AdminView: "Please enter a valid email address" error notification renders in the lower left, hidden behind the nav drawer when it's open.
-  - PostView: "New post started!" notification (`Notification.show()` in `startNewPost()`) does not appear — likely same navigation timing issue as deep link notifications.
-- **Scope:** All views (PostView, AdminView, ProfileView, StatsView). Pick a consistent position (e.g., MIDDLE or TOP_CENTER), consistent duration (e.g., 3000ms), and use the explicit `new Notification().open()` pattern everywhere. Use theme variants (LUMO_SUCCESS, LUMO_ERROR) consistently for success/error states.
-
-### Email Invitation Flow
-Send Keycloak registration link when admin invites a member.
-- **Why:** Currently admin enters an email and tells the member out-of-band to create a Keycloak account. An email invitation with a registration link is the expected UX.
-- **Effort:** S (human: ~1 day / CC: ~15 min)
-- **Depends on:** Branch 3 (Keycloak auth) shipped. Keycloak email config in Branch 4.
-- **Context:** Keycloak supports sending registration links via its admin API. The invite flow should trigger this. Ties into per-user billing — invitation = start of billing relationship.
-
-### Per-User Billing Integration
-Track member count per group for billing. Tie invitation to billing.
-- **Why:** Business model is $1-2/member/month. Need to count active members and report to Stripe.
-- **Effort:** M (human: ~1 week / CC: ~30 min)
-- **Depends on:** Branch 3 (invite flow), Branch 4 (provisioning), Stripe integration.
-- **Context:** Each `inviteUser()` call should eventually create a Stripe subscription item. Member deactivation should pause billing. Minimum 4 members per group.
-
-### Member Deactivation UI
-Admin can deactivate/remove members from the Members tab.
-- **Why:** Admin needs to manage membership lifecycle — members leave groups, billing needs to reflect.
-- **Effort:** S (human: ~1 day / CC: ~15 min)
-- **Depends on:** Branch 3 shipped.
-- **Context:** Set `user.active = false`, which already excludes them from email notifications and active user queries. Don't delete — preserve post history.
-
 ## P1.5 — Branch 5 (Landing Page + Encryption)
 
 ### App-Level Column Encryption (Per-Tenant Keys)
@@ -52,6 +19,20 @@ Static or Vaadin public route for prospective groups. Form: group name, contact 
 - **Context:** Requires Spring Security rule for anonymous access without exposing other routes. Rate limiting on form (max 5/hour per IP).
 
 ## P2 — After MVP Ships
+
+### Email Invitation Flow
+Send Keycloak registration link when admin invites a member.
+- **Why:** Currently admin enters an email and tells the member out-of-band to create a Keycloak account. An email invitation with a registration link is the expected UX.
+- **Effort:** S (human: ~1 day / CC: ~15 min)
+- **Depends on:** Branch 3 (Keycloak auth) shipped. Keycloak email config in Branch 4.
+- **Context:** Keycloak supports sending registration links via its admin API. The invite flow should trigger this. Ties into per-user billing — invitation = start of billing relationship.
+
+### Per-User Billing Integration
+Track member count per group for billing. Tie invitation to billing.
+- **Why:** Business model is $1-2/member/month. Need to count active members and report to Stripe.
+- **Effort:** M (human: ~1 week / CC: ~30 min)
+- **Depends on:** Branch 3 (invite flow), Branch 4 (provisioning), Stripe integration.
+- **Context:** Each `inviteUser()` call should eventually create a Stripe subscription item. Member deactivation should pause billing. Minimum 4 members per group.
 
 ### Meeting Notes Capture
 Monthly meeting notes as a rich-text field per month, viewable by all group members.
@@ -75,6 +56,13 @@ Proper SMS notifications using a real provider (Twilio, AWS SNS, or similar).
 - **Context:** If restored, must use activity-only notifications (no post content) to align with encryption-at-rest security posture. Requires a proper SMS API with delivery receipts, not carrier email-to-text. Budget for SMS provider costs ($0.0075/message Twilio).
 
 ## P3 — Future Enhancements
+
+### Deactivated User Read-Only Mode
+Refine deactivated user behavior: allow login in read-only mode to view own posts, but not other users' posts. No new post creation, no stat updates, no profile changes.
+- **Why:** Currently deactivated users are hard-blocked. Read-only access lets departing members retrieve their own history without full app access.
+- **Effort:** S (human: ~1 day / CC: ~15 min)
+- **Depends on:** Member Deactivation UI (shipped).
+- **Context:** Requires a "read-only" session state that restricts Vaadin views. PostView should filter to own posts only, hide "Start New Post", disable form fields. Other views (Admin, Profile, DailyCallsView) should be hidden or redirect.
 
 ### Yearly Retreat Prep Format
 Structured annual reflection form per member per year, viewable by the group.
@@ -108,3 +96,11 @@ Change `emailTaskExecutor` from `AbortPolicy` to `CallerRunsPolicy` with gracefu
 ### Reduce Session Timeout for Production
 Reduce from 30 days to 24 hours.
 - **Completed:** v7.2.0 (2026-04-02)
+
+### Normalize Notifications
+Centralized all notification display in `AppNotification` utility with consistent MIDDLE position, duration, and LUMO theme variants.
+- **Completed:** v7.5.1 (2026-04-20)
+
+### Member Deactivation UI
+Admin can deactivate/reactivate members from the Members tab. Deactivated users are hard-blocked from app access.
+- **Completed:** v7.5.1 (2026-04-20)

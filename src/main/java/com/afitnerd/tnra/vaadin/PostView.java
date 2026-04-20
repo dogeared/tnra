@@ -12,7 +12,6 @@ import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -138,13 +137,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             pendingNotification = null;
             UI ui = UI.getCurrent();
             if (ui == null) return;
-            ui.beforeClientResponse(this, ctx -> {
-                Notification notification = new Notification();
-                notification.setText(message);
-                notification.setDuration(3000);
-                notification.setPosition(Notification.Position.MIDDLE);
-                notification.open();
-            });
+            ui.beforeClientResponse(this, ctx -> AppNotification.info(message));
         }
     }
 
@@ -630,9 +623,9 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             // Recreate header with in-progress post view
             recreateHeader();
 
-            Notification.show("New post started!", 3000, Notification.Position.TOP_CENTER);
+            AppNotification.success("New post started!");
         } catch (Exception e) {
-            Notification.show("Error starting new post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            AppNotification.error("Error starting new post: " + e.getMessage());
         }
     }
     
@@ -644,13 +637,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             }
             vaadinPostPresenter.finishPost(currentUser);
 
-            // Show success notification (floating, visible regardless of scroll position)
-            Notification success = new Notification();
-            success.addThemeVariants(com.vaadin.flow.component.notification.NotificationVariant.LUMO_SUCCESS);
-            success.setText("Post completed successfully!");
-            success.setDuration(5000);
-            success.setPosition(Notification.Position.MIDDLE);
-            success.open();
+            AppNotification.success("Post completed successfully!");
 
             // Switch to completed posts view
             showingCompletedPosts = true;
@@ -662,7 +649,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             createPostView();
             setupDataBinding();
         } catch (Exception e) {
-            Notification.show("Error finishing post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            AppNotification.error("Error finishing post: " + e.getMessage());
         }
     }
 
@@ -970,7 +957,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             // Update finish button state
             updateFinishButtonState();
         } catch (Exception e) {
-            Notification.show("Error saving post: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            AppNotification.error("Error saving post: " + e.getMessage());
         }
     }
     
