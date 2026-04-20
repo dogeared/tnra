@@ -4,6 +4,7 @@ import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -27,6 +28,8 @@ import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,11 +44,14 @@ import java.util.Optional;
 @CssImport("./styles/post-view.css")
 public class PostView extends VerticalLayout implements AfterNavigationObserver, HasUrlParameter<Long> {
 
+    private static final Logger log = LoggerFactory.getLogger(PostView.class);
+
     private final VaadinPostPresenter vaadinPostPresenter;
     private User currentUser;
     private User selectedUser;
     private Post currentPost;
     private Long deepLinkPostId;
+    private String pendingNotification;
     
     // Server-side pagination fields
     private int currentPage = 0;
@@ -117,11 +123,28 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
         // Initialize data binding after all form fields are created
         setupDataBinding();
 
-        // Only load post data if we have a current post and we're not showing completed posts
-        // (in which case the user should select from dropdown)
-        if (currentPost != null && !showingCompletedPosts) {
+        if (currentPost != null) {
             loadPostData();
             updateReadOnlyState();
+            // For deep-linked completed posts, also select in the dropdown
+            if (showingCompletedPosts && deepLinkPostId != null && postSelector != null) {
+                postSelector.setValue(currentPost);
+            }
+        }
+
+        // Show deferred notification after client has connected
+        if (pendingNotification != null) {
+            String message = pendingNotification;
+            pendingNotification = null;
+            UI ui = UI.getCurrent();
+            if (ui == null) return;
+            ui.beforeClientResponse(this, ctx -> {
+                Notification notification = new Notification();
+                notification.setText(message);
+                notification.setDuration(3000);
+                notification.setPosition(Notification.Position.MIDDLE);
+                notification.open();
+            });
         }
     }
 
@@ -134,18 +157,28 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
         if (deepLinkPostId != null) {
             Optional<Post> deepLinkedPost = vaadinPostPresenter.getPostById(deepLinkPostId);
             if (deepLinkedPost.isPresent()) {
-                currentPost = deepLinkedPost.get();
-                // Set selectedUser to the post's owner so the UI reflects correctly
-                selectedUser = currentPost.getUser();
-                showingCompletedPosts = currentPost.getState() != PostState.IN_PROGRESS
-                    || !currentPost.getUser().equals(currentUser);
-                if (showingCompletedPosts) {
-                    loadCurrentPage();
+                Post post = deepLinkedPost.get();
+                boolean isOwnPost = post.getUser().getId().equals(currentUser.getId());
+
+                // Block access to other users' in-progress posts — fall through to default
+                if (post.getState() == PostState.IN_PROGRESS && !isOwnPost) {
+                    log.warn("Deep link denied: user {} attempted to view in-progress post {} owned by user {}",
+                        currentUser.getId(), deepLinkPostId, post.getUser().getId());
+                    pendingNotification = "Unable to load post.";
+                } else {
+                    currentPost = post;
+                    selectedUser = post.getUser();
+                    // Own in-progress post: show in-progress view
+                    // All other cases (completed posts, other users' completed posts): show completed view
+                    showingCompletedPosts = !(post.getState() == PostState.IN_PROGRESS && isOwnPost);
+                    if (showingCompletedPosts) {
+                        loadCurrentPage();
+                    }
+                    return;
                 }
-                return;
             } else {
-                // Post not found — fall through to default behavior with a notification
-                Notification.show("Post not found.", 3000, Notification.Position.TOP_CENTER);
+                log.warn("Deep link failed: post {} not found", deepLinkPostId);
+                pendingNotification = "Unable to load post.";
             }
         }
 

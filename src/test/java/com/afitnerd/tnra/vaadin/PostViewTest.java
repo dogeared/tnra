@@ -529,6 +529,34 @@ class PostViewTest {
     }
 
     @Test
+    void testDeepLinkToOtherUsersInProgressPostBlocked() {
+        // Arrange: deep link to another user's in-progress post — should be blocked
+        User otherUser = new User();
+        otherUser.setId(2L);
+        Post otherInProgressPost = new Post();
+        otherInProgressPost.setId(20L);
+        otherInProgressPost.setUser(otherUser);
+        otherInProgressPost.setState(PostState.IN_PROGRESS);
+        otherInProgressPost.setStart(new Date());
+
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getPostById(20L)).thenReturn(Optional.of(otherInProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.setParameter(mock(BeforeEvent.class), 20L);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Assert: should fall through to default behavior, NOT show the other user's post
+            assertTrue(postView.showingCompletedPosts, "Should fall through to completed view when blocked");
+            verify(vaadinPostPresenter).getPostById(20L);
+        }
+    }
+
+    @Test
     void testDeepLinkToOtherUsersCompletedPost() {
         // Arrange: deep link to another user's completed post
         User otherUser = new User();
