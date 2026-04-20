@@ -82,7 +82,9 @@ class AdminViewTest {
         when(vaadinAdminPresenter.getVaadinVersion()).thenReturn("24.x");
         when(vaadinAdminPresenter.getJavaVersion()).thenReturn("21");
         when(vaadinAdminPresenter.getBuildTime()).thenReturn("2026-03-13T17:00Z");
-        when(userService.getAllActiveUsers()).thenReturn(List.of());
+        lenient().when(userService.getAllActiveUsers()).thenReturn(List.of());
+        lenient().when(userService.getAllUsers()).thenReturn(List.of());
+        lenient().when(userService.getCurrentUser()).thenReturn(null);
     }
 
     @AfterEach

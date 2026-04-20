@@ -98,4 +98,21 @@ public class UserServiceImpl implements UserService {
     public List<User> getAllActiveUsers() {
         return userRepository.findByActiveTrueOrderByFirstName();
     }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAllByOrderByActiveDescFirstNameAsc();
+    }
+
+    @Override
+    public User deactivateUser(User user) {
+        user.setActive(false);
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User reactivateUser(User user) {
+        user.setActive(true);
+        return userRepository.save(user);
+    }
 }

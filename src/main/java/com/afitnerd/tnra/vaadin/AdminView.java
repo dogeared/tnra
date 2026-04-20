@@ -107,7 +107,7 @@ public class AdminView extends VerticalLayout {
         );
         description.addClassName("admin-subtitle");
 
-        // Members grid
+        // Members grid — shows all users (active first, then inactive)
         Grid<User> membersGrid = new Grid<>();
         membersGrid.addColumn(User::getEmail).setHeader("Email").setFlexGrow(2);
         membersGrid.addColumn(user -> {
@@ -118,6 +118,33 @@ public class AdminView extends VerticalLayout {
         }).setHeader("Name").setFlexGrow(2);
         membersGrid.addColumn(user -> Boolean.TRUE.equals(user.getActive()) ? "Active" : "Inactive")
             .setHeader("Status").setFlexGrow(1);
+
+        User currentUser = userService.getCurrentUser();
+        membersGrid.addComponentColumn(user -> {
+            boolean isSelf = currentUser != null && currentUser.getId().equals(user.getId());
+            if (isSelf) {
+                return new Span(); // No action for self
+            }
+            boolean isActive = Boolean.TRUE.equals(user.getActive());
+            Button actionBtn = new Button(isActive ? "Deactivate" : "Reactivate");
+            if (isActive) {
+                actionBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+                actionBtn.addClickListener(e -> {
+                    userService.deactivateUser(user);
+                    refreshMembersGrid(membersGrid);
+                    AppNotification.success(getUserDisplayName(user) + " deactivated");
+                });
+            } else {
+                actionBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+                actionBtn.addClickListener(e -> {
+                    userService.reactivateUser(user);
+                    refreshMembersGrid(membersGrid);
+                    AppNotification.success(getUserDisplayName(user) + " reactivated");
+                });
+            }
+            return actionBtn;
+        }).setHeader("Actions").setFlexGrow(1);
+
         membersGrid.setWidth("100%");
         membersGrid.setMaxWidth("800px");
 
@@ -133,7 +160,7 @@ public class AdminView extends VerticalLayout {
     }
 
     void refreshMembersGrid(Grid<User> grid) {
-        grid.setItems(userService.getAllActiveUsers());
+        grid.setItems(userService.getAllUsers());
     }
 
     void openInviteMemberDialog(Grid<User> membersGrid) {

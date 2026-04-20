@@ -158,4 +158,43 @@ class UserServiceImplTest {
         verify(userRepository).delete(user);
         verify(userRepository, never()).delete(null);
     }
+
+    @Test
+    void deactivateUserSetsActiveFalse() {
+        User user = new User("Test", "User", "test@example.com");
+        user.setActive(true);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserServiceImpl service = new UserServiceImpl(userRepository);
+        User result = service.deactivateUser(user);
+
+        assertEquals(false, result.getActive());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void reactivateUserSetsActiveTrue() {
+        User user = new User("Test", "User", "test@example.com");
+        user.setActive(false);
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        UserServiceImpl service = new UserServiceImpl(userRepository);
+        User result = service.reactivateUser(user);
+
+        assertEquals(true, result.getActive());
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void getAllUsersDelegatesToRepository() {
+        List<User> allUsers = List.of(
+            new User("Active", "User", "active@example.com"),
+            new User("Inactive", "User", "inactive@example.com")
+        );
+        when(userRepository.findAllByOrderByActiveDescFirstNameAsc()).thenReturn(allUsers);
+
+        UserServiceImpl service = new UserServiceImpl(userRepository);
+        assertEquals(2, service.getAllUsers().size());
+        verify(userRepository).findAllByOrderByActiveDescFirstNameAsc();
+    }
 }
