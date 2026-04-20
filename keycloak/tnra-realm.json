@@ -23,13 +23,15 @@
       "publicClient": false,
       "secret": "tnra-app-secret",
       "redirectUris": [
-        "http://localhost:8080/login/oauth2/code/keycloak"
+        "http://localhost:8080/login/oauth2/code/keycloak",
+        "https://tnra.dev.dogeared.dev/login/oauth2/code/keycloak"
       ],
       "attributes": {
-        "post.logout.redirect.uris": "http://localhost:8080/*"
+        "post.logout.redirect.uris": "http://localhost:8080/*##https://tnra.dev.dogeared.dev/*"
       },
       "webOrigins": [
-        "http://localhost:8080"
+        "http://localhost:8080",
+        "https://tnra.dev.dogeared.dev"
       ],
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": false,
