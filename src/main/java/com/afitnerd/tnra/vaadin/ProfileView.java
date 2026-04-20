@@ -19,8 +19,6 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
-import com.vaadin.flow.component.notification.NotificationVariant;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -267,21 +265,19 @@ public class ProfileView extends VerticalLayout {
             String emoji = emojiField.getValue().trim();
 
             if (name.isEmpty() || label.isEmpty()) {
-                Notification.show("Name and label are required");
+                AppNotification.error("Name and label are required");
                 return;
             }
 
             // Check collision with global stats (active or archived)
             if (statDefinitionRepository.existsGlobalByName(name)) {
-                Notification n = Notification.show("A group stat named '" + name + "' already exists");
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                AppNotification.error("A group stat named '" + name + "' already exists");
                 return;
             }
 
             // Check collision with own personal stats
             if (personalStatDefinitionRepository.existsByNameAndUser(name, currentUser)) {
-                Notification n = Notification.show("You already have a stat named '" + name + "'");
-                n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+                AppNotification.error("You already have a stat named '" + name + "'");
                 return;
             }
 
@@ -298,8 +294,7 @@ public class ProfileView extends VerticalLayout {
             refreshMyStatsList();
             dialog.close();
 
-            Notification n = Notification.show(label + " added");
-            n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+            AppNotification.success(label + " added");
         });
 
         Button cancelBtn = new Button("Cancel", e -> dialog.close());
@@ -347,17 +342,13 @@ public class ProfileView extends VerticalLayout {
         stat.setArchived(true);
         personalStatDefinitionRepository.save(stat);
         refreshMyStatsList();
-        Notification n = Notification.show(stat.getLabel() + " archived");
-        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        AppNotification.success(stat.getLabel() + " archived");
     }
 
     void restorePersonalStat(PersonalStatDefinition stat) {
         // Check if a global stat now has this name
         if (statDefinitionRepository.existsGlobalByName(stat.getName())) {
-            Notification n = Notification.show(
-                "Can't restore: a group stat named '" + stat.getName() + "' now exists"
-            );
-            n.addThemeVariants(NotificationVariant.LUMO_ERROR);
+            AppNotification.error("Can't restore: a group stat named '" + stat.getName() + "' now exists");
             return;
         }
 
@@ -370,8 +361,7 @@ public class ProfileView extends VerticalLayout {
         stat.setDisplayOrder(maxOrder + 1);
         personalStatDefinitionRepository.save(stat);
         refreshMyStatsList();
-        Notification n = Notification.show(stat.getLabel() + " restored");
-        n.addThemeVariants(NotificationVariant.LUMO_SUCCESS);
+        AppNotification.success(stat.getLabel() + " restored");
     }
 
     void processProfileImageUpload(String fileName, String contentType, byte[] data) {
@@ -387,9 +377,9 @@ public class ProfileView extends VerticalLayout {
             String imageUrl = fileStorageService.getFileUrl(storedFileName);
             profileImage.setSrc(imageUrl);
 
-            Notification.show("Image uploaded successfully", 3000, Notification.Position.TOP_CENTER);
+            AppNotification.success("Image uploaded successfully");
         } catch (IOException e) {
-            Notification.show("Error uploading image", 3000, Notification.Position.TOP_CENTER);
+            AppNotification.error("Error uploading image");
         }
     }
     
@@ -501,7 +491,7 @@ public class ProfileView extends VerticalLayout {
             // Validate phone number before saving
             String phoneNumber = phoneNumberField.getValue();
             if (phoneNumber != null && !phoneNumber.trim().isEmpty() && !isValidPhoneNumber(phoneNumber)) {
-                Notification.show("Please enter a valid phone number", 3000, Notification.Position.TOP_CENTER);
+                AppNotification.error("Please enter a valid phone number");
                 return;
             }
             
@@ -513,9 +503,9 @@ public class ProfileView extends VerticalLayout {
             
             try {
                 userService.saveUser(currentUser);
-                Notification.show("Profile saved successfully", 3000, Notification.Position.TOP_CENTER);
+                AppNotification.success("Profile saved successfully");
             } catch (Exception e) {
-                Notification.show("Error saving profile", 3000, Notification.Position.TOP_CENTER);
+                AppNotification.error("Error saving profile");
             }
         }
     }

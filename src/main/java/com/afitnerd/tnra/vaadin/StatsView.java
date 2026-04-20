@@ -8,7 +8,6 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.AfterNavigationEvent;
@@ -125,7 +124,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                     onStatsChanged.run();
                 }
             } catch (Exception e) {
-                Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+                AppNotification.error("Error saving stats: " + e.getMessage());
             }
         }
     }
