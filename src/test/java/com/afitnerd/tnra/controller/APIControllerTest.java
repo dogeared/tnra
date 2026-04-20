@@ -55,6 +55,7 @@ class APIControllerTest {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
         User user = new User("Test", "User", "user@example.com");
+        user.setActive(true);
         Post existingPost = new Post(user);
         Post inputPost = new Post(user);
         when(userRepository.findByEmail("user@example.com")).thenReturn(user);
@@ -74,6 +75,7 @@ class APIControllerTest {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
         User user = new User("Test", "User", "user@example.com");
+        user.setActive(true);
         when(userRepository.findByEmail("user@example.com")).thenReturn(user);
         when(postService.getOptionalInProgressPost(user)).thenReturn(Optional.empty());
 
@@ -85,6 +87,7 @@ class APIControllerTest {
         APIController controller = controller();
         Principal principal = () -> "user@example.com";
         User user = new User("Test", "User", "user@example.com");
+        user.setActive(true);
         Post post = new Post(user);
         when(userRepository.findByEmail("user@example.com")).thenReturn(user);
         when(postService.finishPost(user)).thenReturn(post);

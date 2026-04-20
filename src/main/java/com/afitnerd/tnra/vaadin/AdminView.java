@@ -181,7 +181,7 @@ public class AdminView extends VerticalLayout {
         Button saveBtn = new Button("Invite", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> {
-            String email = emailField.getValue().trim();
+            String email = emailField.getValue().trim().toLowerCase();
             if (email.isEmpty() || !email.contains("@")) {
                 AppNotification.error("Please enter a valid email address");
                 return;
