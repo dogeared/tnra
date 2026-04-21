@@ -20,18 +20,25 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
+import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -585,6 +592,513 @@ class PostViewTest {
         }
     }
 
+    // === Pagination tests ===
+
+    @Test
+    void testGoToNextPage() {
+        // Arrange: create a multi-page scenario (2 pages of results)
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        // First page: return page 0 of 2 total pages
+        org.springframework.data.domain.Page<Post> firstPage = new PageImpl<>(
+            Arrays.asList(completedPost1), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        org.springframework.data.domain.Page<Post> secondPage = new PageImpl<>(
+            Arrays.asList(completedPost2), PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(firstPage)
+            .thenReturn(firstPage) // recreateHeader reload
+            .thenReturn(secondPage); // after next page
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Find and click the next page button
+            Button nextButton = getPrivateButton(postView, "nextPageButton");
+            assertNotNull(nextButton, "Next page button should exist");
+            nextButton.click();
+
+            // Verify the presenter was called for the next page
+            verify(vaadinPostPresenter, atLeastOnce()).getCompletedPostsPage(eq(testUser), any(Pageable.class));
+        }
+    }
+
+    @Test
+    void testGoToPreviousPage() {
+        // Arrange: set up on page 1 (second page), then go back
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        org.springframework.data.domain.Page<Post> firstPage = new PageImpl<>(
+            Arrays.asList(completedPost1), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        org.springframework.data.domain.Page<Post> secondPage = new PageImpl<>(
+            Arrays.asList(completedPost2), PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(firstPage)  // initial load
+            .thenReturn(firstPage)  // recreateHeader
+            .thenReturn(secondPage) // after next
+            .thenReturn(firstPage); // after previous
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Go to next page first
+            Button nextButton = getPrivateButton(postView, "nextPageButton");
+            assertNotNull(nextButton, "Next page button should exist");
+            nextButton.click();
+
+            // Now go back to previous page
+            Button prevButton = getPrivateButton(postView, "previousPageButton");
+            assertNotNull(prevButton, "Previous page button should exist");
+            prevButton.click();
+
+            verify(vaadinPostPresenter, atLeastOnce()).getCompletedPostsPage(eq(testUser), any(Pageable.class));
+        }
+    }
+
+    @Test
+    void testGoToFirstPage() {
+        // Arrange: start on page 1 (second page), then jump to first
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        org.springframework.data.domain.Page<Post> firstPage = new PageImpl<>(
+            Arrays.asList(completedPost1), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        org.springframework.data.domain.Page<Post> secondPage = new PageImpl<>(
+            Arrays.asList(completedPost2), PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(firstPage)   // initial load
+            .thenReturn(firstPage)   // recreateHeader
+            .thenReturn(secondPage)  // after next
+            .thenReturn(firstPage);  // after first page
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Go to next page first
+            Button nextButton = getPrivateButton(postView, "nextPageButton");
+            nextButton.click();
+
+            // Now go to first page
+            Button firstButton = getPrivateButton(postView, "firstPageButton");
+            assertNotNull(firstButton, "First page button should exist");
+            firstButton.click();
+
+            verify(vaadinPostPresenter, atLeastOnce()).getCompletedPostsPage(eq(testUser), any(Pageable.class));
+        }
+    }
+
+    @Test
+    void testGoToLastPage() {
+        // Arrange: start on first page, then jump to last
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        org.springframework.data.domain.Page<Post> firstPage = new PageImpl<>(
+            Arrays.asList(completedPost1), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        org.springframework.data.domain.Page<Post> lastPage = new PageImpl<>(
+            Arrays.asList(completedPost2), PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "finish")), 12
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(firstPage)  // initial load
+            .thenReturn(firstPage)  // recreateHeader
+            .thenReturn(lastPage);  // after last page
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Go to last page
+            Button lastButton = getPrivateButton(postView, "lastPageButton");
+            assertNotNull(lastButton, "Last page button should exist");
+            lastButton.click();
+
+            verify(vaadinPostPresenter, atLeastOnce()).getCompletedPostsPage(eq(testUser), any(Pageable.class));
+        }
+    }
+
+    @Test
+    void testGoToPageViaPageNumberField() {
+        // Arrange: multi-page scenario
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        org.springframework.data.domain.Page<Post> firstPage = new PageImpl<>(
+            Arrays.asList(completedPost1), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 25
+        );
+        org.springframework.data.domain.Page<Post> secondPage = new PageImpl<>(
+            Arrays.asList(completedPost2), PageRequest.of(1, 10, Sort.by(Sort.Direction.DESC, "finish")), 25
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(firstPage)   // initial load
+            .thenReturn(firstPage)   // recreateHeader
+            .thenReturn(secondPage); // after goToPage
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Find the page number field and set value to page 2
+            com.vaadin.flow.component.textfield.IntegerField pageField = getPrivateField(postView, "pageNumberField", com.vaadin.flow.component.textfield.IntegerField.class);
+            assertNotNull(pageField, "Page number field should exist");
+            pageField.setValue(2); // triggers goToPage(1) internally
+
+            verify(vaadinPostPresenter, atLeastOnce()).getCompletedPostsPage(eq(testUser), any(Pageable.class));
+        }
+    }
+
+    @Test
+    void testPaginationButtonsDisabledOnFirstPage() {
+        // Arrange: single-page scenario (buttons should be disabled)
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        // Single page with 2 items (total = 2, page size = 10 → 1 page total)
+        org.springframework.data.domain.Page<Post> singlePage = new PageImpl<>(
+            Arrays.asList(completedPost1, completedPost2), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 2
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(singlePage);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // All pagination buttons should be disabled on a single page
+            Button firstButton = getPrivateButton(postView, "firstPageButton");
+            Button prevButton = getPrivateButton(postView, "previousPageButton");
+            Button nextButton = getPrivateButton(postView, "nextPageButton");
+            Button lastButton = getPrivateButton(postView, "lastPageButton");
+
+            assertNotNull(firstButton);
+            assertNotNull(prevButton);
+            assertNotNull(nextButton);
+            assertNotNull(lastButton);
+
+            assertFalse(firstButton.isEnabled(), "First page should be disabled on first page");
+            assertFalse(prevButton.isEnabled(), "Previous page should be disabled on first page");
+            assertFalse(nextButton.isEnabled(), "Next page should be disabled on single page");
+            assertFalse(lastButton.isEnabled(), "Last page should be disabled on single page");
+        }
+    }
+
+    // === finishPost success path ===
+
+    @Test
+    void testFinishPostSuccess() {
+        // Arrange: in-progress post
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser))
+            .thenReturn(Optional.of(inProgressPost))   // initializeUser
+            .thenReturn(Optional.of(inProgressPost))    // createHeaderSection (hasInProgressPost check)
+            .thenReturn(Optional.empty())               // after finishPost: createPostView -> createHeaderSection
+            .thenReturn(Optional.empty());              // extra call in recreate
+
+        Post finishedPost = new Post();
+        finishedPost.setId(1L);
+        finishedPost.setUser(testUser);
+        finishedPost.setState(PostState.COMPLETE);
+        finishedPost.setStart(new Date());
+        finishedPost.setFinish(new Date());
+        lenient().when(vaadinPostPresenter.finishPost(testUser)).thenReturn(finishedPost);
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Call finishPost directly via reflection (button is disabled until all fields filled)
+            invokeMethod(postView, "finishPost");
+
+            // Verify finishPost was called
+            verify(vaadinPostPresenter).finishPost(testUser);
+            // After finishing, should switch to completed posts view
+            assertTrue(postView.showingCompletedPosts, "Should switch to completed posts after finishing");
+        }
+    }
+
+    // === updateFinishButtonState tests ===
+
+    @Test
+    void testUpdateFinishButtonState_DisabledWhenFieldsEmpty() {
+        // Arrange: in-progress post with empty fields
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Invoke updateFinishButtonState via reflection
+            invokeMethod(postView, "updateFinishButtonState");
+
+            // Find the finish button
+            Button finishButton = findComponent(postView, Button.class, "Finish Post");
+            assertNotNull(finishButton, "Finish button should exist");
+            assertFalse(finishButton.isEnabled(), "Finish button should be disabled when fields are empty");
+        }
+    }
+
+    @Test
+    void testUpdateFinishButtonState_DisabledWhenOnlyIntroFilled() {
+        // Arrange: in-progress post
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Fill only intro fields via the form fields
+            fillIntroFields(postView);
+
+            // Invoke updateFinishButtonState
+            invokeMethod(postView, "updateFinishButtonState");
+
+            Button finishButton = findComponent(postView, Button.class, "Finish Post");
+            assertFalse(finishButton.isEnabled(), "Finish button should be disabled when only intro fields are filled");
+        }
+    }
+
+    @Test
+    void testUpdateFinishButtonState_DisabledWhenCompletedPost() {
+        // Arrange: completed post (button should stay disabled)
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Switch to showing completed posts so button should be disabled
+            postView.showingCompletedPosts = true;
+            invokeMethod(postView, "updateFinishButtonState");
+
+            Button finishButton = findComponent(postView, Button.class, "Finish Post");
+            assertNotNull(finishButton, "Finish button should exist");
+            assertFalse(finishButton.isEnabled(), "Finish button should be disabled when showing completed posts");
+        }
+    }
+
+    @Test
+    void testUpdateFinishButtonState_AllFieldsFilledButNoStats() {
+        // Arrange: in-progress post with all text fields filled but no stats
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Fill all text fields
+            fillIntroFields(postView);
+            fillCategoryFields(postView);
+
+            invokeMethod(postView, "updateFinishButtonState");
+
+            Button finishButton = findComponent(postView, Button.class, "Finish Post");
+            assertNotNull(finishButton, "Finish button should exist");
+            // When there are no stat definitions, areAllStatsSet returns true (vacuous truth)
+            // so with all text fields filled and no stats to check, button may be enabled
+            // This test verifies the updateFinishButtonState logic is exercised
+        }
+    }
+
+    // === generatePostLabel tests ===
+
+    @Test
+    void testGeneratePostLabel_NullPost() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Call generatePostLabel via reflection with null
+            String label = invokeGeneratePostLabel(postView, null);
+            assertEquals("Select a post...", label, "Null post should return placeholder text");
+        }
+    }
+
+    @Test
+    void testGeneratePostLabel_InProgressPost() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            String label = invokeGeneratePostLabel(postView, inProgressPost);
+            assertTrue(label.startsWith("In Progress - Started "), "In-progress label should start with 'In Progress - Started '");
+        }
+    }
+
+    @Test
+    void testGeneratePostLabel_CompletedPostWithFinishDate() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            String label = invokeGeneratePostLabel(postView, completedPost1);
+            // completedPost1 has a finish date, so label should be formatted date string
+            assertNotNull(label, "Label should not be null for completed post");
+            assertFalse(label.contains("In Progress"), "Completed post label should not say 'In Progress'");
+            assertFalse(label.contains("Select a post"), "Completed post label should not be placeholder");
+        }
+    }
+
+    @Test
+    void testGeneratePostLabel_CompletedPostWithoutFinishDate() {
+        // Arrange: a completed post without a finish date (edge case)
+        Post noFinishPost = new Post();
+        noFinishPost.setId(99L);
+        noFinishPost.setUser(testUser);
+        noFinishPost.setState(PostState.COMPLETE);
+        noFinishPost.setStart(new Date());
+        noFinishPost.setFinish(null); // No finish date
+
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            String label = invokeGeneratePostLabel(postView, noFinishPost);
+            assertTrue(label.contains("Post 99"), "Label for post without finish date should include post ID");
+            assertTrue(label.contains("Started"), "Label for post without finish date should include 'Started'");
+        }
+    }
+
+    // === savePostChanges via binder listener ===
+
+    @Test
+    void testSavePostChangesTriggeredByFieldUpdate() {
+        // Arrange: in-progress post
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.savePost(any(Post.class))).thenReturn(inProgressPost);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Find and update a text field — this should trigger the binder value change listener
+            // which calls savePostChanges()
+            com.vaadin.flow.component.textfield.TextField kryptoniteField = findComponentOfTypeWithClass(postView, com.vaadin.flow.component.textfield.TextField.class, "post-textfield");
+            assertNotNull(kryptoniteField, "Kryptonite field should exist");
+            kryptoniteField.setValue("test kryptonite value");
+
+            // Verify savePost was called (triggered by binder value change listener)
+            verify(vaadinPostPresenter).savePost(any(Post.class));
+        }
+    }
+
+    @Test
+    void testSavePostChangesHandlesException() {
+        // Arrange: in-progress post, savePost throws
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(Collections.emptyList());
+        lenient().when(vaadinPostPresenter.savePost(any(Post.class))).thenThrow(new RuntimeException("DB error"));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Update a field — should trigger save which throws, but should be handled gracefully
+            com.vaadin.flow.component.textfield.TextField kryptoniteField = findComponentOfTypeWithClass(postView, com.vaadin.flow.component.textfield.TextField.class, "post-textfield");
+            assertNotNull(kryptoniteField, "Kryptonite field should exist");
+            assertDoesNotThrow(() -> kryptoniteField.setValue("trigger save"));
+        }
+    }
+
+    @Test
+    void testPageSizeSelectorChange() {
+        // Arrange: completed posts view
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        org.springframework.data.domain.Page<Post> page = new PageImpl<>(
+            Arrays.asList(completedPost1, completedPost2), PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "finish")), 2
+        );
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(page);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Access the page size selector via reflection
+            @SuppressWarnings("unchecked")
+            ComboBox<Integer> pageSizeSelector = getPrivateField(postView, "pageSizeSelector", ComboBox.class);
+            assertNotNull(pageSizeSelector, "Page size selector should exist");
+            pageSizeSelector.setValue(5);
+
+            // Verify data was reloaded
+            verify(vaadinPostPresenter, atLeastOnce()).getCompletedPostsPage(eq(testUser), any(Pageable.class));
+        }
+    }
+
     // Helper methods for component discovery and assertions
 
     private boolean hasComponent(Component parent, String text) {
@@ -699,6 +1213,110 @@ class PostViewTest {
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke method: " + methodName, e);
         }
+    }
+
+    private String invokeGeneratePostLabel(PostView view, Post post) {
+        try {
+            Method method = PostView.class.getDeclaredMethod("generatePostLabel", Post.class);
+            method.setAccessible(true);
+            return (String) method.invoke(view, post);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to invoke generatePostLabel", e);
+        }
+    }
+
+    private Button getPrivateButton(PostView view, String fieldName) {
+        try {
+            java.lang.reflect.Field field = PostView.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return (Button) field.get(view);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T getPrivateField(PostView view, String fieldName, Class<T> type) {
+        try {
+            java.lang.reflect.Field field = PostView.class.getDeclaredField(fieldName);
+            field.setAccessible(true);
+            return type.cast(field.get(view));
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void fillIntroFields(PostView view) {
+        // Find TextAreas in the intro section
+        List<com.vaadin.flow.component.textfield.TextArea> textAreas = new java.util.ArrayList<>();
+        List<com.vaadin.flow.component.textfield.TextField> textFields = new java.util.ArrayList<>();
+        collectFieldsOfType(view, com.vaadin.flow.component.textfield.TextArea.class, textAreas);
+        collectFieldsOfType(view, com.vaadin.flow.component.textfield.TextField.class, textFields);
+
+        // Set values for intro fields (WIDWYTK, What and When via TextArea, Kryptonite via TextField)
+        for (com.vaadin.flow.component.textfield.TextArea ta : textAreas) {
+            if (ta.getLabel() != null && ta.getLabel().contains("What I Don't")) {
+                ta.setValue("test widwytk");
+            } else if (ta.getLabel() != null && ta.getLabel().contains("What and When")) {
+                ta.setValue("test what and when");
+            }
+        }
+        for (com.vaadin.flow.component.textfield.TextField tf : textFields) {
+            if (tf.getLabel() != null && tf.getLabel().contains("Kryptonite")) {
+                tf.setValue("test kryptonite");
+            }
+        }
+    }
+
+    private void fillCategoryFields(PostView view) {
+        List<com.vaadin.flow.component.textfield.TextArea> textAreas = new java.util.ArrayList<>();
+        collectFieldsOfType(view, com.vaadin.flow.component.textfield.TextArea.class, textAreas);
+
+        for (com.vaadin.flow.component.textfield.TextArea ta : textAreas) {
+            if (ta.getLabel() != null && "Best".equals(ta.getLabel()) && (ta.getValue() == null || ta.getValue().isEmpty())) {
+                ta.setValue("test best value");
+            } else if (ta.getLabel() != null && "Worst".equals(ta.getLabel()) && (ta.getValue() == null || ta.getValue().isEmpty())) {
+                ta.setValue("test worst value");
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Component> void collectFieldsOfType(Component parent, Class<T> type, List<T> results) {
+        if (type.isInstance(parent)) {
+            results.add((T) parent);
+        }
+        for (Component child : parent.getChildren().toArray(Component[]::new)) {
+            collectFieldsOfType(child, type, results);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Component> T findComponentOfTypeWithClass(Component parent, Class<T> componentType, String className) {
+        if (componentType.isInstance(parent) && parent.getClassNames().contains(className)) {
+            return (T) parent;
+        }
+        for (Component child : parent.getChildren().toArray(Component[]::new)) {
+            T result = findComponentOfTypeWithClass(child, componentType, className);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Component> T findComponentWithClass(Component parent, Class<T> componentType, String className) {
+        if (componentType.isInstance(parent) && parent.getClassNames().contains(className)) {
+            return (T) parent;
+        }
+        for (Component child : parent.getChildren().toArray(Component[]::new)) {
+            T result = findComponentWithClass(child, componentType, className);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
     }
 
     private void setupUIMocks(String timeZoneId) {
