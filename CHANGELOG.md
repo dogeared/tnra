@@ -2,6 +2,17 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.5.3] - 2026-04-21
+
+### Added
+- 71 new tests raising JaCoCo instruction coverage from 83.9% to 90.7%.
+  - PostViewTest (15): pagination (next, previous, first, last, goToPage), finishPost success, updateFinishButtonState (4 states), generatePostLabel (4 variants), savePostChanges, page size selector.
+  - AdminViewTest (8): member grid deactivate/reactivate/self branches, name column rendering, GTG set creation, refresh grid delegation.
+  - AdminViewDialogTest (13): invite dialog (valid, invalid, empty, duplicate email), add stat dialog (success, duplicate, empty, null emoji), add pair dialog (render, valid pair, invalid pair, caller filtering).
+  - MainLayoutUtilityTest (21): createTab, createDrawer (unauthenticated, authenticated, admin), openLogoutDialog, executeDirectLogout (CSRF paths, fallbacks), toggleTheme (both directions, persistence, null user, exception), applyTheme, onAttach.
+  - Model tests (6): PostStatValue constructors/getters, PersonalStatDefinition constructors.
+  - Utility tests (6): PostRenderer.utf8ToAscii, PostRenderer.formatDate, AppNotification success/error/info.
+
 ## [7.5.2] - 2026-04-20
 
 ### Fixed
