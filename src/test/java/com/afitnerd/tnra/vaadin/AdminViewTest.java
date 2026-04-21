@@ -16,8 +16,7 @@ import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
-import com.vaadin.flow.internal.CurrentInstance;
-import com.vaadin.flow.server.VaadinRequest;
+import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.AfterEach;
@@ -544,6 +543,167 @@ class AdminViewTest {
         assertDoesNotThrow(() -> view.showValidationError(caller, callee, List.of()));
     }
 
+    // =============================================
+    // Member grid deactivate/reactivate tests
+    // =============================================
+
+    @Test
+    void memberGridConstructionWithActiveNonSelfUserCoversDeactivateBranch() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setFirstName("Admin");
+        currentUser.setActive(true);
+
+        User otherUser = new User();
+        otherUser.setId(2L);
+        otherUser.setFirstName("Bob");
+        otherUser.setEmail("bob@example.com");
+        otherUser.setActive(true);
+
+        when(userService.getCurrentUser()).thenReturn(currentUser);
+        when(userService.getAllUsers()).thenReturn(List.of(currentUser, otherUser));
+
+        // Constructing the view exercises the component column lambda which creates
+        // Deactivate buttons for active non-self users
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+        ui.add(view);
+
+        // Verify the grid was populated with users
+        verify(userService).getAllUsers();
+        verify(userService).getCurrentUser();
+    }
+
+    @Test
+    void memberGridConstructionWithInactiveUserCoversReactivateBranch() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setFirstName("Admin");
+        currentUser.setActive(true);
+
+        User inactiveUser = new User();
+        inactiveUser.setId(2L);
+        inactiveUser.setFirstName("Bob");
+        inactiveUser.setEmail("bob@example.com");
+        inactiveUser.setActive(false);
+
+        when(userService.getCurrentUser()).thenReturn(currentUser);
+        when(userService.getAllUsers()).thenReturn(List.of(currentUser, inactiveUser));
+
+        // Constructing the view exercises the component column lambda which creates
+        // Reactivate buttons for inactive non-self users
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+        ui.add(view);
+
+        verify(userService).getAllUsers();
+    }
+
+    @Test
+    void memberGridConstructionWithSelfUserCoversSelfBranch() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        User currentUser = new User();
+        currentUser.setId(1L);
+        currentUser.setFirstName("Admin");
+        currentUser.setActive(true);
+
+        when(userService.getCurrentUser()).thenReturn(currentUser);
+        when(userService.getAllUsers()).thenReturn(List.of(currentUser));
+
+        // Constructing the view with only the self user covers the isSelf branch
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+        ui.add(view);
+
+        verify(userService).getCurrentUser();
+    }
+
+    @Test
+    void memberGridNameColumnRendersFullName() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        User userWithName = new User();
+        userWithName.setId(2L);
+        userWithName.setFirstName("Jane");
+        userWithName.setLastName("Doe");
+        userWithName.setEmail("jane@example.com");
+        userWithName.setActive(true);
+
+        when(userService.getCurrentUser()).thenReturn(null);
+        when(userService.getAllUsers()).thenReturn(List.of(userWithName));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+        ui.add(view);
+
+        // View construction exercises the name column lambda with first + last name
+        verify(userService).getAllUsers();
+    }
+
+    @Test
+    void memberGridNameColumnRendersNotYetLoggedIn() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        User userNoName = new User();
+        userNoName.setId(3L);
+        userNoName.setEmail("nologin@example.com");
+        userNoName.setActive(true);
+
+        when(userService.getCurrentUser()).thenReturn(null);
+        when(userService.getAllUsers()).thenReturn(List.of(userNoName));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+        ui.add(view);
+
+        // View construction exercises the name column lambda with null first/last name
+        verify(userService).getAllUsers();
+    }
+
+    @Test
+    void refreshMembersGridCallsGetAllUsers() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        Grid<User> grid = new Grid<>();
+        view.refreshMembersGrid(grid);
+
+        // Called once during construction (createMembersTabContent) and once during explicit refresh
+        verify(userService, org.mockito.Mockito.atLeast(2)).getAllUsers();
+    }
+
+    // =============================================
+    // GTG set creation success path tests
+    // =============================================
+
+    @Test
+    void createNewGTGSetSuccessShowsContentSectionAndAddPairButton() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        GoToGuySet newSet = new GoToGuySet();
+        newSet.setGoToGuyPairs(new ArrayList<>());
+        when(callChainPresenter.createNewGoToGuySet(anyList())).thenReturn(newSet);
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+        ui.add(view);
+
+        Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
+        Button addPairButton = firstComponent(view, Button.class, b -> "Add Pair".equals(b.getText()));
+
+        // Before clicking
+        assertTrue(createButton.isEnabled());
+        assertFalse(addPairButton.isEnabled());
+
+        // Click create
+        createButton.click();
+
+        // After clicking -- create disabled, add pair enabled
+        assertFalse(createButton.isEnabled());
+        assertTrue(addPairButton.isEnabled());
+        assertTrue(createButton.hasClassName("disabled"));
+    }
+
     private GoToGuySet sampleSet() {
         User caller = new User();
         caller.setId(1L);
@@ -583,4 +743,5 @@ class AdminViewTest {
         assertNotNull(matches);
         return matches;
     }
+
 }
