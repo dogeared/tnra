@@ -2,42 +2,42 @@
 # temporarily disable until moved to entering environment variables for this
 ---
 services:
-  server:
-    container_name: tnra
-    image: tnra
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - '127.0.0.1:8080:8080'
-    environment:
-      DD_AGENT_MAJOR_VERSION: ${DD_AGENT_MAJOR_VERSION}
-      DD_API_KEY: ${DD_API_KEY}
-      DD_SITE: ${DD_SITE}
-      LOGGING_LEVEL_COM_AFITNERD_TNRA: ${LOGGING_LEVEL_COM_AFITNERD_TNRA}
-      LOGGING_LEVEL_ORG_APACHE_HTTP: ${LOGGING_LEVEL_ORG_APACHE_HTTP}
-      LOGGING_LEVEL_ORG_APACHE_HTTP_WIRE: ${LOGGING_LEVEL_ORG_APACHE_HTTP_WIRE}
-      MAILGUN_KEY_PRIVATE: ${MAILGUN_KEY_PRIVATE}
-      MAILGUN_KEY_PUBLIC: ${MAILGUN_KEY_PUBLIC}
-      MAILGUN_URL: ${MAILGUN_URL}
-      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-tnra-app}
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-tnra-app-secret}
-      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://localhost:8180/realms/tnra}
-      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
-      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tnra
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_BASELINE_VERSION: 1
-      SPRING_JPA_HIBERNATE_DDL-AUTO: validate
-      TNRA_NOTIFY_SCHEDULE: ${TNRA_NOTIFY_SCHEDULE}
-      VAADIN_PRODUCTIONMODE: ${VAADIN_PRODUCTIONMODE}
-    volumes:
-      - ./uploads:/uploads:rw
-    networks:
-      - tnra-shared
-    depends_on:
-      mysql:
-        condition: service_healthy
+#  server:
+#    container_name: tnra
+#    image: tnra
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+#    ports:
+#      - '127.0.0.1:8080:8080'
+#    environment:
+#      DD_AGENT_MAJOR_VERSION: ${DD_AGENT_MAJOR_VERSION}
+#      DD_API_KEY: ${DD_API_KEY}
+#      DD_SITE: ${DD_SITE}
+#      LOGGING_LEVEL_COM_AFITNERD_TNRA: ${LOGGING_LEVEL_COM_AFITNERD_TNRA}
+#      LOGGING_LEVEL_ORG_APACHE_HTTP: ${LOGGING_LEVEL_ORG_APACHE_HTTP}
+#      LOGGING_LEVEL_ORG_APACHE_HTTP_WIRE: ${LOGGING_LEVEL_ORG_APACHE_HTTP_WIRE}
+#      MAILGUN_KEY_PRIVATE: ${MAILGUN_KEY_PRIVATE}
+#      MAILGUN_KEY_PUBLIC: ${MAILGUN_KEY_PUBLIC}
+#      MAILGUN_URL: ${MAILGUN_URL}
+#      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-tnra-app}
+#      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-tnra-app-secret}
+#      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://localhost:8180/realms/tnra}
+#      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME}
+#      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD}
+#      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/tnra
+#      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+#      SPRING_FLYWAY_BASELINE_VERSION: 1
+#      SPRING_JPA_HIBERNATE_DDL-AUTO: validate
+#      TNRA_NOTIFY_SCHEDULE: ${TNRA_NOTIFY_SCHEDULE}
+#      VAADIN_PRODUCTIONMODE: ${VAADIN_PRODUCTIONMODE}
+#    volumes:
+#      - ./uploads:/uploads:rw
+#    networks:
+#      - tnra-shared
+#    depends_on:
+#      mysql:
+#        condition: service_healthy
 
   keycloak:
     container_name: keycloak
@@ -88,8 +88,8 @@ services:
       - '443:443'
     networks:
       - tnra-shared
-    links:
-      - server
+#    links:
+#      - server
 volumes:
   keycloak-data:
   mysql-db:
