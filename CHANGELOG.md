@@ -2,6 +2,10 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.5.4] - 2026-04-23
+
+- updated docker-compose.yml and default nginx template to remove old server config. Makes local dev from IDE easier
+
 ## [7.5.3] - 2026-04-21
 
 ### Added
