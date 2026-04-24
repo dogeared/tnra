@@ -1,6 +1,7 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.PersonalStatDefinition;
+import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
@@ -771,7 +772,7 @@ class ProfileViewTest {
             .thenReturn(List.of(activeStatExisting, archivedStat));
         when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any()))
             .thenReturn(new ArrayList<>(List.of(activeStatExisting)));
-        when(statDefinitionRepository.existsGlobalByName("pushups")).thenReturn(false);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 
@@ -790,7 +791,8 @@ class ProfileViewTest {
 
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(archivedStat));
-        when(statDefinitionRepository.existsGlobalByName("pushups")).thenReturn(true);
+        StatDefinition globalPushups = new StatDefinition("pushups", "Push-ups", null, 0);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(globalPushups));
 
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
 

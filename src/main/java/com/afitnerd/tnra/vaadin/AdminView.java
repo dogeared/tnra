@@ -416,7 +416,11 @@ public class AdminView extends VerticalLayout {
                 return;
             }
 
-            if (statDefinitionRepository.existsGlobalByName(name) || personalStatDefinitionRepository.existsByNameAndArchivedFalse(name)) {
+            boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+                .stream().anyMatch(s -> name.equals(s.getName()));
+            boolean personalNameExists = personalStatDefinitionRepository.findByArchivedFalse()
+                .stream().anyMatch(s -> name.equals(s.getName()));
+            if (globalNameExists || personalNameExists) {
                 AppNotification.error("A stat with name '" + name + "' already exists");
                 return;
             }

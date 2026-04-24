@@ -2,6 +2,19 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [7.6.0] - 2026-04-24
+
+### Added
+- **AES-256-GCM column encryption.** All sensitive post and stat data is now encrypted at rest:
+  - 9 post text fields: `widwytk`, `kryptonite`, `what_and_when`, and all 6 best/worst category fields
+  - 2 stat definition fields: `name`, `label`
+  - 1 post stat value field: `stat_value`
+- **Per-application DEK.** A 256-bit Data Encryption Key (DEK) is generated on first startup, encrypted with a master key, and stored in the new `encryption_keys` table. The master key is supplied via `TNRA_MASTER_KEY` env var (falls back to a dev default when absent).
+- **Transparent JPA encryption.** `EncryptedStringConverter` and `EncryptedIntegerConverter` (`AttributeConverter`) apply AES-256-GCM automatically on read/write — application code is unchanged.
+- **Flyway V7 schema migration.** Creates `encryption_keys` table, widens `stat_definition.name`/`label` and `post_stat_value.stat_value` to `TEXT`, drops the now-invalid unique index on `stat_definition.name`.
+- **Flyway V8 data migration.** Java migration encrypts all existing plaintext values in-place (idempotent — skips rows already prefixed with `ENC:`).
+- **In-memory name uniqueness checks.** Replaced DB-level `WHERE name = ?` queries (broken with random-IV ciphertext) with decrypt-and-compare streams in `AdminView` and `ProfileView`.
+
 ## [7.5.4] - 2026-04-23
 
 - updated docker-compose.yml and default nginx template to remove old server config. Makes local dev from IDE easier

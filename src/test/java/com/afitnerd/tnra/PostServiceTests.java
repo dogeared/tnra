@@ -63,10 +63,11 @@ public class PostServiceTests {
     }
 
     private void seedStatDef(String name, String label, String emoji, int displayOrder) {
-        StatDefinition sd = statDefinitionRepository.findByName(name).orElseGet(() -> {
-            StatDefinition newSd = new StatDefinition(name, label, emoji, displayOrder);
-            return statDefinitionRepository.save(newSd);
-        });
+        StatDefinition sd = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+            .stream().filter(s -> name.equals(s.getName())).findFirst().orElseGet(() -> {
+                StatDefinition newSd = new StatDefinition(name, label, emoji, displayOrder);
+                return statDefinitionRepository.save(newSd);
+            });
         statDefs.put(name, sd);
     }
 
