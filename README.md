@@ -357,7 +357,7 @@ Hibernate `ddl-auto: validate` ensures schema matches entities without modifying
 
 SQL migration: create `src/main/resources/db/migration/V{N}__{description}.sql`
 
-Java migration (for data transforms, e.g. encryption): create `src/main/java/com/afitnerd/tnra/db/migration/V{N}__{ClassName}.java` extending `BaseJavaMigration` with `@Component`. Must be in the `com.afitnerd.tnra` package tree so Spring detects it.
+Java migration (for data transforms, e.g. encryption): create `src/main/java/com/afitnerd/tnra/db/migration/V{N}__{ClassName}.java` extending `BaseJavaMigration` with `@Component`. Must be in the `com.afitnerd.tnra` package tree so Spring detects it. If the migration needs the encryption master key, inject it via `@Value("${tnra.encryption.master-key}")` in the constructor — Spring resolves it at context load time and fails fast if the property is absent.
 
 Migrations run automatically on startup. Test SQL migrations against MySQL (not H2 — syntax differs).
 
