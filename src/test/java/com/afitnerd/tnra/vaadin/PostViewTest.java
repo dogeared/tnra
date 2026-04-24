@@ -369,6 +369,29 @@ class PostViewTest {
     }
 
     @Test
+    void testCompletedViewShowsEmptyStateWhenNoPostsExist() {
+        // Arrange
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(List.of()));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter);
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            Span emptyState = findComponentWithText(postView, Span.class, "No completed posts found");
+            assertNotNull(emptyState, "Should render an empty-state message");
+
+            ComboBox<Post> postsSelector = findComponentByClassName(postView, ComboBox.class, "post-selector");
+            assertNotNull(postsSelector, "Post selector should be present");
+            assertFalse(postsSelector.isEnabled(), "Post selector should be disabled when there are no posts");
+        }
+    }
+
+    @Test
     void testPostSelectorWithPosts() {
         // Arrange
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
@@ -1203,6 +1226,20 @@ class PostViewTest {
             }
         }
         return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T extends Component> T findComponentByClassName(Component parent, Class<T> componentType, String className) {
+        if (componentType.isInstance(parent) && parent.getClassNames().contains(className)) {
+            return (T) parent;
+        }
+        for (Component child : parent.getChildren().toArray(Component[]::new)) {
+            T result = findComponentByClassName(child, componentType, className);
+            if (result != null) {
+                return result;
+            }
+        }
+        return null;
     }
 
     private void invokeMethod(Object target, String methodName) {
