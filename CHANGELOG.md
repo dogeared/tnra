@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.0.1] - 2026-04-24
+
+### Added
+- **Encrypt `stat_definition.emoji` column.** Extends AES-256-GCM encryption to the `emoji` field on `StatDefinition` (covers both global and personal stats via single-table inheritance). Flyway V9 widens the column to `TEXT`; V10 encrypts existing emoji values in-place. No information about a group's tracking categories is now visible in a compromised database.
+
 ## [8.0.0] - 2026-04-24
 
 ### Added

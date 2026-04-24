@@ -41,7 +41,8 @@ public class StatDefinition {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String label;
 
-    @Column(length = 10)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "TEXT")
     private String emoji;
 
     @Enumerated(EnumType.STRING)
