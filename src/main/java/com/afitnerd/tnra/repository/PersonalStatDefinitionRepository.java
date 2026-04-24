@@ -12,7 +12,5 @@ public interface PersonalStatDefinitionRepository extends JpaRepository<Personal
 
     List<PersonalStatDefinition> findByUserOrderByDisplayOrderAsc(User user);
 
-    boolean existsByNameAndUser(String name, User user);
-
-    boolean existsByNameAndArchivedFalse(String name);
+    List<PersonalStatDefinition> findByArchivedFalse();
 }

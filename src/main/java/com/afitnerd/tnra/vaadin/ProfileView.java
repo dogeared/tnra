@@ -269,14 +269,18 @@ public class ProfileView extends VerticalLayout {
                 return;
             }
 
-            // Check collision with global stats (active or archived)
-            if (statDefinitionRepository.existsGlobalByName(name)) {
+            // Check collision with global stats (active or archived) — in-memory after encryption
+            boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+                .stream().anyMatch(s -> name.equals(s.getName()));
+            if (globalNameExists) {
                 AppNotification.error("A group stat named '" + name + "' already exists");
                 return;
             }
 
-            // Check collision with own personal stats
-            if (personalStatDefinitionRepository.existsByNameAndUser(name, currentUser)) {
+            // Check collision with own personal stats — in-memory after encryption
+            boolean personalNameExists = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(currentUser)
+                .stream().anyMatch(s -> name.equals(s.getName()));
+            if (personalNameExists) {
                 AppNotification.error("You already have a stat named '" + name + "'");
                 return;
             }
@@ -346,8 +350,10 @@ public class ProfileView extends VerticalLayout {
     }
 
     void restorePersonalStat(PersonalStatDefinition stat) {
-        // Check if a global stat now has this name
-        if (statDefinitionRepository.existsGlobalByName(stat.getName())) {
+        // Check if a global stat now has this name — in-memory after encryption
+        boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+            .stream().anyMatch(s -> stat.getName().equals(s.getName()));
+        if (globalNameExists) {
             AppNotification.error("Can't restore: a group stat named '" + stat.getName() + "' now exists");
             return;
         }

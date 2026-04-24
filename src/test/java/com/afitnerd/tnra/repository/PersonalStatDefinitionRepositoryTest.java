@@ -98,26 +98,37 @@ class PersonalStatDefinitionRepositoryTest {
     void existsByNameAndUser_returnsTrueForExistingName() {
         saveTestStat("test_yoga", "Yoga", "🧘", 0, userA);
 
-        assertTrue(personalStatDefinitionRepository.existsByNameAndUser("test_yoga", userA));
+        boolean exists = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(userA)
+            .stream().anyMatch(s -> "test_yoga".equals(s.getName()));
+        assertTrue(exists);
     }
 
     @Test
     void existsByNameAndUser_returnsFalseForDifferentUser() {
         saveTestStat("test_yoga", "Yoga", "🧘", 0, userA);
 
-        // Same name but different user should not collide
-        assertFalse(personalStatDefinitionRepository.existsByNameAndUser("test_yoga", userB));
+        // Same name under a different user should not collide
+        boolean existsForB = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(userB)
+            .stream().anyMatch(s -> "test_yoga".equals(s.getName()));
+        assertFalse(existsForB);
     }
 
     @Test
-    void existsByNameAndArchivedFalse_detectsActivePersonalStatAcrossUsers() {
+    void findByArchivedFalse_detectsActivePersonalStatAcrossUsers() {
         saveTestStat("test_meditation", "Meditation", "🧘", 0, userA);
 
         // Should detect active stat regardless of which user owns it
-        assertTrue(personalStatDefinitionRepository.existsByNameAndArchivedFalse("test_meditation"));
-        assertFalse(personalStatDefinitionRepository.existsByNameAndArchivedFalse("test_nonexistent"));
+        boolean activeExists = personalStatDefinitionRepository.findByArchivedFalse()
+            .stream().filter(s -> testStatIds.contains(s.getId()))
+            .anyMatch(s -> "test_meditation".equals(s.getName()));
+        assertTrue(activeExists);
 
-        // Archive the stat and verify it's no longer detected
+        boolean nonexistentExists = personalStatDefinitionRepository.findByArchivedFalse()
+            .stream().filter(s -> testStatIds.contains(s.getId()))
+            .anyMatch(s -> "test_nonexistent".equals(s.getName()));
+        assertFalse(nonexistentExists);
+
+        // Archive the stat and verify it's no longer in the active list
         List<PersonalStatDefinition> stats =
             personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(userA);
         PersonalStatDefinition meditation = stats.stream()
@@ -125,6 +136,9 @@ class PersonalStatDefinitionRepositoryTest {
         meditation.setArchived(true);
         personalStatDefinitionRepository.save(meditation);
 
-        assertFalse(personalStatDefinitionRepository.existsByNameAndArchivedFalse("test_meditation"));
+        boolean archivedExists = personalStatDefinitionRepository.findByArchivedFalse()
+            .stream().filter(s -> testStatIds.contains(s.getId()))
+            .anyMatch(s -> "test_meditation".equals(s.getName()));
+        assertFalse(archivedExists);
     }
 }

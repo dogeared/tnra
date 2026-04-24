@@ -2,6 +2,7 @@ package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
@@ -187,8 +188,7 @@ class AdminViewDialogTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(new ArrayList<>());
-        when(statDefinitionRepository.existsGlobalByName("journaling")).thenReturn(false);
-        when(personalStatDefinitionRepository.existsByNameAndArchivedFalse("journaling")).thenReturn(false);
+        when(personalStatDefinitionRepository.findByArchivedFalse()).thenReturn(List.of());
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
         ui.add(view);
@@ -214,8 +214,9 @@ class AdminViewDialogTest {
     @Test
     void addStatDialogDuplicateNameDoesNotSave() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
-        when(statDefinitionRepository.existsGlobalByName("journaling")).thenReturn(true);
+        StatDefinition existing = new StatDefinition("journaling", "Journaling", null, 0);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(existing));
+        when(personalStatDefinitionRepository.findByArchivedFalse()).thenReturn(List.of());
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
         ui.add(view);
@@ -239,8 +240,8 @@ class AdminViewDialogTest {
     void addStatDialogDuplicatePersonalStatNameDoesNotSave() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
-        when(statDefinitionRepository.existsGlobalByName("journaling")).thenReturn(false);
-        when(personalStatDefinitionRepository.existsByNameAndArchivedFalse("journaling")).thenReturn(true);
+        PersonalStatDefinition existing = new PersonalStatDefinition("journaling", "Journaling", null, 0, null);
+        when(personalStatDefinitionRepository.findByArchivedFalse()).thenReturn(List.of(existing));
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
         ui.add(view);
@@ -288,8 +289,7 @@ class AdminViewDialogTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(new ArrayList<>());
-        when(statDefinitionRepository.existsGlobalByName("journaling")).thenReturn(false);
-        when(personalStatDefinitionRepository.existsByNameAndArchivedFalse("journaling")).thenReturn(false);
+        when(personalStatDefinitionRepository.findByArchivedFalse()).thenReturn(List.of());
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
         ui.add(view);

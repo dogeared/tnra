@@ -166,8 +166,9 @@ class StatDefinitionRepositoryTest {
         assertEquals(1, active.size());
         assertEquals("test_beta", active.get(0).getName());
 
-        // Restore alpha to end
-        StatDefinition archivedAlpha = statDefinitionRepository.findByName("test_alpha").orElseThrow();
+        // Restore alpha to end — load in-memory and filter by name (encrypted column)
+        StatDefinition archivedAlpha = filterTestStats(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc())
+            .stream().filter(s -> "test_alpha".equals(s.getName())).findFirst().orElseThrow();
         archivedAlpha.setArchived(false);
         int maxOrder = active.stream().mapToInt(StatDefinition::getDisplayOrder).max().orElse(-1);
         archivedAlpha.setDisplayOrder(maxOrder + 1);
@@ -185,8 +186,13 @@ class StatDefinitionRepositoryTest {
     void existsByNameDetectsDuplicates() {
         saveTestStat("test_unique", "Unique", "✨", 0);
 
-        assertTrue(statDefinitionRepository.existsGlobalByName("test_unique"));
-        assertFalse(statDefinitionRepository.existsGlobalByName("test_nonexistent"));
+        boolean exists = filterTestStats(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc())
+            .stream().anyMatch(s -> "test_unique".equals(s.getName()));
+        assertTrue(exists);
+
+        boolean notExists = filterTestStats(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc())
+            .stream().anyMatch(s -> "test_nonexistent".equals(s.getName()));
+        assertFalse(notExists);
     }
 
     @Test
@@ -232,13 +238,17 @@ class StatDefinitionRepositoryTest {
         personal = personalStatDefinitionRepository.save(personal);
         testPersonalStatIds.add(personal.getId());
 
-        // existsGlobalByName should NOT detect the personal stat
-        assertFalse(statDefinitionRepository.existsGlobalByName("test_shared_name"));
+        // global stat query should NOT return the personal stat
+        boolean personalOnlyExists = filterTestStats(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc())
+            .stream().anyMatch(s -> "test_shared_name".equals(s.getName()));
+        assertFalse(personalOnlyExists);
 
         // Now create a global stat with the same name
         saveTestStat("test_shared_name", "Shared Name Global", "🌐", 0);
 
-        // Now it should detect it
-        assertTrue(statDefinitionRepository.existsGlobalByName("test_shared_name"));
+        // Now it should be found among global stats
+        boolean globalExists = filterTestStats(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc())
+            .stream().anyMatch(s -> "test_shared_name".equals(s.getName()));
+        assertTrue(globalExists);
     }
 }

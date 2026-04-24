@@ -2,14 +2,6 @@
 
 ## P1.5 — Branch 5 (Landing Page + Encryption)
 
-### App-Level Column Encryption (Per-Tenant Keys)
-Encrypt sensitive post content (intro.widwytk, intro.kryptonite, intro.whatAndWhen, personal.best, personal.worst, family.best, family.worst, work.best, work.worst) at the application layer before writing to MySQL. Each group gets its own encryption key.
-- **Why:** Post content is deeply personal (recovery/accountability). TDE alone doesn't protect against compromised DB credentials. Per-tenant keys limit blast radius of a breach to one group.
-- **Approach:** AES-256-GCM column encryption in Java. Key-per-group stored in a separate `encryption_keys` table, encrypted with a master key. Master key stored outside the DB (env var or Keycloak).
-- **Effort:** M (human: ~1 week / CC: ~30 min)
-- **Depends on:** Branch 4 (provisioning CLI generates keys per group).
-- **Context:** Activity-only email (Branch 3) already established the security posture of not transmitting post content. App-level encryption completes it. No need for TDE since the primary threat is DB credential compromise, not disk theft.
-- **Constraints:** No WHERE/search on encrypted columns (not needed, TNRA never searches post content). Existing data requires a one-time migration to encrypt in place.
 
 ### Landing Page with Request Access Form
 Static or Vaadin public route for prospective groups. Form: group name, contact name, email, estimated size, description. Submissions stored in `request_access` table + email notification to founder.
@@ -104,3 +96,7 @@ Centralized all notification display in `AppNotification` utility with consisten
 ### Member Deactivation UI
 Admin can deactivate/reactivate members from the Members tab. Deactivated users are hard-blocked from app access.
 - **Completed:** v7.5.1 (2026-04-20)
+
+### App-Level Column Encryption (AES-256-GCM)
+AES-256-GCM encryption for all sensitive post and stat columns. Per-app DEK wrapped with master key in `encryption_keys` table. Transparent JPA converters, Flyway V7+V8 migrations, in-memory name uniqueness checks.
+- **Completed:** v8.0.0 (2026-04-24)
