@@ -36,12 +36,20 @@ class V10__EncryptEmojiDataTest {
     }
 
     @Test
+    void migrateThrowsWhenMasterKeyEnvVarAbsent() {
+        // no-arg constructor reads from env var; TNRA_MASTER_KEY is not set in the test environment
+        V10__EncryptEmojiData migration = new V10__EncryptEmojiData();
+        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> migration.migrate(ctx));
+        assertTrue(ex.getMessage().contains("TNRA_MASTER_KEY"));
+    }
+
+    @Test
     void loadDekThrowsWhenEncryptionKeysEmpty() throws Exception {
         ResultSet emptyRs = mock(ResultSet.class);
         when(stmt.executeQuery(contains("encryption_keys"))).thenReturn(emptyRs);
         when(emptyRs.next()).thenReturn(false);
 
-        V10__EncryptEmojiData migration = new V10__EncryptEmojiData();
+        V10__EncryptEmojiData migration = new V10__EncryptEmojiData(DEV_MASTER_KEY);
         assertThrows(IllegalStateException.class, () -> migration.migrate(ctx));
     }
 
@@ -55,7 +63,7 @@ class V10__EncryptEmojiDataTest {
         when(emojiRs.next()).thenReturn(true, false);
         when(emojiRs.getString("emoji")).thenReturn("ENC:alreadyencrypted");
 
-        V10__EncryptEmojiData migration = new V10__EncryptEmojiData();
+        V10__EncryptEmojiData migration = new V10__EncryptEmojiData(DEV_MASTER_KEY);
         migration.migrate(ctx);
 
         verify(ps, never()).setString(anyInt(), anyString());
@@ -73,11 +81,10 @@ class V10__EncryptEmojiDataTest {
         when(emojiRs.getString("emoji")).thenReturn("🏃");
         when(emojiRs.getLong("id")).thenReturn(42L);
 
-        V10__EncryptEmojiData migration = new V10__EncryptEmojiData();
+        V10__EncryptEmojiData migration = new V10__EncryptEmojiData(DEV_MASTER_KEY);
         migration.migrate(ctx);
 
         verify(ps, times(1)).executeUpdate();
-        // Verify the SET param starts with ENC:
         verify(ps, times(1)).setString(eq(1), argThat(v -> v.startsWith("ENC:")));
         verify(ps, times(1)).setLong(eq(2), eq(42L));
     }
@@ -91,7 +98,7 @@ class V10__EncryptEmojiDataTest {
         when(stmt.executeQuery(contains("stat_definition"))).thenReturn(emojiRs);
         when(emojiRs.next()).thenReturn(false);
 
-        V10__EncryptEmojiData migration = new V10__EncryptEmojiData();
+        V10__EncryptEmojiData migration = new V10__EncryptEmojiData(DEV_MASTER_KEY);
         assertDoesNotThrow(() -> migration.migrate(ctx));
         verify(ps, never()).executeUpdate();
     }

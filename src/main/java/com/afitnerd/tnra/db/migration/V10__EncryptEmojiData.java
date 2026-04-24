@@ -21,15 +21,25 @@ import java.util.Base64;
 public class V10__EncryptEmojiData extends BaseJavaMigration {
 
     private static final String ENC_PREFIX = "ENC:";
-    private static final String DEFAULT_DEV_MASTER_KEY = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=";
+
+    private final String resolvedMasterKey;
+
+    public V10__EncryptEmojiData() {
+        this.resolvedMasterKey = null;
+    }
+
+    V10__EncryptEmojiData(String masterKeyBase64) {
+        this.resolvedMasterKey = masterKeyBase64;
+    }
 
     @Override
     public void migrate(Context context) throws Exception {
         Connection conn = context.getConnection();
 
-        String masterKeyBase64 = System.getenv("TNRA_MASTER_KEY");
+        String masterKeyBase64 = resolvedMasterKey != null ? resolvedMasterKey : System.getenv("TNRA_MASTER_KEY");
         if (masterKeyBase64 == null || masterKeyBase64.isBlank()) {
-            masterKeyBase64 = DEFAULT_DEV_MASTER_KEY;
+            throw new IllegalStateException(
+                "TNRA_MASTER_KEY environment variable must be set before running migrations");
         }
         byte[] masterKey = Base64.getDecoder().decode(masterKeyBase64);
         byte[] dek = loadDek(conn, masterKey);
