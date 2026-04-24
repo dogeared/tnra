@@ -344,16 +344,22 @@ Migration files: `src/main/resources/db/migration/`
 | V3 | Configurable stats (stat_definition + post_stat_value) |
 | V4 | Notification preferences |
 | V5 | Personal stats and email unique constraint |
+| V6 | Convert post.state from TINYINT to VARCHAR |
+| V7 | AES-256-GCM encryption schema: create encryption_keys table, widen sensitive columns to TEXT |
+| V8 | (Java) Encrypt existing post and stat data in-place |
+| V9 | Widen stat_definition.emoji to TEXT |
+| V10 | (Java) Encrypt existing emoji values in-place |
 
 Flyway runs automatically on startup. `baseline-on-migrate: true` handles pre-Flyway databases.
 Hibernate `ddl-auto: validate` ensures schema matches entities without modifying the database.
 
 **Adding a new migration:**
 
-1. Create `src/main/resources/db/migration/V{N}__{description}.sql`
-2. Write the SQL (`ALTER TABLE` for schema, `INSERT/UPDATE` for data)
-3. Test locally against MySQL (not H2 -- migration SQL may differ)
-4. Migration runs automatically on next app startup
+SQL migration: create `src/main/resources/db/migration/V{N}__{description}.sql`
+
+Java migration (for data transforms, e.g. encryption): create `src/main/java/com/afitnerd/tnra/db/migration/V{N}__{ClassName}.java` extending `BaseJavaMigration` with `@Component`. Must be in the `com.afitnerd.tnra` package tree so Spring detects it.
+
+Migrations run automatically on startup. Test SQL migrations against MySQL (not H2 — syntax differs).
 
 See `MIGRATION-V3-STATS.md` for the detailed V3 configurable stats migration plan.
 
