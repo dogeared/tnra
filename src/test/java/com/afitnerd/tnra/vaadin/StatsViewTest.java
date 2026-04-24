@@ -304,6 +304,97 @@ class StatsViewTest {
         verify(vaadinPostPresenter, never()).updateStatValue(any(), any());
     }
 
+    @Test
+    void testUpdateStatCallsPresenterAndFiresCallback() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        boolean[] callbackFired = {false};
+        embeddedStatsView.setOnStatsChanged(() -> callbackFired[0] = true);
+
+        StatDefinition exerciseDef = defaultStatDefs.get(0);
+        Post updatedPost = new Post();
+        updatedPost.setId(1L);
+        updatedPost.setUser(testUser);
+        updatedPost.setStatValue(exerciseDef, 5);
+        when(vaadinPostPresenter.updateStatValue(exerciseDef, 5)).thenReturn(updatedPost);
+
+        // Click plus to trigger updateStat via the card's value change listener
+        embeddedStatsView.getStatCards().get(0).setValue(5);
+
+        verify(vaadinPostPresenter).updateStatValue(exerciseDef, 5);
+        assertTrue(callbackFired[0]);
+    }
+
+    @Test
+    void testUpdateStatShowsErrorOnException() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        when(vaadinPostPresenter.updateStatValue(any(), any())).thenThrow(new RuntimeException("DB down"));
+
+        try (MockedStatic<AppNotification> mockedNotif = mockStatic(AppNotification.class)) {
+            mockedNotif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            // Should not throw — error is caught and shown via AppNotification
+            assertDoesNotThrow(() -> embeddedStatsView.getStatCards().get(0).setValue(99));
+        }
+    }
+
+    @Test
+    void testUpdateStatNoopWhenPostIsNull() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(null);
+        embeddedStatsView.setReadOnly(false);
+
+        embeddedStatsView.getStatCards().get(0).setValue(10);
+
+        verify(vaadinPostPresenter, never()).updateStatValue(any(), any());
+    }
+
+    @Test
+    void testLoadFromPostDerivesStatDefs() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.loadFromPost(inProgressPost);
+
+        // loadFromPost derives defs from the post's stat values (3 values → 3 cards)
+        assertEquals(3, embeddedStatsView.getStatCards().size());
+    }
+
+    @Test
+    void testLoadFromPostWithNullPostIsNoop() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        assertDoesNotThrow(() -> embeddedStatsView.loadFromPost(null));
+    }
+
+    @Test
+    void testLoadFromPostSortsGlobalsBeforePersonals() {
+        User user = new User();
+        user.setId(2L);
+
+        StatDefinition global = new StatDefinition("steps", "Steps", "👣", 1);
+        global.setId(10L);
+        PersonalStatDefinition personal = new PersonalStatDefinition("guitar", "Guitar", "🎸", 0, user);
+        personal.setId(11L);
+
+        Post post = new Post();
+        post.setId(2L);
+        post.setUser(user);
+        post.setStatValue(personal, 3);
+        post.setStatValue(global, 7);
+
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, user);
+        embeddedStatsView.loadFromPost(post);
+
+        // Global should appear before personal
+        List<StatDefinition> defs = embeddedStatsView.getStatCards().stream()
+            .map(StatCard::getLabel)
+            .map(label -> label.equals("Steps") ? global : personal)
+            .toList();
+        assertFalse(defs.get(0) instanceof PersonalStatDefinition, "Global stat should be first");
+    }
+
     private void setupUIMocks(String timeZoneId) {
         lenient().when(mockUI.getSession()).thenReturn(mockSession);
         lenient().when(mockExtendedClientDetails.getTimeZoneId()).thenReturn(timeZoneId);

@@ -65,4 +65,59 @@ class FileControllerTest {
 
         assertEquals(MediaType.APPLICATION_OCTET_STREAM, response.getHeaders().getContentType());
     }
+
+    @Test
+    void serveFileReturnsImageJpegForJpgExtension() throws IOException {
+        FileController controller = new FileController();
+        ReflectionTestUtils.setField(controller, "uploadDir", tempDir.toString());
+        Files.writeString(tempDir.resolve("photo.jpg"), "data");
+
+        ResponseEntity<Resource> response = controller.serveFile("photo.jpg");
+
+        assertEquals(MediaType.IMAGE_JPEG, response.getHeaders().getContentType());
+    }
+
+    @Test
+    void serveFileReturnsImageJpegForJpegExtension() throws IOException {
+        FileController controller = new FileController();
+        ReflectionTestUtils.setField(controller, "uploadDir", tempDir.toString());
+        Files.writeString(tempDir.resolve("photo.jpeg"), "data");
+
+        ResponseEntity<Resource> response = controller.serveFile("photo.jpeg");
+
+        assertEquals(MediaType.IMAGE_JPEG, response.getHeaders().getContentType());
+    }
+
+    @Test
+    void serveFileReturnsImageGifForGifExtension() throws IOException {
+        FileController controller = new FileController();
+        ReflectionTestUtils.setField(controller, "uploadDir", tempDir.toString());
+        Files.writeString(tempDir.resolve("anim.gif"), "data");
+
+        ResponseEntity<Resource> response = controller.serveFile("anim.gif");
+
+        assertEquals(MediaType.IMAGE_GIF, response.getHeaders().getContentType());
+    }
+
+    @Test
+    void serveFileReturnsWebpContentTypeForWebpExtension() throws IOException {
+        FileController controller = new FileController();
+        ReflectionTestUtils.setField(controller, "uploadDir", tempDir.toString());
+        Files.writeString(tempDir.resolve("img.webp"), "data");
+
+        ResponseEntity<Resource> response = controller.serveFile("img.webp");
+
+        assertEquals(MediaType.parseMediaType("image/webp"), response.getHeaders().getContentType());
+    }
+
+    @Test
+    void serveFileReturnsSvgContentTypeForSvgExtension() throws IOException {
+        FileController controller = new FileController();
+        ReflectionTestUtils.setField(controller, "uploadDir", tempDir.toString());
+        Files.writeString(tempDir.resolve("icon.svg"), "<svg/>");
+
+        ResponseEntity<Resource> response = controller.serveFile("icon.svg");
+
+        assertEquals(MediaType.parseMediaType("image/svg+xml"), response.getHeaders().getContentType());
+    }
 }

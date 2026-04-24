@@ -32,15 +32,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.mockito.MockedStatic;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -702,6 +707,156 @@ class AdminViewTest {
         assertFalse(createButton.isEnabled());
         assertTrue(addPairButton.isEnabled());
         assertTrue(createButton.hasClassName("disabled"));
+    }
+
+    // =============================================
+    // formatMemberName tests
+    // =============================================
+
+    @Test
+    void formatMemberNameReturnsFirstAndLastName() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User user = new User();
+        user.setFirstName("Jane");
+        user.setLastName("Doe");
+        assertEquals("Jane Doe", view.formatMemberName(user));
+    }
+
+    @Test
+    void formatMemberNameReturnsFirstNameOnlyWhenLastNull() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User user = new User();
+        user.setFirstName("Jane");
+        assertEquals("Jane", view.formatMemberName(user));
+    }
+
+    @Test
+    void formatMemberNameReturnsNotYetLoggedInWhenNoName() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User user = new User();
+        assertEquals("(not yet logged in)", view.formatMemberName(user));
+    }
+
+    // =============================================
+    // formatMemberStatus tests
+    // =============================================
+
+    @Test
+    void formatMemberStatusReturnsActiveForActiveUser() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User user = new User();
+        user.setActive(true);
+        assertEquals("Active", view.formatMemberStatus(user));
+    }
+
+    @Test
+    void formatMemberStatusReturnsInactiveForInactiveUser() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User user = new User();
+        user.setActive(false);
+        assertEquals("Inactive", view.formatMemberStatus(user));
+    }
+
+    // =============================================
+    // createMemberActionComponent tests
+    // =============================================
+
+    @Test
+    void createMemberActionComponentReturnsSelfSpan() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User self = new User();
+        self.setId(1L);
+        com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
+
+        com.vaadin.flow.component.Component result = view.createMemberActionComponent(self, self, grid);
+        assertInstanceOf(com.vaadin.flow.component.html.Span.class, result);
+    }
+
+    @Test
+    void createMemberActionComponentReturnsDeactivateButtonForActiveNonSelf() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User currentUser = new User(); currentUser.setId(1L);
+        User other = new User(); other.setId(2L); other.setActive(true);
+        com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
+
+        com.vaadin.flow.component.Component result = view.createMemberActionComponent(other, currentUser, grid);
+        assertInstanceOf(Button.class, result);
+        assertEquals("Deactivate", ((Button) result).getText());
+    }
+
+    @Test
+    void createMemberActionComponentReturnsReactivateButtonForInactiveNonSelf() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User currentUser = new User(); currentUser.setId(1L);
+        User other = new User(); other.setId(2L); other.setActive(false);
+        com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
+
+        com.vaadin.flow.component.Component result = view.createMemberActionComponent(other, currentUser, grid);
+        assertInstanceOf(Button.class, result);
+        assertEquals("Reactivate", ((Button) result).getText());
+    }
+
+    @Test
+    void createMemberActionComponentNullCurrentUserNotSelf() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User other = new User(); other.setId(2L); other.setActive(true);
+        com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
+
+        com.vaadin.flow.component.Component result = view.createMemberActionComponent(other, null, grid);
+        assertInstanceOf(Button.class, result);
+        assertEquals("Deactivate", ((Button) result).getText());
+    }
+
+    @Test
+    void createMemberActionComponentDeactivateButtonClickCallsService() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User currentUser = new User(); currentUser.setId(1L);
+        User other = new User(); other.setId(2L); other.setActive(true); other.setFirstName("Bob");
+        com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
+
+        try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
+            mocked.when(() -> AppNotification.success(anyString())).thenAnswer(inv -> null);
+            Button btn = (Button) view.createMemberActionComponent(other, currentUser, grid);
+            btn.click();
+            verify(userService).deactivateUser(other);
+        }
+    }
+
+    @Test
+    void createMemberActionComponentReactivateButtonClickCallsService() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService);
+
+        User currentUser = new User(); currentUser.setId(1L);
+        User other = new User(); other.setId(2L); other.setActive(false); other.setFirstName("Bob");
+        com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
+
+        try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
+            mocked.when(() -> AppNotification.success(anyString())).thenAnswer(inv -> null);
+            Button btn = (Button) view.createMemberActionComponent(other, currentUser, grid);
+            btn.click();
+            verify(userService).reactivateUser(other);
+        }
     }
 
     private GoToGuySet sampleSet() {
