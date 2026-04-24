@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class FileStorageServiceImplTest {
@@ -39,6 +40,29 @@ class FileStorageServiceImplTest {
     }
 
     @Test
+    void storeFileRejectsBlankFilenameAndUnsafeExtension() throws IOException {
+        FileStorageServiceImpl service = new FileStorageServiceImpl();
+        ReflectionTestUtils.setField(service, "uploadDir", tempDir.resolve("uploads").toString());
+
+        assertThrows(IllegalArgumentException.class, () ->
+            service.storeFile(
+                new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8)),
+                " ",
+                "image/png"
+            )
+        );
+
+        String stored = service.storeFile(
+            new ByteArrayInputStream("hello".getBytes(StandardCharsets.UTF_8)),
+            "avatar.png/../../evil",
+            "image/png"
+        );
+
+        assertNotNull(stored);
+        assertTrue(!stored.contains("."));
+    }
+
+    @Test
     void deleteFileRemovesExistingFileAndIgnoresInvalidInput() throws IOException {
         FileStorageServiceImpl service = new FileStorageServiceImpl();
         ReflectionTestUtils.setField(service, "uploadDir", tempDir.toString());
@@ -49,6 +73,7 @@ class FileStorageServiceImplTest {
         service.deleteFile("sample.txt");
         service.deleteFile("");
         service.deleteFile(null);
+        service.deleteFile("../sample.txt");
 
         assertTrue(Files.notExists(storedFile));
     }
@@ -56,10 +81,12 @@ class FileStorageServiceImplTest {
     @Test
     void getFileUrlReturnsNullForBlankValuesAndPrefixesBaseUrl() {
         FileStorageServiceImpl service = new FileStorageServiceImpl();
-        ReflectionTestUtils.setField(service, "baseUrl", "/files");
+        ReflectionTestUtils.setField(service, "baseUrl", "/files/");
 
         assertNull(service.getFileUrl(null));
         assertNull(service.getFileUrl(""));
+        assertNull(service.getFileUrl("../image.webp"));
+        assertNull(service.getFileUrl("folder/image.webp"));
         assertEquals("/files/image.webp", service.getFileUrl("image.webp"));
     }
 }
