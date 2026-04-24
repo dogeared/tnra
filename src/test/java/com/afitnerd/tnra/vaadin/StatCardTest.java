@@ -195,6 +195,47 @@ class StatCardTest {
         assertEquals(2, card.getValue());
     }
 
+    @Test
+    void testMinusDoesNothingWhenValueIsNull() {
+        StatCard card = new StatCard("Sleep", "💤", null);
+        List<Integer> events = new ArrayList<>();
+        card.setValueChangeListener(events::add);
+
+        Button minus = buttonByAriaLabel(card, "Decrease Sleep");
+        minus.click();
+
+        assertNull(card.getValue());
+        assertTrue(events.isEmpty());
+    }
+
+    @Test
+    void testValueFieldNegativeInputSetsNull() {
+        StatCard card = new StatCard("Run", "🏃", 5);
+        List<Integer> events = new ArrayList<>();
+        card.setValueChangeListener(events::add);
+
+        // setValue with a negative number triggers the IntegerField valueChangeListener
+        // which clamps negative → null
+        card.setValue(-1);
+
+        assertNull(card.getValue());
+    }
+
+    @Test
+    void testValueFieldClampsAbove99() {
+        StatCard card = new StatCard("Steps", "👣", 50);
+        card.setValue(200);
+        assertEquals(99, card.getValue());
+    }
+
+    @Test
+    void testPlusDoesNothingAt99() {
+        StatCard card = new StatCard("Push-ups", "💪", 99);
+        Button plus = buttonByAriaLabel(card, "Increase Push-ups");
+        plus.click();
+        assertEquals(99, card.getValue());
+    }
+
     private Button buttonByAriaLabel(StatCard card, String ariaLabel) {
         ArrayDeque<com.vaadin.flow.component.Component> stack = new ArrayDeque<>();
         stack.push(card);

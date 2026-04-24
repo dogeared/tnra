@@ -226,6 +226,50 @@ class PostServiceImplTest {
         assertTrue(postService.getOptionalInProgressPost(user).isEmpty());
     }
 
+    // --- getOptionalCompletePost ---
+
+    @Test
+    void getOptionalCompletePost_returnsEmptyWhenNone() {
+        User user = new User("Test", "User", "test@example.com");
+        when(postRepository.findFirstByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE))
+            .thenReturn(Optional.empty());
+        assertTrue(postService.getOptionalCompletePost(user).isEmpty());
+    }
+
+    // --- getPostsPage ---
+
+    @Test
+    void getPostsPage_throwsOnNullUser() {
+        assertThrows(IllegalArgumentException.class,
+            () -> postService.getPostsPage(null, org.springframework.data.domain.Pageable.unpaged()));
+    }
+
+    @Test
+    void getPostsPage_delegatesToRepository() {
+        User user = new User("Test", "User", "test@example.com");
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.Pageable.unpaged();
+        org.springframework.data.domain.Page<Post> page = org.springframework.data.domain.Page.empty();
+        when(postRepository.findByUserOrderByFinishDesc(user, pageable)).thenReturn(page);
+        assertSame(page, postService.getPostsPage(user, pageable));
+    }
+
+    // --- getCompletedPostsPage ---
+
+    @Test
+    void getCompletedPostsPage_throwsOnNullUser() {
+        assertThrows(IllegalArgumentException.class,
+            () -> postService.getCompletedPostsPage(null, org.springframework.data.domain.Pageable.unpaged()));
+    }
+
+    @Test
+    void getCompletedPostsPage_delegatesToRepository() {
+        User user = new User("Test", "User", "test@example.com");
+        org.springframework.data.domain.Pageable pageable = org.springframework.data.domain.Pageable.unpaged();
+        org.springframework.data.domain.Page<Post> page = org.springframework.data.domain.Page.empty();
+        when(postRepository.findByUserAndStateOrderByFinishDesc(user, PostState.COMPLETE, pageable)).thenReturn(page);
+        assertSame(page, postService.getCompletedPostsPage(user, pageable));
+    }
+
     // --- savePost ---
 
     @Test

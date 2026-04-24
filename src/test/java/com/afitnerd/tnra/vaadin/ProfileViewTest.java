@@ -813,6 +813,98 @@ class ProfileViewTest {
         assertDoesNotThrow(() -> profileView.openAddPersonalStatDialog());
     }
 
+    // =============================================
+    // handleAddPersonalStat tests
+    // =============================================
+
+    @Test
+    void handleAddPersonalStatRejectsEmptyName() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
+        try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
+            notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            profileView.handleAddPersonalStat("", "Label", "", dialog);
+            notif.verify(() -> AppNotification.error("Name and label are required"));
+            verify(dialog, never()).close();
+        }
+    }
+
+    @Test
+    void handleAddPersonalStatRejectsEmptyLabel() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
+        try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
+            notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            profileView.handleAddPersonalStat("name", "", "", dialog);
+            notif.verify(() -> AppNotification.error("Name and label are required"));
+            verify(dialog, never()).close();
+        }
+    }
+
+    @Test
+    void handleAddPersonalStatRejectsGlobalNameCollision() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        StatDefinition existing = new StatDefinition("exercise", "Exercise", "💪", 0);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(existing));
+        com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
+        try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
+            notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            profileView.handleAddPersonalStat("exercise", "Exercise", "", dialog);
+            notif.verify(() -> AppNotification.error("A group stat named 'exercise' already exists"));
+            verify(dialog, never()).close();
+        }
+    }
+
+    @Test
+    void handleAddPersonalStatRejectsPersonalNameCollision() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
+        PersonalStatDefinition existing = new PersonalStatDefinition("guitar", "Guitar", "🎸", 0, testUser);
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(List.of(existing));
+        com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
+        try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
+            notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            profileView.handleAddPersonalStat("guitar", "Guitar Practice", "", dialog);
+            notif.verify(() -> AppNotification.error("You already have a stat named 'guitar'"));
+            verify(dialog, never()).close();
+        }
+    }
+
+    @Test
+    void handleAddPersonalStatSavesNewStatSuccessfully() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
+        when(personalStatDefinitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+        com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
+        try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
+            notif.when(() -> AppNotification.success(anyString())).thenAnswer(inv -> null);
+            profileView.handleAddPersonalStat("run", "Running", "🏃", dialog);
+            verify(personalStatDefinitionRepository).save(any(PersonalStatDefinition.class));
+            verify(dialog).close();
+            notif.verify(() -> AppNotification.success("Running added"));
+        }
+    }
+
+    @Test
+    void handleAddPersonalStatSetsNullEmojiWhenEmpty() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository);
+        when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
+        when(personalStatDefinitionRepository.save(any())).thenAnswer(inv -> {
+            PersonalStatDefinition saved = inv.getArgument(0);
+            assertNull(saved.getEmoji());
+            return saved;
+        });
+        com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
+        try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
+            notif.when(() -> AppNotification.success(anyString())).thenAnswer(inv -> null);
+            profileView.handleAddPersonalStat("run", "Running", "", dialog);
+        }
+    }
+
     /**
      * Recursively stream all descendant components.
      */

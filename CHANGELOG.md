@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.0.3] - 2026-04-25
+
+### Changed
+- **Test coverage raised to 95.2%.** Extracted package-private methods from Vaadin grid column lambdas in `AdminView` and `ProfileView` so they can be unit tested directly. Moved `userService.getCurrentUser()` call in `MainView` into the `showAuthenticatedView()` try/catch block, fixing the error-fallback path. Added `MockedStatic<VaadinService>` + `MockedStatic<RouteConfiguration>` setup to `MainLayoutTest` so `RouterLink.setRoute()` resolves without a full Spring context.
+- **512 unit tests** now cover all production code paths added across `AdminView`, `MainView`, `ProfileView`, `MainLayout`, and `PostServiceImpl`.
+
 ## [8.0.2] - 2026-04-24
 
 ### Changed

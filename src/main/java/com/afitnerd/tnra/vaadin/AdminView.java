@@ -110,40 +110,13 @@ public class AdminView extends VerticalLayout {
         // Members grid — shows all users (active first, then inactive)
         Grid<User> membersGrid = new Grid<>();
         membersGrid.addColumn(User::getEmail).setHeader("Email").setFlexGrow(2);
-        membersGrid.addColumn(user -> {
-            String name = "";
-            if (user.getFirstName() != null) name += user.getFirstName();
-            if (user.getLastName() != null) name += (name.isEmpty() ? "" : " ") + user.getLastName();
-            return name.isEmpty() ? "(not yet logged in)" : name;
-        }).setHeader("Name").setFlexGrow(2);
-        membersGrid.addColumn(user -> Boolean.TRUE.equals(user.getActive()) ? "Active" : "Inactive")
-            .setHeader("Status").setFlexGrow(1);
+        membersGrid.addColumn(this::formatMemberName).setHeader("Name").setFlexGrow(2);
+        membersGrid.addColumn(this::formatMemberStatus).setHeader("Status").setFlexGrow(1);
 
         User currentUser = userService.getCurrentUser();
-        membersGrid.addComponentColumn(user -> {
-            boolean isSelf = currentUser != null && currentUser.getId().equals(user.getId());
-            if (isSelf) {
-                return new Span(); // No action for self
-            }
-            boolean isActive = Boolean.TRUE.equals(user.getActive());
-            Button actionBtn = new Button(isActive ? "Deactivate" : "Reactivate");
-            if (isActive) {
-                actionBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
-                actionBtn.addClickListener(e -> {
-                    userService.deactivateUser(user);
-                    refreshMembersGrid(membersGrid);
-                    AppNotification.success(getUserDisplayName(user) + " deactivated");
-                });
-            } else {
-                actionBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
-                actionBtn.addClickListener(e -> {
-                    userService.reactivateUser(user);
-                    refreshMembersGrid(membersGrid);
-                    AppNotification.success(getUserDisplayName(user) + " reactivated");
-                });
-            }
-            return actionBtn;
-        }).setHeader("Actions").setFlexGrow(1);
+        membersGrid.addComponentColumn(user ->
+            createMemberActionComponent(user, currentUser, membersGrid)
+        ).setHeader("Actions").setFlexGrow(1);
 
         membersGrid.setWidth("100%");
         membersGrid.setMaxWidth("800px");
@@ -157,6 +130,42 @@ public class AdminView extends VerticalLayout {
 
         content.add(header, description, membersGrid, inviteBtn);
         return content;
+    }
+
+    String formatMemberName(User user) {
+        String name = "";
+        if (user.getFirstName() != null) name += user.getFirstName();
+        if (user.getLastName() != null) name += (name.isEmpty() ? "" : " ") + user.getLastName();
+        return name.isEmpty() ? "(not yet logged in)" : name;
+    }
+
+    String formatMemberStatus(User user) {
+        return Boolean.TRUE.equals(user.getActive()) ? "Active" : "Inactive";
+    }
+
+    com.vaadin.flow.component.Component createMemberActionComponent(User user, User currentUser, Grid<User> membersGrid) {
+        boolean isSelf = currentUser != null && currentUser.getId().equals(user.getId());
+        if (isSelf) {
+            return new Span();
+        }
+        boolean isActive = Boolean.TRUE.equals(user.getActive());
+        Button actionBtn = new Button(isActive ? "Deactivate" : "Reactivate");
+        if (isActive) {
+            actionBtn.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_SMALL);
+            actionBtn.addClickListener(e -> {
+                userService.deactivateUser(user);
+                refreshMembersGrid(membersGrid);
+                AppNotification.success(getUserDisplayName(user) + " deactivated");
+            });
+        } else {
+            actionBtn.addThemeVariants(ButtonVariant.LUMO_SUCCESS, ButtonVariant.LUMO_SMALL);
+            actionBtn.addClickListener(e -> {
+                userService.reactivateUser(user);
+                refreshMembersGrid(membersGrid);
+                AppNotification.success(getUserDisplayName(user) + " reactivated");
+            });
+        }
+        return actionBtn;
     }
 
     void refreshMembersGrid(Grid<User> grid) {

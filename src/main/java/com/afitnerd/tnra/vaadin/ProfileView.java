@@ -263,42 +263,7 @@ public class ProfileView extends VerticalLayout {
             String name = nameField.getValue().trim().toLowerCase();
             String label = labelField.getValue().trim();
             String emoji = emojiField.getValue().trim();
-
-            if (name.isEmpty() || label.isEmpty()) {
-                AppNotification.error("Name and label are required");
-                return;
-            }
-
-            // Check collision with global stats (active or archived) — in-memory after encryption
-            boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
-                .stream().anyMatch(s -> name.equals(s.getName()));
-            if (globalNameExists) {
-                AppNotification.error("A group stat named '" + name + "' already exists");
-                return;
-            }
-
-            // Check collision with own personal stats — in-memory after encryption
-            boolean personalNameExists = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(currentUser)
-                .stream().anyMatch(s -> name.equals(s.getName()));
-            if (personalNameExists) {
-                AppNotification.error("You already have a stat named '" + name + "'");
-                return;
-            }
-
-            java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
-                .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
-            int nextOrder = activeStats.stream()
-                .mapToInt(PersonalStatDefinition::getDisplayOrder)
-                .max().orElse(-1) + 1;
-
-            PersonalStatDefinition newStat = new PersonalStatDefinition(
-                name, label, emoji.isEmpty() ? null : emoji, nextOrder, currentUser
-            );
-            personalStatDefinitionRepository.save(newStat);
-            refreshMyStatsList();
-            dialog.close();
-
-            AppNotification.success(label + " added");
+            handleAddPersonalStat(name, label, emoji, dialog);
         });
 
         Button cancelBtn = new Button("Cancel", e -> dialog.close());
@@ -306,6 +271,42 @@ public class ProfileView extends VerticalLayout {
         dialog.add(form);
         dialog.getFooter().add(cancelBtn, saveBtn);
         dialog.open();
+    }
+
+    void handleAddPersonalStat(String name, String label, String emoji, Dialog dialog) {
+        if (name.isEmpty() || label.isEmpty()) {
+            AppNotification.error("Name and label are required");
+            return;
+        }
+
+        boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+            .stream().anyMatch(s -> name.equals(s.getName()));
+        if (globalNameExists) {
+            AppNotification.error("A group stat named '" + name + "' already exists");
+            return;
+        }
+
+        boolean personalNameExists = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(currentUser)
+            .stream().anyMatch(s -> name.equals(s.getName()));
+        if (personalNameExists) {
+            AppNotification.error("You already have a stat named '" + name + "'");
+            return;
+        }
+
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        int nextOrder = activeStats.stream()
+            .mapToInt(PersonalStatDefinition::getDisplayOrder)
+            .max().orElse(-1) + 1;
+
+        PersonalStatDefinition newStat = new PersonalStatDefinition(
+            name, label, emoji.isEmpty() ? null : emoji, nextOrder, currentUser
+        );
+        personalStatDefinitionRepository.save(newStat);
+        refreshMyStatsList();
+        dialog.close();
+
+        AppNotification.success(label + " added");
     }
 
     void movePersonalStatUp(PersonalStatDefinition stat) {

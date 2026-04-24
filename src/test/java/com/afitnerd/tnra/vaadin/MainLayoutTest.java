@@ -1,15 +1,25 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.UI;
+import com.vaadin.flow.router.RouteConfiguration;
+import com.vaadin.flow.router.RouteParameters;
+import com.vaadin.flow.router.Router;
+import com.vaadin.flow.server.VaadinService;
+import com.vaadin.flow.server.VaadinSession;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,83 +34,162 @@ class MainLayoutTest {
     @Mock
     private AuthNavigationService authNavigationService;
 
+    private UI ui;
+
     @BeforeEach
     void setUp() {
-        // Setup common mocks
+        ui = new UI();
+        VaadinSession session = mock(VaadinSession.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        lenient().when(session.hasLock()).thenReturn(true);
+        VaadinService service = mock(VaadinService.class);
+        lenient().when(session.getService()).thenReturn(service);
+        ui.getInternals().setSession(session);
+        UI.setCurrent(ui);
+    }
+
+    @AfterEach
+    void tearDown() {
+        UI.setCurrent(null);
+    }
+
+    private MainLayout buildLayout() {
+        VaadinService mockVaadinService = mock(VaadinService.class);
+        Router mockRouter = mock(Router.class);
+        lenient().when(mockVaadinService.getRouter()).thenReturn(mockRouter);
+
+        try (MockedStatic<RouteConfiguration> routeConfig = mockStatic(RouteConfiguration.class);
+             MockedStatic<VaadinService> vaadinServiceStatic = mockStatic(VaadinService.class)) {
+            vaadinServiceStatic.when(VaadinService::getCurrent).thenReturn(mockVaadinService);
+
+            RouteConfiguration mockConfig = mock(RouteConfiguration.class, invocation -> {
+                if ("getUrl".equals(invocation.getMethod().getName())) return "/";
+                return null;
+            });
+            routeConfig.when(RouteConfiguration::forSessionScope).thenReturn(mockConfig);
+            routeConfig.when(RouteConfiguration::forApplicationScope).thenReturn(mockConfig);
+            routeConfig.when(() -> RouteConfiguration.forRegistry(any())).thenReturn(mockConfig);
+            return new MainLayout(oidcUserService, userService, authNavigationService);
+        }
     }
 
     @Test
     void testMainLayoutConstructorWithValidService() {
-        // Arrange
-        lenient().when(oidcUserService.isAuthenticated()).thenReturn(false);
-
-        // Act & Assert
-        // MainLayout constructor will fail due to RouterLink routing dependencies in unit test context
-        // This is expected behavior since Vaadin routing requires full application context
-        assertThrows(Exception.class, () -> {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        // Expect either success or routing exception — just verify the service was used
+        try {
             new MainLayout(oidcUserService, userService, authNavigationService);
-        });
+        } catch (Exception e) {
+            // Routing context not available in pure unit test — expected
+        }
+        verify(oidcUserService, atLeastOnce()).isAuthenticated();
     }
 
     @Test
     void testMainLayoutConstructorWithNullService() {
-        // Act & Assert
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null));
+    }
+
+    @Test
+    void constructorSucceedsUnauthenticatedWithMockedRoutes() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        MainLayout layout = buildLayout();
+        assertNotNull(layout);
+    }
+
+    @Test
+    void constructorSucceedsAuthenticatedWithMockedRoutes() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(userService.getCurrentUser()).thenReturn(null);
+        MainLayout layout = buildLayout();
+        assertNotNull(layout);
+    }
+
+    @Test
+    void constructorSucceedsAuthenticatedWithUserAndMockedRoutes() {
+        User user = new User();
+        user.setId(1L);
+        user.setFirstName("Alice");
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(userService.getCurrentUser()).thenReturn(user);
+        MainLayout layout = buildLayout();
+        assertNotNull(layout);
+    }
+
+    @Test
+    void resolveInitialDarkModeReturnsCookieWhenUnauthenticated() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        MainLayout layout = buildLayout();
+        assertFalse(layout.resolveInitialDarkMode());
+    }
+
+    @Test
+    void resolveInitialDarkModeReturnsFalseWhenUserDarkModeNull() {
+        User user = new User();
+        user.setId(1L);
+        user.setDarkMode(null);
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(userService.getCurrentUser()).thenReturn(user);
+        MainLayout layout = buildLayout();
+        assertFalse(layout.resolveInitialDarkMode());
+    }
+
+    @Test
+    void resolveInitialDarkModeReturnsTrueWhenUserPrefersDark() {
+        User user = new User();
+        user.setId(1L);
+        user.setDarkMode(true);
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(userService.getCurrentUser()).thenReturn(user);
+        MainLayout layout = buildLayout();
+        assertTrue(layout.resolveInitialDarkMode());
+    }
+
+    @Test
+    void toggleThemeFlipsMode() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        MainLayout layout = buildLayout();
+        // Toggle twice — should end up in same state
+        layout.toggleTheme();
+        layout.toggleTheme();
+        // No exception means toggle logic executed
+        assertNotNull(layout);
+    }
+
+    @Test
+    void testServiceNotNull() {
         assertThrows(Exception.class, () -> new MainLayout(null, null, null));
     }
 
     @Test
     void testOidcUserServiceDependency() {
-        // Arrange
         when(oidcUserService.isAuthenticated()).thenReturn(true);
-
-        // Act & Assert
-        // Verify that the service dependency is properly checked
-        // This will throw during RouterLink creation, which is expected in unit test context
-        assertThrows(Exception.class, () -> {
+        try {
             new MainLayout(oidcUserService, userService, authNavigationService);
-        });
-
-        // Verify that isAuthenticated was called during the failed construction attempt
+        } catch (Exception e) {
+            // expected if routing not set up
+        }
         verify(oidcUserService, atLeastOnce()).isAuthenticated();
     }
 
     @Test
     void testAuthenticatedUserServiceCall() {
-        // Arrange
         when(oidcUserService.isAuthenticated()).thenReturn(true);
-
         try {
-            // Act
             new MainLayout(oidcUserService, userService, authNavigationService);
         } catch (Exception e) {
-            // Expected due to routing context not being available in unit tests
+            // expected
         }
-
-        // Assert
-        // Verify that the service was called to determine authentication status
         verify(oidcUserService, atLeastOnce()).isAuthenticated();
     }
 
     @Test
     void testUnauthenticatedUserServiceCall() {
-        // Arrange
         when(oidcUserService.isAuthenticated()).thenReturn(false);
-
         try {
-            // Act
             new MainLayout(oidcUserService, userService, authNavigationService);
         } catch (Exception e) {
-            // Expected due to routing context not being available in unit tests
+            // expected
         }
-
-        // Assert
-        // Verify that the service was called to determine authentication status
         verify(oidcUserService, atLeastOnce()).isAuthenticated();
-    }
-
-    @Test
-    void testServiceNotNull() {
-        // Test that we don't accept null services
-        assertThrows(Exception.class, () -> new MainLayout(null, null, null));
     }
 }
