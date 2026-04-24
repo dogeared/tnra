@@ -99,4 +99,4 @@ Admin can deactivate/reactivate members from the Members tab. Deactivated users 
 
 ### App-Level Column Encryption (AES-256-GCM)
 AES-256-GCM encryption for all sensitive post and stat columns. Per-app DEK wrapped with master key in `encryption_keys` table. Transparent JPA converters, Flyway V7+V8 migrations, in-memory name uniqueness checks.
-- **Completed:** v7.6.0 (2026-04-24)
+- **Completed:** v8.0.0 (2026-04-24)

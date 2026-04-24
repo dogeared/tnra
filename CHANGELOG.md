@@ -2,7 +2,7 @@
 
 All notable changes to TNRA are documented in this file.
 
-## [7.6.0] - 2026-04-24
+## [8.0.0] - 2026-04-24
 
 ### Added
 - **AES-256-GCM column encryption.** All sensitive post and stat data is now encrypted at rest:
