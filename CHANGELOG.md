@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.0.2] - 2026-04-24
+
+### Changed
+- **Spring `@Value` injection for Flyway migration master key.** `V8__EncryptExistingData` and `V10__EncryptEmojiData` now receive the master key via `@Value("${tnra.encryption.master-key}")` constructor injection instead of `System.getenv()`. Spring resolves the key at context load time, so a missing `TNRA_MASTER_KEY` env var fails fast on startup rather than mid-migration.
+
 ## [8.0.1] - 2026-04-24
 
 ### Added
