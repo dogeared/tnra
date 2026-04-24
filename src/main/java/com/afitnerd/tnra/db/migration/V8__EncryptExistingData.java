@@ -3,6 +3,7 @@ package com.afitnerd.tnra.db.migration;
 import com.afitnerd.tnra.util.AesGcm;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.KeyGenerator;
@@ -23,16 +24,16 @@ import java.util.Base64;
 public class V8__EncryptExistingData extends BaseJavaMigration {
 
     private static final String ENC_PREFIX = "ENC:";
-    private static final String DEFAULT_DEV_MASTER_KEY = "MDEyMzQ1Njc4OTAxMjM0NTY3ODkwMTIzNDU2Nzg5MDE=";
+
+    private final String masterKeyBase64;
+
+    public V8__EncryptExistingData(@Value("${tnra.encryption.master-key}") String masterKeyBase64) {
+        this.masterKeyBase64 = masterKeyBase64;
+    }
 
     @Override
     public void migrate(Context context) throws Exception {
         Connection conn = context.getConnection();
-
-        String masterKeyBase64 = System.getenv("TNRA_MASTER_KEY");
-        if (masterKeyBase64 == null || masterKeyBase64.isBlank()) {
-            masterKeyBase64 = DEFAULT_DEV_MASTER_KEY;
-        }
         byte[] masterKey = Base64.getDecoder().decode(masterKeyBase64);
 
         byte[] dek = ensureDek(conn, masterKey);
