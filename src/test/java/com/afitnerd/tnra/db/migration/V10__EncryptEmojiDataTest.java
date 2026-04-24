@@ -36,14 +36,6 @@ class V10__EncryptEmojiDataTest {
     }
 
     @Test
-    void migrateThrowsWhenMasterKeyEnvVarAbsent() {
-        // no-arg constructor reads from env var; TNRA_MASTER_KEY is not set in the test environment
-        V10__EncryptEmojiData migration = new V10__EncryptEmojiData();
-        IllegalStateException ex = assertThrows(IllegalStateException.class, () -> migration.migrate(ctx));
-        assertTrue(ex.getMessage().contains("TNRA_MASTER_KEY"));
-    }
-
-    @Test
     void loadDekThrowsWhenEncryptionKeysEmpty() throws Exception {
         ResultSet emptyRs = mock(ResultSet.class);
         when(stmt.executeQuery(contains("encryption_keys"))).thenReturn(emptyRs);

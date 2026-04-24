@@ -3,6 +3,7 @@ package com.afitnerd.tnra.db.migration;
 import com.afitnerd.tnra.util.AesGcm;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
@@ -22,25 +23,15 @@ public class V10__EncryptEmojiData extends BaseJavaMigration {
 
     private static final String ENC_PREFIX = "ENC:";
 
-    private final String resolvedMasterKey;
+    private final String masterKeyBase64;
 
-    public V10__EncryptEmojiData() {
-        this.resolvedMasterKey = null;
-    }
-
-    V10__EncryptEmojiData(String masterKeyBase64) {
-        this.resolvedMasterKey = masterKeyBase64;
+    public V10__EncryptEmojiData(@Value("${tnra.encryption.master-key}") String masterKeyBase64) {
+        this.masterKeyBase64 = masterKeyBase64;
     }
 
     @Override
     public void migrate(Context context) throws Exception {
         Connection conn = context.getConnection();
-
-        String masterKeyBase64 = resolvedMasterKey != null ? resolvedMasterKey : System.getenv("TNRA_MASTER_KEY");
-        if (masterKeyBase64 == null || masterKeyBase64.isBlank()) {
-            throw new IllegalStateException(
-                "TNRA_MASTER_KEY environment variable must be set before running migrations");
-        }
         byte[] masterKey = Base64.getDecoder().decode(masterKeyBase64);
         byte[] dek = loadDek(conn, masterKey);
 
