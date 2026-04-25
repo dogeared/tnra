@@ -31,6 +31,13 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 
 ## P2 — After MVP Ships
 
+### Completed Post View — Improve Read-Only Contrast
+The completed post view renders post fields in a disabled/read-only state that produces low-contrast text, making content hard to read.
+- **Why:** Members frequently review past posts; poor legibility undermines the core use case.
+- **Effort:** XS (human: ~2 hours / CC: ~10 min)
+- **Depends on:** Nothing — purely visual, no data model changes.
+- **Context:** Read-only Vaadin `TextArea` and `TextField` components use a muted disabled style by default. Fix by switching to a custom CSS approach (e.g., `pointer-events: none` + explicit text color override via Lumo custom properties or a `.read-only-field` theme variant) so the fields look rendered rather than grayed-out. Evaluate against DESIGN.md before shipping.
+
 ### Email Invitation Flow
 Send Keycloak registration link when admin invites a member.
 - **Why:** Currently admin enters an email and tells the member out-of-band to create a Keycloak account. An email invitation with a registration link is the expected UX.
