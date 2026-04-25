@@ -20,8 +20,8 @@ Test directory: `src/test/java/com/afitnerd/tnra/`
 
 ## Test Coverage
 
-Minimum: 60%
-Target: 80%
+Minimum: 95%
+Target: 100%
 
 ## Design System
 Always read DESIGN.md before making any visual or UI decisions.
