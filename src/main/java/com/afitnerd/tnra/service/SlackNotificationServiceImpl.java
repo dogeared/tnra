@@ -22,14 +22,17 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationServiceImpl.class);
 
     private final GroupSettingsService groupSettingsService;
+    private final PostTokenService postTokenService;
     private final String baseUrl;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SlackNotificationServiceImpl(
         GroupSettingsService groupSettingsService,
+        PostTokenService postTokenService,
         @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
         this.groupSettingsService = groupSettingsService;
+        this.postTokenService = postTokenService;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
@@ -81,7 +84,9 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
 
         String started = post.getStart() != null ? PostRenderer.formatDate(post.getStart()) : "unknown";
         String finished = post.getFinish() != null ? PostRenderer.formatDate(post.getFinish()) : "unknown";
-        String postUrl = baseUrl + "/posts/" + (post.getId() != null ? post.getId() : "");
+        String postUrl = (post.getId() != null)
+            ? baseUrl + "/posts/" + postTokenService.encode(post.getId())
+            : baseUrl + "/posts/";
 
         return username + " finished a post | Started: " + started + " | Finished: " + finished + " | View: " + postUrl;
     }

@@ -16,23 +16,28 @@ import static org.mockito.Mockito.*;
 class SlackNotificationServiceImplTest {
 
     private GroupSettingsService groupSettingsService;
+    private PostTokenService postTokenService;
     private SlackNotificationServiceImpl service;
 
     @BeforeEach
     void setUp() {
         groupSettingsService = mock(GroupSettingsService.class);
-        service = new SlackNotificationServiceImpl(groupSettingsService, "https://tnra.example.com");
+        postTokenService = mock(PostTokenService.class);
+        // Default stub: return a placeholder token for any Long ID
+        when(postTokenService.encode(anyLong())).thenReturn("token");
+        service = new SlackNotificationServiceImpl(groupSettingsService, postTokenService, "https://tnra.example.com");
     }
 
     // --- constructor ---
 
     @Test
     void constructorStripsTrailingSlash() {
-        SlackNotificationServiceImpl svc = new SlackNotificationServiceImpl(groupSettingsService, "https://example.com/");
+        when(postTokenService.encode(1L)).thenReturn("token1");
+        SlackNotificationServiceImpl svc = new SlackNotificationServiceImpl(groupSettingsService, postTokenService, "https://example.com/");
         Post post = createPost("Alice", "Smith", 1L);
         String msg = svc.buildMessage(post);
         // URL in message should not have double slash
-        assertTrue(msg.contains("https://example.com/posts/1"));
+        assertTrue(msg.contains("https://example.com/posts/token1"));
         assertFalse(msg.contains("//posts/"));
     }
 
@@ -40,6 +45,7 @@ class SlackNotificationServiceImplTest {
 
     @Test
     void buildMessage_includesFullNameStartFinishAndLink() {
+        when(postTokenService.encode(99L)).thenReturn("token99");
         Post post = createPost("Alice", "Smith", 99L);
         post.setStart(new Date(0));
         post.setFinish(new Date(60_000));
@@ -50,7 +56,7 @@ class SlackNotificationServiceImplTest {
         assertTrue(msg.contains("finished a post"));
         assertTrue(msg.contains("Started:"));
         assertTrue(msg.contains("Finished:"));
-        assertTrue(msg.contains("https://tnra.example.com/posts/99"));
+        assertTrue(msg.contains("https://tnra.example.com/posts/token99"));
     }
 
     @Test
@@ -152,6 +158,7 @@ class SlackNotificationServiceImplTest {
         settings.setSlackEnabled(true);
         settings.setSlackWebhookUrl("https://hooks.slack.com/test");
         when(groupSettingsService.getSettings()).thenReturn(settings);
+        when(postTokenService.encode(10L)).thenReturn("token10");
 
         SlackNotificationServiceImpl spy = spy(service);
         doNothing().when(spy).doPost(anyString(), anyString());

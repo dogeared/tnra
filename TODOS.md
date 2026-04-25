@@ -15,7 +15,7 @@ Admin-configurable incoming webhook for a Slack channel. When a member finishes 
 - **Depends on:** Encryption deployed to active group. Deep links shipped (v7.5.0). `group_settings` table for storing webhook URL + enabled flag.
 - **Context:** Use Slack incoming webhooks (no OAuth, no slash commands). One webhook URL per group, stored encrypted in `group_settings`. Admin UI in the Admin panel to configure the webhook URL and toggle on/off. Message format: `[username] finished a post | Started: [time] | Finished: [time] | View: [deep link URL]`. No post content, no stats — activity signal only.
 
-### Deep Link URL Token — Obfuscate Post ID in Shared Links
+### ~~Deep Link URL Token — Obfuscate Post ID in Shared Links~~ ✓ Completed v8.1.0
 Replace the raw database ID in post deep links (`/post/42`) with an AES-GCM-encrypted, base64url-encoded token so sequential IDs are never exposed externally.
 - **Why:** Sequential integer IDs in URLs allow enumeration attacks — an authenticated user can increment the ID to probe posts that aren't theirs. Slack notifications make this worse by broadcasting the link to an entire channel.
 - **Effort:** S (human: ~1 day / CC: ~15 min)
