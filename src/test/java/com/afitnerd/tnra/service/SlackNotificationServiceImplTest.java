@@ -106,6 +106,15 @@ class SlackNotificationServiceImplTest {
     }
 
     @Test
+    void buildMessage_escapesSlackMrkdwnInUserName() {
+        Post post = createPost("<attacker>", "User", 5L);
+        when(postTokenService.encode(5L)).thenReturn("tok5");
+        String msg = service.buildMessage(post);
+        assertFalse(msg.contains("<attacker>"), "Raw angle brackets should be escaped");
+        assertTrue(msg.contains("&lt;attacker&gt;"));
+    }
+
+    @Test
     void buildMessage_usesSomeoneWhenUserHasAllNullFields() {
         User user = new User(null, null, null);
         Post post = new Post();

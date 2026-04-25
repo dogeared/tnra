@@ -77,6 +77,16 @@ class ActivityNotificationRendererTest {
         assertTrue(html.contains("&lt;script&gt;"));
     }
 
+    @Test
+    void constructorStripsTrailingSlash() {
+        ActivityNotificationRenderer r = new ActivityNotificationRenderer(postTokenService, "https://tnra.example.com/");
+        when(postTokenService.encode(1L)).thenReturn("tok1");
+        Post post = createPost("Jane", "Doe");
+        post.setId(1L);
+        String html = r.render(post);
+        assertTrue(html.contains("https://tnra.example.com/posts/tok1"));
+    }
+
     private Post createPost(String firstName, String lastName) {
         User user = new User(firstName, lastName, "test@example.com");
         Post post = new Post();

@@ -29,6 +29,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
+import com.vaadin.flow.component.textfield.TextField;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,6 +39,7 @@ import org.mockito.MockedStatic;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -45,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -945,6 +948,49 @@ class AdminViewTest {
             saveBtn.click();
             mocked.verify(() -> AppNotification.error(anyString()));
         }
+    }
+
+    @Test
+    void integrationsTabSaveButtonRejectsNonHttpsWebhookUrl() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+        GroupSettings settings = new GroupSettings();
+        when(groupSettingsService.getSettings()).thenReturn(settings);
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        ui.add(view);
+
+        try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
+            mocked.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            VerticalLayout integrationsTab = view.createIntegrationsTabContent();
+            TextField webhookField = firstComponent(integrationsTab, TextField.class, f -> true);
+            webhookField.setValue("http://evil.example.com/hook");
+            Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+            saveBtn.click();
+            mocked.verify(() -> AppNotification.error(anyString()));
+            verify(groupSettingsService, never()).save(any(GroupSettings.class));
+        }
+    }
+
+    @Test
+    void integrationsTabSaveButtonSetsNullWebhookUrlWhenBlank() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+        GroupSettings settings = new GroupSettings();
+        settings.setSlackWebhookUrl("https://hooks.slack.com/existing");
+        when(groupSettingsService.getSettings()).thenReturn(settings);
+        when(groupSettingsService.save(any(GroupSettings.class))).thenReturn(settings);
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        ui.add(view);
+
+        VerticalLayout integrationsTab = view.createIntegrationsTabContent();
+        TextField webhookField = firstComponent(integrationsTab, TextField.class, f -> true);
+        webhookField.setValue("");
+        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+        saveBtn.click();
+
+        ArgumentCaptor<GroupSettings> captor = ArgumentCaptor.forClass(GroupSettings.class);
+        verify(groupSettingsService).save(captor.capture());
+        assertNull(captor.getValue().getSlackWebhookUrl());
     }
 
     private <T extends Component> boolean anyComponent(Component root, Class<T> type, Predicate<T> predicate) {

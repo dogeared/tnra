@@ -1347,6 +1347,27 @@ class PostViewTest {
         }
     }
 
+    @Test
+    void testDeepLinkWithNullUserFallsThroughToDefault() {
+        Post postWithNullUser = new Post();
+        postWithNullUser.setId(77L);
+        // user is null
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        when(vaadinPostPresenter.getPostById(77L)).thenReturn(Optional.of(postWithNullUser));
+        when(postTokenService.decode("token-77")).thenReturn(77L);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-77");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            assertTrue(postView.showingCompletedPosts, "Post with null user should fall through to default");
+        }
+    }
+
     private void setupUIMocks(String timeZoneId) {
         // Setup the mock chain: UI.getCurrent().getSession().getAttribute(ExtendedClientDetails.class)
         lenient().when(mockUI.getSession()).thenReturn(mockSession);

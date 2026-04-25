@@ -162,23 +162,28 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
                 Optional<Post> deepLinkedPost = vaadinPostPresenter.getPostById(postId);
                 if (deepLinkedPost.isPresent()) {
                     Post post = deepLinkedPost.get();
-                    boolean isOwnPost = post.getUser().getId().equals(currentUser.getId());
+                    if (post.getUser() != null) {
+                        boolean isOwnPost = post.getUser().getId().equals(currentUser.getId());
 
-                    // Block access to other users' in-progress posts — fall through to default
-                    if (post.getState() == PostState.IN_PROGRESS && !isOwnPost) {
-                        log.warn("Deep link denied: user {} attempted to view in-progress post {} owned by user {}",
-                            currentUser.getId(), postId, post.getUser().getId());
-                        pendingNotification = "Unable to load post.";
-                    } else {
-                        currentPost = post;
-                        selectedUser = post.getUser();
-                        // Own in-progress post: show in-progress view
-                        // All other cases (completed posts, other users' completed posts): show completed view
-                        showingCompletedPosts = !(post.getState() == PostState.IN_PROGRESS && isOwnPost);
-                        if (showingCompletedPosts) {
-                            loadCurrentPage();
+                        // Block access to other users' in-progress posts — fall through to default
+                        if (post.getState() == PostState.IN_PROGRESS && !isOwnPost) {
+                            log.warn("Deep link denied: user {} attempted to view in-progress post {} owned by user {}",
+                                currentUser.getId(), postId, post.getUser().getId());
+                            pendingNotification = "Unable to load post.";
+                        } else {
+                            currentPost = post;
+                            selectedUser = post.getUser();
+                            // Own in-progress post: show in-progress view
+                            // All other cases (completed posts, other users' completed posts): show completed view
+                            showingCompletedPosts = !(post.getState() == PostState.IN_PROGRESS && isOwnPost);
+                            if (showingCompletedPosts) {
+                                loadCurrentPage();
+                            }
+                            return;
                         }
-                        return;
+                    } else {
+                        log.warn("Deep link failed: post {} has no owner", postId);
+                        pendingNotification = "Unable to load post.";
                     }
                 } else {
                     log.warn("Deep link failed: post not found for token");

@@ -499,10 +499,16 @@ public class AdminView extends VerticalLayout {
         Button saveBtn = new Button("Save", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> {
-            settings.setSlackWebhookUrl(webhookUrlField.getValue().isBlank() ? null : webhookUrlField.getValue().trim());
-            settings.setSlackEnabled(enabledCheckbox.getValue());
+            String url = webhookUrlField.getValue().isBlank() ? null : webhookUrlField.getValue().trim();
+            if (url != null && !url.startsWith("https://")) {
+                AppNotification.error("Webhook URL must use HTTPS");
+                return;
+            }
+            GroupSettings current = groupSettingsService.getSettings();
+            current.setSlackWebhookUrl(url);
+            current.setSlackEnabled(enabledCheckbox.getValue());
             try {
-                groupSettingsService.save(settings);
+                groupSettingsService.save(current);
                 AppNotification.success("Slack settings saved");
             } catch (Exception ex) {
                 AppNotification.error("Failed to save Slack settings");

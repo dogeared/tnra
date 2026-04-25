@@ -6,6 +6,7 @@ import com.afitnerd.tnra.model.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.util.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,13 +56,15 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
             String payload = objectMapper.writeValueAsString(Map.of("text", message));
             doPost(webhookUrl, payload);
             log.info("Slack activity notification sent for post id={}", post.getId());
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to send Slack activity notification for post id={}: {}", post.getId(), e.getMessage(), e);
         }
     }
 
     void doPost(String webhookUrl, String payload) throws IOException {
         Request.post(webhookUrl)
+            .connectTimeout(Timeout.ofSeconds(3))
+            .responseTimeout(Timeout.ofSeconds(5))
             .bodyString(payload, ContentType.APPLICATION_JSON.withCharset(StandardCharsets.UTF_8))
             .execute()
             .discardContent();
@@ -88,6 +91,11 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
             ? baseUrl + "/posts/" + postTokenService.encode(post.getId())
             : baseUrl + "/posts/";
 
-        return username + " finished a post | Started: " + started + " | Finished: " + finished + " | View: " + postUrl;
+        return escapeSlack(username) + " finished a post | Started: " + started + " | Finished: " + finished + " | View: " + postUrl;
+    }
+
+    private static String escapeSlack(String input) {
+        if (input == null) return "";
+        return input.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 }
