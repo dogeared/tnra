@@ -15,6 +15,13 @@ Admin-configurable incoming webhook for a Slack channel. When a member finishes 
 - **Depends on:** Encryption deployed to active group. Deep links shipped (v7.5.0). `group_settings` table for storing webhook URL + enabled flag.
 - **Context:** Use Slack incoming webhooks (no OAuth, no slash commands). One webhook URL per group, stored encrypted in `group_settings`. Admin UI in the Admin panel to configure the webhook URL and toggle on/off. Message format: `[username] finished a post | Started: [time] | Finished: [time] | View: [deep link URL]`. No post content, no stats — activity signal only.
 
+### Deep Link URL Token — Obfuscate Post ID in Shared Links
+Replace the raw database ID in post deep links (`/post/42`) with an AES-GCM-encrypted, base64url-encoded token so sequential IDs are never exposed externally.
+- **Why:** Sequential integer IDs in URLs allow enumeration attacks — an authenticated user can increment the ID to probe posts that aren't theirs. Slack notifications make this worse by broadcasting the link to an entire channel.
+- **Effort:** S (human: ~1 day / CC: ~15 min)
+- **Depends on:** Slack Part 1 shipped. Encryption infrastructure already in place (V7/V8 migrations, `EncryptedStringConverter`).
+- **Context:** Reuse the existing AES-256-GCM service to encrypt the `Long` post ID (serialize as a string, encrypt, base64url-encode for URL safety). Expose a `PostTokenService` (or method on the existing crypto service) with `encode(Long id)` and `decode(String token)`. Update the PostView router to decode the token before fetching. Update `SlackNotificationServiceImpl.buildMessage()` to encode the ID when constructing the deep link. The existing `/post/{id}` route stays but checks ownership; the token route is the new public-facing path. Decryption failure or post-not-found both return 404 — no information leakage.
+
 ### Landing Page with Request Access Form
 Static or Vaadin public route for prospective groups. Form: group name, contact name, email, estimated size, description. Submissions stored in `request_access` table + email notification to founder.
 - **Why:** Need somewhere to point prospective groups. Supports go-to-market.
@@ -37,6 +44,13 @@ The completed post view renders post fields in a disabled/read-only state that p
 - **Effort:** XS (human: ~2 hours / CC: ~10 min)
 - **Depends on:** Nothing — purely visual, no data model changes.
 - **Context:** Read-only Vaadin `TextArea` and `TextField` components use a muted disabled style by default. Fix by switching to a custom CSS approach (e.g., `pointer-events: none` + explicit text color override via Lumo custom properties or a `.read-only-field` theme variant) so the fields look rendered rather than grayed-out. Evaluate against DESIGN.md before shipping.
+
+### Non-Sequential Primary Keys
+Add a `public_id` UUID column to all externally-visible entities (Post, User) so that internal sequential auto-increment PKs are never surfaced in the API, URLs, or notifications.
+- **Why:** Sequential integer PKs reveal row count, insertion rate, and allow trivial enumeration. UUID public IDs eliminate all three. Complements the deep-link token work but covers entities beyond just posts (e.g., user profile routes).
+- **Effort:** M (human: ~2 days / CC: ~20 min)
+- **Depends on:** Deep Link URL Token task shipped (establishes the pattern). No Flyway version conflict at the time this is scheduled.
+- **Context:** Add `public_id CHAR(36) NOT NULL DEFAULT (UUID())` columns via a new Flyway migration. Populate existing rows in the same migration. Add a `@Column(unique=true)` `publicId` field to affected JPA entities. Internal foreign keys and JPA relationships keep the numeric PK for performance — only the `publicId` is ever sent over the wire or stored in external systems. Update repositories with `findByPublicId(String)` finders. Audit all Vaadin views and service methods to confirm no numeric ID leaks remain.
 
 ### Email Invitation Flow
 Send Keycloak registration link when admin invites a member.
