@@ -9,6 +9,7 @@ import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
+import com.afitnerd.tnra.service.SlackNotificationService;
 import com.afitnerd.tnra.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ class VaadinPostPresenterImplTest {
     private UserService userService;
     private PostService postService;
     private EMailService emailService;
+    private SlackNotificationService slackNotificationService;
     private PostRepository postRepository;
     private StatDefinitionRepository statDefinitionRepository;
     private PersonalStatDefinitionRepository personalStatDefinitionRepository;
@@ -46,11 +48,13 @@ class VaadinPostPresenterImplTest {
         userService = mock(UserService.class);
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
+        slackNotificationService = mock(SlackNotificationService.class);
         postRepository = mock(PostRepository.class);
         statDefinitionRepository = mock(StatDefinitionRepository.class);
         personalStatDefinitionRepository = mock(PersonalStatDefinitionRepository.class);
         presenter = new VaadinPostPresenterImpl(
-            oidcUserService, userService, postService, emailService, postRepository, statDefinitionRepository, personalStatDefinitionRepository
+            oidcUserService, userService, postService, emailService, slackNotificationService,
+            postRepository, statDefinitionRepository, personalStatDefinitionRepository
         );
     }
 
@@ -68,6 +72,18 @@ class VaadinPostPresenterImplTest {
         setField(presenter, "emailServiceEnabled", false);
         presenter.finishPost(user);
         verify(emailService, org.mockito.Mockito.times(1)).sendMailToAll(post);
+    }
+
+    @Test
+    void finishPostAlwaysCallsSlackNotification() throws Exception {
+        User user = new User();
+        Post post = new Post();
+        when(postService.finishPost(user)).thenReturn(post);
+        setField(presenter, "emailServiceEnabled", false);
+
+        presenter.finishPost(user);
+
+        verify(slackNotificationService).sendActivityNotification(post);
     }
 
     @Test

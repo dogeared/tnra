@@ -2,15 +2,18 @@ package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.GoToGuyPair;
 import com.afitnerd.tnra.model.GoToGuySet;
+import com.afitnerd.tnra.model.GroupSettings;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
+import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.dialog.Dialog;
@@ -44,6 +47,7 @@ public class AdminView extends VerticalLayout {
     private final StatDefinitionRepository statDefinitionRepository;
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final UserService userService;
+    private final GroupSettingsService groupSettingsService;
     private GoToGuySet workingSet;
 
     public AdminView(
@@ -51,13 +55,15 @@ public class AdminView extends VerticalLayout {
         CallChainPresenter callChainPresenter,
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository,
-        UserService userService
+        UserService userService,
+        GroupSettingsService groupSettingsService
     ) {
         this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
         this.statDefinitionRepository = statDefinitionRepository;
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.userService = userService;
+        this.groupSettingsService = groupSettingsService;
 
         addClassName("admin-view");
         setSizeFull();
@@ -84,6 +90,7 @@ public class AdminView extends VerticalLayout {
         tabSheet.add("GTG", createGtgTabContent());
         tabSheet.add("Members", createMembersTabContent());
         tabSheet.add("Stats Config", createStatsConfigTabContent());
+        tabSheet.add("Integrations", createIntegrationsTabContent());
         tabSheet.add("Build Info", createBuildInfoTabContent());
 
         add(tabSheet);
@@ -455,6 +462,51 @@ public class AdminView extends VerticalLayout {
 
         dialog.add(formLayout, dialogButtons);
         dialog.open();
+    }
+
+    // ========================
+    // Integrations Tab
+    // ========================
+
+    VerticalLayout createIntegrationsTabContent() {
+        VerticalLayout content = new VerticalLayout();
+        content.setSizeFull();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        H3 header = new H3("Integrations");
+        header.addClassName("section-header");
+
+        Paragraph description = new Paragraph(
+            "Configure integrations. Activity notifications include username, start time, finish time, and a link to the post. No post content is sent."
+        );
+        description.addClassName("admin-subtitle");
+
+        H3 slackHeader = new H3("Slack");
+        slackHeader.addClassName("section-header");
+
+        GroupSettings settings = groupSettingsService.getSettings();
+
+        TextField webhookUrlField = new TextField("Incoming Webhook URL");
+        webhookUrlField.setPlaceholder("https://hooks.slack.com/services/...");
+        webhookUrlField.setWidth("100%");
+        webhookUrlField.setMaxWidth("600px");
+        webhookUrlField.setValue(settings.getSlackWebhookUrl() != null ? settings.getSlackWebhookUrl() : "");
+
+        Checkbox enabledCheckbox = new Checkbox("Enable Slack notifications");
+        enabledCheckbox.setValue(settings.isSlackEnabled());
+
+        Button saveBtn = new Button("Save", VaadinIcon.CHECK.create());
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveBtn.addClickListener(e -> {
+            settings.setSlackWebhookUrl(webhookUrlField.getValue().isBlank() ? null : webhookUrlField.getValue().trim());
+            settings.setSlackEnabled(enabledCheckbox.getValue());
+            groupSettingsService.save(settings);
+            AppNotification.success("Slack settings saved");
+        });
+
+        content.add(header, description, slackHeader, webhookUrlField, enabledCheckbox, saveBtn);
+        return content;
     }
 
     // ========================
