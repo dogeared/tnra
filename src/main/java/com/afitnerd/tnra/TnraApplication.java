@@ -57,6 +57,19 @@ public class TnraApplication implements AppShellConfigurator {
         return executor;
     }
 
+    @Bean
+    public TaskExecutor slackTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(2);
+        executor.setQueueCapacity(20);
+        executor.setThreadNamePrefix("slack-");
+        executor.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(15);
+        return executor;
+    }
+
     public static void main(String[] args) {
         SpringApplication.run(TnraApplication.class, args);
     }

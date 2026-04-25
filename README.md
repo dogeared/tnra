@@ -333,6 +333,51 @@ Login navigation is configurable through `AuthNavigationService`:
 Resolution order: `login-path` > `/oauth2/authorization/{login-registration-id}` >
 `/oauth2/authorization/keycloak`
 
+## Slack Integration
+
+TNRA uses [Slack Incoming Webhooks](https://api.slack.com/messaging/webhooks) — a one-way
+push mechanism that requires no bot token, no OAuth flow, and no Slack app review. When
+enabled, a notification fires each time a member finishes a post:
+
+```
+[First Last] finished a post | Started: 2024-01-15 08:30 | Finished: 2024-01-15 09:15 | View: https://…
+```
+
+No post content is included. Only the activity metadata (who, when, link) leaves the app.
+
+> **Compared to the v4.x integration:** The old implementation required a Slack bot access
+> token (`xoxb-…`), a broadcast channel ID, and a separate Slack token — these had to be
+> managed as app credentials and involved OAuth scopes. The webhook approach used here is
+> simpler: one URL, tied to a channel at creation time, no credentials stored beyond the URL
+> itself (which is encrypted at rest with AES-256-GCM).
+
+### Setting up a Slack webhook
+
+1. Go to [https://api.slack.com/apps](https://api.slack.com/apps) and click **Create New App → From scratch**.
+2. Name the app (e.g., `TNRA Notifications`) and select your workspace. Click **Create App**.
+3. In the left sidebar under **Features**, click **Incoming Webhooks**.
+4. Toggle **Activate Incoming Webhooks** to **On**.
+5. Click **Add New Webhook to Workspace**.
+6. Select the channel where post-completion notifications should appear (e.g., `#accountability`). Click **Allow**.
+7. Copy the generated webhook URL — it follows the pattern:
+   ```
+   https://hooks.slack.com/services/<workspace-id>/<channel-id>/<token>
+   ```
+   Keep this URL private; anyone with it can post to your channel.
+
+### Configuring TNRA
+
+1. Log in as a group admin and open the **Admin** panel.
+2. Click the **Integrations** tab.
+3. Paste the webhook URL into the **Slack Webhook URL** field.
+4. Check **Slack notifications enabled**.
+5. Click **Save**.
+
+Notifications fire asynchronously and never block the member's post submission. Errors
+(e.g., invalid URL, network failure) are logged server-side and do not surface to the user.
+
+To disable notifications without losing the URL, uncheck **Slack notifications enabled** and save.
+
 ## Database Migrations (Flyway)
 
 Migration files: `src/main/resources/db/migration/`
@@ -349,6 +394,7 @@ Migration files: `src/main/resources/db/migration/`
 | V8 | (Java) Encrypt existing post and stat data in-place |
 | V9 | Widen stat_definition.emoji to TEXT |
 | V10 | (Java) Encrypt existing emoji values in-place |
+| V11 | Group settings (Slack webhook URL encrypted, enabled flag) |
 
 Flyway runs automatically on startup. `baseline-on-migrate: true` handles pre-Flyway databases.
 Hibernate `ddl-auto: validate` ensures schema matches entities without modifying the database.

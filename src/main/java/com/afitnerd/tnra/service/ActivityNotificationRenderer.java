@@ -8,11 +8,14 @@ import org.springframework.stereotype.Service;
 @Service("activityNotificationRenderer")
 public class ActivityNotificationRenderer implements PostRenderer {
 
+    private final PostTokenService postTokenService;
     private final String baseUrl;
 
     public ActivityNotificationRenderer(
+        PostTokenService postTokenService,
         @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
+        this.postTokenService = postTokenService;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
@@ -33,7 +36,7 @@ public class ActivityNotificationRenderer implements PostRenderer {
         }
         sb.append(".</p>");
         if (post.getId() != null) {
-            String postLink = baseUrl + "/posts/" + post.getId();
+            String postLink = baseUrl + "/posts/" + postTokenService.encode(post.getId());
             sb.append("<p><a href=\"").append(escapeHtml(postLink));
             sb.append("\">View post</a></p>");
         } else {

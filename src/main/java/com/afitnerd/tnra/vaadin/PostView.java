@@ -3,6 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.PostTokenService;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
@@ -41,15 +42,16 @@ import java.util.Optional;
 @Route(value = "posts", layout = MainLayout.class)
 @PermitAll
 @CssImport("./styles/post-view.css")
-public class PostView extends VerticalLayout implements AfterNavigationObserver, HasUrlParameter<Long> {
+public class PostView extends VerticalLayout implements AfterNavigationObserver, HasUrlParameter<String> {
 
     private static final Logger log = LoggerFactory.getLogger(PostView.class);
 
     private final VaadinPostPresenter vaadinPostPresenter;
+    private final PostTokenService postTokenService;
     private User currentUser;
     private User selectedUser;
     private Post currentPost;
-    private Long deepLinkPostId;
+    private String deepLinkToken;
     private String pendingNotification;
     
     // Server-side pagination fields
@@ -102,16 +104,17 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     // is the true param for nested properties needed?
     private Binder<Post> postBinder = new Binder<>(Post.class, true);
 
-    public PostView(VaadinPostPresenter vaadinPostPresenter) {
+    public PostView(VaadinPostPresenter vaadinPostPresenter, PostTokenService postTokenService) {
         this.vaadinPostPresenter = vaadinPostPresenter;
+        this.postTokenService = postTokenService;
 
         setSizeFull();
         addClassName("post-view");
     }
 
     @Override
-    public void setParameter(BeforeEvent event, @OptionalParameter Long postId) {
-        this.deepLinkPostId = postId;
+    public void setParameter(BeforeEvent event, @OptionalParameter String token) {
+        this.deepLinkToken = token;
     }
 
     @Override
@@ -126,7 +129,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             loadPostData();
             updateReadOnlyState();
             // For deep-linked completed posts, also select in the dropdown
-            if (showingCompletedPosts && deepLinkPostId != null && postSelector != null) {
+            if (showingCompletedPosts && deepLinkToken != null && postSelector != null) {
                 postSelector.setValue(currentPost);
             }
         }
@@ -146,32 +149,46 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
         currentUser = vaadinPostPresenter.initializeUser();
         selectedUser = currentUser; // Default to current authenticated user
 
-        // Deep link: if a postId was provided via URL parameter, load that specific post
-        if (deepLinkPostId != null) {
-            Optional<Post> deepLinkedPost = vaadinPostPresenter.getPostById(deepLinkPostId);
-            if (deepLinkedPost.isPresent()) {
-                Post post = deepLinkedPost.get();
-                boolean isOwnPost = post.getUser().getId().equals(currentUser.getId());
-
-                // Block access to other users' in-progress posts — fall through to default
-                if (post.getState() == PostState.IN_PROGRESS && !isOwnPost) {
-                    log.warn("Deep link denied: user {} attempted to view in-progress post {} owned by user {}",
-                        currentUser.getId(), deepLinkPostId, post.getUser().getId());
-                    pendingNotification = "Unable to load post.";
-                } else {
-                    currentPost = post;
-                    selectedUser = post.getUser();
-                    // Own in-progress post: show in-progress view
-                    // All other cases (completed posts, other users' completed posts): show completed view
-                    showingCompletedPosts = !(post.getState() == PostState.IN_PROGRESS && isOwnPost);
-                    if (showingCompletedPosts) {
-                        loadCurrentPage();
-                    }
-                    return;
-                }
-            } else {
-                log.warn("Deep link failed: post {} not found", deepLinkPostId);
+        // Deep link: if a token was provided via URL parameter, decode and load that specific post
+        if (deepLinkToken != null) {
+            Long postId = null;
+            try {
+                postId = postTokenService.decode(deepLinkToken);
+            } catch (IllegalArgumentException e) {
+                log.warn("Deep link failed: invalid or tampered post token");
                 pendingNotification = "Unable to load post.";
+            }
+            if (postId != null) {
+                Optional<Post> deepLinkedPost = vaadinPostPresenter.getPostById(postId);
+                if (deepLinkedPost.isPresent()) {
+                    Post post = deepLinkedPost.get();
+                    if (post.getUser() != null) {
+                        boolean isOwnPost = post.getUser().getId().equals(currentUser.getId());
+
+                        // Block access to other users' in-progress posts — fall through to default
+                        if (post.getState() == PostState.IN_PROGRESS && !isOwnPost) {
+                            log.warn("Deep link denied: user {} attempted to view in-progress post {} owned by user {}",
+                                currentUser.getId(), postId, post.getUser().getId());
+                            pendingNotification = "Unable to load post.";
+                        } else {
+                            currentPost = post;
+                            selectedUser = post.getUser();
+                            // Own in-progress post: show in-progress view
+                            // All other cases (completed posts, other users' completed posts): show completed view
+                            showingCompletedPosts = !(post.getState() == PostState.IN_PROGRESS && isOwnPost);
+                            if (showingCompletedPosts) {
+                                loadCurrentPage();
+                            }
+                            return;
+                        }
+                    } else {
+                        log.warn("Deep link failed: post {} has no owner", postId);
+                        pendingNotification = "Unable to load post.";
+                    }
+                } else {
+                    log.warn("Deep link failed: post not found for token");
+                    pendingNotification = "Unable to load post.";
+                }
             }
         }
 

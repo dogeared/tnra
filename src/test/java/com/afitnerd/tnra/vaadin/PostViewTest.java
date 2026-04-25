@@ -3,6 +3,7 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.PostTokenService;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
@@ -43,6 +44,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * Test class for PostView that exercises various modes and UI states:
@@ -56,6 +58,9 @@ class PostViewTest {
 
     @Mock
     private VaadinPostPresenter vaadinPostPresenter;
+
+    @Mock
+    private PostTokenService postTokenService;
     
     @Mock
     private UI mockUI;
@@ -118,7 +123,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
             
             // Force switch to completed posts view
@@ -143,7 +148,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: Should have switch button, date/time display, and finish button
@@ -164,7 +169,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: Should be in completed view with dropdown, pagination, and start button
@@ -187,7 +192,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: Cannot switch to in-progress view (no switch button available)
@@ -214,7 +219,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Initial state: in-progress view
@@ -277,7 +282,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Act
@@ -300,7 +305,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Act
@@ -321,7 +326,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert
@@ -339,7 +344,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Act
@@ -360,7 +365,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert
@@ -377,7 +382,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Act
@@ -397,7 +402,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert - Check that form contains expected sections
@@ -409,14 +414,14 @@ class PostViewTest {
     void testPostViewConstructor() {
         // Act & Assert
         assertDoesNotThrow(() -> {
-            new PostView(vaadinPostPresenter);
+            new PostView(vaadinPostPresenter, postTokenService);
         });
     }
 
     @Test
     void testPostViewSizeAndClassNames() {
         // Act
-        PostView view = new PostView(vaadinPostPresenter);
+        PostView view = new PostView(vaadinPostPresenter, postTokenService);
 
         // Assert
         assertTrue(view.getClassNames().contains("post-view"));
@@ -431,7 +436,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Act - We can't test the private method directly, but we can test that
@@ -449,7 +454,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
             
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Act - We can test that completed posts are handled
@@ -463,13 +468,14 @@ class PostViewTest {
         // Arrange: deep link to a completed post
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         lenient().when(vaadinPostPresenter.getPostById(2L)).thenReturn(Optional.of(completedPost1));
+        when(postTokenService.decode("token-2")).thenReturn(2L);
 
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
-            postView.setParameter(mock(BeforeEvent.class), 2L);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-2");
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: should be in completed posts mode with the deep-linked post loaded
@@ -483,13 +489,14 @@ class PostViewTest {
         // Arrange: deep link to current user's own in-progress post
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
         lenient().when(vaadinPostPresenter.getPostById(1L)).thenReturn(Optional.of(inProgressPost));
+        when(postTokenService.decode("token-1")).thenReturn(1L);
 
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
-            postView.setParameter(mock(BeforeEvent.class), 1L);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-1");
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: should show in-progress view for own in-progress post
@@ -502,13 +509,14 @@ class PostViewTest {
         // Arrange: deep link to a non-existent post
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         lenient().when(vaadinPostPresenter.getPostById(999L)).thenReturn(Optional.empty());
+        when(postTokenService.decode("token-999")).thenReturn(999L);
 
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
-            postView.setParameter(mock(BeforeEvent.class), 999L);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-999");
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: should fall through to default behavior (no in-progress → completed view)
@@ -526,7 +534,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.setParameter(mock(BeforeEvent.class), null);
             postView.afterNavigation(mockAfterNavigationEvent());
 
@@ -548,13 +556,14 @@ class PostViewTest {
 
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         lenient().when(vaadinPostPresenter.getPostById(20L)).thenReturn(Optional.of(otherInProgressPost));
+        when(postTokenService.decode("token-20")).thenReturn(20L);
 
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
-            postView.setParameter(mock(BeforeEvent.class), 20L);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-20");
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: should fall through to default behavior, NOT show the other user's post
@@ -577,13 +586,14 @@ class PostViewTest {
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
         lenient().when(vaadinPostPresenter.getPostById(10L)).thenReturn(Optional.of(otherUserPost));
         lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(otherUser), any(Pageable.class))).thenReturn(new PageImpl<>(Arrays.asList(otherUserPost)));
+        when(postTokenService.decode("token-10")).thenReturn(10L);
 
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
-            postView.setParameter(mock(BeforeEvent.class), 10L);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-10");
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Assert: should show completed view for the other user's post
@@ -614,7 +624,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Find and click the next page button
@@ -647,7 +657,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Go to next page first
@@ -684,7 +694,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Go to next page first
@@ -719,7 +729,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Go to last page
@@ -750,7 +760,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Find the page number field and set value to page 2
@@ -777,7 +787,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // All pagination buttons should be disabled on a single page
@@ -823,7 +833,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Call finishPost directly via reflection (button is disabled until all fields filled)
@@ -849,7 +859,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Invoke updateFinishButtonState via reflection
@@ -873,7 +883,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Fill only intro fields via the form fields
@@ -898,7 +908,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Switch to showing completed posts so button should be disabled
@@ -922,7 +932,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Fill all text fields
@@ -950,7 +960,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Call generatePostLabel via reflection with null
@@ -968,7 +978,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             String label = invokeGeneratePostLabel(postView, inProgressPost);
@@ -985,7 +995,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             String label = invokeGeneratePostLabel(postView, completedPost1);
@@ -1012,7 +1022,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             String label = invokeGeneratePostLabel(postView, noFinishPost);
@@ -1035,7 +1045,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Find and update a text field — this should trigger the binder value change listener
@@ -1061,7 +1071,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Update a field — should trigger save which throws, but should be handled gracefully
@@ -1085,7 +1095,7 @@ class PostViewTest {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
 
-            postView = new PostView(vaadinPostPresenter);
+            postView = new PostView(vaadinPostPresenter, postTokenService);
             postView.afterNavigation(mockAfterNavigationEvent());
 
             // Access the page size selector via reflection
@@ -1317,6 +1327,45 @@ class PostViewTest {
             }
         }
         return null;
+    }
+
+    @Test
+    void testDeepLinkWithInvalidTokenFallsThroughToDefault() {
+        when(postTokenService.decode("INVALID")).thenThrow(new IllegalArgumentException("bad token"));
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "INVALID");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            assertFalse(postView.showingCompletedPosts, "Invalid token should fall through to in-progress default");
+            verify(postTokenService).decode("INVALID");
+        }
+    }
+
+    @Test
+    void testDeepLinkWithNullUserFallsThroughToDefault() {
+        Post postWithNullUser = new Post();
+        postWithNullUser.setId(77L);
+        // user is null
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+        when(vaadinPostPresenter.getPostById(77L)).thenReturn(Optional.of(postWithNullUser));
+        when(postTokenService.decode("token-77")).thenReturn(77L);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService);
+            postView.setParameter(mock(BeforeEvent.class), "token-77");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            assertTrue(postView.showingCompletedPosts, "Post with null user should fall through to default");
+        }
     }
 
     private void setupUIMocks(String timeZoneId) {

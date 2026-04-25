@@ -10,6 +10,7 @@ import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
+import com.afitnerd.tnra.service.SlackNotificationService;
 import com.afitnerd.tnra.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -26,6 +27,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     private final OidcUserService oidcUserService;
     private final PostService postService;
     private final EMailService eMailService;
+    private final SlackNotificationService slackNotificationService;
     private final PostRepository postRepository;
     private final StatDefinitionRepository statDefinitionRepository;
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
@@ -36,6 +38,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     public VaadinPostPresenterImpl(
         OidcUserService oidcUserService, UserService userService,
         PostService postService, EMailService eMailService,
+        SlackNotificationService slackNotificationService,
         PostRepository postRepository,
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository
@@ -44,6 +47,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
         this.userService = userService;
         this.postService = postService;
         this.eMailService = eMailService;
+        this.slackNotificationService = slackNotificationService;
         this.postRepository = postRepository;
         this.statDefinitionRepository = statDefinitionRepository;
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
@@ -55,6 +59,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
         if (emailServiceEnabled) {
             eMailService.sendMailToAll(post);
         }
+        slackNotificationService.sendActivityNotification(post);
         return post;
     }
 

@@ -2,6 +2,16 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.0] - 2026-04-25
+
+### Added
+- **Encrypted post deep links.** Raw database IDs are no longer exposed in post URLs. A new `PostTokenService` encrypts each `Long` post ID using the existing AES-256-GCM DEK and encodes the result as URL-safe base64 (no `+`, `/`, or `=` padding). `PostView` now accepts `HasUrlParameter<String>` and decodes the token server-side before fetching the post; invalid or tampered tokens fall through to the default view with no information leaked. Both Slack notifications (`SlackNotificationServiceImpl`) and email notifications (`ActivityNotificationRenderer`) now generate tokenised URLs.
+- **`PostTokenService` / `PostTokenServiceImpl`.** Standalone encode/decode service. Encode: `encrypt(id.toString())` → strip `ENC:` prefix → convert standard base64 to URL-safe base64url (no padding). Decode: reverse the base64url mapping → restore padding → prepend `ENC:` → `decrypt()` → `Long.parseLong()`. Any exception in this chain throws `IllegalArgumentException`.
+- **542 unit tests.** 7 new `PostTokenServiceImplTest` tests cover padding strips, character substitution, round-trip, URL-safety, and two error paths. `PostViewTest` updated with 30 two-arg constructor calls and a new `testDeepLinkWithInvalidTokenFallsThroughToDefault` test.
+
+### Security
+- Sequential integer IDs no longer appear in Slack messages, email notifications, or browser URLs. Authenticated users cannot enumerate posts by incrementing a URL parameter.
+
 ## [8.0.3] - 2026-04-25
 
 ### Changed
