@@ -47,6 +47,13 @@ class GroupSettingsServiceImplTest {
     }
 
     @Test
+    void newGroupSettings_hasNonNullTimestamps() {
+        GroupSettings settings = new GroupSettings();
+        assertNotNull(settings.getCreatedAt());
+        assertNotNull(settings.getUpdatedAt());
+    }
+
+    @Test
     void save_delegatesToRepository() {
         GroupSettings settings = new GroupSettings();
         when(repository.save(settings)).thenReturn(settings);

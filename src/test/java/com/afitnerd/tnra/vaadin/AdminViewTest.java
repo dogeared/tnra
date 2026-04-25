@@ -928,6 +928,25 @@ class AdminViewTest {
         verify(groupSettingsService).save(any(GroupSettings.class));
     }
 
+    @Test
+    void integrationsTabSaveButtonShowsErrorNotificationOnSaveFailure() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+        GroupSettings settings = new GroupSettings();
+        when(groupSettingsService.getSettings()).thenReturn(settings);
+        when(groupSettingsService.save(any(GroupSettings.class))).thenThrow(new RuntimeException("DB error"));
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        ui.add(view);
+
+        try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
+            mocked.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            VerticalLayout integrationsTab = view.createIntegrationsTabContent();
+            Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+            saveBtn.click();
+            mocked.verify(() -> AppNotification.error(anyString()));
+        }
+    }
+
     private <T extends Component> boolean anyComponent(Component root, Class<T> type, Predicate<T> predicate) {
         return findComponents(root, type).stream().anyMatch(predicate);
     }

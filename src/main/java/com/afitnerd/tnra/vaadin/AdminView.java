@@ -501,8 +501,12 @@ public class AdminView extends VerticalLayout {
         saveBtn.addClickListener(e -> {
             settings.setSlackWebhookUrl(webhookUrlField.getValue().isBlank() ? null : webhookUrlField.getValue().trim());
             settings.setSlackEnabled(enabledCheckbox.getValue());
-            groupSettingsService.save(settings);
-            AppNotification.success("Slack settings saved");
+            try {
+                groupSettingsService.save(settings);
+                AppNotification.success("Slack settings saved");
+            } catch (Exception ex) {
+                AppNotification.error("Failed to save Slack settings");
+            }
         });
 
         content.add(header, description, slackHeader, webhookUrlField, enabledCheckbox, saveBtn);

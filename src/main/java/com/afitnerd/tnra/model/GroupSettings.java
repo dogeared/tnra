@@ -27,10 +27,10 @@ public class GroupSettings {
     private boolean slackEnabled;
 
     @Column(name = "created_at")
-    private Date createdAt;
+    private Date createdAt = new Date();
 
     @Column(name = "updated_at")
-    private Date updatedAt;
+    private Date updatedAt = new Date();
 
     public Long getId() { return id; }
 
