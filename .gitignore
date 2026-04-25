@@ -52,3 +52,4 @@ emails
 !keycloak/*.json
 .gstack/
 cli/dependency-reduced-pom.xml
+.claude/skills/gstack/
