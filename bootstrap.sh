@@ -99,8 +99,7 @@ KEYCLOAK_HOSTNAME="https://auth.${DOMAIN}"
 
 # MySQL root password
 MYSQL_ROOT_PASSWORD_LABEL="(generated)"
-printf "MySQL root password [blank = auto-generate]: " >&2
-read -r _mysql_pw < /dev/tty
+_mysql_pw=$(prompt_secret "MySQL root password [blank = auto-generate]: ")
 if [[ -z "$_mysql_pw" ]]; then
   MYSQL_ROOT_PASSWORD=$(openssl rand -base64 32)
 else
