@@ -55,6 +55,17 @@ KEYCLOAK_CLIENT_SECRET=<generate_a_real_secret>
 KEYCLOAK_ISSUER_URI=https://your-domain.com/realms/tnra
 ```
 
+Generate and set the encryption master key (required — encrypts all sensitive post data at rest):
+
+```bash
+TNRA_ENCRYPTION_MASTER_KEY=$(openssl rand -base64 32)
+```
+
+**Set this once before first startup and never change it.** The master key wraps the
+per-group Data Encryption Key stored in the `encryption_keys` table. Rotating the master
+key without re-encrypting the DEK first will make all post content permanently unreadable.
+Store the value in a password manager or secrets vault.
+
 Set Mailgun credentials if email notifications are enabled:
 
 ```bash
@@ -62,6 +73,63 @@ MAILGUN_KEY_PRIVATE=<your_key>
 MAILGUN_KEY_PUBLIC=<your_key>
 MAILGUN_URL=https://api.mailgun.net/v3/your-domain.com/messages
 ```
+
+### 6. Set MySQL passwords
+
+Generate a strong root password and set it in `.env` **before the first `docker compose up`**:
+
+```bash
+# In .env
+MYSQL_ROOT_PASSWORD=$(openssl rand -base64 32)
+```
+
+Write that value down — you'll need it to create the app user in step 7.
+
+On first container start, `mysql/init-local-user.sql` auto-creates a `tnra` database user
+with a hardcoded development password (`123456aA$`). Change it immediately after MySQL comes up:
+
+```bash
+# Start MySQL only first
+docker compose up mysql -d
+docker compose exec mysql mysqladmin ping -h localhost --wait=30
+
+# Change the app user's password
+docker compose exec mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "
+  ALTER USER 'tnra'@'%' IDENTIFIED BY '<strong_app_password>';
+  FLUSH PRIVILEGES;
+"
+```
+
+Then update `.env` so the app connects as the `tnra` user, not root:
+
+```bash
+SPRING_DATASOURCE_USERNAME=tnra
+SPRING_DATASOURCE_PASSWORD=<strong_app_password>
+```
+
+### 7. Set Keycloak admin credentials
+
+Generate a strong Keycloak admin password and set it in `.env` **before the first
+`docker compose up`**:
+
+```bash
+# In .env
+KEYCLOAK_ADMIN=admin
+KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -base64 32)
+```
+
+`docker-compose.yml` reads these via `${KEYCLOAK_ADMIN:-admin}` and
+`${KEYCLOAK_ADMIN_PASSWORD:-admin}` — the fallback `admin`/`admin` defaults are only safe
+for local development.
+
+After first boot, rotate the Keycloak client secret (the realm import includes a placeholder):
+
+1. Open an SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
+2. Open `http://localhost:8180/admin` and log in with the credentials you set above.
+3. Switch to the `tnra` realm > **Clients** > `tnra-app` > **Credentials** tab.
+4. Click **Regenerate** next to Client secret and copy the new value.
+5. Update `.env`: `KEYCLOAK_CLIENT_SECRET=<new_secret>`
+6. Restart the app container: `docker compose restart server`
 
 ## SSL Certificates
 
@@ -120,6 +188,40 @@ Re-run the certbot command above and re-copy the files. Then restart nginx:
 ```bash
 docker compose restart proxy
 ```
+
+## Encryption at Rest
+
+All sensitive post content (text fields, stat values, stat names, and emoji) is encrypted
+using AES-256-GCM before being written to MySQL. The encryption is transparent to the
+application — `AttributeConverter` implementations handle it on every JPA read/write.
+
+### How it works
+
+- On first startup, a 256-bit Data Encryption Key (DEK) is randomly generated, encrypted
+  with the master key, and stored in the `encryption_keys` table.
+- All subsequent reads and writes use the in-memory DEK; only the master key (not the DEK)
+  needs to be kept outside the database.
+- Flyway migrations V7–V10 handle schema changes and in-place encryption of existing data.
+
+### Rotating the master key
+
+Rotation requires decrypting the stored DEK with the old master key, re-encrypting it with
+the new master key, and updating `encryption_keys` before restarting the app. There is no
+automated tooling for this yet — contact the maintainer before attempting a rotation.
+
+## Slack Notifications
+
+Slack activity notifications are configured per-group through the **Admin → Settings** tab
+— there are no server-side env vars for Slack.
+
+1. Create an incoming webhook in your Slack workspace (Apps → Incoming Webhooks).
+2. Log in as an admin and navigate to **Admin → Settings**.
+3. Paste the webhook URL (must start with `https://hooks.slack.com/`) and enable the toggle.
+4. When a member finishes a post, a notification is sent asynchronously with their display
+   name, timestamps, and an encrypted deep-link URL to the post.
+
+The SSRF guard rejects any webhook URL that does not begin with `https://hooks.slack.com/`,
+so a compromised settings record cannot redirect notifications to an external server.
 
 ## Build and Deploy
 
@@ -192,72 +294,36 @@ not exposed externally.
 
 ## Hardening MySQL
 
-### Use a strong root password
-
-Set a strong password in `.env` for `SPRING_DATASOURCE_PASSWORD`. This is used as
-`MYSQL_ROOT_PASSWORD` in the MySQL container.
-
-### Create a dedicated application user
-
-Don't use root for the application. After MySQL starts:
-
-```bash
-docker compose exec mysql mysql -uroot -p<root_password> -e "
-  CREATE USER 'tnra'@'%' IDENTIFIED BY '<app_password>';
-  GRANT SELECT, INSERT, UPDATE, DELETE ON tnra.* TO 'tnra'@'%';
-  FLUSH PRIVILEGES;
-"
-```
-
-Then update `.env`:
-
-```bash
-SPRING_DATASOURCE_USERNAME=tnra
-SPRING_DATASOURCE_PASSWORD=<app_password>
-```
-
-Note: you'll also need to update `docker-compose.yml` to set `MYSQL_ROOT_PASSWORD` separately
-from `SPRING_DATASOURCE_PASSWORD`, since the app user should not be root.
+Root password and app-user password setup are covered in steps 6 and 7 of
+[Initial Server Setup](#initial-server-setup). The items below cover ongoing hardening.
 
 ### MySQL data persistence
 
 MySQL data is stored in the `mysql-db` Docker volume. Back up regularly:
 
 ```bash
-docker compose exec mysql mysqldump -uroot -p<password> \
+docker compose exec mysql mysqldump -uroot -p<root_password> \
   --skip-column-statistics --no-tablespaces tnra > ~/tnra-backup-$(date +%Y%m%d).sql
 ```
 
-### Disable remote root login
+### Remote access
 
-The MySQL container is already bound to `127.0.0.1:3307` in `docker-compose.yml`, so it's not
-accessible from outside the host. Keep it this way.
+The MySQL container is bound to `127.0.0.1:3307` in `docker-compose.yml` and is not
+reachable from outside the host. Keep it this way. Access the MySQL shell via:
+
+```bash
+docker compose exec mysql mysql -utnra -p<app_password> tnra
+```
 
 ## Hardening Keycloak
 
-### Change admin credentials
-
-The default admin credentials (`admin`/`admin`) must be changed in production.
-
-Update `docker-compose.yml` or use environment variables:
-
-```bash
-KEYCLOAK_ADMIN=<new_admin_username>
-KEYCLOAK_ADMIN_PASSWORD=<strong_admin_password>
-```
-
-In `docker-compose.yml`, change the keycloak service:
-
-```yaml
-keycloak:
-  environment:
-    KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
-    KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-```
+Admin credential setup and client secret rotation are covered in step 7 of
+[Initial Server Setup](#initial-server-setup). The items below cover ongoing hardening.
 
 ### Run in production mode
 
-Change the Keycloak command from `start-dev` to `start` with proper settings:
+The default `docker-compose.yml` uses `start-dev` for simplicity. For production, switch
+the Keycloak command to `start`, which enforces HTTPS and optimizes caching:
 
 ```yaml
 keycloak:
@@ -269,19 +335,10 @@ keycloak:
     --http-enabled=true
 ```
 
-In production mode, Keycloak enforces HTTPS and optimizes caching.
-
-### Generate a real client secret
-
-1. Log into the Keycloak admin console
-2. Go to the `tnra` realm > Clients > `tnra-app`
-3. Under Credentials, regenerate the client secret
-4. Update `KEYCLOAK_CLIENT_SECRET` in `.env`
-
 ### Restrict Keycloak admin access
 
-Keycloak is bound to `127.0.0.1:8180` in `docker-compose.yml`. Access the admin console
-via SSH tunnel:
+Keycloak is bound to `127.0.0.1:8180` in `docker-compose.yml` and is not reachable from
+outside the host. Always access the admin console via SSH tunnel:
 
 ```bash
 ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>
@@ -291,7 +348,7 @@ ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>
 ### Keycloak data persistence
 
 Keycloak data is stored in the `keycloak-data` Docker volume. The realm configuration is
-auto-imported from `keycloak/tnra-realm.json` on first start. Back up the volume:
+auto-imported from `keycloak/tnra-realm.json` on first start. Back up the volume regularly:
 
 ```bash
 docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
@@ -454,10 +511,24 @@ process to migrate to the current schema.
 
 ### Overview
 
-The migration path is: V1 (baseline) -> V2 (remove slack/PQ columns) -> V3 (configurable stats)
--> V4 (notification preferences) -> V5 (personal stats + email unique).
+The migration path is:
+
+```
+V1 (baseline)
+→ V2 (remove legacy columns)
+→ V3 (configurable stats)
+→ V4 (notification preferences)
+→ V5 (personal stats + email unique)
+→ V6 (post.state TINYINT → VARCHAR for Hibernate 6)
+→ V7 (encryption_keys table + widen encrypted columns)
+→ V8 (encrypt existing post/stat plaintext in-place)
+→ V9 (widen stat_definition.emoji to TEXT)
+→ V10 (encrypt existing emoji values in-place)
+```
 
 Flyway handles all of this automatically on startup with `baseline-on-migrate: true`.
+**`TNRA_ENCRYPTION_MASTER_KEY` must be set before startup** — V8 and V10 are Java
+migrations that read the master key at migration time.
 
 ### Step 1: Back up the existing database
 
@@ -502,7 +573,7 @@ Watch logs for successful migration messages. Verify:
 
 -- Check Flyway history
 SELECT version, description, success FROM flyway_schema_history ORDER BY installed_rank;
--- Should show V1 (baseline), V2, V3, V4, V5 all with success=1
+-- Should show V1–V10 all with success=1
 
 -- Verify configurable stats migrated
 SELECT COUNT(*) FROM stat_definition;   -- should be 7
@@ -511,9 +582,13 @@ SELECT COUNT(*) FROM post_stat_value;   -- should match your non-null stat count
 -- Verify old embedded columns are gone
 DESCRIBE post;
 -- Must NOT have: exercise, gtg, meditate, meetings, pray, _read, sponsor
-```
 
-See `MIGRATION-V3-STATS.md` for the detailed V3 migration plan with step-by-step verification.
+-- Verify encryption table exists and DEK was stored
+SELECT COUNT(*) FROM encryption_keys;   -- should be 1
+
+-- Verify post data is encrypted (values should start with ENC:)
+SELECT widwytk FROM post LIMIT 1;
+```
 
 ### Step 3: Deploy to production
 

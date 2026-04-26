@@ -2,6 +2,17 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.3] - 2026-04-26
+
+### Changed
+- **`PRODUCTION.md` renamed to `PRODUCTION.vps.md`.** Clarifies that the existing guide is specific to a VPS + Nginx + certbot deployment.
+- **New `PRODUCTION.cloudflare.md` guide.** Complete standalone deployment guide for Cloudflare Tunnels: no SSL certificates, no open inbound port 443, no Nginx required. Covers tunnel creation, `cloudflared` Docker service, per-group public hostname routing via the Cloudflare dashboard, Cloudflare Access for Keycloak admin hardening, and simplified group provisioning (one dashboard click instead of cert + nginx site file).
+- **MySQL initial setup steps added to both production guides.** Explicit steps to generate a strong `MYSQL_ROOT_PASSWORD` before first boot, and to immediately rotate the hardcoded dev password (`123456aA$`) on the `tnra` app user created by `init-local-user.sql`.
+- **Keycloak initial setup steps added to both production guides.** `docker-compose.yml` now reads admin credentials from `${KEYCLOAK_ADMIN:-admin}` and `${KEYCLOAK_ADMIN_PASSWORD:-admin}` instead of hardcoded values. Guides include instructions to set a strong `KEYCLOAK_ADMIN_PASSWORD` before first boot and rotate the client secret after first boot.
+- **`TNRA_ENCRYPTION_MASTER_KEY` added to `.env.template`** with generation command (`openssl rand -base64 32`) and a warning about key rotation.
+- **`KEYCLOAK_ADMIN`, `KEYCLOAK_ADMIN_PASSWORD`, `CLOUDFLARE_TUNNEL_TOKEN` added to `.env.template`.**
+- **`PRODUCTION.vps.md` updated** to document all feature changes since v7.3.0: encryption at rest (V7–V10 migration path), Slack notifications, deep links, member deactivation, and Copy Link.
+
 ## [8.1.2] - 2026-04-26
 
 ### Added
