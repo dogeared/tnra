@@ -346,25 +346,11 @@ certbot certonly \
 
 Or generate a per-subdomain cert and update the Nginx config to reference it.
 
-### Step 5: Copy files to VPS and configure the group's `.env`
+### Step 5: Copy files to VPS
 
 ```bash
-# Copy all provisioned files to your home directory on the VPS
 scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
-
-# SSH in and set the encryption master key (V8/V10 Flyway migrations require it at startup)
-ssh tnra@<VPS_IP>
-MASTER_KEY=$(grep TNRA_ENCRYPTION_MASTER_KEY ~/tnra/.env | cut -d= -f2-)
-sed -i "s|TNRA_ENCRYPTION_MASTER_KEY=|TNRA_ENCRYPTION_MASTER_KEY=${MASTER_KEY}|" ~/<group-name>/.env
-
-# Stage the group's env and docker-compose for deployment
-mkdir -p ~/tnra/<group-name>/
-cp ~/<group-name>/.env ~/tnra/<group-name>/.env
-cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
 ```
-
-The `docker-compose.<group-name>.yml` loads credentials from `<group-name>/.env` inside the `~/tnra/`
-directory, keeping each group's secrets separate from the shared infrastructure `.env`.
 
 ### Step 6: Initialize the database
 
@@ -389,9 +375,13 @@ Verify:
 
 ### Step 8: Deploy the group's app container
 
+The group's `docker-compose.yml` embeds all per-group credentials directly in its `environment:`
+block. The encryption master key is read via Docker Compose variable interpolation from `~/tnra/.env`,
+so the command **must be run from `~/tnra/`**:
+
 ```bash
 cd ~/tnra
-docker compose -f docker-compose.production.yml -f docker-compose.<group-name>.yml up --build -d
+docker compose -f docker-compose.production.yml -f ~/<group-name>/docker-compose.yml up --build -d
 ```
 
 Watch logs:

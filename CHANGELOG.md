@@ -2,6 +2,14 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.9] - 2026-04-27
+
+### Fixed
+- **`ClientRegistrationRepository` not found on production startup (root cause).** The per-group `docker-compose.yml` used `env_file: .env`, but Docker Compose resolves `env_file` paths relative to the project directory (the first `-f` file's directory — `~/tnra/`), not relative to the compose file being loaded. This meant the container always received the shared infrastructure `.env` with empty `KEYCLOAK_CLIENT_ID=` and `KEYCLOAK_CLIENT_SECRET=`, causing Spring Security to reject the OAuth2 registration and skip auto-configuring `ClientRegistrationRepository`.
+- **Fix: all credentials now embedded in `environment:` block.** The CLI template (`docker-compose.yml.tmpl`) no longer uses `env_file`. All per-group values (DB credentials, Keycloak client ID/secret/issuer URI, Flyway settings, Vaadin mode, notify schedule, backchannel URIs) are written directly into the `environment:` block at provision time. The encryption master key — not known at provision time — uses Docker Compose variable interpolation (`${TNRA_ENCRYPTION_MASTER_KEY}`) which is automatically read from `~/tnra/.env` when the command is run from that directory.
+- **`env.tmpl` restored to local-dev-only purpose.** The generated `.env` file (kept in `provision/<group-name>/`) is now explicitly for IDE development only and is not loaded by the production docker-compose. It uses `localhost:3307` for the host-mapped MySQL port, which is appropriate for IDE access.
+- **PRODUCTION guides simplified.** The deployment step now runs `docker compose -f docker-compose.production.yml -f ~/<group-name>/docker-compose.yml up --build -d` from `~/tnra/` — no file copying or subdirectory setup required.
+
 ## [8.1.8] - 2026-04-26
 
 ### Fixed

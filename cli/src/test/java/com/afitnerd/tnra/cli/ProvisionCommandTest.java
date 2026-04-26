@@ -56,15 +56,19 @@ class ProvisionCommandTest {
         assertTrue(realm.contains("admin@example.com"), "realm should include admin user");
         assertTrue(realm.contains("\"temporary\": true"), "admin password should be temporary");
 
-        // Verify docker-compose uses group-namespaced env_file and Docker-internal Keycloak backchannel URLs
+        // Verify docker-compose embeds all per-group vars in environment block (no env_file)
         String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
-        assertTrue(compose.contains("recovery-guys/.env"), "should load env from group subdirectory");
+        assertFalse(compose.contains("env_file:"), "should not use env_file — all vars in environment block");
+        assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: \"recovery-guys-app\""), "should embed client id as Spring property");
+        assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET:"), "should embed client secret as Spring property");
+        assertTrue(compose.contains("SPRING_DATASOURCE_URL: \"jdbc:mysql://mysql:3306/tnra_recovery_guys\""), "should use Docker-internal MySQL URL");
+        assertTrue(compose.contains("TNRA_ENCRYPTION_MASTER_KEY: \"${TNRA_ENCRYPTION_MASTER_KEY}\""), "should use compose interpolation for encryption key");
         assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should use Docker-internal Keycloak for backchannel");
         assertTrue(compose.contains("tnra-production-shared"));
 
-        // Verify .env uses Docker-internal MySQL URL and includes all required production vars
+        // Verify .env is for local IDE dev only (localhost port, placeholder encryption key)
         String env = Files.readString(groupDir.resolve(".env"));
-        assertTrue(env.contains("mysql:3306/tnra_recovery_guys"), ".env should use Docker-internal MySQL URL");
+        assertTrue(env.contains("localhost:3307/tnra_recovery_guys"), ".env should use host-mapped MySQL port for IDE dev");
         assertTrue(env.contains("auth.example.com"), ".env should use Keycloak domain");
         assertTrue(env.contains("tnra_recovery_guys"), ".env should reference the group database");
         assertTrue(env.contains("TNRA_ENCRYPTION_MASTER_KEY="), ".env should include placeholder for encryption master key");
