@@ -56,16 +56,15 @@ class ProvisionCommandTest {
         assertTrue(realm.contains("admin@example.com"), "realm should include admin user");
         assertTrue(realm.contains("\"temporary\": true"), "admin password should be temporary");
 
-        // Verify docker-compose uses env_file and Docker-internal URL overrides
+        // Verify docker-compose uses group-namespaced env_file and Docker-internal Keycloak backchannel URLs
         String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
-        assertTrue(compose.contains("env_file:"), "should use env_file for credentials");
-        assertTrue(compose.contains("mysql:3306/tnra_recovery_guys"), "should override to Docker-internal MySQL");
-        assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should override to Docker-internal Keycloak");
+        assertTrue(compose.contains("recovery-guys/.env"), "should load env from group subdirectory");
+        assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should use Docker-internal Keycloak for backchannel");
         assertTrue(compose.contains("tnra-production-shared"));
 
-        // Verify .env has host-accessible URLs for IDE dev
+        // Verify .env uses Docker-internal MySQL URL and includes all required production vars
         String env = Files.readString(groupDir.resolve(".env"));
-        assertTrue(env.contains("localhost:3307"), ".env should use host-mapped MySQL port");
+        assertTrue(env.contains("mysql:3306/tnra_recovery_guys"), ".env should use Docker-internal MySQL URL");
         assertTrue(env.contains("auth.example.com"), ".env should use Keycloak domain");
         assertTrue(env.contains("tnra_recovery_guys"), ".env should reference the group database");
         assertTrue(env.contains("TNRA_ENCRYPTION_MASTER_KEY="), ".env should include placeholder for encryption master key");

@@ -6,10 +6,8 @@ services:
       context: ../..
       dockerfile: Dockerfile
     env_file:
-      - .env
+      - {{GROUP_NAME}}/.env
     environment:
-      # Docker-internal overrides (containers can't reach localhost)
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/{{DB_NAME}}
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/token
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_INFO_URI: http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/userinfo
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/certs
