@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.2] - 2026-04-26
+
+### Added
+- **Copy Link button in completed post view.** When a completed post is selected from the date dropdown, a "Copy Link" button (copy icon) appears to its right. Clicking it writes the post's encrypted deep-link URL to the clipboard via `navigator.clipboard` and shows a "Link copied to clipboard!" notification. The button is disabled until a post is selected, absent in the in-progress view, and pre-enabled when a post is loaded via deep link.
+- **559 unit tests.** 10 new `PostViewTest` cases cover: button absent in in-progress view, present-but-disabled with no selection, enabled on selection, disabled on deselection, clipboard JS verified on click, pre-enabled for deep-linked posts, and four `buildPostUrl` variants (valid post, null post, null ID, trailing-slash base URL).
+
 ## [8.1.1] - 2026-04-26
 
 ### Added
