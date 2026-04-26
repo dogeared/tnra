@@ -61,13 +61,14 @@ class ProvisionCommandTest {
         assertTrue(compose.contains("env_file:"), "should use env_file for credentials");
         assertTrue(compose.contains("mysql:3306/tnra_recovery_guys"), "should override to Docker-internal MySQL");
         assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should override to Docker-internal Keycloak");
-        assertTrue(compose.contains("tnra-shared"));
+        assertTrue(compose.contains("tnra-production-shared"));
 
         // Verify .env has host-accessible URLs for IDE dev
         String env = Files.readString(groupDir.resolve(".env"));
         assertTrue(env.contains("localhost:3307"), ".env should use host-mapped MySQL port");
         assertTrue(env.contains("auth.example.com"), ".env should use Keycloak domain");
         assertTrue(env.contains("tnra_recovery_guys"), ".env should reference the group database");
+        assertTrue(env.contains("TNRA_ENCRYPTION_MASTER_KEY="), ".env should include placeholder for encryption master key");
 
         // Verify SQL
         String sql = Files.readString(groupDir.resolve("init-db.sql"));
