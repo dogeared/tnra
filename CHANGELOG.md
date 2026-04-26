@@ -2,6 +2,23 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.1] - 2026-04-26
+
+### Added
+- **Slack Part 1 — activity webhook notifications.** When a post is finished, a Slack incoming-webhook message is sent asynchronously via a dedicated `slackTaskExecutor` thread pool. The notification includes the user's display name, started/finished timestamps, and a tokenised deep-link URL. Sending is gated by two `GroupSettings` flags: `slackEnabled` and `slackWebhookUrl`; either being false/blank silently skips the notification.
+- **`SlackNotificationService` / `SlackNotificationServiceImpl`.** New service encapsulates message construction (`buildMessage`) and delivery (`doPost`). The base URL is injected via `tnra.app.base-url` and has trailing slashes stripped at construction time.
+- **549 unit tests.** New `SlackNotificationServiceImplTest` covers 12 scenarios: constructor URL normalisation, message formatting (full name, first-name-only, email fallback, "Someone" fallback), null start/finish dates, null post ID, mrkdwn injection escaping, skip-path early exits (disabled, null URL, blank URL), `doPost` SSRF rejection, and IOException logging.
+
+### Security
+- **SSRF guard on Slack webhook.** `doPost()` rejects any URL that does not begin with `https://hooks.slack.com/`, preventing a compromised `GroupSettings` record from redirecting notifications to an attacker-controlled server.
+- **HTTPS enforcement.** Plain-`http://` Slack URLs are rejected by the same prefix check, ensuring credentials are never sent in cleartext.
+- **Slack mrkdwn injection prevention.** `escapeSlack()` replaces `&`, `<`, and `>` with HTML entities in all user-controlled strings before they are embedded in the notification payload.
+- **Encoded tokens in log messages.** `SlackNotificationServiceImpl` log lines now reference `postTokenService.encode(post.getId())` instead of the raw database primary key, preventing sequential ID exposure in application logs.
+- **Null-user deep-link guard.** `PostView.initializeUser()` now falls through to the default in-progress post lookup when a deep-linked post has no associated user, rather than returning early with no user-visible feedback — consistent with all other error paths.
+
+### Changed
+- **`PostTokenServiceImpl` constant extraction.** The `"ENC:"` literal used as a ciphertext prefix is now a named constant `ENC_PREFIX`, eliminating the magic string.
+
 ## [8.1.0] - 2026-04-25
 
 ### Added
