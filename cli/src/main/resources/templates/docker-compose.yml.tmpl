@@ -3,14 +3,25 @@ services:
     container_name: tnra-{{GROUP_NAME}}
     image: tnra
     build:
-      context: ../..
+      context: .
       dockerfile: Dockerfile
-    env_file:
-      - {{GROUP_NAME}}/.env
     environment:
-      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_TOKEN_URI: http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/token
-      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_INFO_URI: http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/userinfo
-      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_JWK_SET_URI: http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/certs
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: "{{GROUP_NAME}}-app"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET: "{{KEYCLOAK_CLIENT_SECRET}}"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_SCOPE: "openid,profile,email"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_AUTHORIZATION_GRANT_TYPE: "authorization_code"
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_AUTHORIZATION_URI: "https://auth.{{DOMAIN}}/realms/{{REALM_NAME}}/protocol/openid-connect/auth"
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_TOKEN_URI: "http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/token"
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_INFO_URI: "http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/userinfo"
+      SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_JWK_SET_URI: "http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/certs"
+      SPRING_DATASOURCE_USERNAME: "{{DB_USER}}"
+      SPRING_DATASOURCE_PASSWORD: "{{DB_PASSWORD}}"
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/{{DB_NAME}}"
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "1"
+      VAADIN_PRODUCTIONMODE: "true"
+      TNRA_NOTIFY_SCHEDULE: "0 0 12 * * ?"
+      TNRA_ENCRYPTION_MASTER_KEY: "${TNRA_ENCRYPTION_MASTER_KEY}"
     volumes:
       - ./uploads/{{GROUP_NAME}}:/uploads:rw
     networks:

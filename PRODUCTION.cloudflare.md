@@ -91,8 +91,8 @@ The script will:
 After first boot, rotate the Keycloak client secret for each group via the admin console at `https://auth.your-domain.com/admin` (no SSH tunnel needed with Cloudflare):
 1. Switch to the group realm → **Clients** → `<group>-app` → **Credentials** tab.
 2. Click **Regenerate** next to Client secret and copy the new value.
-3. Update the group's env file with `KEYCLOAK_CLIENT_SECRET=<new_secret>`.
-4. Restart the group container.
+3. Update `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET` in `provision/<group-name>/docker-compose.yml` on the VPS.
+4. Restart: `docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up -d`
 
 ## Create a Cloudflare Tunnel
 
@@ -350,57 +350,48 @@ In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** 
 
 Cloudflare automatically creates the CNAME DNS record. No DNS or SSL setup required.
 
-### Step 4: Copy files to VPS and configure the group's `.env`
+### Step 4: Import the Keycloak realm (from your local machine)
+
+Open `https://auth.your-domain.com/admin` and log in with your Keycloak admin credentials (no SSH tunnel needed with Cloudflare).
+
+1. Click the realm dropdown (top-left) → **Create realm**.
+2. Click **Browse** and select your local `provision/<group-name>/<group-name>-realm.json`.
+3. Click **Create**.
+
+Verify that the realm dropdown shows `<group-name>` and that the client `<group-name>-app` is configured with the correct redirect URIs.
+
+### Step 5: Copy files to VPS
 
 ```bash
-# Copy all provisioned files to your home directory on the VPS
-scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
-
-# SSH in and set the encryption master key (V8/V10 Flyway migrations require it at startup)
-ssh tnra@<VPS_IP>
-MASTER_KEY=$(grep TNRA_ENCRYPTION_MASTER_KEY ~/tnra/.env | cut -d= -f2-)
-sed -i "s|TNRA_ENCRYPTION_MASTER_KEY=|TNRA_ENCRYPTION_MASTER_KEY=${MASTER_KEY}|" ~/<group-name>/.env
-
-# Stage the group's env and docker-compose for deployment
-mkdir -p ~/tnra/<group-name>/
-cp ~/<group-name>/.env ~/tnra/<group-name>/.env
-cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
+scp -r provision/<group-name> tnra@<VPS_IP>:~/tnra/provision/
 ```
 
-The `docker-compose.<group-name>.yml` loads credentials from `<group-name>/.env` inside the `~/tnra/`
-directory, keeping each group's secrets separate from the shared infrastructure `.env`.
+This places the files at `~/tnra/provision/<group-name>/` on the VPS, mirroring the local structure.
 
-### Step 5: Initialize the database
+### Step 6: Initialize the database
 
-```bash
-docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
-  < ~/<group-name>/init-db.sql
-```
-
-### Step 6: Import the Keycloak realm
-
-Use the Keycloak admin UI to import the realm (no restart required):
-
-1. Open `https://auth.your-domain.com/admin` and log in with your Keycloak admin credentials.
-2. Click the realm dropdown (top-left) → **Create realm**.
-3. Click **Browse**, select `provision/<group-name>/<group-name>-realm.json`.
-4. Click **Create**.
-
-Verify:
-- Realm dropdown shows `<group-name>`
-- Client `<group-name>-app` is configured with correct redirect URIs
-
-### Step 7: Deploy the group's app container
+SSH into the VPS and run from `~/tnra/`:
 
 ```bash
 cd ~/tnra
-docker compose -f docker-compose.production.yml -f docker-compose.<group-name>.yml up --build -d
+docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
+  < provision/<group-name>/init-db.sql
+```
+
+### Step 7: Deploy the group's app container
+
+All credentials are embedded in the generated `docker-compose.yml`. The encryption master key is
+read via Docker Compose variable interpolation from `~/tnra/.env`, so the command must be run from
+`~/tnra/`:
+
+```bash
+cd ~/tnra
+docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up --build -d
 ```
 
 Watch logs:
-
 ```bash
-docker compose -f docker-compose.<group-name>.yml logs -f
+docker logs tnra-<group-name> -f
 ```
 
 Look for: `Started TnraApplication` and Flyway migration messages.
@@ -424,10 +415,10 @@ Visit `https://<group-name>.tnra.app` and log in with the admin user.
 docker ps --filter "name=tnra-"
 
 # View logs for a specific group
-docker compose -f docker-compose.<group-name>.yml logs -f
+docker logs tnra-<group-name> -f
 
 # Restart a specific group
-docker compose -f docker-compose.<group-name>.yml restart
+docker restart tnra-<group-name>
 
 # Back up a specific group's database
 docker compose -f docker-compose.production.yml exec mysql mysqldump -uroot -p<root_password> \
@@ -585,8 +576,8 @@ docker compose -f docker-compose.production.yml restart cloudflared
 docker compose -f docker-compose.production.yml up -d
 
 # View a group's app logs
-docker compose -f docker-compose.<group-name>.yml logs -f
+docker logs tnra-<group-name> -f
 
 # Restart a group app
-docker compose -f docker-compose.<group-name>.yml restart
+docker restart tnra-<group-name>
 ```
