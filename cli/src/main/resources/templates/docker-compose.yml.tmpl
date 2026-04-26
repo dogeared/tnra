@@ -3,7 +3,7 @@ services:
     container_name: tnra-{{GROUP_NAME}}
     image: tnra
     build:
-      context: ../..
+      context: .
       dockerfile: Dockerfile
     environment:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: "{{GROUP_NAME}}-app"

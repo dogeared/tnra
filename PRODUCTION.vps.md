@@ -59,8 +59,8 @@ After first boot, rotate the Keycloak client secret for each group (the realm im
 2. Open `http://localhost:8180/admin` and log in with the Keycloak admin credentials.
 3. Switch to the group realm → **Clients** → `<group>-app` → **Credentials** tab.
 4. Click **Regenerate** next to Client secret and copy the new value.
-5. Update the group's env file with `KEYCLOAK_CLIENT_SECRET=<new_secret>`.
-6. Restart the group container.
+5. Update `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET` in `provision/<group-name>/docker-compose.yml` on the VPS.
+6. Restart: `docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up -d`
 
 ## SSL Certificates
 
@@ -346,47 +346,54 @@ certbot certonly \
 
 Or generate a per-subdomain cert and update the Nginx config to reference it.
 
-### Step 5: Copy files to VPS
+### Step 5: Import the Keycloak realm (from your local machine)
+
+Open an SSH tunnel so the Keycloak admin UI is reachable:
 
 ```bash
-scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
+ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>
 ```
 
-### Step 6: Initialize the database
+In your browser, open `http://localhost:8180/admin` and log in with your Keycloak admin credentials.
+
+1. Click the realm dropdown (top-left) → **Create realm**.
+2. Click **Browse** and select your local `provision/<group-name>/<group-name>-realm.json`.
+3. Click **Create**.
+
+Verify that the realm dropdown shows `<group-name>` and that the client `<group-name>-app` is configured with the correct redirect URIs.
+
+### Step 6: Copy files to VPS
 
 ```bash
-docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
-  < ~/<group-name>/init-db.sql
+scp -r provision/<group-name> tnra@<VPS_IP>:~/tnra/provision/
 ```
 
-### Step 7: Import the Keycloak realm
+This places the files at `~/tnra/provision/<group-name>/` on the VPS, mirroring the local structure.
 
-Use the Keycloak admin UI to import the realm (no restart required):
+### Step 7: Initialize the database
 
-1. Open an SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
-2. Open `http://localhost:8180/admin` and log in with your Keycloak admin credentials.
-3. Click the realm dropdown (top-left) → **Create realm**.
-4. Click **Browse**, select `provision/<group-name>/<group-name>-realm.json`.
-5. Click **Create**.
-
-Verify:
-- Realm dropdown shows `<group-name>`
-- Client `<group-name>-app` is configured with correct redirect URIs
-
-### Step 8: Deploy the group's app container
-
-The group's `docker-compose.yml` embeds all per-group credentials directly in its `environment:`
-block. The encryption master key is read via Docker Compose variable interpolation from `~/tnra/.env`,
-so the command **must be run from `~/tnra/`**:
+SSH into the VPS and run from `~/tnra/`:
 
 ```bash
 cd ~/tnra
-docker compose -f docker-compose.production.yml -f ~/<group-name>/docker-compose.yml up --build -d
+docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
+  < provision/<group-name>/init-db.sql
+```
+
+### Step 8: Deploy the group's app container
+
+All credentials are embedded in the generated `docker-compose.yml`. The encryption master key is
+read via Docker Compose variable interpolation from `~/tnra/.env`, so the command must be run from
+`~/tnra/`:
+
+```bash
+cd ~/tnra
+docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up --build -d
 ```
 
 Watch logs:
 ```bash
-docker compose -f docker-compose.<group-name>.yml logs -f
+docker logs tnra-<group-name> -f
 ```
 
 Look for: `Started TnraApplication` and Flyway migration messages.
@@ -394,7 +401,8 @@ Look for: `Started TnraApplication` and Flyway migration messages.
 ### Step 9: Configure Nginx
 
 ```bash
-cp ~/<group-name>/<group-name>.conf ~/tnra/nginx/sites/
+cd ~/tnra
+cp provision/<group-name>/<group-name>.conf nginx/sites/
 docker compose -f docker-compose.production.yml restart proxy
 ```
 
@@ -403,9 +411,9 @@ docker compose -f docker-compose.production.yml restart proxy
 1. SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
 2. Open `http://localhost:8180/admin`
 3. Switch to the `<group-name>` realm
-4. Users > Add user (set email, first name, last name)
-5. Credentials > Set password (disable "Temporary")
-6. Role Mappings > Assign `admin` and `member` roles
+4. **Users** → **Add user** (set email, first name, last name)
+5. **Credentials** → Set password (disable "Temporary")
+6. **Role Mappings** → Assign `admin` and `member` roles
 
 ### Step 11: Verify
 
@@ -418,10 +426,10 @@ Visit `https://<group-name>.tnra.app` and log in with the admin user.
 docker ps --filter "name=tnra-"
 
 # View logs for a specific group
-docker compose -f docker-compose.<group-name>.yml logs -f
+docker logs tnra-<group-name> -f
 
 # Restart a specific group
-docker compose -f docker-compose.<group-name>.yml restart
+docker restart tnra-<group-name>
 
 # Back up a specific group's database
 docker compose -f docker-compose.production.yml exec mysql mysqldump -uroot -p<password> \
@@ -578,8 +586,8 @@ docker compose -f docker-compose.production.yml restart keycloak
 docker compose -f docker-compose.production.yml up -d
 
 # View a group's app logs
-docker compose -f docker-compose.<group-name>.yml logs -f
+docker logs tnra-<group-name> -f
 
 # Restart a group app
-docker compose -f docker-compose.<group-name>.yml restart
+docker restart tnra-<group-name>
 ```
