@@ -73,129 +73,44 @@ git clone https://github.com/dogeared/tnra
 cd tnra
 ```
 
-### 5. Configure environment variables
+### 5. Bootstrap
+
+Run the interactive setup script. When prompted for the Cloudflare Tunnel token, paste the token you created in the Cloudflare dashboard — the script will start `cloudflared` automatically using `--profile cloudflare`:
 
 ```bash
-cp .env.template .env
+bash bootstrap.sh
 ```
 
-Edit `.env` and set all required values:
+The script will:
+- Prompt for your domain, MySQL root password, Keycloak admin credentials, encryption master key, and Cloudflare Tunnel token (auto-generating secrets you leave blank)
+- Write a complete `.env` file
+- Start MySQL, Keycloak, and cloudflared via `docker-compose.production.yml`
+- Wait for MySQL to be healthy
+- Print all generated credentials — **save them in a password manager before continuing**
 
-```bash
-SPRING_DATASOURCE_USERNAME=tnra      # updated after MySQL first boot (step 6)
-SPRING_DATASOURCE_PASSWORD=<strong_app_password>
-VAADIN_PRODUCTIONMODE=true
-KEYCLOAK_CLIENT_ID=tnra-app
-KEYCLOAK_CLIENT_SECRET=<generate_a_real_secret>   # rotated after Keycloak first boot (step 7)
-KEYCLOAK_ISSUER_URI=https://auth.your-domain.com/realms/tnra
-```
-
-Generate and set the encryption master key:
-
-```bash
-TNRA_ENCRYPTION_MASTER_KEY=$(openssl rand -base64 32)
-```
-
-**Set this once before first startup and never change it.** The master key wraps the
-per-group Data Encryption Key stored in the `encryption_keys` table. Rotating the master
-key without re-encrypting the DEK first will make all post content permanently unreadable.
-Store the value in a password manager or secrets vault.
-
-Set Mailgun credentials if email notifications are enabled:
-
-```bash
-MAILGUN_KEY_PRIVATE=<your_key>
-MAILGUN_KEY_PUBLIC=<your_key>
-MAILGUN_URL=https://api.mailgun.net/v3/your-domain.com/messages
-```
-
-### 6. Set MySQL passwords
-
-Generate a strong root password and set it in `.env` **before the first `docker compose up`**:
-
-```bash
-# In .env
-MYSQL_ROOT_PASSWORD=$(openssl rand -base64 32)
-```
-
-Write that value down — you'll need it to create the app user below.
-
-On first container start, `mysql/init-local-user.sql` auto-creates a `tnra` database user
-with a hardcoded development password (`123456aA$`). Change it immediately after MySQL comes up:
-
-```bash
-# Start MySQL only first
-docker compose up mysql -d
-docker compose exec mysql mysqladmin ping -h localhost --wait=30
-
-# Change the app user's password
-docker compose exec mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "
-  ALTER USER 'tnra'@'%' IDENTIFIED BY '<strong_app_password>';
-  FLUSH PRIVILEGES;
-"
-```
-
-Then update `.env` so the app connects as the `tnra` user, not root:
-
-```bash
-SPRING_DATASOURCE_USERNAME=tnra
-SPRING_DATASOURCE_PASSWORD=<strong_app_password>
-```
-
-### 7. Set Keycloak admin credentials
-
-Generate a strong Keycloak admin password and set it in `.env` **before the first
-`docker compose up`**:
-
-```bash
-# In .env
-KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -base64 32)
-```
-
-`docker-compose.yml` reads these via `${KEYCLOAK_ADMIN:-admin}` and
-`${KEYCLOAK_ADMIN_PASSWORD:-admin}` — the fallback `admin`/`admin` defaults are only safe
-for local development.
-
-After first boot, rotate the Keycloak client secret (see step 4 in
-[Create a Cloudflare Tunnel](#4-configure-routes-and-rotate-the-keycloak-client-secret)
-below — the admin console is reachable via the tunnel without an SSH tunnel).
+After first boot, rotate the Keycloak client secret for each group via the admin console at `https://auth.your-domain.com/admin` (no SSH tunnel needed with Cloudflare):
+1. Switch to the group realm → **Clients** → `<group>-app` → **Credentials** tab.
+2. Click **Regenerate** next to Client secret and copy the new value.
+3. Update the group's env file with `KEYCLOAK_CLIENT_SECRET=<new_secret>`.
+4. Restart the group container.
 
 ## Create a Cloudflare Tunnel
 
-### 1. Create the tunnel
+### 1. Create the tunnel and get the token
 
 1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com).
 2. Go to **Zero Trust** → **Networks** → **Tunnels**.
 3. Click **Add a tunnel** → choose **Cloudflared** → name it (e.g., `tnra-production`).
 4. On the next screen, select **Docker** as the connector environment and copy the full
    `docker run` command — you only need the `--token <TOKEN>` value from it.
-5. Add it to `.env`:
+5. Paste the token when `bootstrap.sh` prompts for the Cloudflare Tunnel token. The script
+   starts `cloudflared` automatically via the `--profile cloudflare` flag.
 
-```bash
-CLOUDFLARE_TUNNEL_TOKEN=<token_from_cloudflare_dashboard>
-```
+The `cloudflared` service is already defined in `docker-compose.production.yml`. No manual
+edits to any compose file are needed. Click **Next** in the Cloudflare dashboard — you'll
+configure routes in step 2.
 
-Click **Next** — you'll configure routes in step 3.
-
-### 2. Add the cloudflared service to docker-compose
-
-Add the following service to `docker-compose.yml`. It joins the existing `tnra-shared`
-network so it can reach all app containers and Keycloak by hostname:
-
-```yaml
-cloudflared:
-  image: cloudflare/cloudflared:latest
-  command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-  restart: unless-stopped
-  networks:
-    - tnra-shared
-```
-
-The `proxy` (Nginx) service is not needed for routing or SSL with Cloudflare Tunnels.
-You can remove it from `docker-compose.yml` or leave it commented out.
-
-### 3. Configure public hostname routes
+### 2. Configure public hostname routes
 
 Back in the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** → your tunnel
 → **Public Hostnames** tab, add routes for each service:
@@ -209,17 +124,6 @@ Replace `tnra.app` with your actual domain and `tnra-main` with the container na
 app (as set in the group's `docker-compose.<group>.yml`).
 
 Cloudflare automatically creates CNAME DNS records for each route. No manual DNS setup required.
-
-### 4. Configure routes and rotate the Keycloak client secret
-
-Because the Keycloak admin console is reachable at `https://auth.your-domain.com/admin`
-through the tunnel, no SSH tunnel is needed:
-
-1. Open `https://auth.your-domain.com/admin` and log in with your `KEYCLOAK_ADMIN` credentials.
-2. Switch to the `tnra` realm → **Clients** → `tnra-app` → **Credentials** tab.
-3. Click **Regenerate** next to Client secret and copy the new value.
-4. Update `.env`: `KEYCLOAK_CLIENT_SECRET=<new_secret>`
-5. Restart the app container: `docker compose restart server`
 
 ## Encryption at Rest
 
@@ -384,8 +288,8 @@ keycloak:
 
 ### Keycloak data persistence
 
-Keycloak data is stored in the `keycloak-data` Docker volume. The realm configuration is
-auto-imported from `keycloak/tnra-realm.json` on first start. Back up the volume regularly:
+Keycloak data is stored in the `keycloak-data` Docker volume. Realms are imported via the
+admin UI during group provisioning (not on startup). Back up the volume regularly:
 
 ```bash
 docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
@@ -455,18 +359,20 @@ scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
 ### Step 5: Initialize the database
 
 ```bash
-docker compose exec -T mysql mysql -uroot -p<root_password> \
+docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
   < ~/<group-name>/init-db.sql
 ```
 
 ### Step 6: Import the Keycloak realm
 
-```bash
-cp ~/<group-name>/<group-name>-realm.json ~/tnra/keycloak/
-docker compose restart keycloak
-```
+Use the Keycloak admin UI to import the realm (no restart required):
 
-Verify via `https://auth.your-domain.com/admin`:
+1. Open `https://auth.your-domain.com/admin` and log in with your Keycloak admin credentials.
+2. Click the realm dropdown (top-left) → **Create realm**.
+3. Click **Browse**, select `provision/<group-name>/<group-name>-realm.json`.
+4. Click **Create**.
+
+Verify:
 - Realm dropdown shows `<group-name>`
 - Client `<group-name>-app` is configured with correct redirect URIs
 
@@ -475,7 +381,7 @@ Verify via `https://auth.your-domain.com/admin`:
 ```bash
 cd ~/tnra
 cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
-docker compose -f docker-compose.<group-name>.yml up --build -d
+docker compose -f docker-compose.production.yml -f docker-compose.<group-name>.yml up --build -d
 ```
 
 Watch logs:
@@ -511,7 +417,7 @@ docker compose -f docker-compose.<group-name>.yml logs -f
 docker compose -f docker-compose.<group-name>.yml restart
 
 # Back up a specific group's database
-docker compose exec mysql mysqldump -uroot -p<root_password> \
+docker compose -f docker-compose.production.yml exec mysql mysqldump -uroot -p<root_password> \
   --skip-column-statistics --no-tablespaces <db_name> \
   > ~/backups/<group-name>-$(date +%Y%m%d).sql
 ```
@@ -636,29 +542,38 @@ Always back up first.
 ## Helpful Commands
 
 ```bash
-# View running containers
-docker compose ps
+# View running shared-infra containers
+docker compose -f docker-compose.production.yml ps
 
-# View app logs
-docker compose logs -f server
+# View Keycloak logs
+docker compose -f docker-compose.production.yml logs -f keycloak
+
+# View MySQL logs
+docker compose -f docker-compose.production.yml logs -f mysql
 
 # View cloudflared tunnel status
-docker compose logs cloudflared
-docker compose exec cloudflared cloudflared tunnel info
+docker compose -f docker-compose.production.yml logs cloudflared
+docker compose -f docker-compose.production.yml exec cloudflared cloudflared tunnel info
 
 # Database shell
-docker compose exec mysql mysql -utnra -p<app_password> tnra
+docker compose -f docker-compose.production.yml exec mysql mysql -uroot -p<root_password>
 
-# Dump the database
-docker compose exec mysql mysqldump -uroot -p<root_password> \
-  --skip-column-statistics --no-tablespaces tnra > ~/tnra-backup-$(date +%Y%m%d).sql
+# Dump a group database
+docker compose -f docker-compose.production.yml exec mysql mysqldump -uroot -p<root_password> \
+  --skip-column-statistics --no-tablespaces <db_name> > ~/tnra-backup-$(date +%Y%m%d).sql
 
-# Restart a single service
-docker compose restart server
+# Restart a shared service
+docker compose -f docker-compose.production.yml restart keycloak
 
 # Restart the tunnel (e.g. after rotating the token)
-docker compose restart cloudflared
+docker compose -f docker-compose.production.yml restart cloudflared
 
-# Rebuild and restart everything
-docker compose up --build -d
+# Restart shared infrastructure
+docker compose -f docker-compose.production.yml up -d
+
+# View a group's app logs
+docker compose -f docker-compose.<group-name>.yml logs -f
+
+# Restart a group app
+docker compose -f docker-compose.<group-name>.yml restart
 ```

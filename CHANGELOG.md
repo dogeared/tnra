@@ -2,6 +2,17 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.4] - 2026-04-26
+
+### Added
+- **`bootstrap.sh`** — interactive production setup script. Prompts for domain, MySQL root password, Keycloak admin credentials, encryption master key, and optional Cloudflare Tunnel token (auto-generating any you leave blank). Writes `.env`, starts MySQL and Keycloak (plus `cloudflared` when a token is provided), waits for MySQL health, and prints all generated credentials with next-step instructions.
+- **`docker-compose.production.yml`** — minimal shared-services compose for production. MySQL has no default database and no init-script mount (all databases are provisioned by `tnra-cli`). Keycloak runs `start-dev` without `--import-realm` (realms are imported via the admin UI). `cloudflared` is gated behind `profiles: [cloudflare]`. Both services use `restart: unless-stopped`.
+
+### Changed
+- **Keycloak realm import flow.** Realm import during group provisioning now uses the Keycloak admin UI (realm dropdown → Create realm → Browse → select JSON → Create) instead of copying the file and restarting Keycloak.
+- **`PRODUCTION.vps.md` and `PRODUCTION.cloudflare.md` updated.** Initial setup steps 5–7 (env vars, MySQL passwords, Keycloak credentials) replaced with a single `./bootstrap.sh` step. All `docker compose` commands in provisioning and helpful-commands sections updated to use `-f docker-compose.production.yml`.
+- **`KEYCLOAK_HOSTNAME` added to `.env.template`** with a note to set it to `https://auth.<domain>` in production.
+
 ## [8.1.3] - 2026-04-26
 
 ### Changed

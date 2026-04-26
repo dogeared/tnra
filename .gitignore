@@ -25,6 +25,7 @@ nbdist/
 
 *.yml
 !.github/workflows/*.yml
+!docker-compose.production.yml
 application.properties
 
 .DS_Store

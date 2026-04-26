@@ -38,98 +38,29 @@ git clone https://github.com/dogeared/tnra
 cd tnra
 ```
 
-### 5. Configure environment variables
+### 5. Bootstrap
+
+Run the interactive setup script. It prompts for all secrets, writes `.env`, and starts MySQL and Keycloak:
 
 ```bash
-cp .env.template .env
+bash bootstrap.sh
 ```
 
-Edit `.env` and set all required values:
+The script will:
+- Prompt for your domain, MySQL root password, Keycloak admin credentials, and encryption master key (auto-generating any you leave blank)
+- Write a complete `.env` file
+- Start MySQL and Keycloak via `docker-compose.production.yml`
+- Wait for MySQL to be healthy
+- Print all generated credentials — **save them in a password manager before continuing**
 
-```bash
-SPRING_DATASOURCE_USERNAME=root
-SPRING_DATASOURCE_PASSWORD=<strong_password>
-VAADIN_PRODUCTIONMODE=true
-KEYCLOAK_CLIENT_ID=tnra-app
-KEYCLOAK_CLIENT_SECRET=<generate_a_real_secret>
-KEYCLOAK_ISSUER_URI=https://your-domain.com/realms/tnra
-```
-
-Generate and set the encryption master key (required — encrypts all sensitive post data at rest):
-
-```bash
-TNRA_ENCRYPTION_MASTER_KEY=$(openssl rand -base64 32)
-```
-
-**Set this once before first startup and never change it.** The master key wraps the
-per-group Data Encryption Key stored in the `encryption_keys` table. Rotating the master
-key without re-encrypting the DEK first will make all post content permanently unreadable.
-Store the value in a password manager or secrets vault.
-
-Set Mailgun credentials if email notifications are enabled:
-
-```bash
-MAILGUN_KEY_PRIVATE=<your_key>
-MAILGUN_KEY_PUBLIC=<your_key>
-MAILGUN_URL=https://api.mailgun.net/v3/your-domain.com/messages
-```
-
-### 6. Set MySQL passwords
-
-Generate a strong root password and set it in `.env` **before the first `docker compose up`**:
-
-```bash
-# In .env
-MYSQL_ROOT_PASSWORD=$(openssl rand -base64 32)
-```
-
-Write that value down — you'll need it to create the app user in step 7.
-
-On first container start, `mysql/init-local-user.sql` auto-creates a `tnra` database user
-with a hardcoded development password (`123456aA$`). Change it immediately after MySQL comes up:
-
-```bash
-# Start MySQL only first
-docker compose up mysql -d
-docker compose exec mysql mysqladmin ping -h localhost --wait=30
-
-# Change the app user's password
-docker compose exec mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" -e "
-  ALTER USER 'tnra'@'%' IDENTIFIED BY '<strong_app_password>';
-  FLUSH PRIVILEGES;
-"
-```
-
-Then update `.env` so the app connects as the `tnra` user, not root:
-
-```bash
-SPRING_DATASOURCE_USERNAME=tnra
-SPRING_DATASOURCE_PASSWORD=<strong_app_password>
-```
-
-### 7. Set Keycloak admin credentials
-
-Generate a strong Keycloak admin password and set it in `.env` **before the first
-`docker compose up`**:
-
-```bash
-# In .env
-KEYCLOAK_ADMIN=admin
-KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -base64 32)
-```
-
-`docker-compose.yml` reads these via `${KEYCLOAK_ADMIN:-admin}` and
-`${KEYCLOAK_ADMIN_PASSWORD:-admin}` — the fallback `admin`/`admin` defaults are only safe
-for local development.
-
-After first boot, rotate the Keycloak client secret (the realm import includes a placeholder):
+After first boot, rotate the Keycloak client secret for each group (the realm import includes a placeholder):
 
 1. Open an SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
-2. Open `http://localhost:8180/admin` and log in with the credentials you set above.
-3. Switch to the `tnra` realm > **Clients** > `tnra-app` > **Credentials** tab.
+2. Open `http://localhost:8180/admin` and log in with the Keycloak admin credentials.
+3. Switch to the group realm → **Clients** → `<group>-app` → **Credentials** tab.
 4. Click **Regenerate** next to Client secret and copy the new value.
-5. Update `.env`: `KEYCLOAK_CLIENT_SECRET=<new_secret>`
-6. Restart the app container: `docker compose restart server`
+5. Update the group's env file with `KEYCLOAK_CLIENT_SECRET=<new_secret>`.
+6. Restart the group container.
 
 ## SSL Certificates
 
@@ -347,8 +278,8 @@ ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>
 
 ### Keycloak data persistence
 
-Keycloak data is stored in the `keycloak-data` Docker volume. The realm configuration is
-auto-imported from `keycloak/tnra-realm.json` on first start. Back up the volume regularly:
+Keycloak data is stored in the `keycloak-data` Docker volume. Realms are imported via the
+admin UI during group provisioning (not on startup). Back up the volume regularly:
 
 ```bash
 docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
@@ -424,19 +355,22 @@ scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
 ### Step 6: Initialize the database
 
 ```bash
-docker compose exec -T mysql mysql -uroot -p<root_password> \
+docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
   < ~/<group-name>/init-db.sql
 ```
 
 ### Step 7: Import the Keycloak realm
 
-```bash
-cp ~/<group-name>/<group-name>-realm.json ~/tnra/keycloak/
-docker compose restart keycloak
-```
+Use the Keycloak admin UI to import the realm (no restart required):
 
-Verify via SSH tunnel (`ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`):
-- `http://localhost:8180/admin` > realm dropdown shows `<group-name>`
+1. Open an SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
+2. Open `http://localhost:8180/admin` and log in with your Keycloak admin credentials.
+3. Click the realm dropdown (top-left) → **Create realm**.
+4. Click **Browse**, select `provision/<group-name>/<group-name>-realm.json`.
+5. Click **Create**.
+
+Verify:
+- Realm dropdown shows `<group-name>`
 - Client `<group-name>-app` is configured with correct redirect URIs
 
 ### Step 8: Deploy the group's app container
@@ -444,7 +378,7 @@ Verify via SSH tunnel (`ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`):
 ```bash
 cd ~/tnra
 cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
-docker compose -f docker-compose.<group-name>.yml up --build -d
+docker compose -f docker-compose.production.yml -f docker-compose.<group-name>.yml up --build -d
 ```
 
 Watch logs:
@@ -458,7 +392,7 @@ Look for: `Started TnraApplication` and Flyway migration messages.
 
 ```bash
 cp ~/<group-name>/<group-name>.conf ~/tnra/nginx/sites/
-docker compose restart proxy
+docker compose -f docker-compose.production.yml restart proxy
 ```
 
 ### Step 10: Create the first admin user
@@ -487,7 +421,7 @@ docker compose -f docker-compose.<group-name>.yml logs -f
 docker compose -f docker-compose.<group-name>.yml restart
 
 # Back up a specific group's database
-docker compose exec mysql mysqldump -uroot -p<password> \
+docker compose -f docker-compose.production.yml exec mysql mysqldump -uroot -p<password> \
   --skip-column-statistics --no-tablespaces <db_name> \
   > ~/backups/<group-name>-$(date +%Y%m%d).sql
 ```
@@ -618,22 +552,31 @@ Always back up first.
 ## Helpful Commands
 
 ```bash
-# View running containers
-docker compose ps
+# View running shared-infra containers
+docker compose -f docker-compose.production.yml ps
 
-# View app logs
-docker compose logs -f server
+# View Keycloak logs
+docker compose -f docker-compose.production.yml logs -f keycloak
+
+# View MySQL logs
+docker compose -f docker-compose.production.yml logs -f mysql
 
 # Database shell
-docker compose exec mysql mysql -uroot -p<password> tnra
+docker compose -f docker-compose.production.yml exec mysql mysql -uroot -p<password>
 
-# Dump the database
-docker compose exec mysql mysqldump -uroot -p<password> \
-  --skip-column-statistics --no-tablespaces tnra > ~/tnra-backup-$(date +%Y%m%d).sql
+# Dump a group database
+docker compose -f docker-compose.production.yml exec mysql mysqldump -uroot -p<password> \
+  --skip-column-statistics --no-tablespaces <db_name> > ~/tnra-backup-$(date +%Y%m%d).sql
 
-# Restart a single service
-docker compose restart server
+# Restart a shared service
+docker compose -f docker-compose.production.yml restart keycloak
 
-# Rebuild and restart everything
-docker compose up --build -d
+# Restart shared infrastructure
+docker compose -f docker-compose.production.yml up -d
+
+# View a group's app logs
+docker compose -f docker-compose.<group-name>.yml logs -f
+
+# Restart a group app
+docker compose -f docker-compose.<group-name>.yml restart
 ```
