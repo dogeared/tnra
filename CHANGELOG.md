@@ -2,6 +2,9 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.6] - 2026-04-26
+- **`docker-compose.production.yml` now has production mysql exposed port on 3308. changed shared network name to: `tnra-production-shared`. these changes are so as not to conflict with existing production config as the transition to the new architecture is made.
+
 ## [8.1.5] - 2026-04-26
 
 ### Fixed

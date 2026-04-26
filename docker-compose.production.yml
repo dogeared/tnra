@@ -13,11 +13,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
-      - '127.0.0.1:3307:3306'
+      - '127.0.0.1:3308:3306'
     volumes:
       - 'mysql-db:/var/lib/mysql'
     networks:
-      - tnra-shared
+      - tnra-production-shared
     env_file: .env
 
   keycloak:
@@ -38,7 +38,7 @@ services:
       - 'keycloak-data:/opt/keycloak/data'
       - './keycloak/themes/tnra:/opt/keycloak/themes/tnra:ro'
     networks:
-      - tnra-shared
+      - tnra-production-shared
     env_file: .env
 
   cloudflared:
@@ -47,12 +47,12 @@ services:
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     restart: unless-stopped
     networks:
-      - tnra-shared
+      - tnra-production-shared
 
 volumes:
   keycloak-data:
   mysql-db:
 
 networks:
-  tnra-shared:
-    name: tnra-shared
+  tnra-production-shared:
+    name: tnra-production-shared
