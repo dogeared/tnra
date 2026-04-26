@@ -30,6 +30,7 @@ import jakarta.annotation.security.PermitAll;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -48,6 +49,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
 
     private final VaadinPostPresenter vaadinPostPresenter;
     private final PostTokenService postTokenService;
+    private final String baseUrl;
     private User currentUser;
     private User selectedUser;
     private Post currentPost;
@@ -78,6 +80,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     private Button showCompletedPostsButton;
     private Button switchToInProgressButton;
     private Button finishPostButton;
+    private Button copyLinkButton;
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
@@ -104,9 +107,14 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     // is the true param for nested properties needed?
     private Binder<Post> postBinder = new Binder<>(Post.class, true);
 
-    public PostView(VaadinPostPresenter vaadinPostPresenter, PostTokenService postTokenService) {
+    public PostView(
+        VaadinPostPresenter vaadinPostPresenter,
+        PostTokenService postTokenService,
+        @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
+    ) {
         this.vaadinPostPresenter = vaadinPostPresenter;
         this.postTokenService = postTokenService;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
 
         setSizeFull();
         addClassName("post-view");
@@ -364,14 +372,33 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
                 currentPost = e.getValue();
                 loadPostData();
                 updateReadOnlyState();
+                if (copyLinkButton != null) {
+                    copyLinkButton.setEnabled(true);
+                }
             } else {
                 // Clear the form when no post is selected
                 clearFormData();
+                if (copyLinkButton != null) {
+                    copyLinkButton.setEnabled(false);
+                }
             }
         });
 
+        // Copy Link button — copies the post's deep link URL to the clipboard
+        copyLinkButton = new Button("Copy Link", VaadinIcon.COPY_O.create());
+        copyLinkButton.addClassName("copy-link-button");
+        copyLinkButton.setEnabled(false);
+        copyLinkButton.addClickListener(e -> {
+            if (currentPost == null || currentPost.getId() == null) return;
+            String url = buildPostUrl(currentPost);
+            UI ui = UI.getCurrent();
+            if (ui == null) return;
+            ui.getPage().executeJs("navigator.clipboard.writeText($0)", url);
+            AppNotification.success("Link copied to clipboard!");
+        });
+
         // Add selectors to horizontal layout
-        selectorsLayout.add(userSelector, postSelector);
+        selectorsLayout.add(userSelector, postSelector, copyLinkButton);
 
         // Create pagination controls
         VerticalLayout paginationLayout = createPaginationControls();
@@ -978,6 +1005,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
         }
     }
     
+    String buildPostUrl(Post post) {
+        if (post == null || post.getId() == null) return baseUrl + "/posts/";
+        return baseUrl + "/posts/" + postTokenService.encode(post.getId());
+    }
+
     // NOTE: Manual debouncing methods removed - now using Vaadin Binder approach
     // See setupDataBinding() and savePostChanges() methods for the modern implementation
-} 
+}
