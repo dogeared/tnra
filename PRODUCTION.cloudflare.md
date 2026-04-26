@@ -28,7 +28,7 @@ Browser
 Cloudflare Edge
   │  Encrypted tunnel (outbound from VPS, no open ports)
   ▼
-cloudflared  (Docker container on VPS, tnra-shared network)
+cloudflared  (Docker container on VPS, tnra-production-shared network)
   │  HTTP (plain, internal Docker network)
   ├──► tnra-group-a:8080
   ├──► tnra-group-b:8080
@@ -229,7 +229,7 @@ ufw enable
 
 MySQL (3307) and Keycloak (8180) are bound to `127.0.0.1` in `docker-compose.yml` and are
 not exposed externally. The `cloudflared` container reaches Keycloak via the internal
-`tnra-shared` Docker network, not via a host port.
+`tnra-production-shared` Docker network, not via a host port.
 
 ## Hardening MySQL
 
@@ -321,7 +321,7 @@ config — just a new tunnel route and a new container.
                     └──────────────────────────────────────┘
 ```
 
-All containers share the `tnra-shared` Docker network.
+All containers share the `tnra-production-shared` Docker network.
 
 ### Step 1: Build the CLI (on your local machine)
 
@@ -356,14 +356,29 @@ Cloudflare automatically creates the CNAME DNS record. No DNS or SSL setup requi
 scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
 ```
 
-### Step 5: Initialize the database
+### Step 5: Set the encryption master key in the group's `.env`
+
+The CLI generates a placeholder `TNRA_ENCRYPTION_MASTER_KEY=` in the group's `.env`. Fill it in
+with the value from your production `.env` before starting the app container — Flyway migrations
+V8 and V10 require it at startup and the app will fail to start if it is missing.
+
+```bash
+# On the VPS, copy the value from the production .env:
+grep TNRA_ENCRYPTION_MASTER_KEY ~/tnra/.env
+
+# Then edit the group .env:
+nano ~/<group-name>/.env
+# Set: TNRA_ENCRYPTION_MASTER_KEY=<value-from-above>
+```
+
+### Step 6: Initialize the database
 
 ```bash
 docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
   < ~/<group-name>/init-db.sql
 ```
 
-### Step 6: Import the Keycloak realm
+### Step 7: Import the Keycloak realm
 
 Use the Keycloak admin UI to import the realm (no restart required):
 
@@ -376,7 +391,7 @@ Verify:
 - Realm dropdown shows `<group-name>`
 - Client `<group-name>-app` is configured with correct redirect URIs
 
-### Step 7: Deploy the group's app container
+### Step 8: Deploy the group's app container
 
 ```bash
 cd ~/tnra
@@ -392,7 +407,7 @@ docker compose -f docker-compose.<group-name>.yml logs -f
 
 Look for: `Started TnraApplication` and Flyway migration messages.
 
-### Step 8: Create the first admin user
+### Step 9: Create the first admin user
 
 1. Open `https://auth.your-domain.com/admin`
 2. Switch to the `<group-name>` realm
@@ -400,7 +415,7 @@ Look for: `Started TnraApplication` and Flyway migration messages.
 4. **Credentials** → Set password (disable "Temporary")
 5. **Role Mappings** → Assign `admin` and `member` roles
 
-### Step 9: Verify
+### Step 10: Verify
 
 Visit `https://<group-name>.tnra.app` and log in with the admin user.
 

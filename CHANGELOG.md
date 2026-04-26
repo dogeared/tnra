@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.7] - 2026-04-26
+
+### Fixed
+- **Production app startup failure (`BeanCreationException` for V8/V10 Flyway migrations).** CLI-generated per-group `.env` was missing `TNRA_ENCRYPTION_MASTER_KEY`, causing the Spring beans for `V8__EncryptExistingData` and `V10__EncryptEmojiData` to fail at startup with an unresolved `@Value`. The CLI's `env.tmpl` now includes a placeholder `TNRA_ENCRYPTION_MASTER_KEY=` with a warning comment; the operator must copy the value from the production `.env` before starting the app container.
+- **Per-group app containers unable to reach MySQL/Keycloak.** CLI's `docker-compose.yml.tmpl` referenced the old external network name `tnra-shared`; updated to `tnra-production-shared` to match `docker-compose.production.yml`.
+- **PRODUCTION guides updated.** Both `PRODUCTION.vps.md` and `PRODUCTION.cloudflare.md` now reference `tnra-production-shared` throughout and include an explicit new step (Step 6) instructing operators to fill in `TNRA_ENCRYPTION_MASTER_KEY` in the group's `.env` before deploying the app container.
+
 ## [8.1.6] - 2026-04-26
 - **`docker-compose.production.yml` now has production mysql exposed port on 3308. changed shared network name to: `tnra-production-shared`. these changes are so as not to conflict with existing production config as the transition to the new architecture is made.
 

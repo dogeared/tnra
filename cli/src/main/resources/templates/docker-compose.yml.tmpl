@@ -16,9 +16,9 @@ services:
     volumes:
       - ./uploads/{{GROUP_NAME}}:/uploads:rw
     networks:
-      - tnra-shared
+      - tnra-production-shared
 
 networks:
-  tnra-shared:
+  tnra-production-shared:
     external: true
-    name: tnra-shared
+    name: tnra-production-shared

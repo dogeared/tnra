@@ -311,7 +311,7 @@ them manually.
                     └──────────────────────────────────────┘
 ```
 
-All containers share the `tnra-shared` Docker network. Each group's container connects to
+All containers share the `tnra-production-shared` Docker network. Each group's container connects to
 MySQL and Keycloak using internal Docker hostnames (`mysql`, `keycloak`).
 
 ### Step 1: Build the CLI (on your local machine)
@@ -352,14 +352,29 @@ Or generate a per-subdomain cert and update the Nginx config to reference it.
 scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
 ```
 
-### Step 6: Initialize the database
+### Step 6: Set the encryption master key in the group's `.env`
+
+The CLI generates a placeholder `TNRA_ENCRYPTION_MASTER_KEY=` in the group's `.env`. Fill it in
+with the value from your production `.env` before starting the app container — Flyway migrations
+V8 and V10 require it at startup and the app will fail to start if it is missing.
+
+```bash
+# On the VPS, copy the value from the production .env:
+grep TNRA_ENCRYPTION_MASTER_KEY ~/tnra/.env
+
+# Then edit the group .env:
+nano ~/<group-name>/.env
+# Set: TNRA_ENCRYPTION_MASTER_KEY=<value-from-above>
+```
+
+### Step 7: Initialize the database
 
 ```bash
 docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
   < ~/<group-name>/init-db.sql
 ```
 
-### Step 7: Import the Keycloak realm
+### Step 8: Import the Keycloak realm
 
 Use the Keycloak admin UI to import the realm (no restart required):
 
@@ -373,7 +388,7 @@ Verify:
 - Realm dropdown shows `<group-name>`
 - Client `<group-name>-app` is configured with correct redirect URIs
 
-### Step 8: Deploy the group's app container
+### Step 9: Deploy the group's app container
 
 ```bash
 cd ~/tnra
@@ -388,14 +403,14 @@ docker compose -f docker-compose.<group-name>.yml logs -f
 
 Look for: `Started TnraApplication` and Flyway migration messages.
 
-### Step 9: Configure Nginx
+### Step 10: Configure Nginx
 
 ```bash
 cp ~/<group-name>/<group-name>.conf ~/tnra/nginx/sites/
 docker compose -f docker-compose.production.yml restart proxy
 ```
 
-### Step 10: Create the first admin user
+### Step 11: Create the first admin user
 
 1. SSH tunnel: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
 2. Open `http://localhost:8180/admin`
@@ -404,7 +419,7 @@ docker compose -f docker-compose.production.yml restart proxy
 5. Credentials > Set password (disable "Temporary")
 6. Role Mappings > Assign `admin` and `member` roles
 
-### Step 11: Verify
+### Step 12: Verify
 
 Visit `https://<group-name>.tnra.app` and log in with the admin user.
 
@@ -435,7 +450,7 @@ prevents duplicate group names. Keep this file backed up on the VPS.
 ### Migrating the existing group
 
 The existing single-tenant deployment is registered as the first group in `groups.json`
-(name: "tnra", port: 8080). After adding the `tnra-shared` network to `docker-compose.yml`
+(name: "tnra", port: 8080). After adding the `tnra-production-shared` network to `docker-compose.yml`
 and restarting, it continues to work as before. No data migration required.
 
 ## Database Migration from V1
