@@ -21,6 +21,7 @@ import java.util.Map;
 public class SlackNotificationServiceImpl implements SlackNotificationService {
 
     private static final Logger log = LoggerFactory.getLogger(SlackNotificationServiceImpl.class);
+    private static final String SLACK_WEBHOOK_URL_PREFIX = "https://hooks.slack.com/";
 
     private final GroupSettingsService groupSettingsService;
     private final PostTokenService postTokenService;
@@ -55,13 +56,16 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
         try {
             String payload = objectMapper.writeValueAsString(Map.of("text", message));
             doPost(webhookUrl, payload);
-            log.info("Slack activity notification sent for post id={}", post.getId());
+            log.info("Slack activity notification sent for post token={}", post.getId() != null ? postTokenService.encode(post.getId()) : "null");
         } catch (Exception e) {
-            log.error("Failed to send Slack activity notification for post id={}: {}", post.getId(), e.getMessage(), e);
+            log.error("Failed to send Slack activity notification for post token={}: {}", post.getId() != null ? postTokenService.encode(post.getId()) : "null", e.getMessage(), e);
         }
     }
 
     void doPost(String webhookUrl, String payload) throws IOException {
+        if (!webhookUrl.startsWith(SLACK_WEBHOOK_URL_PREFIX)) {
+            throw new IllegalArgumentException("Webhook URL must be a Slack incoming webhook URL");
+        }
         Request.post(webhookUrl)
             .connectTimeout(Timeout.ofSeconds(3))
             .responseTimeout(Timeout.ofSeconds(5))
