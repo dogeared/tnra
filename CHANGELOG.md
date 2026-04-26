@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.8] - 2026-04-26
+
+### Fixed
+- **`ClientRegistrationRepository` not found on production startup.** The per-group `docker-compose.yml.tmpl` used `env_file: .env`, which resolved to the shared infrastructure `.env` (with empty `KEYCLOAK_CLIENT_ID`, `KEYCLOAK_CLIENT_SECRET`, `KEYCLOAK_ISSUER_URI`) when run from the tnra deployment directory. Spring Boot therefore saw empty OAuth2 registration properties and skipped auto-configuring `ClientRegistrationRepository`. Fixed by changing the env_file reference to `{{GROUP_NAME}}/.env` so each group's credentials live in a named subdirectory (`~/tnra/<group-name>/.env`) and can't be confused with the shared `.env`.
+- **MySQL URL in per-group `.env` used host-mapped port 3307.** The app runs on the `tnra-production-shared` Docker network and connects to MySQL via the Docker-internal hostname `mysql:3306`. The localhost/port-mapped URL was only needed for direct admin access from the host and is not used by the app container. Template updated to use `mysql:3306` directly; the now-redundant `SPRING_DATASOURCE_URL` environment override in `docker-compose.yml.tmpl` was removed.
+- **PRODUCTION guides updated** with consolidated Step 4/5 that copies the group's `.env`, injects the encryption master key, and stages both the env and docker-compose in the tnra deployment directory before launching.
+
 ## [8.1.7] - 2026-04-26
 
 ### Fixed

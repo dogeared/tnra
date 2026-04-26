@@ -350,35 +350,34 @@ In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** 
 
 Cloudflare automatically creates the CNAME DNS record. No DNS or SSL setup required.
 
-### Step 4: Copy files to VPS
+### Step 4: Copy files to VPS and configure the group's `.env`
 
 ```bash
+# Copy all provisioned files to your home directory on the VPS
 scp -r provision/<group-name>/ tnra@<VPS_IP>:~/
+
+# SSH in and set the encryption master key (V8/V10 Flyway migrations require it at startup)
+ssh tnra@<VPS_IP>
+MASTER_KEY=$(grep TNRA_ENCRYPTION_MASTER_KEY ~/tnra/.env | cut -d= -f2-)
+sed -i "s|TNRA_ENCRYPTION_MASTER_KEY=|TNRA_ENCRYPTION_MASTER_KEY=${MASTER_KEY}|" ~/<group-name>/.env
+
+# Stage the group's env and docker-compose for deployment
+mkdir -p ~/tnra/<group-name>/
+cp ~/<group-name>/.env ~/tnra/<group-name>/.env
+cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
 ```
 
-### Step 5: Set the encryption master key in the group's `.env`
+The `docker-compose.<group-name>.yml` loads credentials from `<group-name>/.env` inside the `~/tnra/`
+directory, keeping each group's secrets separate from the shared infrastructure `.env`.
 
-The CLI generates a placeholder `TNRA_ENCRYPTION_MASTER_KEY=` in the group's `.env`. Fill it in
-with the value from your production `.env` before starting the app container — Flyway migrations
-V8 and V10 require it at startup and the app will fail to start if it is missing.
-
-```bash
-# On the VPS, copy the value from the production .env:
-grep TNRA_ENCRYPTION_MASTER_KEY ~/tnra/.env
-
-# Then edit the group .env:
-nano ~/<group-name>/.env
-# Set: TNRA_ENCRYPTION_MASTER_KEY=<value-from-above>
-```
-
-### Step 6: Initialize the database
+### Step 5: Initialize the database
 
 ```bash
 docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
   < ~/<group-name>/init-db.sql
 ```
 
-### Step 7: Import the Keycloak realm
+### Step 6: Import the Keycloak realm
 
 Use the Keycloak admin UI to import the realm (no restart required):
 
@@ -391,11 +390,10 @@ Verify:
 - Realm dropdown shows `<group-name>`
 - Client `<group-name>-app` is configured with correct redirect URIs
 
-### Step 8: Deploy the group's app container
+### Step 7: Deploy the group's app container
 
 ```bash
 cd ~/tnra
-cp ~/<group-name>/docker-compose.yml ~/tnra/docker-compose.<group-name>.yml
 docker compose -f docker-compose.production.yml -f docker-compose.<group-name>.yml up --build -d
 ```
 
@@ -407,7 +405,7 @@ docker compose -f docker-compose.<group-name>.yml logs -f
 
 Look for: `Started TnraApplication` and Flyway migration messages.
 
-### Step 9: Create the first admin user
+### Step 8: Create the first admin user
 
 1. Open `https://auth.your-domain.com/admin`
 2. Switch to the `<group-name>` realm
@@ -415,7 +413,7 @@ Look for: `Started TnraApplication` and Flyway migration messages.
 4. **Credentials** → Set password (disable "Temporary")
 5. **Role Mappings** → Assign `admin` and `member` roles
 
-### Step 10: Verify
+### Step 9: Verify
 
 Visit `https://<group-name>.tnra.app` and log in with the admin user.
 
