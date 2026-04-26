@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.5] - 2026-04-26
+
+### Fixed
+- **`bootstrap.sh` MySQL password now masked.** The MySQL root password prompt was using `read -r` (which echoes input) instead of `prompt_secret()`. All other secret prompts were already correctly hidden.
+- **Production containers renamed to avoid dev conflicts.** `docker-compose.production.yml` now uses `container_name: mysql-prod` and `container_name: keycloak-prod`, and sets `name: tnra-production` at the project level so Docker Compose scopes volumes as `tnra-production_mysql-db` and `tnra-production_keycloak-data`. This prevents name and volume collisions when dev containers are running on the same machine simultaneously. Service names (`mysql`, `keycloak`) are unchanged so per-group app containers continue to resolve them correctly on the `tnra-shared` network.
+
 ## [8.1.4] - 2026-04-26
 
 ### Added
