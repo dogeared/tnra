@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class PostTokenServiceImpl implements PostTokenService {
 
+    private static final String ENC_PREFIX = "ENC:";
+
     private final EncryptionService encryptionService;
 
     public PostTokenServiceImpl(EncryptionService encryptionService) {
@@ -14,8 +16,7 @@ public class PostTokenServiceImpl implements PostTokenService {
     @Override
     public String encode(Long postId) {
         String encrypted = encryptionService.encrypt(postId.toString());
-        // encrypted = "ENC:" + standard_base64
-        String base64 = encrypted.substring("ENC:".length());
+        String base64 = encrypted.substring(ENC_PREFIX.length());
         return base64.replace('+', '-').replace('/', '_').replaceAll("=+$", "");
     }
 
@@ -25,7 +26,7 @@ public class PostTokenServiceImpl implements PostTokenService {
             String base64 = token.replace('-', '+').replace('_', '/');
             int pad = (4 - base64.length() % 4) % 4;
             base64 += "=".repeat(pad);
-            String decrypted = encryptionService.decrypt("ENC:" + base64);
+            String decrypted = encryptionService.decrypt(ENC_PREFIX + base64);
             return Long.parseLong(decrypted);
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid post token", e);

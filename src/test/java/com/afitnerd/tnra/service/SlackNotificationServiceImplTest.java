@@ -128,37 +128,54 @@ class SlackNotificationServiceImplTest {
     // --- sendActivityNotification (early-exit paths, no real HTTP) ---
 
     @Test
-    void sendActivityNotification_skipsWhenDisabled() {
+    void sendActivityNotification_skipsWhenDisabled() throws Exception {
         GroupSettings settings = new GroupSettings();
         settings.setSlackEnabled(false);
         settings.setSlackWebhookUrl("https://hooks.slack.com/test");
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        // Should not throw; no HTTP call made (would fail immediately if attempted with this URL)
-        service.sendActivityNotification(createPost("Test", "User", 1L));
+        SlackNotificationServiceImpl spy = spy(service);
+        spy.sendActivityNotification(createPost("Test", "User", 1L));
         verify(groupSettingsService, times(1)).getSettings();
+        verify(spy, never()).doPost(anyString(), anyString());
     }
 
     @Test
-    void sendActivityNotification_skipsWhenWebhookUrlNull() {
+    void sendActivityNotification_skipsWhenWebhookUrlNull() throws Exception {
         GroupSettings settings = new GroupSettings();
         settings.setSlackEnabled(true);
         settings.setSlackWebhookUrl(null);
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        service.sendActivityNotification(createPost("Test", "User", 1L));
+        SlackNotificationServiceImpl spy = spy(service);
+        spy.sendActivityNotification(createPost("Test", "User", 1L));
         verify(groupSettingsService, times(1)).getSettings();
+        verify(spy, never()).doPost(anyString(), anyString());
     }
 
     @Test
-    void sendActivityNotification_skipsWhenWebhookUrlBlank() {
+    void sendActivityNotification_skipsWhenWebhookUrlBlank() throws Exception {
         GroupSettings settings = new GroupSettings();
         settings.setSlackEnabled(true);
         settings.setSlackWebhookUrl("   ");
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        service.sendActivityNotification(createPost("Test", "User", 1L));
+        SlackNotificationServiceImpl spy = spy(service);
+        spy.sendActivityNotification(createPost("Test", "User", 1L));
         verify(groupSettingsService, times(1)).getSettings();
+        verify(spy, never()).doPost(anyString(), anyString());
+    }
+
+    @Test
+    void doPost_rejectsNonSlackUrl() {
+        assertThrows(IllegalArgumentException.class,
+            () -> service.doPost("https://evil.example.com/webhook", "{\"text\":\"x\"}"));
+    }
+
+    @Test
+    void doPost_rejectsHttpUrl() {
+        assertThrows(IllegalArgumentException.class,
+            () -> service.doPost("http://hooks.slack.com/test", "{\"text\":\"x\"}"));
     }
 
     @Test
