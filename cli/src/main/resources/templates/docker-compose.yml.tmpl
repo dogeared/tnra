@@ -10,6 +10,7 @@ services:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET: "{{KEYCLOAK_CLIENT_SECRET}}"
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_SCOPE: "openid,profile,email"
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_AUTHORIZATION_GRANT_TYPE: "authorization_code"
+      SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_REDIRECT_URI: "{baseUrl}/login/oauth2/code/{registrationId}"
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_AUTHORIZATION_URI: "https://auth.{{DOMAIN}}/realms/{{REALM_NAME}}/protocol/openid-connect/auth"
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_TOKEN_URI: "http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/token"
       SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_INFO_URI: "http://keycloak:8080/realms/{{REALM_NAME}}/protocol/openid-connect/userinfo"
@@ -22,6 +23,8 @@ services:
       VAADIN_PRODUCTIONMODE: "true"
       TNRA_NOTIFY_SCHEDULE: "0 0 12 * * ?"
       TNRA_ENCRYPTION_MASTER_KEY: "${TNRA_ENCRYPTION_MASTER_KEY}"
+    ports:
+      - "127.0.0.1:{{PORT}}:8080"
     volumes:
       - ./uploads/{{GROUP_NAME}}:/uploads:rw
     networks:

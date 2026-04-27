@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.10] - 2026-04-26
+
+### Fixed
+- **Missing `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_REDIRECT_URI` in compose template.** Without this property, Spring Security's default redirect URI used the container-internal hostname instead of the public domain, causing OAuth2 login callbacks to fail. Added `"{baseUrl}/login/oauth2/code/{registrationId}"` to the `environment:` block.
+- **Per-group app container did not expose a host port.** The `PORT` variable from `groups.json` was printed to stdout during provisioning but never written into the template vars map, so `{{PORT}}` was unavailable when templates rendered. Reordered `ProvisionCommand` to call `registry.register()` before building the vars map, then added `PORT` to the map and a `ports: - "127.0.0.1:{{PORT}}:8080"` section to `docker-compose.yml.tmpl`.
+
 ## [8.1.9] - 2026-04-27
 
 ### Fixed

@@ -61,9 +61,11 @@ class ProvisionCommandTest {
         assertFalse(compose.contains("env_file:"), "should not use env_file — all vars in environment block");
         assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: \"recovery-guys-app\""), "should embed client id as Spring property");
         assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET:"), "should embed client secret as Spring property");
+        assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_REDIRECT_URI:"), "should embed redirect URI");
         assertTrue(compose.contains("SPRING_DATASOURCE_URL: \"jdbc:mysql://mysql:3306/tnra_recovery_guys\""), "should use Docker-internal MySQL URL");
         assertTrue(compose.contains("TNRA_ENCRYPTION_MASTER_KEY: \"${TNRA_ENCRYPTION_MASTER_KEY}\""), "should use compose interpolation for encryption key");
         assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should use Docker-internal Keycloak for backchannel");
+        assertTrue(compose.contains("127.0.0.1:8081:8080"), "should expose host port from registry");
         assertTrue(compose.contains("tnra-production-shared"));
 
         // Verify .env is for local IDE dev only (localhost port, placeholder encryption key)
