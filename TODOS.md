@@ -38,11 +38,12 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 
 ## P2 — After MVP Ships
 
-### Fix Placeholder Profile Picture in Provisioned Groups
-The `placeholder.png` profile picture is broken for production-provisioned groups.
-- **Why:** Members with no uploaded profile photo see a broken image instead of the default placeholder.
+### Temporary Password Change Not Enforced on First Login
+When provisioning creates an admin user with a temporary password in Keycloak, the user is not prompted to change it on first login.
+- **Why:** Temporary passwords are a security control — if the user is never forced to change it, the provisioned credential stays active indefinitely.
 - **Effort:** XS (human: ~30 min / CC: ~10 min)
-- **Context:** Investigate why `placeholder.png` is not being served correctly in provisioned group containers. Likely related to the uploads volume mount path (`./uploads/{{GROUP_NAME}}:/uploads`) not containing the placeholder, or the file storage base URL resolving incorrectly in production.
+- **Context:** Likely a Keycloak realm config issue. Keycloak has a `requiredActions: ["UPDATE_PASSWORD"]` on the user account that should trigger a change-password flow on first login. Check whether this is set in `realm.json.tmpl` for the admin user and whether the Keycloak client/realm has the required action enabled. May also need to verify the OIDC flow surfaces the required action challenge correctly.
+
 
 
 
@@ -105,6 +106,10 @@ Structured annual reflection form per member per year, viewable by the group.
 - **Context:** Recovery and faith groups often build their year around the retreat. Having the prep format built in signals TNRA understands the full cadence. Similar to the weekly post form but for annual reflection.
 
 ## Completed
+
+### Fix Placeholder Profile Picture and Uploads Volume in Provisioned Groups
+Placeholder profile picture was broken in production-provisioned groups due to two issues: the uploads volume resolved to `~/tnra/uploads/` (shared across groups) instead of `provision/<group-name>/uploads/`, and the bind-mounted directory was owned by root so the unprivileged `appuser` couldn't write to it.
+- **Completed:** v8.1.11 — volume path corrected to `./provision/{{GROUP_NAME}}/uploads`, CLI fixed to create `uploads/` without extra sub-directory, `docker-entrypoint.sh` added to chown `/uploads` to `appuser` at startup.
 
 ### Unique Constraint on users.email
 Add `UNIQUE` constraint via Flyway migration.
