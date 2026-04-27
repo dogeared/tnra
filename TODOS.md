@@ -29,6 +29,12 @@ Static or Vaadin public route for prospective groups. Form: group name, contact 
 - **Depends on:** Slack Part 1 shipped.
 - **Context:** Requires Spring Security rule for anonymous access without exposing other routes. Rate limiting on form (max 5/hour per IP).
 
+### Temporary Password Change Not Enforced on First Login
+When the provisioning CLI creates the initial admin user in `realm.json.tmpl` (imported into Keycloak during group setup), the password is marked temporary but Keycloak does not prompt the user to change it on first login.
+- **Why:** Temporary passwords are a security control — if Keycloak never challenges the user to change it, the provisioned credential stays active indefinitely.
+- **Effort:** XS (human: ~30 min / CC: ~10 min)
+- **Context:** The admin user is defined in `cli/src/main/resources/templates/realm.json.tmpl` with `"temporary": true`. Keycloak enforces a password change on first login via `requiredActions: ["UPDATE_PASSWORD"]` on the user record. Check whether this field is present and correctly set in the realm template. May also need to confirm the Keycloak realm has the `UPDATE_PASSWORD` required action enabled globally.
+
 ### Slack Integration — Part 2: Stats and Full-Post Tiers
 Extend Part 1 with two additional admin-selectable content tiers: stats-only (username + stat values, no narrative text) and full-post (all post sections, decrypted at send time). Admin selects tier per group.
 - **Why:** Groups that are comfortable with the trade-off can opt into richer Slack notifications.
@@ -37,15 +43,6 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 - **Context:** Tier selection stored in `group_settings`. Full-post tier decrypts content in-memory before sending to Slack — clear security warning in the admin UI that post content will leave the encrypted DB. Stats-only tier sends stat names + values only (no narrative). Slack message layout adapts per tier.
 
 ## P2 — After MVP Ships
-
-### Temporary Password Change Not Enforced on First Login
-When provisioning creates an admin user with a temporary password in Keycloak, the user is not prompted to change it on first login.
-- **Why:** Temporary passwords are a security control — if the user is never forced to change it, the provisioned credential stays active indefinitely.
-- **Effort:** XS (human: ~30 min / CC: ~10 min)
-- **Context:** Likely a Keycloak realm config issue. Keycloak has a `requiredActions: ["UPDATE_PASSWORD"]` on the user account that should trigger a change-password flow on first login. Check whether this is set in `realm.json.tmpl` for the admin user and whether the Keycloak client/realm has the required action enabled. May also need to verify the OIDC flow surfaces the required action challenge correctly.
-
-
-
 
 ### Completed Post View — Improve Read-Only Contrast
 The completed post view renders post fields in a disabled/read-only state that produces low-contrast text, making content hard to read.
