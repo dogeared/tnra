@@ -29,7 +29,7 @@ services:
     ports:
       - "127.0.0.1:{{PORT}}:8080"
     volumes:
-      - ./uploads/{{GROUP_NAME}}:/uploads:rw
+      - ./provision/{{GROUP_NAME}}/uploads:/uploads:rw
     networks:
       - tnra-production-shared
 

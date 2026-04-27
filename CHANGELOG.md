@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.11] - 2026-04-27
+
+### Fixed
+- **Uploads volume resolved to wrong path in multi-group deployments.** Changed the bind mount in `docker-compose.yml.tmpl` from `./uploads` to `./provision/{{GROUP_NAME}}/uploads` so Docker resolves it relative to the project root (`~/tnra/`), giving each group its own isolated uploads directory.
+- **CLI provisioned `uploads/<group-name>/` instead of `uploads/`.** `ProvisionCommand` was creating an unnecessary sub-directory; corrected to create `provision/<group-name>/uploads/` directly.
+- **Uploads directory owned by root, blocking writes by the app.** Added `docker-entrypoint.sh`: runs as root at container startup, chowns `/uploads` to `appuser`, then drops privileges via `runuser` before starting the JVM. Updated `Dockerfile` to use the entrypoint script instead of a static `USER appuser` directive.
+
 ## [8.1.10] - 2026-04-27
 
 ### Fixed

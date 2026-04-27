@@ -102,7 +102,7 @@ public class ProvisionCommand implements Callable<Integer> {
         writeFile(outDir, "INSTRUCTIONS.md", renderer.render("instructions.md.tmpl", vars));
 
         // Create uploads directory with placeholder image from project root
-        Path uploadsDir = outDir.resolve("uploads").resolve(groupName);
+        Path uploadsDir = outDir.resolve("uploads");
         Files.createDirectories(uploadsDir);
         Path placeholderSource = Path.of("uploads", "placeholder.png");
         if (Files.exists(placeholderSource)) {
