@@ -68,9 +68,9 @@ Access at `https://{{GROUP_NAME}}.{{DOMAIN}}`.
 docker compose -f provision/{{GROUP_NAME}}/docker-compose.yml up --build -d
 ```
 
-The container loads credentials from `.env` via `env_file`. Docker-internal
-URLs for MySQL (`mysql:3306`) and Keycloak (`keycloak:8080`) are set as
-overrides in the compose `environment` block.
+All credentials and URLs are embedded directly in the compose `environment`
+block. Docker-internal URLs for MySQL (`mysql:3306`) and Keycloak
+(`keycloak:8080`) are used for container-to-container communication.
 
 Watch logs:
 ```bash

@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.11] - 2026-04-27
+
+### Fixed
+- **OAuth2 login redirect loop with Cloudflare Tunnels (`missing_user_name_attribute`).** Spring Security could not determine the principal name after a successful Keycloak token exchange because `user-name-attribute: sub` was only defined in `application.yml` (local dev, not in the JAR). Added `SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_NAME_ATTRIBUTE: "sub"` to `docker-compose.yml.tmpl` so production containers configure this property correctly.
+- **Copy Link / Slack / email notification links resolved to `http://localhost:8080`.** `PostView`, `SlackNotificationServiceImpl`, and `ActivityNotificationRenderer` all inject `${tnra.app.base-url:http://localhost:8080}`. The compose template was setting `APP_BASE_URL`, which Spring's `SystemEnvironmentPropertySource` cannot map to `tnra.app.base-url` (it converts `tnra.app.base-url` → `TNRA_APP_BASE_URL`). Renamed the env var in `docker-compose.yml.tmpl` from `APP_BASE_URL` to `TNRA_APP_BASE_URL` so the property resolves correctly and public-facing URLs are used.
+- **`INSTRUCTIONS.md` template had stale `env_file` reference.** Updated to reflect that all credentials are now embedded in the compose `environment` block.
+
 ## [8.1.10] - 2026-04-26
 
 ### Fixed
