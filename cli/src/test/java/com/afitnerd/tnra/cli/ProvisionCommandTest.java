@@ -69,6 +69,7 @@ class ProvisionCommandTest {
         assertTrue(compose.contains("keycloak:8080/realms/recovery-guys"), "should use Docker-internal Keycloak for backchannel");
         assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_NAME_ATTRIBUTE: \"sub\""), "should set user-name-attribute to sub so Spring Security can resolve principal");
         assertTrue(compose.contains("127.0.0.1:8081:8080"), "should expose host port from registry");
+        assertTrue(compose.contains("./provision/recovery-guys/uploads:/uploads:rw"), "should use project-relative path for uploads volume");
         assertTrue(compose.contains("tnra-production-shared"));
 
         // Verify .env is for local IDE dev only (localhost port, placeholder encryption key)
@@ -89,7 +90,7 @@ class ProvisionCommandTest {
 
         // Verify uploads directory is created (placeholder copied only when
         // uploads/placeholder.png exists at project root, not during tests)
-        assertTrue(Files.exists(groupDir.resolve("uploads/recovery-guys")),
+        assertTrue(Files.exists(groupDir.resolve("uploads")),
             "should create uploads directory for the group");
 
         // Verify registry updated
