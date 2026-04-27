@@ -73,6 +73,8 @@ public class ProvisionCommand implements Callable<Integer> {
         String realmName = groupName;
         String date = LocalDate.now().toString();
 
+        GroupRegistry.GroupEntry entry = registry.register(groupName, dbName, realmName, domain);
+
         Map<String, String> vars = new LinkedHashMap<>();
         vars.put("GROUP_NAME", groupName);
         vars.put("DB_NAME", dbName);
@@ -86,6 +88,7 @@ public class ProvisionCommand implements Callable<Integer> {
         vars.put("ADMIN_FIRST_NAME", adminFirstName);
         vars.put("ADMIN_LAST_NAME", adminLastName);
         vars.put("ADMIN_PASSWORD", adminPassword);
+        vars.put("PORT", String.valueOf(entry.port));
 
         Path outDir = Path.of(outputDir, groupName);
         Files.createDirectories(outDir);
@@ -105,8 +108,6 @@ public class ProvisionCommand implements Callable<Integer> {
         if (Files.exists(placeholderSource)) {
             Files.copy(placeholderSource, uploadsDir.resolve("placeholder.png"), StandardCopyOption.REPLACE_EXISTING);
         }
-
-        GroupRegistry.GroupEntry entry = registry.register(groupName, dbName, realmName, domain);
 
         System.out.println("Provisioned group: " + groupName);
         System.out.println("  Domain:    " + groupName + "." + domain);
