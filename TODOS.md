@@ -35,6 +35,12 @@ When the provisioning CLI creates the initial admin user in `realm.json.tmpl` (i
 - **Effort:** XS (human: ~30 min / CC: ~10 min)
 - **Context:** The admin user is defined in `cli/src/main/resources/templates/realm.json.tmpl` with `"temporary": true`. Keycloak enforces a password change on first login via `requiredActions: ["UPDATE_PASSWORD"]` on the user record. Check whether this field is present and correctly set in the realm template. May also need to confirm the Keycloak realm has the `UPDATE_PASSWORD` required action enabled globally.
 
+### Clean Up Provisioning CLI Templates
+Review and tighten all templates in `cli/src/main/resources/templates/` for correctness, consistency, and completeness before onboarding additional groups.
+- **Why:** Templates have been iterated rapidly during production hardening and may contain stale comments, inconsistent formatting, missing settings, or values that should be configurable but are currently hardcoded.
+- **Effort:** S (human: ~1 day / CC: ~20 min)
+- **Context:** Templates to review: `realm.json.tmpl`, `docker-compose.yml.tmpl`, `env.tmpl`, `instructions.md.tmpl`, `nginx.conf.tmpl`, `init-db.sql.tmpl`, `seed-admin.sql.tmpl`. Check for: hardcoded values that should be CLI options, missing Keycloak realm settings (e.g. session timeouts, brute-force protection), INSTRUCTIONS.md accuracy against actual deployment steps, and any template vars that are set but unused (or used but not set).
+
 ### Slack Integration — Part 2: Stats and Full-Post Tiers
 Extend Part 1 with two additional admin-selectable content tiers: stats-only (username + stat values, no narrative text) and full-post (all post sections, decrypted at send time). Admin selects tier per group.
 - **Why:** Groups that are comfortable with the trade-off can opt into richer Slack notifications.
