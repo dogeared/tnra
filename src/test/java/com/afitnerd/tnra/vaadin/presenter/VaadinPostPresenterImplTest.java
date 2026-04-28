@@ -7,6 +7,7 @@ import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
+import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.SlackNotificationService;
@@ -37,6 +38,7 @@ class VaadinPostPresenterImplTest {
     private PostService postService;
     private EMailService emailService;
     private SlackNotificationService slackNotificationService;
+    private GroupSettingsService groupSettingsService;
     private PostRepository postRepository;
     private StatDefinitionRepository statDefinitionRepository;
     private PersonalStatDefinitionRepository personalStatDefinitionRepository;
@@ -49,12 +51,13 @@ class VaadinPostPresenterImplTest {
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
         slackNotificationService = mock(SlackNotificationService.class);
+        groupSettingsService = mock(GroupSettingsService.class);
         postRepository = mock(PostRepository.class);
         statDefinitionRepository = mock(StatDefinitionRepository.class);
         personalStatDefinitionRepository = mock(PersonalStatDefinitionRepository.class);
         presenter = new VaadinPostPresenterImpl(
             oidcUserService, userService, postService, emailService, slackNotificationService,
-            postRepository, statDefinitionRepository, personalStatDefinitionRepository
+            groupSettingsService, postRepository, statDefinitionRepository, personalStatDefinitionRepository
         );
     }
 

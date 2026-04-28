@@ -81,6 +81,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     private Button switchToInProgressButton;
     private Button finishPostButton;
     private Button copyLinkButton;
+    private Button notifyButton;
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
@@ -375,11 +376,17 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
                 if (copyLinkButton != null) {
                     copyLinkButton.setEnabled(true);
                 }
+                if (notifyButton != null) {
+                    notifyButton.setEnabled(true);
+                }
             } else {
                 // Clear the form when no post is selected
                 clearFormData();
                 if (copyLinkButton != null) {
                     copyLinkButton.setEnabled(false);
+                }
+                if (notifyButton != null) {
+                    notifyButton.setEnabled(false);
                 }
             }
         });
@@ -397,8 +404,20 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             AppNotification.success("Link copied to clipboard!");
         });
 
-        // Add selectors to horizontal layout
         selectorsLayout.add(userSelector, postSelector, copyLinkButton);
+
+        // Notify button — sends a Slack notification for the selected post (only when Slack is enabled)
+        if (vaadinPostPresenter.isSlackEnabled()) {
+            notifyButton = new Button("Notify", VaadinIcon.BELL.create());
+            notifyButton.addClassName("notify-button");
+            notifyButton.setEnabled(false);
+            notifyButton.addClickListener(e -> {
+                if (currentPost == null || currentPost.getId() == null) return;
+                vaadinPostPresenter.sendActivityNotification(currentPost);
+                AppNotification.success("Slack notification sent!");
+            });
+            selectorsLayout.add(notifyButton);
+        }
 
         // Create pagination controls
         VerticalLayout paginationLayout = createPaginationControls();

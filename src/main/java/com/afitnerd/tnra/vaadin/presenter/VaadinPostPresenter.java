@@ -22,4 +22,6 @@ public interface VaadinPostPresenter {
     List<PersonalStatDefinition> getActivePersonalStatDefinitions(User user);
     List<User> getAllActiveUsers();
     Optional<Post> getPostById(Long postId);
+    boolean isSlackEnabled();
+    void sendActivityNotification(Post post);
 }

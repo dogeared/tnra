@@ -62,7 +62,7 @@ class PostViewTest {
 
     @Mock
     private PostTokenService postTokenService;
-    
+
     @Mock
     private UI mockUI;
 
@@ -116,6 +116,8 @@ class PostViewTest {
         // Setup common mocks with lenient stubbing to avoid unnecessary stubbing warnings
         lenient().when(vaadinPostPresenter.initializeUser()).thenReturn(testUser);
         lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class))).thenReturn(completedPostsPage);
+        // Slack disabled by default; individual tests override when needed
+        lenient().when(vaadinPostPresenter.isSlackEnabled()).thenReturn(false);
     }
 
     @Test
@@ -1239,6 +1241,125 @@ class PostViewTest {
         }
     }
 
+    // === Notify button tests ===
+
+    @Test
+    void testNotifyButton_NotPresentWhenSlackDisabled() {
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            Button notifyBtn = getPrivateButton(postView, "notifyButton");
+            assertFalse(hasComponent(postView, "Notify"), "Notify button should not be present when Slack is disabled");
+        }
+    }
+
+    @Test
+    void testNotifyButton_PresentAndDisabledWhenSlackEnabled() {
+        when(vaadinPostPresenter.isSlackEnabled()).thenReturn(true);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            Button notifyBtn = getPrivateButton(postView, "notifyButton");
+            assertNotNull(notifyBtn, "Notify button should exist when Slack is enabled");
+            assertFalse(notifyBtn.isEnabled(), "Notify button should be disabled until a post is selected");
+        }
+    }
+
+    @Test
+    void testNotifyButton_EnabledWhenPostSelected() {
+        when(vaadinPostPresenter.isSlackEnabled()).thenReturn(true);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            ComboBox<Post> selector = getPostSelector(postView);
+            selector.setValue(completedPost1);
+
+            Button notifyBtn = getPrivateButton(postView, "notifyButton");
+            assertNotNull(notifyBtn, "Notify button should exist when Slack is enabled");
+            assertTrue(notifyBtn.isEnabled(), "Notify button should be enabled when a post is selected");
+        }
+    }
+
+    @Test
+    void testNotifyButton_DisabledWhenSelectionCleared() {
+        when(vaadinPostPresenter.isSlackEnabled()).thenReturn(true);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            ComboBox<Post> selector = getPostSelector(postView);
+            selector.setValue(completedPost1);
+            selector.setValue(null);
+
+            Button notifyBtn = getPrivateButton(postView, "notifyButton");
+            assertNotNull(notifyBtn);
+            assertFalse(notifyBtn.isEnabled(), "Notify button should be disabled when selection is cleared");
+        }
+    }
+
+    @Test
+    void testNotifyButton_ClickSendsSlackNotification() {
+        when(vaadinPostPresenter.isSlackEnabled()).thenReturn(true);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            ComboBox<Post> selector = getPostSelector(postView);
+            selector.setValue(completedPost1);
+
+            Button notifyBtn = getPrivateButton(postView, "notifyButton");
+            assertNotNull(notifyBtn);
+            notifyBtn.click();
+
+            verify(vaadinPostPresenter).sendActivityNotification(completedPost1);
+        }
+    }
+
+    @Test
+    void testNotifyButton_NotPresentInInProgressView() {
+        lenient().when(vaadinPostPresenter.isSlackEnabled()).thenReturn(true);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // In-progress view does not have the selectors layout
+            assertFalse(hasComponent(postView, "Notify"), "Notify button should not appear in the in-progress view");
+        }
+    }
+
     // === buildPostUrl tests ===
 
     @Test
@@ -1404,6 +1525,17 @@ class PostViewTest {
             return (String) method.invoke(view, post);
         } catch (Exception e) {
             throw new RuntimeException("Failed to invoke generatePostLabel", e);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ComboBox<Post> getPostSelector(PostView view) {
+        try {
+            java.lang.reflect.Field field = PostView.class.getDeclaredField("postSelector");
+            field.setAccessible(true);
+            return (ComboBox<Post>) field.get(view);
+        } catch (Exception e) {
+            return null;
         }
     }
 

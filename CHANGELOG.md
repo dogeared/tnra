@@ -2,6 +2,15 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.13] - 2026-04-28
+
+### Added
+- **Notify button in completed post view (Slack-enabled groups only).** A "Notify" button now appears next to "Copy Link" in the completed posts selector row. When clicked, it sends the same Slack activity notification as finishing a post (username, start/finish times, deep link). The button is hidden when Slack is not configured for the group, and disabled until a post is selected.
+
+### Changed
+- **Narrowed post selector width** in the completed posts header from 300 px to 220 px to reduce horizontal whitespace.
+- **Refactored Slack/group-settings access through `VaadinPostPresenter`.** `PostView` no longer injects `SlackNotificationService` or `GroupSettingsService` directly; both are now delegated via the two new presenter methods `isSlackEnabled()` and `sendActivityNotification(Post)`, keeping the view layer free of backend service dependencies.
+
 ## [8.1.12] - 2026-04-28
 
 ### Fixed
