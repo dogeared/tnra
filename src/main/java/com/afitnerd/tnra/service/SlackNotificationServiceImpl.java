@@ -95,7 +95,7 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
             ? baseUrl + "/posts/" + postTokenService.encode(post.getId())
             : baseUrl + "/posts/";
 
-        return escapeSlack(username) + " finished a post | Started: " + started + " | Finished: " + finished + " | View: " + postUrl;
+        return escapeSlack(username) + " finished a post | Started: " + started + " | Finished: " + finished + " | View <" + postUrl + "|here>";
     }
 
     private static String escapeSlack(String input) {

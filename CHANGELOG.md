@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.14] - 2026-04-28
+
+### Fixed
+- **Post selector width reverted to 300 px.** The 220 px width introduced in v8.1.13 was too narrow; reverted to the original 300 px.
+- **User and post dropdowns were editable.** Both combo boxes now set `inputElement.readOnly = true` on the client so users can only open the dropdown to select, not type into the field.
+- **Slack notification link was a bare URL.** The "View" segment now uses Slack mrkdwn hyperlink format (`<URL|here>`) so "here" renders as a clickable link in Slack instead of a raw URL.
+
 ## [8.1.13] - 2026-04-28
 
 ### Added
