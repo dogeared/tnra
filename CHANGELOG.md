@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.12] - 2026-04-28
+
+### Fixed
+- **Admin user not prompted to change temporary password on first login.** Added `"requiredActions": ["UPDATE_PASSWORD"]` to the admin user in `realm.json.tmpl`. Previously `"temporary": true` on the credential was set but Keycloak requires the explicit required action to enforce the change-password challenge in the OIDC login flow.
+- **Forgot password disabled in provisioned realms.** Added `"resetPasswordAllowed"` to the realm template, controlled by whether SMTP credentials are supplied to the CLI. If `--smtp-user` and `--smtp-password` are provided, Keycloak's forgot-password flow is enabled and a `smtpServer` block (Mailgun, port 587, STARTTLS) is written into the realm JSON. If omitted, `resetPasswordAllowed` is `false` and no SMTP block is written.
+
 ## [8.1.11] - 2026-04-27
 
 ### Fixed
