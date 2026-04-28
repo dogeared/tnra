@@ -29,6 +29,12 @@ Static or Vaadin public route for prospective groups. Form: group name, contact 
 - **Depends on:** Slack Part 1 shipped.
 - **Context:** Requires Spring Security rule for anonymous access without exposing other routes. Rate limiting on form (max 5/hour per IP).
 
+### Temporary Password Change Not Enforced on First Login
+When the provisioning CLI creates the initial admin user in `realm.json.tmpl` (imported into Keycloak during group setup), the password is marked temporary but Keycloak does not prompt the user to change it on first login.
+- **Why:** Temporary passwords are a security control — if Keycloak never challenges the user to change it, the provisioned credential stays active indefinitely.
+- **Effort:** XS (human: ~30 min / CC: ~10 min)
+- **Context:** The admin user is defined in `cli/src/main/resources/templates/realm.json.tmpl` with `"temporary": true`. Keycloak enforces a password change on first login via `requiredActions: ["UPDATE_PASSWORD"]` on the user record. Check whether this field is present and correctly set in the realm template. May also need to confirm the Keycloak realm has the `UPDATE_PASSWORD` required action enabled globally.
+
 ### Slack Integration — Part 2: Stats and Full-Post Tiers
 Extend Part 1 with two additional admin-selectable content tiers: stats-only (username + stat values, no narrative text) and full-post (all post sections, decrypted at send time). Admin selects tier per group.
 - **Why:** Groups that are comfortable with the trade-off can opt into richer Slack notifications.
@@ -37,14 +43,6 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 - **Context:** Tier selection stored in `group_settings`. Full-post tier decrypts content in-memory before sending to Slack — clear security warning in the admin UI that post content will leave the encrypted DB. Stats-only tier sends stat names + values only (no narrative). Slack message layout adapts per tier.
 
 ## P2 — After MVP Ships
-
-### Fix Placeholder Profile Picture in Provisioned Groups
-The `placeholder.png` profile picture is broken for production-provisioned groups.
-- **Why:** Members with no uploaded profile photo see a broken image instead of the default placeholder.
-- **Effort:** XS (human: ~30 min / CC: ~10 min)
-- **Context:** Investigate why `placeholder.png` is not being served correctly in provisioned group containers. Likely related to the uploads volume mount path (`./uploads/{{GROUP_NAME}}:/uploads`) not containing the placeholder, or the file storage base URL resolving incorrectly in production.
-
-
 
 ### Completed Post View — Improve Read-Only Contrast
 The completed post view renders post fields in a disabled/read-only state that produces low-contrast text, making content hard to read.
@@ -105,6 +103,10 @@ Structured annual reflection form per member per year, viewable by the group.
 - **Context:** Recovery and faith groups often build their year around the retreat. Having the prep format built in signals TNRA understands the full cadence. Similar to the weekly post form but for annual reflection.
 
 ## Completed
+
+### Fix Placeholder Profile Picture and Uploads Volume in Provisioned Groups
+Placeholder profile picture was broken in production-provisioned groups due to two issues: the uploads volume resolved to `~/tnra/uploads/` (shared across groups) instead of `provision/<group-name>/uploads/`, and the bind-mounted directory was owned by root so the unprivileged `appuser` couldn't write to it.
+- **Completed:** v8.1.11 — volume path corrected to `./provision/{{GROUP_NAME}}/uploads`, CLI fixed to create `uploads/` without extra sub-directory, `docker-entrypoint.sh` added to chown `/uploads` to `appuser` at startup.
 
 ### Unique Constraint on users.email
 Add `UNIQUE` constraint via Flyway migration.

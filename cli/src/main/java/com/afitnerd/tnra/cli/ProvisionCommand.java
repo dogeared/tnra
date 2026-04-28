@@ -38,6 +38,18 @@ public class ProvisionCommand implements Callable<Integer> {
     @Option(names = "--admin-last-name", required = true, description = "Admin user last name")
     private String adminLastName;
 
+    @Option(names = "--smtp-host", description = "SMTP host (enables forgot-password flow)", defaultValue = "smtp.mailgun.org")
+    private String smtpHost;
+
+    @Option(names = "--smtp-from", description = "SMTP from address (enables forgot-password flow)")
+    private String smtpFrom;
+
+    @Option(names = "--smtp-user", description = "SMTP username (enables forgot-password flow)")
+    private String smtpUser;
+
+    @Option(names = "--smtp-password", description = "SMTP password (enables forgot-password flow)")
+    private String smtpPassword;
+
     private final TemplateRenderer renderer = new TemplateRenderer();
     private final SecretGenerator secrets = new SecretGenerator();
 
@@ -89,6 +101,22 @@ public class ProvisionCommand implements Callable<Integer> {
         vars.put("ADMIN_LAST_NAME", adminLastName);
         vars.put("ADMIN_PASSWORD", adminPassword);
         vars.put("PORT", String.valueOf(entry.port));
+
+        boolean smtpConfigured = smtpUser != null && !smtpUser.isBlank()
+                && smtpPassword != null && !smtpPassword.isBlank();
+        vars.put("RESET_PASSWORD_ALLOWED", smtpConfigured ? "true" : "false");
+        String fromAddress = (smtpFrom != null && !smtpFrom.isBlank()) ? smtpFrom : "noreply@" + domain;
+        vars.put("SMTP_SERVER_BLOCK", smtpConfigured ? String.format("""
+            ,
+              "smtpServer": {
+                "host": "%s",
+                "port": "587",
+                "from": "%s",
+                "starttls": "true",
+                "auth": "true",
+                "user": "%s",
+                "password": "%s"
+              }""", smtpHost, fromAddress, smtpUser, smtpPassword) : "");
 
         Path outDir = Path.of(outputDir, groupName);
         Files.createDirectories(outDir);

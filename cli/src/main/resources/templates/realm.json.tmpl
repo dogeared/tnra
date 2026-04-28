@@ -2,6 +2,7 @@
   "realm": "{{REALM_NAME}}",
   "enabled": true,
   "registrationAllowed": false,
+  "resetPasswordAllowed": {{RESET_PASSWORD_ALLOWED}},
   "loginTheme": "tnra",
   "sslRequired": "external",
   "roles": {
@@ -67,10 +68,13 @@
           "temporary": true
         }
       ],
+      "requiredActions": [
+        "UPDATE_PASSWORD"
+      ],
       "realmRoles": [
         "admin",
         "member"
       ]
     }
-  ]
+  ]{{SMTP_SERVER_BLOCK}}
 }

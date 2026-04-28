@@ -55,6 +55,9 @@ class ProvisionCommandTest {
         assertTrue(realm.contains("recovery-guys.example.com"));
         assertTrue(realm.contains("admin@example.com"), "realm should include admin user");
         assertTrue(realm.contains("\"temporary\": true"), "admin password should be temporary");
+        assertTrue(realm.contains("\"UPDATE_PASSWORD\""), "admin user should have UPDATE_PASSWORD required action so Keycloak forces a change on first login");
+        assertTrue(realm.contains("\"resetPasswordAllowed\": false"), "realm should disable forgot password when no SMTP configured");
+        assertFalse(realm.contains("smtpServer"), "realm should not include smtpServer block when no SMTP configured");
 
         // Verify docker-compose embeds all per-group vars in environment block (no env_file)
         String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
@@ -97,6 +100,58 @@ class ProvisionCommandTest {
         assertTrue(Files.exists(registry));
         String registryJson = Files.readString(registry);
         assertTrue(registryJson.contains("recovery-guys"));
+    }
+
+    @Test
+    void smtpOptionsEnableResetPasswordAndSmtpBlock() throws Exception {
+        Path registry = tempDir.resolve("groups.json");
+        Path output = tempDir.resolve("output");
+
+        int code = run(
+            "provision", "smtp-group",
+            "--domain", "example.com",
+            "--registry", registry.toString(),
+            "--output", output.toString(),
+            "--admin-email", "admin@example.com",
+            "--admin-first-name", "Test",
+            "--admin-last-name", "Admin",
+            "--smtp-host", "smtp.mailgun.org",
+            "--smtp-from", "hello@example.com",
+            "--smtp-user", "postmaster@mg.example.com",
+            "--smtp-password", "secret123"
+        );
+
+        assertEquals(0, code);
+
+        String realm = Files.readString(output.resolve("smtp-group").resolve("smtp-group-realm.json"));
+        assertTrue(realm.contains("\"resetPasswordAllowed\": true"), "SMTP args should enable forgot password");
+        assertTrue(realm.contains("\"smtpServer\""), "SMTP args should add smtpServer block");
+        assertTrue(realm.contains("smtp.mailgun.org"), "smtpServer should use supplied host");
+        assertTrue(realm.contains("postmaster@mg.example.com"), "smtpServer should include smtp user");
+        assertTrue(realm.contains("hello@example.com"), "smtpServer should use supplied from address");
+    }
+
+    @Test
+    void smtpFromDefaultsToDomainWhenNotSupplied() throws Exception {
+        Path registry = tempDir.resolve("groups.json");
+        Path output = tempDir.resolve("output");
+
+        int code = run(
+            "provision", "smtp-default",
+            "--domain", "example.com",
+            "--registry", registry.toString(),
+            "--output", output.toString(),
+            "--admin-email", "admin@example.com",
+            "--admin-first-name", "Test",
+            "--admin-last-name", "Admin",
+            "--smtp-user", "postmaster@mg.example.com",
+            "--smtp-password", "secret123"
+        );
+
+        assertEquals(0, code);
+
+        String realm = Files.readString(output.resolve("smtp-default").resolve("smtp-default-realm.json"));
+        assertTrue(realm.contains("noreply@example.com"), "from should default to noreply@<domain> when --smtp-from is omitted");
     }
 
     @Test
