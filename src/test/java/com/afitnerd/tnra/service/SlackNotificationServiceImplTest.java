@@ -36,8 +36,8 @@ class SlackNotificationServiceImplTest {
         SlackNotificationServiceImpl svc = new SlackNotificationServiceImpl(groupSettingsService, postTokenService, "https://example.com/");
         Post post = createPost("Alice", "Smith", 1L);
         String msg = svc.buildMessage(post);
-        // URL in message should not have double slash
-        assertTrue(msg.contains("https://example.com/posts/token1"));
+        // URL in mrkdwn link should not have double slash
+        assertTrue(msg.contains("<https://example.com/posts/token1|here>"));
         assertFalse(msg.contains("//posts/"));
     }
 
@@ -57,6 +57,19 @@ class SlackNotificationServiceImplTest {
         assertTrue(msg.contains("Started:"));
         assertTrue(msg.contains("Finished:"));
         assertTrue(msg.contains("https://tnra.example.com/posts/token99"));
+        // Slack mrkdwn hyperlink: <URL|here>
+        assertTrue(msg.contains("<https://tnra.example.com/posts/token99|here>"));
+        assertFalse(msg.contains("| View: "), "Should use mrkdwn link format, not plain URL");
+    }
+
+    @Test
+    void buildMessage_viewLinkFormattedAsMrkdwn() {
+        when(postTokenService.encode(7L)).thenReturn("tok7");
+        Post post = createPost("Jen", "Lee", 7L);
+
+        String msg = service.buildMessage(post);
+
+        assertTrue(msg.contains("View <https://tnra.example.com/posts/tok7|here>"));
     }
 
     @Test

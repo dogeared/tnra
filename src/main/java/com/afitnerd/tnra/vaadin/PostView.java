@@ -337,6 +337,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
 
         // Get all active users and set them (already sorted by first name)
         userSelector.setItems(vaadinPostPresenter.getAllActiveUsers());
+        userSelector.getElement().executeJs("this.inputElement.readOnly = true;");
 
         // Set default to current authenticated user
         userSelector.setValue(selectedUser);
@@ -357,6 +358,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
         postSelector = new ComboBox<>("Posts by Finished Date");
         postSelector.addClassName("post-selector");
         postSelector.setItemLabelGenerator(this::generatePostLabel);
+        postSelector.getElement().executeJs("this.inputElement.readOnly = true;");
 
         // Set items to current page posts (only completed posts)
         if (currentPageData != null) {
