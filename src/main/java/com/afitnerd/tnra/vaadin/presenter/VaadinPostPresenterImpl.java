@@ -8,6 +8,7 @@ import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
+import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
 import com.afitnerd.tnra.service.SlackNotificationService;
@@ -28,6 +29,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     private final PostService postService;
     private final EMailService eMailService;
     private final SlackNotificationService slackNotificationService;
+    private final GroupSettingsService groupSettingsService;
     private final PostRepository postRepository;
     private final StatDefinitionRepository statDefinitionRepository;
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
@@ -39,6 +41,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
         OidcUserService oidcUserService, UserService userService,
         PostService postService, EMailService eMailService,
         SlackNotificationService slackNotificationService,
+        GroupSettingsService groupSettingsService,
         PostRepository postRepository,
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository
@@ -48,6 +51,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
         this.postService = postService;
         this.eMailService = eMailService;
         this.slackNotificationService = slackNotificationService;
+        this.groupSettingsService = groupSettingsService;
         this.postRepository = postRepository;
         this.statDefinitionRepository = statDefinitionRepository;
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
@@ -127,5 +131,15 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     @Override
     public Optional<Post> getPostById(Long postId) {
         return postRepository.findById(postId);
+    }
+
+    @Override
+    public boolean isSlackEnabled() {
+        return groupSettingsService.getSettings().isSlackEnabled();
+    }
+
+    @Override
+    public void sendActivityNotification(Post post) {
+        slackNotificationService.sendActivityNotification(post);
     }
 }
