@@ -1,0 +1,274 @@
+/* ===================================================
+   Landing View — TNRA public marketing page
+   =================================================== */
+
+.landing-view {
+    width: 100%;
+    min-height: 100vh;
+    background-color: var(--tnra-bg);
+    font-family: var(--tnra-font-family);
+    color: var(--tnra-text);
+}
+
+
+/* =========================================
+   NAV
+   ========================================= */
+
+.landing-nav {
+    padding: 1rem 2rem;
+    border-bottom: 1px solid var(--tnra-border-subtle);
+    background-color: var(--tnra-surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--tnra-shadow-sm);
+}
+
+.nav-logo {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--tnra-primary);
+    letter-spacing: -0.02em;
+}
+
+.nav-link {
+    color: var(--tnra-text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: color var(--tnra-transition);
+}
+
+.nav-link:hover {
+    color: var(--tnra-primary);
+}
+
+
+/* =========================================
+   HERO
+   ========================================= */
+
+.landing-hero {
+    padding: 6rem 2rem 5rem;
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.hero-headline {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: var(--tnra-text);
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin: 0 0 1.5rem 0;
+}
+
+.hero-sub {
+    font-size: 1.15rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.75;
+    margin: 0 0 2.5rem 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.hero-cta {
+    display: inline-block;
+    background-color: var(--tnra-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.05rem;
+    padding: 0.85rem 2rem;
+    border-radius: var(--tnra-radius-sm);
+    box-shadow: var(--tnra-shadow-md);
+    transition: background-color var(--tnra-transition), box-shadow var(--tnra-transition), transform var(--tnra-transition);
+    letter-spacing: -0.01em;
+}
+
+.hero-cta:hover {
+    background-color: var(--tnra-primary-hover);
+    box-shadow: var(--tnra-shadow-lg);
+    transform: translateY(-2px);
+}
+
+
+/* =========================================
+   FEATURES
+   ========================================= */
+
+.features-section {
+    background-color: var(--tnra-surface-dim);
+    padding: 4rem 2rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.features-title {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.6rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.02em;
+    text-align: center;
+    margin: 0 0 2.5rem 0;
+}
+
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background-color: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    padding: 2rem;
+    box-shadow: var(--tnra-shadow-sm);
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.feature-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+.feature-icon {
+    display: block;
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.feature-heading {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.1rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 0.75rem 0;
+}
+
+.feature-body {
+    font-size: 0.95rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.65;
+    margin: 0;
+}
+
+
+/* =========================================
+   REQUEST ACCESS FORM
+   ========================================= */
+
+.form-section {
+    padding: 5rem 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-card {
+    background-color: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-lg);
+    padding: 2.5rem;
+    box-shadow: var(--tnra-shadow-md);
+}
+
+.form-title {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 1.75rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.02em;
+    margin: 0 0 0.5rem 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--tnra-primary);
+}
+
+.form-intro {
+    font-size: 0.95rem;
+    color: var(--tnra-text-secondary);
+    margin: 0 0 1.75rem 0;
+}
+
+.form-field {
+    margin-bottom: 1rem;
+}
+
+.submit-button {
+    width: 100%;
+    margin-top: 0.5rem;
+    min-height: 48px;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.success-message {
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    background-color: var(--tnra-primary-light);
+    border: 1px solid rgba(45, 106, 79, 0.2);
+    border-radius: var(--tnra-radius-sm);
+    color: var(--tnra-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   FOOTER
+   ========================================= */
+
+.landing-footer {
+    background-color: var(--tnra-surface-dim);
+    border-top: 1px solid var(--tnra-border-subtle);
+    padding: 2rem;
+    text-align: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.landing-footer p {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--tnra-text-muted);
+}
+
+
+/* =========================================
+   RESPONSIVE
+   ========================================= */
+
+@media (max-width: 640px) {
+    .landing-hero {
+        padding: 4rem 1.25rem 3.5rem;
+    }
+
+    .features-section {
+        padding: 3rem 1.25rem;
+    }
+
+    .form-section {
+        padding: 3rem 1.25rem;
+    }
+
+    .form-card {
+        padding: 1.75rem 1.25rem;
+    }
+
+    .landing-nav {
+        padding: 0.875rem 1.25rem;
+    }
+}
