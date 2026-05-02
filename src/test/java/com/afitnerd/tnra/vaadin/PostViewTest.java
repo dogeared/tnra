@@ -363,6 +363,59 @@ class PostViewTest {
     }
 
     @Test
+    void testFinishPostTransitionsToCompletedReadOnlyView() {
+        // Regression: finishing a post must switch to completed view, select the finished post,
+        // and set all fields read-only — not leave them editable with the old post's data.
+        // Before finish: in-progress post exists; after finish: no in-progress post (so "Start New Post" appears)
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser))
+            .thenReturn(Optional.of(inProgressPost))   // initial createHeaderSection check
+            .thenReturn(Optional.empty())               // createNoInProgressPostHeader after finishPost
+            .thenReturn(Optional.empty());              // any additional calls
+        lenient().when(vaadinPostPresenter.finishPost(testUser)).thenReturn(completedPost1);
+
+        // After finish, completed posts page contains the just-finished post
+        lenient().when(vaadinPostPresenter.getCompletedPostsPage(eq(testUser), any(Pageable.class)))
+            .thenReturn(new PageImpl<>(Arrays.asList(completedPost1, completedPost2)));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Confirm we start in in-progress view
+            assertFalse(postView.showingCompletedPosts, "Should start in in-progress view");
+
+            Button finishButton = findComponent(postView, Button.class, "Finish Post");
+            assertNotNull(finishButton, "Finish button should exist before finishing");
+
+            // Act: invoke finishPost directly (button is disabled until all fields are filled)
+            invokeMethod(postView, "finishPost");
+
+            // Assert: now in completed view
+            assertTrue(postView.showingCompletedPosts, "Should switch to completed view after finishing");
+
+            // Fields must be read-only
+            assertTrue(postView.widwytkField.isReadOnly(), "widwytk field must be read-only after finishing");
+            assertTrue(postView.kryptoniteField.isReadOnly(), "kryptonite field must be read-only after finishing");
+            assertTrue(postView.whatAndWhenField.isReadOnly(), "whatAndWhen field must be read-only after finishing");
+            assertTrue(postView.personalBestField.isReadOnly(), "personalBest field must be read-only after finishing");
+            assertTrue(postView.personalWorstField.isReadOnly(), "personalWorst field must be read-only after finishing");
+            assertTrue(postView.familyBestField.isReadOnly(), "familyBest field must be read-only after finishing");
+            assertTrue(postView.familyWorstField.isReadOnly(), "familyWorst field must be read-only after finishing");
+            assertTrue(postView.workBestField.isReadOnly(), "workBest field must be read-only after finishing");
+            assertTrue(postView.workWorstField.isReadOnly(), "workWorst field must be read-only after finishing");
+
+            // Finish button must not be present (completed view has no footer)
+            assertFalse(hasComponent(postView, "Finish Post"), "Finish Post button must not appear in completed view");
+
+            // Start New Post button must be present
+            assertTrue(hasComponent(postView, "Start New Post"), "Start New Post button must appear after finishing");
+        }
+    }
+
+    @Test
     void testPaginationControls() {
         // Arrange
         lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());

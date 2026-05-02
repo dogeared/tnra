@@ -85,22 +85,22 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
-    // Intro section
-    private TextArea widwytkField;
-    private TextField kryptoniteField;
-    private TextArea whatAndWhenField;
-    
-    // Personal section
-    private TextArea personalBestField;
-    private TextArea personalWorstField;
-    
-    // Family section
-    private TextArea familyBestField;
-    private TextArea familyWorstField;
-    
-    // Work section
-    private TextArea workBestField;
-    private TextArea workWorstField;
+    // Intro section — package-private for testing
+    TextArea widwytkField;
+    TextField kryptoniteField;
+    TextArea whatAndWhenField;
+
+    // Personal section — package-private for testing
+    TextArea personalBestField;
+    TextArea personalWorstField;
+
+    // Family section — package-private for testing
+    TextArea familyBestField;
+    TextArea familyWorstField;
+
+    // Work section — package-private for testing
+    TextArea workBestField;
+    TextArea workWorstField;
     
     private boolean isUpdating = false;
     
@@ -700,19 +700,31 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             if (statsView != null) {
                 statsView.flushPendingValues();
             }
-            vaadinPostPresenter.finishPost(currentUser);
+            Post completedPost = vaadinPostPresenter.finishPost(currentUser);
 
-            AppNotification.success("Post completed successfully!");
-
-            // Switch to completed posts view
+            // Switch to completed posts view, landing on the just-finished post
             showingCompletedPosts = true;
-
-            // Reload completed posts
+            currentPage = 0;
             loadCurrentPage();
 
-            // Rebuild the view
+            // Post has no equals() so look up the matching instance from the loaded page by ID
+            currentPost = currentPageData.getContent().stream()
+                .filter(p -> p.getId().equals(completedPost.getId()))
+                .findFirst()
+                .orElse(completedPost);
+
+            // Rebuild the full view in completed-post mode
             createPostView();
             setupDataBinding();
+
+            // Populate fields with the completed post and lock them read-only
+            loadPostData();
+            updateReadOnlyState();
+
+            // Select the just-finished post in the dropdown
+            if (postSelector != null) {
+                postSelector.setValue(currentPost);
+            }
         } catch (Exception e) {
             AppNotification.error("Error finishing post: " + e.getMessage());
         }
