@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.15] - 2026-05-02
+
+### Fixed
+- **Finishing a post no longer leaves fields editable.** After clicking "Finish Post", the UI now switches to the completed-post view, selects the just-finished post in the dropdown, and sets all fields read-only. Previously, the view remained in the editable in-progress state, which caused the next new post to inherit the previous post's data.
+
 ## [8.1.14] - 2026-04-28
 
 ### Fixed
