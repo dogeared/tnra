@@ -117,11 +117,12 @@ Back in the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunne
 
 | Subdomain | Domain | Service |
 |---|---|---|
-| (blank) | tnra.app | `http://tnra-main:8080` |
+| (blank) | tnra.app | `http://tnra-landing:8080` |
+| www | tnra.app | `http://tnra-landing:8080` |
 | auth | tnra.app | `http://keycloak:8080` |
+| `<group-name>` | tnra.app | `http://tnra-<group-name>:8080` |
 
-Replace `tnra.app` with your actual domain and `tnra-main` with the container name of your
-app (as set in the group's `docker-compose.<group>.yml`).
+The apex and `www` routes point to the `tnra-landing` container (public landing page). Each group gets its own subdomain route pointing to its app container. Replace `tnra.app` with your actual domain.
 
 Cloudflare automatically creates CNAME DNS records for each route. No manual DNS setup required.
 

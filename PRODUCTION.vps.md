@@ -168,6 +168,50 @@ cd ~/tnra
 docker compose up --build -d
 ```
 
+### Deploy the landing service
+
+The landing service (`tnra-landing`) runs as a separate container in `docker-compose.production.yml`.
+Build and start it after the shared services (MySQL) are healthy.
+
+Add to `~/tnra/.env` before deploying:
+```
+MAILGUN_KEY_PRIVATE=<your Mailgun private key>
+MAILGUN_URL=<your Mailgun messages API URL>
+TNRA_FOUNDER_EMAIL=<your email address>
+```
+
+Then build the JAR (requires the production Vaadin frontend bundle) and deploy:
+
+```bash
+cd ~/tnra
+mvn clean package -Pproduction -DskipTests -f landing/pom.xml
+docker build -t tnra-landing:latest landing/
+docker compose -f docker-compose.production.yml up -d tnra-landing
+```
+
+Copy the nginx config and reload:
+```bash
+cp nginx/sites/tnra-landing.conf /etc/nginx/sites-enabled/
+nginx -t && systemctl reload nginx
+```
+
+Verify:
+```bash
+docker logs tnra-landing
+# Look for: "Started TnraLandingApplication"
+curl -sk https://tnra.app | grep -o "<title>.*</title>"
+```
+
+### Updating the landing service
+
+```bash
+cd ~/tnra
+git pull origin main
+mvn clean package -Pproduction -DskipTests -f landing/pom.xml
+docker build -t tnra-landing:latest landing/
+docker compose -f docker-compose.production.yml up -d --no-deps tnra-landing
+```
+
 ### Subsequent deployments
 
 ```bash
