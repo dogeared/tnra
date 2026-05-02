@@ -2,10 +2,17 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.2.0] - 2026-05-01
+
+### Added
+- **Landing page service (`tnra-landing`).** New standalone Spring Boot + Vaadin service hosted at `tnra.app`. Includes a public landing page describing TNRA and a request access form (group name, contact name, email, estimated size, description). Submissions are persisted to a dedicated `tnra_landing` MySQL database and trigger a Mailgun email notification to the founder. Per-IP rate limiting (5 requests/hour) is enforced. The service is fully public — no Keycloak dependency.
+- **Production infra for the landing service.** `docker-compose.production.yml` adds a `tnra-landing` container on port 8081 connected to the shared MySQL. `nginx/sites/tnra-landing.conf` routes `tnra.app` and `www.tnra.app` to the container with HTTPS and HTTP→HTTPS redirect.
+
 ## [8.1.15] - 2026-05-02
 
 ### Fixed
 - **Finishing a post no longer leaves fields editable.** After clicking "Finish Post", the UI now switches to the completed-post view, selects the just-finished post in the dropdown, and sets all fields read-only. Previously, the view remained in the editable in-progress state, which caused the next new post to inherit the previous post's data.
+
 
 ## [8.1.14] - 2026-04-28
 
