@@ -18,6 +18,10 @@ import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -191,5 +195,13 @@ class MainLayoutTest {
             // expected
         }
         verify(oidcUserService, atLeastOnce()).isAuthenticated();
+    }
+    @Test
+    void initializesOfflineSyncFromMainLayoutSource() throws Exception {
+        Path mainLayoutPath = Path.of("src/main/java/com/afitnerd/tnra/vaadin/MainLayout.java");
+        String source = Files.readString(mainLayoutPath, StandardCharsets.UTF_8);
+
+        assertTrue(source.contains("@JsModule(\"./tnra-offline-sync.js\")"));
+        assertTrue(source.contains("window.TnraOfflineSync?.init();"));
     }
 }

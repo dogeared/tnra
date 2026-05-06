@@ -151,6 +151,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             if (ui == null) return;
             ui.beforeClientResponse(this, ctx -> AppNotification.info(message));
         }
+
     }
 
     private void initializeUser() {

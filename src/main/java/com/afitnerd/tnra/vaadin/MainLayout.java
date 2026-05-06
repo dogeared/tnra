@@ -11,6 +11,7 @@ import com.vaadin.flow.component.applayout.DrawerToggle;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dependency.JsModule;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.Paragraph;
@@ -34,6 +35,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfToken;
 
 @CssImport("./styles/theme.css")
+@JsModule("./tnra-offline-sync.js")
 public class MainLayout extends AppLayout {
 
     static final String DARK_MODE_COOKIE = "tnra-dark-mode";
@@ -63,6 +65,9 @@ public class MainLayout extends AppLayout {
     @Override
     protected void onAttach(AttachEvent attachEvent) {
         super.onAttach(attachEvent);
+
+        // Initialize offline sync globally so queued drafts can sync from any route.
+        getUI().ifPresent(ui -> ui.getPage().executeJs("window.TnraOfflineSync?.init();"));
 
         // Determine initial dark mode state
         darkMode = resolveInitialDarkMode();

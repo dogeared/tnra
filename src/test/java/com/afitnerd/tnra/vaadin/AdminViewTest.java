@@ -17,8 +17,10 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.tabs.TabSheet;
+import com.vaadin.flow.internal.CurrentInstance;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinService;
 import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.AfterEach;
@@ -77,15 +79,26 @@ class AdminViewTest {
     private GroupSettingsService groupSettingsService;
 
     private UI ui;
+    private VaadinService vaadinService;
+    private VaadinSession vaadinSession;
+    private VaadinRequest vaadinRequest;
 
     @BeforeEach
     void setUp() {
         ui = new UI();
-        VaadinSession session = mock(VaadinSession.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
-        org.mockito.Mockito.lenient().when(session.hasLock()).thenReturn(true);
-        VaadinService service = mock(VaadinService.class);
-        org.mockito.Mockito.lenient().when(session.getService()).thenReturn(service);
-        ui.getInternals().setSession(session);
+        vaadinService = mock(VaadinService.class);
+        vaadinSession = mock(VaadinSession.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        vaadinRequest = mock(VaadinRequest.class);
+
+        org.mockito.Mockito.lenient().when(vaadinSession.hasLock()).thenReturn(true);
+        org.mockito.Mockito.lenient().when(vaadinSession.getService()).thenReturn(vaadinService);
+        org.mockito.Mockito.lenient().when(vaadinRequest.getService()).thenReturn(vaadinService);
+
+        ui.getInternals().setSession(vaadinSession);
+
+        CurrentInstance.set(VaadinService.class, vaadinService);
+        CurrentInstance.set(VaadinSession.class, vaadinSession);
+        CurrentInstance.set(VaadinRequest.class, vaadinRequest);
         UI.setCurrent(ui);
         when(vaadinAdminPresenter.getGitTag()).thenReturn("v1.0.0");
         when(vaadinAdminPresenter.getGitCommitId()).thenReturn("abc123");
@@ -103,6 +116,9 @@ class AdminViewTest {
     @AfterEach
     void tearDown() {
         UI.setCurrent(null);
+        CurrentInstance.set(VaadinRequest.class, null);
+        CurrentInstance.set(VaadinSession.class, null);
+        CurrentInstance.set(VaadinService.class, null);
     }
 
     @Test
