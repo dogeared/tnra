@@ -3,10 +3,14 @@ package com.afitnerd.tnra.vaadin.presenter;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
+import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
+import com.afitnerd.tnra.service.SlackNotificationService;
 import com.afitnerd.tnra.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +24,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -32,7 +37,11 @@ class VaadinPostPresenterImplTest {
     private UserService userService;
     private PostService postService;
     private EMailService emailService;
+    private SlackNotificationService slackNotificationService;
+    private GroupSettingsService groupSettingsService;
+    private PostRepository postRepository;
     private StatDefinitionRepository statDefinitionRepository;
+    private PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private VaadinPostPresenterImpl presenter;
 
     @BeforeEach
@@ -41,9 +50,14 @@ class VaadinPostPresenterImplTest {
         userService = mock(UserService.class);
         postService = mock(PostService.class);
         emailService = mock(EMailService.class);
+        slackNotificationService = mock(SlackNotificationService.class);
+        groupSettingsService = mock(GroupSettingsService.class);
+        postRepository = mock(PostRepository.class);
         statDefinitionRepository = mock(StatDefinitionRepository.class);
+        personalStatDefinitionRepository = mock(PersonalStatDefinitionRepository.class);
         presenter = new VaadinPostPresenterImpl(
-            oidcUserService, userService, postService, emailService, statDefinitionRepository
+            oidcUserService, userService, postService, emailService, slackNotificationService,
+            groupSettingsService, postRepository, statDefinitionRepository, personalStatDefinitionRepository
         );
     }
 
@@ -64,6 +78,18 @@ class VaadinPostPresenterImplTest {
     }
 
     @Test
+    void finishPostAlwaysCallsSlackNotification() throws Exception {
+        User user = new User();
+        Post post = new Post();
+        when(postService.finishPost(user)).thenReturn(post);
+        setField(presenter, "emailServiceEnabled", false);
+
+        presenter.finishPost(user);
+
+        verify(slackNotificationService).sendActivityNotification(post);
+    }
+
+    @Test
     void initializeUserValidatesAuthenticationAndPresence() {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         assertThrows(IllegalStateException.class, () -> presenter.initializeUser());
@@ -74,13 +100,28 @@ class VaadinPostPresenterImplTest {
         assertThrows(IllegalStateException.class, () -> presenter.initializeUser());
 
         User user = new User();
+        user.setActive(true);
         when(userService.getUserByEmail("user@example.com")).thenReturn(user);
         assertSame(user, presenter.initializeUser());
     }
 
     @Test
+    void initializeUserThrowsForDeactivatedUser() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getEmail()).thenReturn("deactivated@example.com");
+        User deactivated = new User();
+        deactivated.setActive(false);
+        when(userService.getUserByEmail("deactivated@example.com")).thenReturn(deactivated);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+            () -> presenter.initializeUser());
+        assertTrue(ex.getMessage().contains("deactivated"));
+    }
+
+    @Test
     void delegatesRemainingPostOperations() {
         User user = new User();
+        user.setActive(true);
         Post post = new Post();
         StatDefinition statDef = new StatDefinition("exercise", "Exercise", "💪", 0);
 
@@ -104,12 +145,24 @@ class VaadinPostPresenterImplTest {
     }
 
     @Test
+    void getPostByIdDelegatesToRepository() {
+        Post post = new Post();
+        when(postRepository.findById(42L)).thenReturn(Optional.of(post));
+        when(postRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertEquals(Optional.of(post), presenter.getPostById(42L));
+        assertEquals(Optional.empty(), presenter.getPostById(999L));
+        verify(postRepository).findById(42L);
+        verify(postRepository).findById(999L);
+    }
+
+    @Test
     void getActiveStatDefinitionsDelegatesToRepository() {
         List<StatDefinition> defs = List.of(new StatDefinition("exercise", "Exercise", "💪", 0));
-        when(statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc()).thenReturn(defs);
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(defs);
 
-        assertEquals(1, presenter.getActiveStatDefinitions().size());
-        verify(statDefinitionRepository).findByArchivedFalseOrderByDisplayOrderAsc();
+        assertEquals(1, presenter.getActiveGlobalStatDefinitions().size());
+        verify(statDefinitionRepository).findGlobalActiveOrderByDisplayOrderAsc();
     }
 
     private static void setField(Object target, String name, Object value) throws Exception {

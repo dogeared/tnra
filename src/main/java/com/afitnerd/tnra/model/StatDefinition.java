@@ -1,18 +1,28 @@
 package com.afitnerd.tnra.model;
 
+import com.afitnerd.tnra.model.converter.EncryptedStringConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
+import jakarta.persistence.DiscriminatorValue;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
 import jakarta.persistence.Table;
 
 import java.util.Date;
 
 @Entity
 @Table(name = "stat_definition")
+@Inheritance(strategy = InheritanceType.SINGLE_TABLE)
+@DiscriminatorColumn(name = "scope", discriminatorType = DiscriminatorType.STRING)
+@DiscriminatorValue("GLOBAL")
 public class StatDefinition {
 
     public enum StatType {
@@ -23,13 +33,16 @@ public class StatDefinition {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 50, unique = true)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String name;
 
-    @Column(nullable = false, length = 100)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String label;
 
-    @Column(length = 10)
+    @Convert(converter = EncryptedStringConverter.class)
+    @Column(columnDefinition = "TEXT")
     private String emoji;
 
     @Enumerated(EnumType.STRING)

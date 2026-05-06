@@ -38,6 +38,10 @@ public class UserServiceImpl implements UserService {
                 return null;
             }
 
+            if (!Boolean.TRUE.equals(user.getActive())) {
+                return null;
+            }
+
             // Populate name from OIDC claims if not yet set (first login after invite)
             boolean updated = false;
             if (user.getFirstName() == null && oidcUser.getGivenName() != null) {
@@ -97,5 +101,22 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<User> getAllActiveUsers() {
         return userRepository.findByActiveTrueOrderByFirstName();
+    }
+
+    @Override
+    public List<User> getAllUsers() {
+        return userRepository.findAllByOrderByActiveDescFirstNameAsc();
+    }
+
+    @Override
+    public User deactivateUser(User user) {
+        user.setActive(false);
+        return userRepository.save(user);
+    }
+
+    @Override
+    public User reactivateUser(User user) {
+        user.setActive(true);
+        return userRepository.save(user);
     }
 }

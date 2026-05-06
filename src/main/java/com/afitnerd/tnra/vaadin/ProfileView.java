@@ -1,17 +1,24 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
+import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.dialog.Dialog;
+import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
-import com.vaadin.flow.component.notification.Notification;
+import com.vaadin.flow.component.html.Span;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
@@ -21,20 +28,26 @@ import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.regex.Pattern;
 
 @Route(value = "profile", layout = MainLayout.class)
+@PermitAll
 @CssImport("./styles/profile-view.css")
 @PageTitle("Profile | TNRA")
 public class ProfileView extends VerticalLayout {
 
     private final UserService userService;
     private final FileStorageService fileStorageService;
+    private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private User currentUser;
+    private VerticalLayout myStatsList;
     
     private TextField firstNameField;
     private TextField lastNameField;
@@ -48,9 +61,15 @@ public class ProfileView extends VerticalLayout {
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
     private static final Pattern DIGITS_ONLY = Pattern.compile("[^0-9]");
 
-    public ProfileView(UserService userService, FileStorageService fileStorageService) {
+    public ProfileView(
+        UserService userService, FileStorageService fileStorageService,
+        StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository
+    ) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
+        this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         
         setSizeFull();
         setPadding(true);
@@ -132,9 +151,227 @@ public class ProfileView extends VerticalLayout {
         mainLayout.setFlexGrow(1, formLayout);
         
         add(mainLayout);
+
+        // My Stats section
+        add(createMyStatsSection());
     }
 
-    private void processProfileImageUpload(String fileName, String contentType, byte[] data) {
+    private VerticalLayout createMyStatsSection() {
+        VerticalLayout section = new VerticalLayout();
+        section.setSpacing(true);
+        section.setPadding(false);
+
+        HorizontalLayout headerRow = new HorizontalLayout();
+        headerRow.setAlignItems(Alignment.CENTER);
+        H3 statsHeader = new H3("My Stats");
+        Button addStatBtn = new Button("Add Stat", VaadinIcon.PLUS.create());
+        addStatBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_PRIMARY);
+        addStatBtn.addClickListener(e -> openAddPersonalStatDialog());
+        headerRow.add(statsHeader, addStatBtn);
+
+        myStatsList = new VerticalLayout();
+        myStatsList.setSpacing(false);
+        myStatsList.setPadding(false);
+
+        section.add(headerRow, myStatsList);
+        return section;
+    }
+
+    void refreshMyStatsList() {
+        if (myStatsList == null || currentUser == null) return;
+        myStatsList.removeAll();
+
+        java.util.List<PersonalStatDefinition> allStats = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(currentUser);
+
+        if (allStats.isEmpty()) {
+            Paragraph empty = new Paragraph("No personal stats yet. Add your first to track something just for you.");
+            myStatsList.add(empty);
+            return;
+        }
+
+        java.util.List<PersonalStatDefinition> activeStats = allStats.stream().filter(s -> !s.getArchived()).toList();
+        java.util.List<PersonalStatDefinition> archivedStats = allStats.stream().filter(PersonalStatDefinition::getArchived).toList();
+
+        for (int i = 0; i < activeStats.size(); i++) {
+            PersonalStatDefinition stat = activeStats.get(i);
+            HorizontalLayout row = new HorizontalLayout();
+            row.setWidthFull();
+            row.setAlignItems(Alignment.CENTER);
+
+            Span emoji = new Span(stat.getEmoji() != null ? stat.getEmoji() : "");
+            Span label = new Span(stat.getLabel());
+
+            Button upBtn = new Button(VaadinIcon.ARROW_UP.create());
+            upBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            upBtn.setEnabled(i > 0);
+            upBtn.addClickListener(e -> movePersonalStatUp(stat));
+
+            Button downBtn = new Button(VaadinIcon.ARROW_DOWN.create());
+            downBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            downBtn.setEnabled(i < activeStats.size() - 1);
+            downBtn.addClickListener(e -> movePersonalStatDown(stat));
+
+            Button archiveBtn = new Button(VaadinIcon.CLOSE_SMALL.create());
+            archiveBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+            archiveBtn.addClickListener(e -> archivePersonalStat(stat));
+
+            row.add(emoji, label, upBtn, downBtn, archiveBtn);
+            myStatsList.add(row);
+        }
+
+        for (PersonalStatDefinition stat : archivedStats) {
+            HorizontalLayout row = new HorizontalLayout();
+            row.setWidthFull();
+            row.setAlignItems(Alignment.CENTER);
+            row.getStyle().set("opacity", "0.5");
+
+            Span emoji = new Span(stat.getEmoji() != null ? stat.getEmoji() : "");
+            Span label = new Span(stat.getLabel());
+            Span badge = new Span("archived");
+            badge.getStyle().set("font-size", "0.8em").set("color", "gray");
+
+            Button restoreBtn = new Button("Restore");
+            restoreBtn.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY);
+            restoreBtn.addClickListener(e -> restorePersonalStat(stat));
+
+            row.add(emoji, label, badge, restoreBtn);
+            myStatsList.add(row);
+        }
+    }
+
+    void openAddPersonalStatDialog() {
+        Dialog dialog = new Dialog();
+        dialog.setHeaderTitle("Add Personal Stat");
+
+        FormLayout form = new FormLayout();
+        TextField nameField = new TextField("Internal Name");
+        nameField.setHelperText("Lowercase, no spaces (e.g., 'guitar_practice')");
+        nameField.setPattern("[a-z_]+");
+
+        TextField labelField = new TextField("Display Label");
+        labelField.setHelperText("What you see (e.g., 'Guitar Practice')");
+
+        TextField emojiField = new TextField("Emoji");
+        emojiField.setMaxLength(10);
+        emojiField.setWidth("80px");
+
+        form.add(nameField, labelField, emojiField);
+
+        Button saveBtn = new Button("Add Stat", VaadinIcon.CHECK.create());
+        saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        saveBtn.addClickListener(e -> {
+            String name = nameField.getValue().trim().toLowerCase();
+            String label = labelField.getValue().trim();
+            String emoji = emojiField.getValue().trim();
+            handleAddPersonalStat(name, label, emoji, dialog);
+        });
+
+        Button cancelBtn = new Button("Cancel", e -> dialog.close());
+
+        dialog.add(form);
+        dialog.getFooter().add(cancelBtn, saveBtn);
+        dialog.open();
+    }
+
+    void handleAddPersonalStat(String name, String label, String emoji, Dialog dialog) {
+        if (name.isEmpty() || label.isEmpty()) {
+            AppNotification.error("Name and label are required");
+            return;
+        }
+
+        boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+            .stream().anyMatch(s -> name.equals(s.getName()));
+        if (globalNameExists) {
+            AppNotification.error("A group stat named '" + name + "' already exists");
+            return;
+        }
+
+        boolean personalNameExists = personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(currentUser)
+            .stream().anyMatch(s -> name.equals(s.getName()));
+        if (personalNameExists) {
+            AppNotification.error("You already have a stat named '" + name + "'");
+            return;
+        }
+
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        int nextOrder = activeStats.stream()
+            .mapToInt(PersonalStatDefinition::getDisplayOrder)
+            .max().orElse(-1) + 1;
+
+        PersonalStatDefinition newStat = new PersonalStatDefinition(
+            name, label, emoji.isEmpty() ? null : emoji, nextOrder, currentUser
+        );
+        personalStatDefinitionRepository.save(newStat);
+        refreshMyStatsList();
+        dialog.close();
+
+        AppNotification.success(label + " added");
+    }
+
+    void movePersonalStatUp(PersonalStatDefinition stat) {
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        for (int i = 1; i < activeStats.size(); i++) {
+            if (activeStats.get(i).getId().equals(stat.getId())) {
+                PersonalStatDefinition prev = activeStats.get(i - 1);
+                int temp = stat.getDisplayOrder();
+                stat.setDisplayOrder(prev.getDisplayOrder());
+                prev.setDisplayOrder(temp);
+                personalStatDefinitionRepository.save(stat);
+                personalStatDefinitionRepository.save(prev);
+                break;
+            }
+        }
+        refreshMyStatsList();
+    }
+
+    void movePersonalStatDown(PersonalStatDefinition stat) {
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        for (int i = 0; i < activeStats.size() - 1; i++) {
+            if (activeStats.get(i).getId().equals(stat.getId())) {
+                PersonalStatDefinition next = activeStats.get(i + 1);
+                int temp = stat.getDisplayOrder();
+                stat.setDisplayOrder(next.getDisplayOrder());
+                next.setDisplayOrder(temp);
+                personalStatDefinitionRepository.save(stat);
+                personalStatDefinitionRepository.save(next);
+                break;
+            }
+        }
+        refreshMyStatsList();
+    }
+
+    void archivePersonalStat(PersonalStatDefinition stat) {
+        stat.setArchived(true);
+        personalStatDefinitionRepository.save(stat);
+        refreshMyStatsList();
+        AppNotification.success(stat.getLabel() + " archived");
+    }
+
+    void restorePersonalStat(PersonalStatDefinition stat) {
+        // Check if a global stat now has this name — in-memory after encryption
+        boolean globalNameExists = statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()
+            .stream().anyMatch(s -> stat.getName().equals(s.getName()));
+        if (globalNameExists) {
+            AppNotification.error("Can't restore: a group stat named '" + stat.getName() + "' now exists");
+            return;
+        }
+
+        stat.setArchived(false);
+        java.util.List<PersonalStatDefinition> activeStats = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(currentUser);
+        int maxOrder = activeStats.stream()
+            .mapToInt(PersonalStatDefinition::getDisplayOrder)
+            .max().orElse(-1);
+        stat.setDisplayOrder(maxOrder + 1);
+        personalStatDefinitionRepository.save(stat);
+        refreshMyStatsList();
+        AppNotification.success(stat.getLabel() + " restored");
+    }
+
+    void processProfileImageUpload(String fileName, String contentType, byte[] data) {
         try (InputStream inputStream = new ByteArrayInputStream(data)) {
             if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
                 fileStorageService.deleteFile(currentUser.getProfileImage());
@@ -142,13 +379,14 @@ public class ProfileView extends VerticalLayout {
 
             String storedFileName = fileStorageService.storeFile(inputStream, fileName, contentType);
             currentUser.setProfileImage(storedFileName);
+            userService.saveUser(currentUser);
 
             String imageUrl = fileStorageService.getFileUrl(storedFileName);
             profileImage.setSrc(imageUrl);
 
-            Notification.show("Image uploaded successfully", 3000, Notification.Position.TOP_CENTER);
+            AppNotification.success("Image uploaded successfully");
         } catch (IOException e) {
-            Notification.show("Error uploading image", 3000, Notification.Position.TOP_CENTER);
+            AppNotification.error("Error uploading image");
         }
     }
     
@@ -189,7 +427,7 @@ public class ProfileView extends VerticalLayout {
         return phoneField;
     }
     
-    private String formatPhoneNumber(String input) {
+    String formatPhoneNumber(String input) {
         if (input == null || input.trim().isEmpty()) {
             return "";
         }
@@ -212,14 +450,14 @@ public class ProfileView extends VerticalLayout {
         }
     }
     
-    private boolean isValidPhoneNumber(String phoneNumber) {
+    boolean isValidPhoneNumber(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
             return true; // Allow empty phone numbers
         }
         return PHONE_PATTERN.matcher(phoneNumber).matches();
     }
     
-    private String normalizePhoneNumber(String phoneNumber) {
+    String normalizePhoneNumber(String phoneNumber) {
         if (phoneNumber == null || phoneNumber.trim().isEmpty()) {
             return "";
         }
@@ -250,15 +488,17 @@ public class ProfileView extends VerticalLayout {
                 // Set default avatar
                 profileImage.setSrc("/uploads/placeholder.png");
             }
+
+            refreshMyStatsList();
         }
     }
 
-    private void saveProfile() {
+    void saveProfile() {
         if (currentUser != null) {
             // Validate phone number before saving
             String phoneNumber = phoneNumberField.getValue();
             if (phoneNumber != null && !phoneNumber.trim().isEmpty() && !isValidPhoneNumber(phoneNumber)) {
-                Notification.show("Please enter a valid phone number", 3000, Notification.Position.TOP_CENTER);
+                AppNotification.error("Please enter a valid phone number");
                 return;
             }
             
@@ -270,9 +510,9 @@ public class ProfileView extends VerticalLayout {
             
             try {
                 userService.saveUser(currentUser);
-                Notification.show("Profile saved successfully", 3000, Notification.Position.TOP_CENTER);
+                AppNotification.success("Profile saved successfully");
             } catch (Exception e) {
-                Notification.show("Error saving profile", 3000, Notification.Position.TOP_CENTER);
+                AppNotification.error("Error saving profile");
             }
         }
     }

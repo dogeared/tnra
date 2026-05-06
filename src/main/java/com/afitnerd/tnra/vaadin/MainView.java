@@ -51,12 +51,7 @@ public class MainView extends VerticalLayout {
         setJustifyContentMode(JustifyContentMode.CENTER);
 
         if (oidcUserService.isAuthenticated()) {
-            User currentUser = userService.getCurrentUser();
-            if (currentUser == null) {
-                showNotAMemberView();
-            } else {
-                showAuthenticatedView();
-            }
+            showAuthenticatedView();
         } else {
             showUnauthenticatedView();
         }
@@ -98,14 +93,17 @@ public class MainView extends VerticalLayout {
     
     private void showAuthenticatedView() {
         try {
+            User currentUser = userService.getCurrentUser();
+            if (currentUser == null) {
+                showNotAMemberView();
+                return;
+            }
+
             H1 title = new H1("Welcome back!");
             title.addClassName("main-title");
-            
+
             // Get user's display name using the service
             String displayName = oidcUserService.getDisplayName();
-            
-            // Get current user to access profile image
-            User currentUser = userService.getCurrentUser();
             
             // Create profile section with image and welcome message
             HorizontalLayout profileSection = new HorizontalLayout();
@@ -118,7 +116,7 @@ public class MainView extends VerticalLayout {
             profileImage.addClassName("main-profile-image");
             profileImage.setAlt("User profile image");
 
-            if (currentUser != null && currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
+            if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
                 String imageUrl = fileStorageService.getFileUrl(currentUser.getProfileImage());
                 profileImage.setSrc(StringUtils.hasText(imageUrl) ? imageUrl : "/uploads/placeholder.png");
             } else {

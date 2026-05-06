@@ -254,4 +254,76 @@ class MainViewTest {
 
         assertTrue(hasLoginButton, "Expected unauthenticated view to include a log in button");
     }
+
+    @Test
+    void testResolveDisplayNameFallsBackToFirstNameOnly() {
+        testUser.setLastName(null);
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn(" ");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasFirstNameGreeting = mainView.getChildren()
+            .flatMap(c -> c.getChildren())
+            .filter(c -> c instanceof Paragraph)
+            .map(c -> (Paragraph) c)
+            .anyMatch(p -> p.getText().contains("Hello, John!"));
+
+        assertTrue(hasFirstNameGreeting);
+    }
+
+    @Test
+    void testResolveDisplayNameFallsBackToEmail() {
+        testUser.setFirstName(null);
+        testUser.setLastName(null);
+        testUser.setEmail("john@example.com");
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn("  ");
+        when(userService.getCurrentUser()).thenReturn(testUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasEmailGreeting = mainView.getChildren()
+            .flatMap(c -> c.getChildren())
+            .filter(c -> c instanceof Paragraph)
+            .map(c -> (Paragraph) c)
+            .anyMatch(p -> p.getText().contains("john@example.com"));
+
+        assertTrue(hasEmailGreeting);
+    }
+
+    @Test
+    void testResolveDisplayNameFallsBackToThereWhenAllFieldsEmpty() {
+        User emptyUser = new User(); // no firstName, lastName, or email
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getDisplayName()).thenReturn(null);
+        when(userService.getCurrentUser()).thenReturn(emptyUser);
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasThere = mainView.getChildren()
+            .flatMap(c -> c.getChildren())
+            .filter(c -> c instanceof Paragraph)
+            .map(c -> (Paragraph) c)
+            .anyMatch(p -> p.getText().contains("Hello, there!"));
+
+        assertTrue(hasThere);
+    }
+
+    @Test
+    void testShowAuthenticatedViewFallbackOnException() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        lenient().when(oidcUserService.getDisplayName()).thenReturn("Test");
+        when(userService.getCurrentUser()).thenThrow(new RuntimeException("DB error"));
+
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+
+        boolean hasErrorNote = mainView.getChildren()
+            .filter(c -> c instanceof Paragraph)
+            .map(c -> (Paragraph) c)
+            .anyMatch(p -> p.getText().contains("Could not retrieve user details"));
+
+        assertTrue(hasErrorNote);
+    }
 }

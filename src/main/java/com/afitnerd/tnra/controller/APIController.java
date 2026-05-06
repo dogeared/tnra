@@ -60,13 +60,13 @@ public class APIController {
 
     @GetMapping("/in_progress")
     Optional<Post> getInProgressPost(Principal me) {
-        User user = userRepository.findByEmail(me.getName());
+        User user = resolveActiveUser(me);
         return postService.getOptionalInProgressPost(user);
     }
 
     @PostMapping("/in_progress")
     Post updatePost(Principal me, @RequestBody Post post) {
-        User user = userRepository.findByEmail(me.getName());
+        User user = resolveActiveUser(me);
         Post existingPost = postService.getOptionalInProgressPost(user)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No in-progress post found"));
         existingPost.setIntro(post.getIntro());
@@ -78,21 +78,32 @@ public class APIController {
 
     @GetMapping("/complete")
     Optional<Post> getCompletePost(Principal me) {
-        User user = userRepository.findByEmail(me.getName());
+        User user = resolveActiveUser(me);
         return postService.getOptionalCompletePost(user);
     }
 
     @GetMapping("/start_from_app")
     Post startPost(Principal me) {
-        User user = userRepository.findByEmail(me.getName());
+        User user = resolveActiveUser(me);
         return postService.startPost(user);
     }
 
     @PostMapping("/finish_from_app")
     Post finishPost(Principal me) {
-        User user = userRepository.findByEmail(me.getName());
+        User user = resolveActiveUser(me);
         Post post = postService.finishPost(user);
         eMailService.sendMailToAll(post);
         return post;
+    }
+
+    private User resolveActiveUser(Principal me) {
+        User user = userRepository.findByEmail(me.getName());
+        if (user == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
+        }
+        if (!Boolean.TRUE.equals(user.getActive())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Account deactivated");
+        }
+        return user;
     }
 }

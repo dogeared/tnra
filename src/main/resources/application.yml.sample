@@ -11,6 +11,7 @@ spring:
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
         provider:
           keycloak:
+            issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}
             authorization-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}/protocol/openid-connect/auth
             token-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}/protocol/openid-connect/token
             user-info-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8180/realms/tnra}/protocol/openid-connect/userinfo
@@ -43,7 +44,7 @@ server:
   servlet:
     context-path: /
     session:
-      timeout: 30d
+      timeout: 24h
   forward-headers-strategy: native
 vaadin:
   productionMode: false
@@ -52,11 +53,9 @@ vaadin:
     hostsAllowed: tnra.afitnerd.local
 logging:
   level:
-    org.springframework.security: DEBUG
-    com.vaadin: DEBUG
-    org.springframework.security.oauth2: DEBUG
-    org.springframework.web: DEBUG
-    org.springframework.web.servlet: DEBUG
+    org.springframework.security: WARN
+    com.vaadin: INFO
+    org.springframework.web: WARN
 mailgun:
   key:
     private: YOUR_MAILGUN_PRIVATE_KEY

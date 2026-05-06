@@ -2,7 +2,7 @@ FROM eclipse-temurin:21-jammy
 RUN useradd -r -u 1001 -g root appuser
 VOLUME /tmp
 ADD target/*.jar app.jar
-RUN mkdir -p /uploads && chown appuser:root /uploads
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh && mkdir -p /uploads
 VOLUME /uploads
-USER appuser
-ENTRYPOINT ["java","-jar","/app.jar"]
+ENTRYPOINT ["/docker-entrypoint.sh"]

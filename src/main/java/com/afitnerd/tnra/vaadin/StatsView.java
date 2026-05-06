@@ -1,25 +1,27 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.Post;
+import com.afitnerd.tnra.model.PostStatValue;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H1;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
-
+import jakarta.annotation.security.PermitAll;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @PageTitle("Stats - TNRA")
 @Route(value = "stats", layout = MainLayout.class)
+@PermitAll
 @CssImport("./styles/stats-view.css")
 public class StatsView extends VerticalLayout implements AfterNavigationObserver {
 
@@ -38,9 +40,11 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         setPadding(false);
     }
 
-    public static StatsView createEmbedded(VaadinPostPresenter vaadinPostPresenter) {
+    public static StatsView createEmbedded(VaadinPostPresenter vaadinPostPresenter, User currentUser) {
         StatsView statsView = new StatsView(vaadinPostPresenter);
-        statsView.statDefinitions = vaadinPostPresenter.getActiveStatDefinitions();
+        List<StatDefinition> allStats = new ArrayList<>(vaadinPostPresenter.getActiveGlobalStatDefinitions());
+        allStats.addAll(vaadinPostPresenter.getActivePersonalStatDefinitions(currentUser));
+        statsView.statDefinitions = allStats;
         statsView.currentPost = new Post();
         statsView.isReadOnly = true;
         statsView.createStatsView();
@@ -50,7 +54,10 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        statDefinitions = vaadinPostPresenter.getActiveStatDefinitions();
+        User currentUser = vaadinPostPresenter.initializeUser();
+        List<StatDefinition> allStats = new ArrayList<>(vaadinPostPresenter.getActiveGlobalStatDefinitions());
+        allStats.addAll(vaadinPostPresenter.getActivePersonalStatDefinitions(currentUser));
+        statDefinitions = allStats;
         initializePost();
         createStatsView();
     }
@@ -117,7 +124,7 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
                     onStatsChanged.run();
                 }
             } catch (Exception e) {
-                Notification.show("Error saving stats: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+                AppNotification.error("Error saving stats: " + e.getMessage());
             }
         }
     }
@@ -150,6 +157,38 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
         }
     }
 
+    public void loadFromPost(Post post) {
+        this.currentPost = post;
+        if (post == null || post.getStatValues() == null) return;
+
+        // Derive stat definitions from the post's actual values (globals first, then personals)
+        List<StatDefinition> defs = post.getStatValues().stream()
+            .map(PostStatValue::getStatDefinition)
+            .sorted((a, b) -> {
+                boolean aGlobal = !(a instanceof PersonalStatDefinition);
+                boolean bGlobal = !(b instanceof PersonalStatDefinition);
+                if (aGlobal != bGlobal) return aGlobal ? -1 : 1;
+                return a.getDisplayOrder().compareTo(b.getDisplayOrder());
+            })
+            .toList();
+        this.statDefinitions = new ArrayList<>(defs);
+        createStatsView();
+        refreshStats();
+    }
+
+    public void flushPendingValues() {
+        if (currentPost == null) return;
+        for (int i = 0; i < statCards.size() && i < statDefinitions.size(); i++) {
+            StatCard card = statCards.get(i);
+            StatDefinition statDef = statDefinitions.get(i);
+            Integer cardValue = card.getValue();
+            Integer dbValue = currentPost.getStatValue(statDef.getName());
+            if ((cardValue != null && !cardValue.equals(dbValue)) || (cardValue == null && dbValue != null)) {
+                currentPost = vaadinPostPresenter.updateStatValue(statDef, cardValue);
+            }
+        }
+    }
+
     public boolean areAllStatsSet() {
         if (currentPost == null) {
             return false;
@@ -164,5 +203,9 @@ public class StatsView extends VerticalLayout implements AfterNavigationObserver
 
     public void setOnStatsChanged(Runnable callback) {
         this.onStatsChanged = callback;
+    }
+
+    List<StatCard> getStatCards() {
+        return statCards;
     }
 }

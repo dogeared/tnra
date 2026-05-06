@@ -1,7 +1,9 @@
 package com.afitnerd.tnra.model;
 
+import com.afitnerd.tnra.model.converter.EncryptedIntegerConverter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -30,7 +32,8 @@ public class PostStatValue {
     @JoinColumn(name = "stat_definition_id")
     private StatDefinition statDefinition;
 
-    @Column(name = "stat_value")
+    @Convert(converter = EncryptedIntegerConverter.class)
+    @Column(name = "stat_value", columnDefinition = "TEXT")
     private Integer value;
 
     public PostStatValue() {}

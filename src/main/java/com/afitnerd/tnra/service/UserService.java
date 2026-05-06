@@ -13,4 +13,7 @@ public interface UserService {
     User getOrCreateUserFromOidc(String email, String firstName, String lastName);
     void deleteUser(User user);
     List<User> getAllActiveUsers();
+    List<User> getAllUsers();
+    User deactivateUser(User user);
+    User reactivateUser(User user);
 }

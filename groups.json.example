@@ -1,0 +1,14 @@
+{
+  "groups": [
+    {
+      "name": "tnra",
+      "port": 8080,
+      "database": "tnra",
+      "realm": "tnra",
+      "domain": "tnra.afitnerd.com",
+      "provisioned": "2026-04-02",
+      "status": "active"
+    }
+  ],
+  "nextPort": 8081
+}

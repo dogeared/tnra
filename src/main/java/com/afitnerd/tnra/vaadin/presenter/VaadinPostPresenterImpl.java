@@ -1,12 +1,17 @@
 package com.afitnerd.tnra.vaadin.presenter;
 
 import com.afitnerd.tnra.model.Post;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
+import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.EMailService;
+import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.PostService;
+import com.afitnerd.tnra.service.SlackNotificationService;
 import com.afitnerd.tnra.service.UserService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -23,7 +28,11 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     private final OidcUserService oidcUserService;
     private final PostService postService;
     private final EMailService eMailService;
+    private final SlackNotificationService slackNotificationService;
+    private final GroupSettingsService groupSettingsService;
+    private final PostRepository postRepository;
     private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
 
     @Value("#{ @environment['tnra.emailService.enabled'] ?: true }")
     private boolean emailServiceEnabled;
@@ -31,13 +40,21 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     public VaadinPostPresenterImpl(
         OidcUserService oidcUserService, UserService userService,
         PostService postService, EMailService eMailService,
-        StatDefinitionRepository statDefinitionRepository
+        SlackNotificationService slackNotificationService,
+        GroupSettingsService groupSettingsService,
+        PostRepository postRepository,
+        StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.postService = postService;
         this.eMailService = eMailService;
+        this.slackNotificationService = slackNotificationService;
+        this.groupSettingsService = groupSettingsService;
+        this.postRepository = postRepository;
         this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
     }
 
     @Override
@@ -46,6 +63,7 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
         if (emailServiceEnabled) {
             eMailService.sendMailToAll(post);
         }
+        slackNotificationService.sendActivityNotification(post);
         return post;
     }
 
@@ -62,6 +80,11 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
 
             if (currentUser == null) {
                 throw new IllegalStateException("No user found with email: " + email);
+            }
+
+            if (!Boolean.TRUE.equals(currentUser.getActive())) {
+                throw new IllegalStateException(
+                    "Your account has been deactivated. Contact your group admin.");
             }
 
             return currentUser;
@@ -91,12 +114,32 @@ public class VaadinPostPresenterImpl implements VaadinPostPresenter {
     }
 
     @Override
-    public List<StatDefinition> getActiveStatDefinitions() {
-        return statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
+    public List<StatDefinition> getActiveGlobalStatDefinitions() {
+        return statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
+    }
+
+    @Override
+    public List<PersonalStatDefinition> getActivePersonalStatDefinitions(User user) {
+        return personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(user);
     }
 
     @Override
     public List<User> getAllActiveUsers() {
         return userService.getAllActiveUsers();
+    }
+
+    @Override
+    public Optional<Post> getPostById(Long postId) {
+        return postRepository.findById(postId);
+    }
+
+    @Override
+    public boolean isSlackEnabled() {
+        return groupSettingsService.getSettings().isSlackEnabled();
+    }
+
+    @Override
+    public void sendActivityNotification(Post post) {
+        slackNotificationService.sendActivityNotification(post);
     }
 }

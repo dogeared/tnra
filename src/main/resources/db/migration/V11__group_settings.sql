@@ -1,0 +1,8 @@
+CREATE TABLE group_settings (
+    id               BIGINT   NOT NULL AUTO_INCREMENT,
+    slack_webhook_url TEXT,
+    slack_enabled    BOOLEAN  NOT NULL DEFAULT FALSE,
+    created_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
+);

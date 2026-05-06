@@ -8,6 +8,8 @@ import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.PostStatValue;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import jakarta.transaction.Transactional;
@@ -22,6 +24,7 @@ import org.springframework.util.ObjectUtils;
 
 import java.beans.PropertyDescriptor;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -33,10 +36,16 @@ public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
     private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
 
-    public PostServiceImpl(PostRepository postRepository, StatDefinitionRepository statDefinitionRepository) {
+    public PostServiceImpl(
+        PostRepository postRepository,
+        StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository
+    ) {
         this.postRepository = postRepository;
         this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
     }
 
     @Override
@@ -266,8 +275,20 @@ public class PostServiceImpl implements PostService {
 
     private void ensureStats(String errorBase, Post post) {
         String statsBase = errorBase + "stats - ";
-        List<StatDefinition> activeStats = statDefinitionRepository.findByArchivedFalseOrderByDisplayOrderAsc();
-        for (StatDefinition statDef : activeStats) {
+        Date postStart = post.getStart();
+
+        List<StatDefinition> globals = statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc();
+        List<PersonalStatDefinition> personals = personalStatDefinitionRepository
+            .findByUserAndArchivedFalseOrderByDisplayOrderAsc(post.getUser());
+
+        List<StatDefinition> allRequired = new ArrayList<>(globals);
+        allRequired.addAll(personals);
+
+        for (StatDefinition statDef : allRequired) {
+            // Grace period: stats created after the post was started are not required
+            if (postStart != null && statDef.getCreatedAt().after(postStart)) {
+                continue;
+            }
             Integer value = post.getStatValue(statDef.getName());
             if (value == null) {
                 throw new PostException(statsBase + statDef.getLabel().toLowerCase());

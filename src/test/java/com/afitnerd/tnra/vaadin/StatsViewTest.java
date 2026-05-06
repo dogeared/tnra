@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.StatDefinition;
@@ -68,12 +69,13 @@ class StatsViewTest {
         inProgressPost.setStatValue(prayDef, 15);
 
         lenient().when(vaadinPostPresenter.initializeUser()).thenReturn(testUser);
-        lenient().when(vaadinPostPresenter.getActiveStatDefinitions()).thenReturn(defaultStatDefs);
+        lenient().when(vaadinPostPresenter.getActiveGlobalStatDefinitions()).thenReturn(defaultStatDefs);
+        lenient().when(vaadinPostPresenter.getActivePersonalStatDefinitions(testUser)).thenReturn(List.of());
     }
 
     @Test
     void testCreateEmbeddedStatsView() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
 
         assertNotNull(embeddedStatsView);
         assertEquals(2, embeddedStatsView.getComponentCount());
@@ -113,7 +115,7 @@ class StatsViewTest {
 
     @Test
     void testSetPost() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
 
         assertTrue(embeddedStatsView.areAllStatsSet());
@@ -121,7 +123,7 @@ class StatsViewTest {
 
     @Test
     void testSetPostWithNull() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
         embeddedStatsView.setPost(null);
 
@@ -130,7 +132,7 @@ class StatsViewTest {
 
     @Test
     void testAreAllStatsSetWithCompleteStats() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
 
         assertTrue(embeddedStatsView.areAllStatsSet());
@@ -143,7 +145,7 @@ class StatsViewTest {
         incompletePost.setStatValue(exerciseDef, 30);
         // meditate and pray are missing
 
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(incompletePost);
 
         assertFalse(embeddedStatsView.areAllStatsSet());
@@ -151,7 +153,7 @@ class StatsViewTest {
 
     @Test
     void testAreAllStatsSetWithNullPost() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(null);
 
         assertFalse(embeddedStatsView.areAllStatsSet());
@@ -159,7 +161,7 @@ class StatsViewTest {
 
     @Test
     void testSetReadOnly() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
 
         assertDoesNotThrow(() -> embeddedStatsView.setReadOnly(false));
@@ -168,11 +170,229 @@ class StatsViewTest {
 
     @Test
     void testRefreshStats() {
-        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter);
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
         embeddedStatsView.setPost(inProgressPost);
         embeddedStatsView.refreshStats();
 
         assertTrue(embeddedStatsView.areAllStatsSet());
+    }
+
+    @Test
+    void testFlushPendingValues_syncsWhenCardDiffersFromDb() {
+        // Arrange: create embedded view with stats loaded from post
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        // Simulate: user types a new value into the Exercise card (index 0)
+        // but the value change listener never fired (the bug scenario)
+        embeddedStatsView.getStatCards().get(0).setValueSilently(99);
+
+        // The DB still has exercise=30, but the card now shows 99
+        Post updatedPost = new Post();
+        updatedPost.setId(1L);
+        updatedPost.setUser(testUser);
+        StatDefinition exerciseDef = defaultStatDefs.get(0);
+        updatedPost.setStatValue(exerciseDef, 99);
+        updatedPost.setStatValue(defaultStatDefs.get(1), 20);
+        updatedPost.setStatValue(defaultStatDefs.get(2), 15);
+        when(vaadinPostPresenter.updateStatValue(exerciseDef, 99)).thenReturn(updatedPost);
+
+        // Act: flush should detect the mismatch and sync
+        embeddedStatsView.flushPendingValues();
+
+        // Assert: updateStatValue was called for the mismatched exercise stat
+        verify(vaadinPostPresenter).updateStatValue(exerciseDef, 99);
+    }
+
+    @Test
+    void testFlushPendingValues_skipsWhenCardMatchesDb() {
+        // Arrange: card values match DB values exactly
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+
+        // Act: flush with no changes
+        embeddedStatsView.flushPendingValues();
+
+        // Assert: no updateStatValue calls — everything is in sync
+        verify(vaadinPostPresenter, never()).updateStatValue(any(), any());
+    }
+
+    @Test
+    void testFlushPendingValues_syncsNullToValueMismatch() {
+        // Arrange: post has exercise=30, but card shows null (user cleared it)
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        // Simulate: user clears the exercise card without event firing
+        embeddedStatsView.getStatCards().get(0).setValueSilently(null);
+
+        StatDefinition exerciseDef = defaultStatDefs.get(0);
+        Post updatedPost = new Post();
+        updatedPost.setId(1L);
+        updatedPost.setUser(testUser);
+        // exercise is now null after update
+        updatedPost.setStatValue(defaultStatDefs.get(1), 20);
+        updatedPost.setStatValue(defaultStatDefs.get(2), 15);
+        when(vaadinPostPresenter.updateStatValue(exerciseDef, null)).thenReturn(updatedPost);
+
+        // Act
+        embeddedStatsView.flushPendingValues();
+
+        // Assert: null→value mismatch detected and synced
+        verify(vaadinPostPresenter).updateStatValue(exerciseDef, null);
+    }
+
+    @Test
+    void testFlushPendingValues_syncsMultipleMismatches() {
+        // Arrange: all three cards differ from DB
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        embeddedStatsView.getStatCards().get(0).setValueSilently(5);   // was 30
+        embeddedStatsView.getStatCards().get(1).setValueSilently(10);  // was 20
+        embeddedStatsView.getStatCards().get(2).setValueSilently(0);   // was 15
+
+        // Each updateStatValue returns a post reflecting that update
+        StatDefinition exerciseDef = defaultStatDefs.get(0);
+        StatDefinition meditateDef = defaultStatDefs.get(1);
+        StatDefinition prayDef = defaultStatDefs.get(2);
+
+        Post afterExercise = new Post();
+        afterExercise.setId(1L);
+        afterExercise.setUser(testUser);
+        afterExercise.setStatValue(exerciseDef, 5);
+        afterExercise.setStatValue(meditateDef, 20);
+        afterExercise.setStatValue(prayDef, 15);
+        when(vaadinPostPresenter.updateStatValue(exerciseDef, 5)).thenReturn(afterExercise);
+
+        Post afterMeditate = new Post();
+        afterMeditate.setId(1L);
+        afterMeditate.setUser(testUser);
+        afterMeditate.setStatValue(exerciseDef, 5);
+        afterMeditate.setStatValue(meditateDef, 10);
+        afterMeditate.setStatValue(prayDef, 15);
+        when(vaadinPostPresenter.updateStatValue(meditateDef, 10)).thenReturn(afterMeditate);
+
+        Post afterPray = new Post();
+        afterPray.setId(1L);
+        afterPray.setUser(testUser);
+        afterPray.setStatValue(exerciseDef, 5);
+        afterPray.setStatValue(meditateDef, 10);
+        afterPray.setStatValue(prayDef, 0);
+        when(vaadinPostPresenter.updateStatValue(prayDef, 0)).thenReturn(afterPray);
+
+        // Act
+        embeddedStatsView.flushPendingValues();
+
+        // Assert: all three mismatches synced
+        verify(vaadinPostPresenter).updateStatValue(exerciseDef, 5);
+        verify(vaadinPostPresenter).updateStatValue(meditateDef, 10);
+        verify(vaadinPostPresenter).updateStatValue(prayDef, 0);
+    }
+
+    @Test
+    void testFlushPendingValues_noopWhenPostIsNull() {
+        // Arrange: no post loaded
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(null);
+
+        // Act & Assert: no exception, no calls
+        embeddedStatsView.flushPendingValues();
+        verify(vaadinPostPresenter, never()).updateStatValue(any(), any());
+    }
+
+    @Test
+    void testUpdateStatCallsPresenterAndFiresCallback() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        boolean[] callbackFired = {false};
+        embeddedStatsView.setOnStatsChanged(() -> callbackFired[0] = true);
+
+        StatDefinition exerciseDef = defaultStatDefs.get(0);
+        Post updatedPost = new Post();
+        updatedPost.setId(1L);
+        updatedPost.setUser(testUser);
+        updatedPost.setStatValue(exerciseDef, 5);
+        when(vaadinPostPresenter.updateStatValue(exerciseDef, 5)).thenReturn(updatedPost);
+
+        // Click plus to trigger updateStat via the card's value change listener
+        embeddedStatsView.getStatCards().get(0).setValue(5);
+
+        verify(vaadinPostPresenter).updateStatValue(exerciseDef, 5);
+        assertTrue(callbackFired[0]);
+    }
+
+    @Test
+    void testUpdateStatShowsErrorOnException() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(inProgressPost);
+        embeddedStatsView.setReadOnly(false);
+
+        when(vaadinPostPresenter.updateStatValue(any(), any())).thenThrow(new RuntimeException("DB down"));
+
+        try (MockedStatic<AppNotification> mockedNotif = mockStatic(AppNotification.class)) {
+            mockedNotif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
+            // Should not throw — error is caught and shown via AppNotification
+            assertDoesNotThrow(() -> embeddedStatsView.getStatCards().get(0).setValue(99));
+        }
+    }
+
+    @Test
+    void testUpdateStatNoopWhenPostIsNull() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.setPost(null);
+        embeddedStatsView.setReadOnly(false);
+
+        embeddedStatsView.getStatCards().get(0).setValue(10);
+
+        verify(vaadinPostPresenter, never()).updateStatValue(any(), any());
+    }
+
+    @Test
+    void testLoadFromPostDerivesStatDefs() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        embeddedStatsView.loadFromPost(inProgressPost);
+
+        // loadFromPost derives defs from the post's stat values (3 values → 3 cards)
+        assertEquals(3, embeddedStatsView.getStatCards().size());
+    }
+
+    @Test
+    void testLoadFromPostWithNullPostIsNoop() {
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, testUser);
+        assertDoesNotThrow(() -> embeddedStatsView.loadFromPost(null));
+    }
+
+    @Test
+    void testLoadFromPostSortsGlobalsBeforePersonals() {
+        User user = new User();
+        user.setId(2L);
+
+        StatDefinition global = new StatDefinition("steps", "Steps", "👣", 1);
+        global.setId(10L);
+        PersonalStatDefinition personal = new PersonalStatDefinition("guitar", "Guitar", "🎸", 0, user);
+        personal.setId(11L);
+
+        Post post = new Post();
+        post.setId(2L);
+        post.setUser(user);
+        post.setStatValue(personal, 3);
+        post.setStatValue(global, 7);
+
+        StatsView embeddedStatsView = StatsView.createEmbedded(vaadinPostPresenter, user);
+        embeddedStatsView.loadFromPost(post);
+
+        // Global should appear before personal
+        List<StatDefinition> defs = embeddedStatsView.getStatCards().stream()
+            .map(StatCard::getLabel)
+            .map(label -> label.equals("Steps") ? global : personal)
+            .toList();
+        assertFalse(defs.get(0) instanceof PersonalStatDefinition, "Global stat should be first");
     }
 
     private void setupUIMocks(String timeZoneId) {

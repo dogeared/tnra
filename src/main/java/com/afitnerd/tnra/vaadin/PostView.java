@@ -3,14 +3,16 @@ package com.afitnerd.tnra.vaadin;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.service.PostTokenService;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
+import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
-import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -19,9 +21,16 @@ import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.data.binder.Binder;
 import com.vaadin.flow.router.AfterNavigationEvent;
 import com.vaadin.flow.router.AfterNavigationObserver;
+import com.vaadin.flow.router.BeforeEvent;
+import com.vaadin.flow.router.HasUrlParameter;
+import com.vaadin.flow.router.OptionalParameter;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
+import jakarta.annotation.security.PermitAll;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -32,13 +41,20 @@ import java.util.Optional;
 
 @PageTitle("Posts - TNRA")
 @Route(value = "posts", layout = MainLayout.class)
+@PermitAll
 @CssImport("./styles/post-view.css")
-public class PostView extends VerticalLayout implements AfterNavigationObserver {
+public class PostView extends VerticalLayout implements AfterNavigationObserver, HasUrlParameter<String> {
+
+    private static final Logger log = LoggerFactory.getLogger(PostView.class);
 
     private final VaadinPostPresenter vaadinPostPresenter;
+    private final PostTokenService postTokenService;
+    private final String baseUrl;
     private User currentUser;
     private User selectedUser;
     private Post currentPost;
+    private String deepLinkToken;
+    private String pendingNotification;
     
     // Server-side pagination fields
     private int currentPage = 0;
@@ -64,25 +80,27 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private Button showCompletedPostsButton;
     private Button switchToInProgressButton;
     private Button finishPostButton;
+    private Button copyLinkButton;
+    private Button notifyButton;
     private VerticalLayout completedPostsLayout;
     boolean showingCompletedPosts = false; // package-private for testing
     
-    // Intro section
-    private TextArea widwytkField;
-    private TextField kryptoniteField;
-    private TextArea whatAndWhenField;
-    
-    // Personal section
-    private TextArea personalBestField;
-    private TextArea personalWorstField;
-    
-    // Family section
-    private TextArea familyBestField;
-    private TextArea familyWorstField;
-    
-    // Work section
-    private TextArea workBestField;
-    private TextArea workWorstField;
+    // Intro section — package-private for testing
+    TextArea widwytkField;
+    TextField kryptoniteField;
+    TextArea whatAndWhenField;
+
+    // Personal section — package-private for testing
+    TextArea personalBestField;
+    TextArea personalWorstField;
+
+    // Family section — package-private for testing
+    TextArea familyBestField;
+    TextArea familyWorstField;
+
+    // Work section — package-private for testing
+    TextArea workBestField;
+    TextArea workWorstField;
     
     private boolean isUpdating = false;
     
@@ -90,11 +108,22 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     // is the true param for nested properties needed?
     private Binder<Post> postBinder = new Binder<>(Post.class, true);
 
-    public PostView(VaadinPostPresenter vaadinPostPresenter) {
+    public PostView(
+        VaadinPostPresenter vaadinPostPresenter,
+        PostTokenService postTokenService,
+        @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
+    ) {
         this.vaadinPostPresenter = vaadinPostPresenter;
+        this.postTokenService = postTokenService;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
 
         setSizeFull();
         addClassName("post-view");
+    }
+
+    @Override
+    public void setParameter(BeforeEvent event, @OptionalParameter String token) {
+        this.deepLinkToken = token;
     }
 
     @Override
@@ -105,11 +134,22 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // Initialize data binding after all form fields are created
         setupDataBinding();
 
-        // Only load post data if we have a current post and we're not showing completed posts
-        // (in which case the user should select from dropdown)
-        if (currentPost != null && !showingCompletedPosts) {
+        if (currentPost != null) {
             loadPostData();
             updateReadOnlyState();
+            // For deep-linked completed posts, also select in the dropdown
+            if (showingCompletedPosts && deepLinkToken != null && postSelector != null) {
+                postSelector.setValue(currentPost);
+            }
+        }
+
+        // Show deferred notification after client has connected
+        if (pendingNotification != null) {
+            String message = pendingNotification;
+            pendingNotification = null;
+            UI ui = UI.getCurrent();
+            if (ui == null) return;
+            ui.beforeClientResponse(this, ctx -> AppNotification.info(message));
         }
 
     }
@@ -118,6 +158,50 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         // TODO implement and handle exceptions
         currentUser = vaadinPostPresenter.initializeUser();
         selectedUser = currentUser; // Default to current authenticated user
+
+        // Deep link: if a token was provided via URL parameter, decode and load that specific post
+        if (deepLinkToken != null) {
+            Long postId = null;
+            try {
+                postId = postTokenService.decode(deepLinkToken);
+            } catch (IllegalArgumentException e) {
+                log.warn("Deep link failed: invalid or tampered post token");
+                pendingNotification = "Unable to load post.";
+            }
+            if (postId != null) {
+                Optional<Post> deepLinkedPost = vaadinPostPresenter.getPostById(postId);
+                if (deepLinkedPost.isPresent()) {
+                    Post post = deepLinkedPost.get();
+                    if (post.getUser() != null) {
+                        boolean isOwnPost = post.getUser().getId().equals(currentUser.getId());
+
+                        // Block access to other users' in-progress posts — fall through to default
+                        if (post.getState() == PostState.IN_PROGRESS && !isOwnPost) {
+                            log.warn("Deep link denied: user {} attempted to view in-progress post {} owned by user {}",
+                                currentUser.getId(), postId, post.getUser().getId());
+                            pendingNotification = "Unable to load post.";
+                        } else {
+                            currentPost = post;
+                            selectedUser = post.getUser();
+                            // Own in-progress post: show in-progress view
+                            // All other cases (completed posts, other users' completed posts): show completed view
+                            showingCompletedPosts = !(post.getState() == PostState.IN_PROGRESS && isOwnPost);
+                            if (showingCompletedPosts) {
+                                loadCurrentPage();
+                            }
+                            return;
+                        }
+                    } else {
+                        log.warn("Deep link failed: post {} has no owner", postId);
+                        pendingNotification = "Unable to load post.";
+                    }
+                } else {
+                    log.warn("Deep link failed: post not found for token");
+                    pendingNotification = "Unable to load post.";
+                }
+            }
+        }
+
         Optional<Post> inProgressPost = vaadinPostPresenter.getOptionalInProgressPost(currentUser);
         if (inProgressPost.isPresent()) {
             // Show in-progress post by default
@@ -141,16 +225,16 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
     private void createPostView() {
         // Clear existing content
         removeAll();
-        
+
         // Header section with post selector and start new post button
         VerticalLayout headerSection = createHeaderSection();
-        
+
         // Main content sections
         VerticalLayout contentSection = createContentSection();
-        
+
         // Footer section for in-progress posts
         VerticalLayout footerSection = createFooterSection();
-        
+
         add(headerSection, contentSection, footerSection);
         
         // If no current post is selected, clear form data and set fields to read-only
@@ -254,6 +338,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
         // Get all active users and set them (already sorted by first name)
         userSelector.setItems(vaadinPostPresenter.getAllActiveUsers());
+        userSelector.getElement().executeJs("this.inputElement.readOnly = true;");
 
         // Set default to current authenticated user
         userSelector.setValue(selectedUser);
@@ -274,6 +359,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         postSelector = new ComboBox<>("Posts by Finished Date");
         postSelector.addClassName("post-selector");
         postSelector.setItemLabelGenerator(this::generatePostLabel);
+        postSelector.getElement().executeJs("this.inputElement.readOnly = true;");
 
         // Set items to current page posts (only completed posts)
         if (currentPageData != null) {
@@ -290,14 +376,51 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
                 currentPost = e.getValue();
                 loadPostData();
                 updateReadOnlyState();
+                if (copyLinkButton != null) {
+                    copyLinkButton.setEnabled(true);
+                }
+                if (notifyButton != null) {
+                    notifyButton.setEnabled(true);
+                }
             } else {
                 // Clear the form when no post is selected
                 clearFormData();
+                if (copyLinkButton != null) {
+                    copyLinkButton.setEnabled(false);
+                }
+                if (notifyButton != null) {
+                    notifyButton.setEnabled(false);
+                }
             }
         });
 
-        // Add selectors to horizontal layout
-        selectorsLayout.add(userSelector, postSelector);
+        // Copy Link button — copies the post's deep link URL to the clipboard
+        copyLinkButton = new Button("Copy Link", VaadinIcon.COPY_O.create());
+        copyLinkButton.addClassName("copy-link-button");
+        copyLinkButton.setEnabled(false);
+        copyLinkButton.addClickListener(e -> {
+            if (currentPost == null || currentPost.getId() == null) return;
+            String url = buildPostUrl(currentPost);
+            UI ui = UI.getCurrent();
+            if (ui == null) return;
+            ui.getPage().executeJs("navigator.clipboard.writeText($0)", url);
+            AppNotification.success("Link copied to clipboard!");
+        });
+
+        selectorsLayout.add(userSelector, postSelector, copyLinkButton);
+
+        // Notify button — sends a Slack notification for the selected post (only when Slack is enabled)
+        if (vaadinPostPresenter.isSlackEnabled()) {
+            notifyButton = new Button("Notify", VaadinIcon.BELL.create());
+            notifyButton.addClassName("notify-button");
+            notifyButton.setEnabled(false);
+            notifyButton.addClickListener(e -> {
+                if (currentPost == null || currentPost.getId() == null) return;
+                vaadinPostPresenter.sendActivityNotification(currentPost);
+                AppNotification.success("Slack notification sent!");
+            });
+            selectorsLayout.add(notifyButton);
+        }
 
         // Create pagination controls
         VerticalLayout paginationLayout = createPaginationControls();
@@ -566,31 +689,45 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             // Recreate header with in-progress post view
             recreateHeader();
 
-            Notification.show("New post started!", 3000, Notification.Position.TOP_CENTER);
+            AppNotification.success("New post started!");
         } catch (Exception e) {
-            Notification.show("Error starting new post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            AppNotification.error("Error starting new post: " + e.getMessage());
         }
     }
     
     private void finishPost() {
         try {
-            vaadinPostPresenter.finishPost(currentUser);
-            
-            // Switch to completed posts view
+            // Flush any stat values typed directly into fields but not yet persisted
+            if (statsView != null) {
+                statsView.flushPendingValues();
+            }
+            Post completedPost = vaadinPostPresenter.finishPost(currentUser);
+
+            // Switch to completed posts view, landing on the just-finished post
             showingCompletedPosts = true;
-            
-            // Reload completed posts
+            currentPage = 0;
             loadCurrentPage();
-            
-            // Clear form data
-            clearFormData();
-            
-            // Recreate header with completed posts view
-            recreateHeader();
-            
-            Notification.show("Post completed successfully!", 3000, Notification.Position.TOP_CENTER);
+
+            // Post has no equals() so look up the matching instance from the loaded page by ID
+            currentPost = currentPageData.getContent().stream()
+                .filter(p -> p.getId().equals(completedPost.getId()))
+                .findFirst()
+                .orElse(completedPost);
+
+            // Rebuild the full view in completed-post mode
+            createPostView();
+            setupDataBinding();
+
+            // Populate fields with the completed post and lock them read-only
+            loadPostData();
+            updateReadOnlyState();
+
+            // Select the just-finished post in the dropdown
+            if (postSelector != null) {
+                postSelector.setValue(currentPost);
+            }
         } catch (Exception e) {
-            Notification.show("Error finishing post: " + e.getMessage(), 5000, Notification.Position.MIDDLE);
+            AppNotification.error("Error finishing post: " + e.getMessage());
         }
     }
 
@@ -630,7 +767,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             finishPostButton.addClassName("finish-post-button");
             finishPostButton.setEnabled(false); // Initially disabled
             finishPostButton.addClickListener(e -> finishPost());
-            
+
             footer.add(finishPostButton);
             footer.setAlignItems(Alignment.CENTER);
             footer.setVisible(true);
@@ -706,7 +843,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
         sectionTitle.addClassName("section-title");
 
         // Create embedded StatsView
-        statsView = StatsView.createEmbedded(vaadinPostPresenter);
+        statsView = StatsView.createEmbedded(vaadinPostPresenter, currentUser);
         statsView.addClassName("stats-view");
         statsView.setOnStatsChanged(this::updateFinishButtonState);
 
@@ -726,7 +863,11 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
 
             // Update stats view with current post data
             if (statsView != null) {
-                statsView.setPost(currentPost);
+                if (showingCompletedPosts) {
+                    statsView.loadFromPost(currentPost);
+                } else {
+                    statsView.setPost(currentPost);
+                }
             }
         } finally {
             // Re-enable updates
@@ -894,10 +1035,15 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver 
             // Update finish button state
             updateFinishButtonState();
         } catch (Exception e) {
-            Notification.show("Error saving post: " + e.getMessage(), 3000, Notification.Position.TOP_CENTER);
+            AppNotification.error("Error saving post: " + e.getMessage());
         }
     }
     
+    String buildPostUrl(Post post) {
+        if (post == null || post.getId() == null) return baseUrl + "/posts/";
+        return baseUrl + "/posts/" + postTokenService.encode(post.getId());
+    }
+
     // NOTE: Manual debouncing methods removed - now using Vaadin Binder approach
     // See setupDataBinding() and savePostChanges() methods for the modern implementation
-} 
+}
