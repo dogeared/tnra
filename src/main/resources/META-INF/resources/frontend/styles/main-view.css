@@ -72,3 +72,26 @@
 .main-profile-image:hover {
     border-color: var(--tnra-accent);
 }
+
+.main-quick-actions {
+    margin-top: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+@media (max-width: 640px) {
+    .profile-section {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+        width: min(100%, 22rem);
+    }
+
+    .main-quick-actions {
+        width: 100%;
+    }
+
+    .main-quick-actions vaadin-button {
+        flex: 1 1 10rem;
+    }
+}
