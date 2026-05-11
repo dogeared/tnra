@@ -5,10 +5,13 @@ import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.PostTokenService;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
+import com.afitnerd.tnra.model.Intro;
+import com.vaadin.flow.component.ComponentEventListener;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.page.ExtendedClientDetails;
@@ -18,7 +21,9 @@ import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.MockedConstruction;
 import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
@@ -43,7 +48,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -359,6 +366,153 @@ class PostViewTest {
             
             // Should not throw exception - error should be handled
             assertDoesNotThrow(() -> finishButton.click());
+        }
+    }
+
+    // === Significant-deletion guard (accidental wipe protection) ===
+
+    @Test
+    void testIsSignificantDeletion_BoundaryCases() {
+        // Build an unattached instance just to call the helper
+        postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+
+        // Large deletions that should trigger the guard
+        String full = "x".repeat(500);
+        assertTrue(postView.isSignificantDeletion(full, ""), "500→0 is a significant deletion");
+        assertTrue(postView.isSignificantDeletion(full, "x".repeat(50)), "500→50 (90% gone) triggers");
+        assertTrue(postView.isSignificantDeletion("x".repeat(100), "x".repeat(15)), "100→15 (85% gone) triggers");
+
+        // Edits/trims that should NOT trigger
+        assertFalse(postView.isSignificantDeletion(full, "x".repeat(200)), "500→200 (60% gone) is a normal edit");
+        assertFalse(postView.isSignificantDeletion(full, full + " more"), "Growing content is not a deletion");
+        assertFalse(postView.isSignificantDeletion("x".repeat(49), ""), "Below 50-char floor — not significant");
+        assertFalse(postView.isSignificantDeletion(null, "hello"), "Null old value is not a deletion");
+        assertFalse(postView.isSignificantDeletion("hello", null), "Loss of only 5 chars is below the floor");
+        assertFalse(postView.isSignificantDeletion("", ""), "Empty→empty is not a deletion");
+    }
+
+    @Test
+    void testWipingLongFieldOpensConfirmDialogAndBlocksSave() {
+        // Arrange: in-progress post with a long widwytk value
+        String longContent = "x".repeat(500);
+        inProgressPost.setIntro(new Intro());
+        inProgressPost.getIntro().setWidwytk(longContent);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class);
+             MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            assertEquals(longContent, postView.widwytkField.getValue(), "Field should be pre-populated");
+
+            // Act: simulate user clearing the field (Cmd+A, Delete, blur)
+            postView.widwytkField.setValue("");
+
+            // Assert: confirm dialog opened, save was NOT called
+            assertEquals(1, mockedDialog.constructed().size(), "Exactly one ConfirmDialog should be opened");
+            ConfirmDialog dialog = mockedDialog.constructed().get(0);
+            verify(dialog).open();
+            verify(vaadinPostPresenter, never()).savePost(any());
+            assertTrue(postView.pendingDeletionConfirmation, "Guard flag should be set while dialog is open");
+        }
+    }
+
+    @Test
+    void testSmallEditDoesNotOpenDialogAndSavesNormally() {
+        // Arrange: in-progress post with some widwytk content
+        inProgressPost.setIntro(new Intro());
+        inProgressPost.getIntro().setWidwytk("Hello world");
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.savePost(any())).thenReturn(inProgressPost);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class);
+             MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act: small edit (appending characters)
+            postView.widwytkField.setValue("Hello world!");
+
+            // Assert: no dialog, save happened
+            assertEquals(0, mockedDialog.constructed().size(), "No ConfirmDialog should be opened for a small edit");
+            verify(vaadinPostPresenter).savePost(any());
+            assertFalse(postView.pendingDeletionConfirmation, "Guard flag should remain false");
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void testCancellingDialogRestoresFieldAndDoesNotSave() {
+        // Arrange: in-progress post with long widwytk content
+        String longContent = "x".repeat(500);
+        inProgressPost.setIntro(new Intro());
+        inProgressPost.getIntro().setWidwytk(longContent);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class);
+             MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act: wipe the field
+            postView.widwytkField.setValue("");
+
+            ConfirmDialog dialog = mockedDialog.constructed().get(0);
+            ArgumentCaptor<ComponentEventListener> cancelCaptor = ArgumentCaptor.forClass(ComponentEventListener.class);
+            verify(dialog).addCancelListener(cancelCaptor.capture());
+
+            // Simulate user clicking Cancel
+            cancelCaptor.getValue().onComponentEvent(null);
+
+            // Assert: field restored, no save, flag cleared
+            assertEquals(longContent, postView.widwytkField.getValue(), "Field should be restored to original content");
+            verify(vaadinPostPresenter, never()).savePost(any());
+            assertFalse(postView.pendingDeletionConfirmation, "Guard flag should be cleared after cancel");
+        }
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    void testConfirmingDialogProceedsWithSave() {
+        // Arrange: in-progress post with long widwytk content
+        String longContent = "x".repeat(500);
+        inProgressPost.setIntro(new Intro());
+        inProgressPost.getIntro().setWidwytk(longContent);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+        lenient().when(vaadinPostPresenter.savePost(any())).thenReturn(inProgressPost);
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class);
+             MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            // Act: wipe the field
+            postView.widwytkField.setValue("");
+
+            ConfirmDialog dialog = mockedDialog.constructed().get(0);
+            ArgumentCaptor<ComponentEventListener> confirmCaptor = ArgumentCaptor.forClass(ComponentEventListener.class);
+            verify(dialog).addConfirmListener(confirmCaptor.capture());
+
+            // Simulate user clicking Confirm
+            confirmCaptor.getValue().onComponentEvent(null);
+
+            // Assert: save happened, flag cleared, field stays empty
+            verify(vaadinPostPresenter).savePost(any());
+            assertFalse(postView.pendingDeletionConfirmation, "Guard flag should be cleared after confirm");
+            assertEquals("", postView.widwytkField.getValue(), "Field should remain empty after confirm");
         }
     }
 
