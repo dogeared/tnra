@@ -886,22 +886,24 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     }
     
     private void clearFormData() {
-        // TODO - is this fragile? Without this, the value change listener writes empty values to the database
-        // because of the next line when we setBean to null
-        // clear current post
-        currentPost = null;
+        // Defense-in-depth: setBean(null) fires synchronous value-change events as
+        // each field is cleared. The binder listener short-circuits on
+        // currentPost == null, but isUpdating=true protects the save path even if
+        // a future refactor reorders these statements or sets a non-null bean here.
+        isUpdating = true;
+        try {
+            currentPost = null;
+            postBinder.setBean(null);
 
-        // Clear all form data using Binder (replaces all manual field clearing)
-        postBinder.setBean(null);
+            if (statsView != null) {
+                statsView.setReadOnly(true);
+                statsView.setPost(null);
+            }
 
-        // Set stats view to read-only when no post is selected
-        if (statsView != null) {
-            statsView.setReadOnly(true);
-            statsView.setPost(null);
+            setAllFieldsReadOnly(true);
+        } finally {
+            isUpdating = false;
         }
-
-        // Set all fields to read-only when no post is selected
-        setAllFieldsReadOnly(true);
     }
     
     private void setAllFieldsReadOnly(boolean readOnly) {

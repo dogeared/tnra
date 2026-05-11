@@ -517,6 +517,37 @@ class PostViewTest {
     }
 
     @Test
+    void testClearFormDataNeverTriggersSaveEvenWithLongFieldContent() {
+        // Defense-in-depth regression: clearFormData() clears the binder, which fires
+        // synchronous value-change events on each field. Even though currentPost is
+        // zeroed first, isUpdating=true must also wrap the clear so future refactors
+        // can't reintroduce a silent whole-post wipe.
+        String longContent = "x".repeat(500);
+        inProgressPost.setIntro(new Intro());
+        inProgressPost.getIntro().setWidwytk(longContent);
+        lenient().when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgressPost));
+
+        try (MockedStatic<UI> mockedUI = mockStatic(UI.class);
+             MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
+            setupUIMocks("America/New_York");
+            mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+
+            postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
+            postView.afterNavigation(mockAfterNavigationEvent());
+
+            assertEquals(longContent, postView.widwytkField.getValue(), "Field should be pre-populated");
+
+            // Act: invoke clearFormData directly
+            invokeMethod(postView, "clearFormData");
+
+            // Assert: fields cleared, no save fired, no confirm dialog opened
+            assertEquals("", postView.widwytkField.getValue(), "Field should be cleared");
+            verify(vaadinPostPresenter, never()).savePost(any());
+            assertEquals(0, mockedDialog.constructed().size(), "No ConfirmDialog should open during clearFormData");
+        }
+    }
+
+    @Test
     void testFinishPostTransitionsToCompletedReadOnlyView() {
         // Regression: finishing a post must switch to completed view, select the finished post,
         // and set all fields read-only — not leave them editable with the old post's data.
