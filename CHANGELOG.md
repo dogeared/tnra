@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.1.16] - 2026-05-11
+
+### Fixed
+- **Accidental field wipes now require confirmation.** Post fields auto-save on blur via the Vaadin Binder. Previously, a stray `Cmd+A` + Delete inside a long field (followed by tabbing or clicking out) would silently persist an empty value to the database with no undo. A `ConfirmDialog` now opens when a value-change would delete ≥50 characters AND ≥80% of the field's previous content. Cancel restores the original content; Confirm proceeds with the save. Normal trims and edits are unaffected.
+
 ## [8.1.15] - 2026-05-02
 
 ### Fixed
