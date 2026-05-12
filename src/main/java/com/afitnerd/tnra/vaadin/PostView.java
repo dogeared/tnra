@@ -5,9 +5,11 @@ import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.PostTokenService;
 import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
+import com.vaadin.flow.component.HasValue;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -103,7 +105,16 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     TextArea workWorstField;
     
     private boolean isUpdating = false;
-    
+
+    // Guard state: blocks save while a deletion-confirmation dialog is open
+    boolean pendingDeletionConfirmation = false; // package-private for testing
+
+    // Thresholds for "significant deletion" — a field that shrinks to ≤20% of
+    // its previous content (and lost ≥50 chars from a body of ≥50 chars) is
+    // treated as a likely accident and gated behind a confirm dialog
+    static final int SIGNIFICANT_DELETION_MIN_CHARS = 50;
+    static final int SIGNIFICANT_DELETION_RATIO_PERCENT = 80;
+
     // Vaadin Binder for data binding (replaces manual field syncing)
     // is the true param for nested properties needed?
     private Binder<Post> postBinder = new Binder<>(Post.class, true);
@@ -875,22 +886,24 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
     }
     
     private void clearFormData() {
-        // TODO - is this fragile? Without this, the value change listener writes empty values to the database
-        // because of the next line when we setBean to null
-        // clear current post
-        currentPost = null;
+        // Defense-in-depth: setBean(null) fires synchronous value-change events as
+        // each field is cleared. The binder listener short-circuits on
+        // currentPost == null, but isUpdating=true protects the save path even if
+        // a future refactor reorders these statements or sets a non-null bean here.
+        isUpdating = true;
+        try {
+            currentPost = null;
+            postBinder.setBean(null);
 
-        // Clear all form data using Binder (replaces all manual field clearing)
-        postBinder.setBean(null);
+            if (statsView != null) {
+                statsView.setReadOnly(true);
+                statsView.setPost(null);
+            }
 
-        // Set stats view to read-only when no post is selected
-        if (statsView != null) {
-            statsView.setReadOnly(true);
-            statsView.setPost(null);
+            setAllFieldsReadOnly(true);
+        } finally {
+            isUpdating = false;
         }
-
-        // Set all fields to read-only when no post is selected
-        setAllFieldsReadOnly(true);
     }
     
     private void setAllFieldsReadOnly(boolean readOnly) {
@@ -1012,14 +1025,92 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
             
         postBinder.forField(workWorstField).bind("work.worst");
         
-        // Add value change listener for automatic saving
+        // Add value change listener for automatic saving — guards against
+        // accidental large deletions (e.g. Cmd+A + Delete in a long field) by
+        // gating the save behind a confirm dialog
         postBinder.addValueChangeListener(event -> {
-            if (currentPost != null && !isUpdating) {
-                savePostChanges();
+            if (currentPost == null || isUpdating || pendingDeletionConfirmation) {
+                return;
             }
+            if (isSignificantDeletion(event.getOldValue(), event.getValue())) {
+                @SuppressWarnings("rawtypes")
+                HasValue field = event.getHasValue();
+                @SuppressWarnings("unchecked")
+                String oldStr = (event.getOldValue() == null) ? "" : event.getOldValue().toString();
+                showDeletionConfirmation(field, oldStr);
+                return;
+            }
+            savePostChanges();
         });
     }
-    
+
+    /**
+     * True when a field's content shrank by ≥{@value #SIGNIFICANT_DELETION_MIN_CHARS}
+     * characters AND the deletion removed at least
+     * {@value #SIGNIFICANT_DELETION_RATIO_PERCENT}% of the original content.
+     * Editing/trimming returns false; wiping a long field returns true.
+     */
+    boolean isSignificantDeletion(Object oldValue, Object newValue) {
+        String oldStr = (oldValue == null) ? "" : oldValue.toString();
+        String newStr = (newValue == null) ? "" : newValue.toString();
+        int oldLen = oldStr.length();
+        int deleted = oldLen - newStr.length();
+        if (deleted < SIGNIFICANT_DELETION_MIN_CHARS) {
+            return false;
+        }
+        // deleted * 100 / oldLen >= ratio — written as multiplication to avoid divide-by-zero
+        return deleted * 100 >= oldLen * SIGNIFICANT_DELETION_RATIO_PERCENT;
+    }
+
+    /**
+     * Opens a confirm dialog before persisting a large deletion. Cancel restores
+     * the field to {@code oldValue}; Confirm proceeds with the save.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private void showDeletionConfirmation(HasValue field, String oldValue) {
+        pendingDeletionConfirmation = true;
+        int deletedChars = oldValue.length()
+            - ((field.getValue() == null) ? 0 : field.getValue().toString().length());
+        String fieldLabel = getFieldLabel(field);
+
+        ConfirmDialog dialog = new ConfirmDialog();
+        dialog.setHeader("Confirm large deletion");
+        dialog.setText(String.format(
+            "You're about to delete %d characters from \"%s\". This will save the change. Continue?",
+            deletedChars, fieldLabel
+        ));
+        dialog.setCancelable(true);
+        dialog.setCancelText("Cancel — restore content");
+        dialog.setConfirmText("Yes, delete it");
+        dialog.setConfirmButtonTheme("error primary");
+
+        dialog.addConfirmListener(e -> {
+            pendingDeletionConfirmation = false;
+            savePostChanges();
+        });
+        dialog.addCancelListener(e -> {
+            isUpdating = true;
+            try {
+                field.setValue(oldValue);
+            } finally {
+                isUpdating = false;
+                pendingDeletionConfirmation = false;
+            }
+        });
+
+        dialog.open();
+    }
+
+    private String getFieldLabel(HasValue<?, ?> field) {
+        if (field instanceof TextArea ta) {
+            return ta.getLabel();
+        }
+        if (field instanceof TextField tf) {
+            return tf.getLabel();
+        }
+        return "this field";
+    }
+
     /**
      * Saves all form changes using Binder approach.
      */
@@ -1027,7 +1118,7 @@ public class PostView extends VerticalLayout implements AfterNavigationObserver,
         try {
             // Write current field values to the bean (even if validation fails)
             postBinder.writeBean(currentPost);
-            
+
             // Save entire post in single transaction for immediate persistence
             currentPost = vaadinPostPresenter.savePost(currentPost);
 
