@@ -1,24 +1,32 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.Post;
+import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
+import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.router.BeforeEnterEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Optional;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,6 +44,9 @@ class MainViewTest {
 
     @Mock
     private AuthNavigationService authNavigationService;
+
+    @Mock
+    private VaadinPostPresenter vaadinPostPresenter;
 
     private User testUser;
     private MainView mainView;
@@ -62,7 +73,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertNotNull(mainView);
@@ -80,7 +91,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertNotNull(mainView);
@@ -97,7 +108,7 @@ class MainViewTest {
         lenient().when(oidcUserService.isAuthenticated()).thenReturn(true);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertEquals(MainView.Alignment.CENTER, mainView.getAlignItems());
@@ -110,7 +121,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert - Constructor should complete without throwing
         assertNotNull(mainView);
@@ -125,7 +136,7 @@ class MainViewTest {
 
         // Act & Assert - Should not throw exception
         assertDoesNotThrow(() -> {
-            mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+            mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
         });
     }
 
@@ -138,7 +149,7 @@ class MainViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertNotNull(mainView);
@@ -153,7 +164,7 @@ class MainViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertNotNull(mainView);
@@ -166,7 +177,7 @@ class MainViewTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         // We can verify the view was created without exception
@@ -182,7 +193,7 @@ class MainViewTest {
         when(fileStorageService.getFileUrl(anyString())).thenReturn(null);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertNotNull(mainView);
@@ -199,7 +210,7 @@ class MainViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         // Assert
         assertNotNull(mainView);
@@ -213,7 +224,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn(" ");
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         boolean hasFallbackGreeting = mainView.getChildren()
             .flatMap(component -> component.getChildren())
@@ -230,7 +241,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn("Test User");
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         Image profileImage = mainView.getChildren()
             .flatMap(component -> component.getChildren())
@@ -247,7 +258,7 @@ class MainViewTest {
     void testMainViewShowsLoginButtonForUnauthenticatedUsers() {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         boolean hasLoginButton = mainView.getChildren()
             .anyMatch(component -> component instanceof Button && "Log in".equals(((Button) component).getText()));
@@ -262,7 +273,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn(" ");
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         boolean hasFirstNameGreeting = mainView.getChildren()
             .flatMap(c -> c.getChildren())
@@ -282,7 +293,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn("  ");
         when(userService.getCurrentUser()).thenReturn(testUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         boolean hasEmailGreeting = mainView.getChildren()
             .flatMap(c -> c.getChildren())
@@ -300,7 +311,7 @@ class MainViewTest {
         when(oidcUserService.getDisplayName()).thenReturn(null);
         when(userService.getCurrentUser()).thenReturn(emptyUser);
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         boolean hasThere = mainView.getChildren()
             .flatMap(c -> c.getChildren())
@@ -317,7 +328,7 @@ class MainViewTest {
         lenient().when(oidcUserService.getDisplayName()).thenReturn("Test");
         when(userService.getCurrentUser()).thenThrow(new RuntimeException("DB error"));
 
-        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
 
         boolean hasErrorNote = mainView.getChildren()
             .filter(c -> c instanceof Paragraph)
@@ -325,5 +336,77 @@ class MainViewTest {
             .anyMatch(p -> p.getText().contains("Could not retrieve user details"));
 
         assertTrue(hasErrorNote);
+    }
+
+    // === BeforeEnter redirect to /stats when in-progress post exists ===
+
+    @Test
+    void testBeforeEnterForwardsToStatsWhenInProgressPostExists() {
+        Post inProgress = new Post();
+        inProgress.setId(42L);
+        inProgress.setState(PostState.IN_PROGRESS);
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(userService.getCurrentUser()).thenReturn(testUser);
+        when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.of(inProgress));
+
+        lenient().when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
+
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        mainView.beforeEnter(event);
+
+        verify(event).forwardTo(StatsView.class);
+    }
+
+    @Test
+    void testBeforeEnterDoesNotForwardWhenNoInProgressPost() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(userService.getCurrentUser()).thenReturn(testUser);
+        when(vaadinPostPresenter.getOptionalInProgressPost(testUser)).thenReturn(Optional.empty());
+
+        lenient().when(oidcUserService.getDisplayName()).thenReturn("Test User");
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
+
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        mainView.beforeEnter(event);
+
+        verify(event, never()).forwardTo(StatsView.class);
+    }
+
+    @Test
+    void testBeforeEnterDoesNotForwardWhenUnauthenticated() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
+
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        mainView.beforeEnter(event);
+
+        verify(event, never()).forwardTo(StatsView.class);
+    }
+
+    @Test
+    void testBeforeEnterDoesNotForwardWhenCurrentUserNull() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        // First call (in constructor) returns null so showNotAMemberView renders;
+        // second call (in beforeEnter) also returns null so we don't forward.
+        when(userService.getCurrentUser()).thenReturn(null);
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
+
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        mainView.beforeEnter(event);
+
+        verify(event, never()).forwardTo(StatsView.class);
+    }
+
+    @Test
+    void testBeforeEnterDoesNotForwardWhenUserLookupThrows() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        // Constructor's try/catch handles the exception; beforeEnter must also swallow it
+        when(userService.getCurrentUser()).thenThrow(new RuntimeException("DB error"));
+        mainView = new MainView(oidcUserService, userService, fileStorageService, authNavigationService, vaadinPostPresenter);
+
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        assertDoesNotThrow(() -> mainView.beforeEnter(event));
+        verify(event, never()).forwardTo(StatsView.class);
     }
 }

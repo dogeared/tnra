@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.2.0] - 2026-05-12
+
+### Added
+- **Stats view becomes the default landing page when an in-progress post exists.** After authentication, members with an active in-progress post are forwarded straight to `/stats` from the home route (`/` or `/main`) so they can update weekly stats with one fewer click. The welcome view still renders when there's no in-progress post (so navigating to `/` does not silently start one). Implemented via a Vaadin `BeforeEnterObserver` on `MainView`.
+- **30-day authentication window.** `server.servlet.session.timeout` raised from 24h to 30d and Keycloak realms now declare `ssoSessionIdleTimeout` and `ssoSessionMaxLifespan` of 2,592,000 seconds (30 days). Applied to the dev realm (`keycloak/tnra-realm.json`) and the CLI template for new groups (`cli/src/main/resources/templates/realm.json.tmpl`). Existing per-group production realms must be updated manually via the Keycloak admin UI; see PRODUCTION.vps.md → Hardening Keycloak → Extending SSO session lifetime.
+
 ## [8.1.16] - 2026-05-11
 
 ### Fixed
