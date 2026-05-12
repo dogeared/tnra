@@ -44,7 +44,7 @@ server:
   servlet:
     context-path: /
     session:
-      timeout: 24h
+      timeout: 30d
   forward-headers-strategy: native
 vaadin:
   productionMode: false

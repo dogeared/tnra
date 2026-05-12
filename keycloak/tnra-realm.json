@@ -4,6 +4,8 @@
   "registrationAllowed": false,
   "loginTheme": "tnra",
   "sslRequired": "external",
+  "ssoSessionIdleTimeout": 2592000,
+  "ssoSessionMaxLifespan": 2592000,
   "roles": {
     "realm": [
       {

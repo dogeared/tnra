@@ -286,6 +286,22 @@ docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
   alpine tar czf /backup/keycloak-data-$(date +%Y%m%d).tar.gz -C /data .
 ```
 
+### Extending SSO session lifetime on existing realms
+
+`tnra-realm.json` and `realm.json.tmpl` now set 30-day SSO sessions (`ssoSessionIdleTimeout`
+and `ssoSessionMaxLifespan` = 2592000 seconds). New groups inherit these via the CLI
+template; the dev realm picks them up on a fresh import. **Existing production realms
+must be updated manually** — Keycloak only imports realm JSON on first startup.
+
+For each existing realm:
+
+1. SSH tunnel to the Keycloak admin: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
+2. Open `http://localhost:8180/admin` and log in as the Keycloak admin.
+3. Switch to the target realm → **Realm settings** → **Sessions** tab.
+4. Set **SSO Session Idle** and **SSO Session Max** to `30 Days`.
+5. Click **Save**. Existing logged-in sessions retain their original expiry; new logins
+   get the 30-day window.
+
 ## Provisioning New Groups
 
 Each TNRA group runs as its own Docker container with its own MySQL database, Keycloak

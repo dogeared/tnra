@@ -5,6 +5,7 @@ import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
+import com.afitnerd.tnra.vaadin.presenter.VaadinPostPresenter;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.dependency.CssImport;
@@ -14,6 +15,8 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.router.RouteAlias;
@@ -27,7 +30,7 @@ import org.springframework.util.StringUtils;
 @RouteAlias(value = "main", layout = MainLayout.class)
 @AnonymousAllowed
 @CssImport("./styles/main-view.css")
-public class MainView extends VerticalLayout {
+public class MainView extends VerticalLayout implements BeforeEnterObserver {
 
     private static final Logger log = LoggerFactory.getLogger(MainView.class);
 
@@ -35,17 +38,20 @@ public class MainView extends VerticalLayout {
     private final UserService userService;
     private final FileStorageService fileStorageService;
     private final AuthNavigationService authNavigationService;
+    private final VaadinPostPresenter vaadinPostPresenter;
 
     public MainView(
         OidcUserService oidcUserService,
         UserService userService,
         FileStorageService fileStorageService,
-        AuthNavigationService authNavigationService
+        AuthNavigationService authNavigationService,
+        VaadinPostPresenter vaadinPostPresenter
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.fileStorageService = fileStorageService;
         this.authNavigationService = authNavigationService;
+        this.vaadinPostPresenter = vaadinPostPresenter;
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -54,6 +60,31 @@ public class MainView extends VerticalLayout {
             showAuthenticatedView();
         } else {
             showUnauthenticatedView();
+        }
+    }
+
+    /**
+     * When authenticated members have an in-progress post, send them straight
+     * to the stats view for quick weekly stat updates. Falls through to the
+     * welcome view when there's no in-progress post (so we don't trigger
+     * {@code StatsView}'s auto-start-post behavior on a fresh visit).
+     */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        if (!oidcUserService.isAuthenticated()) {
+            return;
+        }
+        User currentUser;
+        try {
+            currentUser = userService.getCurrentUser();
+        } catch (Exception e) {
+            return;
+        }
+        if (currentUser == null) {
+            return;
+        }
+        if (vaadinPostPresenter.getOptionalInProgressPost(currentUser).isPresent()) {
+            event.forwardTo(StatsView.class);
         }
     }
     
