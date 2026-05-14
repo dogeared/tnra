@@ -43,11 +43,28 @@ public class SlackPostBodyRenderer {
         appendField(sb, "Worst", category.getWorst());
     }
 
+    /**
+     * Renders a field as:
+     * <pre>
+     * *Label:*
+     * &gt; line one of value
+     * &gt; line two of value
+     * </pre>
+     * Putting the label above the content (rather than inline) keeps long, wrapping
+     * entries flush under their section header. Prefixing each newline-separated line
+     * with {@code &gt;} keeps Slack's blockquote applied across the whole value, so
+     * multi-paragraph entries stay visually indented instead of breaking out of the
+     * quote block after the first line.
+     */
     private void appendField(StringBuilder sb, String label, String value) {
         if (isBlank(value)) {
             return;
         }
-        sb.append("> *").append(label).append(":* ").append(escape(value)).append("\n");
+        sb.append("*").append(label).append(":*\n");
+        String escaped = escape(value);
+        for (String line : escaped.split("\\r?\\n", -1)) {
+            sb.append("> ").append(line).append("\n");
+        }
     }
 
     private boolean hasAnyIntro(Intro intro) {

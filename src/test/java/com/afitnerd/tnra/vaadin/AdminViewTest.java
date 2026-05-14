@@ -926,7 +926,7 @@ class AdminViewTest {
         ui.add(view);
 
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
-        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save Changes".equals(b.getText()));
         saveBtn.click();
 
         verify(groupSettingsService).save(any(GroupSettings.class));
@@ -997,7 +997,7 @@ class AdminViewTest {
         firstComponent(integrationsTab, Checkbox.class, c -> c.getLabel().contains("publishing stats")).setValue(true);
         firstComponent(integrationsTab, Checkbox.class, c -> c.getLabel().contains("publishing post body")).setValue(true);
 
-        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save Changes".equals(b.getText()));
         saveBtn.click();
 
         ArgumentCaptor<GroupSettings> captor = ArgumentCaptor.forClass(GroupSettings.class);
@@ -1021,7 +1021,7 @@ class AdminViewTest {
         try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
             mocked.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
             VerticalLayout integrationsTab = view.createIntegrationsTabContent();
-            Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+            Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save Changes".equals(b.getText()));
             saveBtn.click();
             mocked.verify(() -> AppNotification.error(anyString()));
         }
@@ -1041,7 +1041,7 @@ class AdminViewTest {
             VerticalLayout integrationsTab = view.createIntegrationsTabContent();
             TextField webhookField = firstComponent(integrationsTab, TextField.class, f -> true);
             webhookField.setValue("http://evil.example.com/hook");
-            Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+            Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save Changes".equals(b.getText()));
             saveBtn.click();
             mocked.verify(() -> AppNotification.error(anyString()));
             verify(groupSettingsService, never()).save(any(GroupSettings.class));
@@ -1062,7 +1062,7 @@ class AdminViewTest {
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
         TextField webhookField = firstComponent(integrationsTab, TextField.class, f -> true);
         webhookField.setValue("");
-        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save".equals(b.getText()));
+        Button saveBtn = firstComponent(integrationsTab, Button.class, b -> "Save Changes".equals(b.getText()));
         saveBtn.click();
 
         ArgumentCaptor<GroupSettings> captor = ArgumentCaptor.forClass(GroupSettings.class);

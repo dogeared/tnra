@@ -32,12 +32,12 @@ class SlackPostBodyRendererTest {
         String out = renderer.render(post);
 
         assertTrue(out.contains("*Intro*"));
-        assertTrue(out.contains("*What I Don't Want You To Know:* hidden"));
-        assertTrue(out.contains("*Kryptonite:* weak"));
-        assertTrue(out.contains("*What and When:* plan"));
+        assertTrue(out.contains("*What I Don't Want You To Know:*\n> hidden"));
+        assertTrue(out.contains("*Kryptonite:*\n> weak"));
+        assertTrue(out.contains("*What and When:*\n> plan"));
         assertTrue(out.contains("*Personal*"));
-        assertTrue(out.contains("*Best:* p-best"));
-        assertTrue(out.contains("*Worst:* p-worst"));
+        assertTrue(out.contains("*Best:*\n> p-best"));
+        assertTrue(out.contains("*Worst:*\n> p-worst"));
         assertTrue(out.contains("*Family*"));
         assertTrue(out.contains("*Work*"));
     }
@@ -53,7 +53,7 @@ class SlackPostBodyRendererTest {
 
         String out = renderer.render(post);
 
-        assertTrue(out.contains("*Kryptonite:* only this"));
+        assertTrue(out.contains("*Kryptonite:*\n> only this"));
         assertFalse(out.contains("What I Don't Want You To Know"));
         assertFalse(out.contains("What and When"));
     }
@@ -71,7 +71,7 @@ class SlackPostBodyRendererTest {
 
         assertFalse(out.contains("*Personal*"), "Empty Personal section must be skipped");
         assertTrue(out.contains("*Family*"));
-        assertTrue(out.contains("*Best:* family-best"));
+        assertTrue(out.contains("*Best:*\n> family-best"));
     }
 
     @Test
@@ -95,15 +95,31 @@ class SlackPostBodyRendererTest {
     }
 
     @Test
-    void usesBlockquoteForFieldValues() {
+    void labelOnSeparateLineFromValueWithBlockquote() {
         Post post = new Post();
         Intro intro = new Intro();
         intro.setWidwytk("hidden");
         post.setIntro(intro);
 
         String out = renderer.render(post);
-        assertTrue(out.contains("> *What I Don't Want You To Know:*"),
-            "Field values must use Slack blockquote prefix");
+        assertTrue(out.contains("*What I Don't Want You To Know:*\n> hidden"),
+            "Label must be on its own line, value blockquoted underneath");
+        assertFalse(out.contains("> *What I Don't Want You To Know:* hidden"),
+            "Old inline format must not appear");
+    }
+
+    @Test
+    void multiLineValuePrefixesEveryLineWithBlockquote() {
+        // Long multi-paragraph entries (especially "Worst") used to break out of the
+        // blockquote after the first line, leaving the wrapped portion un-indented.
+        // Each newline-separated line must now get its own `>` prefix.
+        Post post = new Post();
+        post.setPersonal(category("short best", "line one\nline two\nline three"));
+
+        String out = renderer.render(post);
+
+        assertTrue(out.contains("*Worst:*\n> line one\n> line two\n> line three"),
+            "Every line of a multi-line value must be prefixed with `> `");
     }
 
     private Category category(String best, String worst) {

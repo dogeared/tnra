@@ -506,6 +506,20 @@ public class AdminView extends VerticalLayout {
         );
         publishDescription.addClassName("admin-subtitle");
 
+        Paragraph encryptionWarning = new Paragraph(
+            "⚠️ Heads up: post content is encrypted at rest in our database. "
+                + "Enabling Slack publishing means any content sent (body and/or stats) "
+                + "leaves the encrypted system and becomes visible to anyone with access "
+                + "to your Slack workspace. That trade-off is up to your group — and to "
+                + "each member, when no group-level override forces it."
+        );
+        encryptionWarning.addClassName("admin-subtitle");
+        encryptionWarning.getStyle()
+            .set("background-color", "var(--lumo-error-color-10pct)")
+            .set("border-left", "4px solid var(--lumo-error-color)")
+            .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
         Checkbox publishPostDataCheckbox = new Checkbox("Publish post data to Slack (master toggle)");
         publishPostDataCheckbox.setValue(settings.isSlackPublishPostData());
 
@@ -523,7 +537,7 @@ public class AdminView extends VerticalLayout {
             publishPostBodyCheckbox.setEnabled(on);
         });
 
-        Button saveBtn = new Button("Save", VaadinIcon.CHECK.create());
+        Button saveBtn = new Button("Save Changes", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> {
             String url = webhookUrlField.getValue().isBlank() ? null : webhookUrlField.getValue().trim();
@@ -547,7 +561,7 @@ public class AdminView extends VerticalLayout {
 
         content.add(
             header, description, slackHeader, webhookUrlField, enabledCheckbox,
-            publishHeader, publishDescription,
+            publishHeader, publishDescription, encryptionWarning,
             publishPostDataCheckbox, publishStatsCheckbox, publishPostBodyCheckbox,
             saveBtn
         );

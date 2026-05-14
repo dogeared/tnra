@@ -970,6 +970,9 @@ class ProfileViewTest {
         assertTrue(profileView.slackPublishSection.isVisible());
         assertFalse(profileView.slackPublishStatsCheckbox.isReadOnly());
         assertFalse(profileView.slackPublishPostBodyCheckbox.isReadOnly());
+        assertFalse(profileView.slackPublishStatsOverrideBadge.isVisible(),
+            "No badge visible when no override is in effect");
+        assertFalse(profileView.slackPublishPostBodyOverrideBadge.isVisible());
     }
 
     @Test
@@ -983,8 +986,12 @@ class ProfileViewTest {
 
         assertTrue(profileView.slackPublishStatsCheckbox.getValue(), "Stats checkbox must be force-checked");
         assertTrue(profileView.slackPublishStatsCheckbox.isReadOnly(), "Stats checkbox must be read-only");
+        assertTrue(profileView.slackPublishStatsOverrideBadge.isVisible(),
+            "Override badge must be visible so the override is obvious without hovering");
         assertFalse(profileView.slackPublishPostBodyCheckbox.isReadOnly(),
             "Body checkbox stays user-editable when only stats is overridden");
+        assertFalse(profileView.slackPublishPostBodyOverrideBadge.isVisible(),
+            "Body badge must stay hidden when body is not overridden");
     }
 
     @Test
@@ -998,7 +1005,9 @@ class ProfileViewTest {
 
         assertTrue(profileView.slackPublishPostBodyCheckbox.getValue());
         assertTrue(profileView.slackPublishPostBodyCheckbox.isReadOnly());
+        assertTrue(profileView.slackPublishPostBodyOverrideBadge.isVisible());
         assertFalse(profileView.slackPublishStatsCheckbox.isReadOnly());
+        assertFalse(profileView.slackPublishStatsOverrideBadge.isVisible());
     }
 
     @Test
