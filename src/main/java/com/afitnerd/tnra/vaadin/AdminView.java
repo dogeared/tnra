@@ -496,6 +496,33 @@ public class AdminView extends VerticalLayout {
         Checkbox enabledCheckbox = new Checkbox("Enable Slack notifications");
         enabledCheckbox.setValue(settings.isSlackEnabled());
 
+        H3 publishHeader = new H3("Post content publishing");
+        publishHeader.addClassName("section-header");
+
+        Paragraph publishDescription = new Paragraph(
+            "Optionally include the post body and/or stats in the Slack message. "
+                + "Members can opt in or out of each in their profile — unless a setting "
+                + "below is checked, in which case it's required for everyone in the group."
+        );
+        publishDescription.addClassName("admin-subtitle");
+
+        Checkbox publishPostDataCheckbox = new Checkbox("Publish post data to Slack (master toggle)");
+        publishPostDataCheckbox.setValue(settings.isSlackPublishPostData());
+
+        Checkbox publishStatsCheckbox = new Checkbox("Require publishing stats");
+        publishStatsCheckbox.setValue(settings.isSlackPublishStats());
+        publishStatsCheckbox.setEnabled(publishPostDataCheckbox.getValue());
+
+        Checkbox publishPostBodyCheckbox = new Checkbox("Require publishing post body");
+        publishPostBodyCheckbox.setValue(settings.isSlackPublishPostBody());
+        publishPostBodyCheckbox.setEnabled(publishPostDataCheckbox.getValue());
+
+        publishPostDataCheckbox.addValueChangeListener(ev -> {
+            boolean on = Boolean.TRUE.equals(ev.getValue());
+            publishStatsCheckbox.setEnabled(on);
+            publishPostBodyCheckbox.setEnabled(on);
+        });
+
         Button saveBtn = new Button("Save", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> {
@@ -507,6 +534,9 @@ public class AdminView extends VerticalLayout {
             GroupSettings current = groupSettingsService.getSettings();
             current.setSlackWebhookUrl(url);
             current.setSlackEnabled(enabledCheckbox.getValue());
+            current.setSlackPublishPostData(publishPostDataCheckbox.getValue());
+            current.setSlackPublishStats(publishStatsCheckbox.getValue());
+            current.setSlackPublishPostBody(publishPostBodyCheckbox.getValue());
             try {
                 groupSettingsService.save(current);
                 AppNotification.success("Slack settings saved");
@@ -515,7 +545,12 @@ public class AdminView extends VerticalLayout {
             }
         });
 
-        content.add(header, description, slackHeader, webhookUrlField, enabledCheckbox, saveBtn);
+        content.add(
+            header, description, slackHeader, webhookUrlField, enabledCheckbox,
+            publishHeader, publishDescription,
+            publishPostDataCheckbox, publishStatsCheckbox, publishPostBodyCheckbox,
+            saveBtn
+        );
         return content;
     }
 

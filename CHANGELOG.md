@@ -2,6 +2,17 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.3.0] - 2026-05-14
+
+### Added
+- **Slack post publishing — three-layer opt-in.** Group admins can now choose to publish post content (body, stats, or both) to Slack when a member finishes a post. Admin → Integrations → Slack now has three new checkboxes: *Publish post data to Slack* (master toggle), *Require publishing stats*, and *Require publishing post body*. When the master is off, the existing one-line activity notification is the only Slack message (today's behavior — defaults are all `false`).
+- **Per-member Slack publishing preferences.** When the group master toggle is on, members see a *Slack publishing* section in their profile with two checkboxes (publish my stats, publish my post body). If the group also requires one of those at the global level, the matching member checkbox is force-checked and read-only — the member's stored value is preserved so flipping the override off later restores their original preference.
+- **Body-before-stats ordering.** When both body and stats are sent, the post body appears first, followed by the stats block. Each section uses Slack mrkdwn (bold labels, blockquote prefix for body fields, emojis + labels for stats). Archived stats and blank fields are skipped.
+- **Encryption-aware design.** Post fields and stat values remain encrypted at rest (existing `EncryptedStringConverter` / `EncryptedIntegerConverter`). They're decrypted at JPA load time before the Slack renderer reads them, so plaintext only leaves the server when the group and member have both opted in.
+
+### Database
+- Flyway `V12__slack_publish_controls.sql` adds three columns to `group_settings` and two to `users`, all defaulting to `FALSE` so existing groups/users keep today's behavior.
+
 ## [8.2.0] - 2026-05-12
 
 ### Added

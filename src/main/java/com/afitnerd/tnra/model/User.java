@@ -57,6 +57,14 @@ public class User {
     private Boolean notifyNewPosts = true;
 
     @JsonView(JsonViews.Full.class)
+    @Column(name = "slack_publish_stats", nullable = false)
+    private Boolean slackPublishStats = false;
+
+    @JsonView(JsonViews.Full.class)
+    @Column(name = "slack_publish_post_body", nullable = false)
+    private Boolean slackPublishPostBody = false;
+
+    @JsonView(JsonViews.Full.class)
     @JsonIgnoreProperties("user")
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Post> posts;
@@ -171,5 +179,21 @@ public class User {
 
     public void setNotifyNewPosts(Boolean notifyNewPosts) {
         this.notifyNewPosts = notifyNewPosts;
+    }
+
+    public Boolean getSlackPublishStats() {
+        return slackPublishStats;
+    }
+
+    public void setSlackPublishStats(Boolean slackPublishStats) {
+        this.slackPublishStats = slackPublishStats;
+    }
+
+    public Boolean getSlackPublishPostBody() {
+        return slackPublishPostBody;
+    }
+
+    public void setSlackPublishPostBody(Boolean slackPublishPostBody) {
+        this.slackPublishPostBody = slackPublishPostBody;
     }
 }
