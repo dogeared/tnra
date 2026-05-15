@@ -1,15 +1,18 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.model.GroupSettings;
 import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
+import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.html.Div;
@@ -46,9 +49,10 @@ public class ProfileView extends VerticalLayout {
     private final FileStorageService fileStorageService;
     private final StatDefinitionRepository statDefinitionRepository;
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
+    private final GroupSettingsService groupSettingsService;
     private User currentUser;
     private VerticalLayout myStatsList;
-    
+
     private TextField firstNameField;
     private TextField lastNameField;
     private TextField phoneNumberField;
@@ -56,6 +60,13 @@ public class ProfileView extends VerticalLayout {
     private Upload imageUpload;
     private Button saveButton;
     private Checkbox notifyNewPostsCheckbox;
+
+    // Slack publishing — package-private for testing
+    VerticalLayout slackPublishSection;
+    Checkbox slackPublishStatsCheckbox;
+    Checkbox slackPublishPostBodyCheckbox;
+    Span slackPublishStatsOverrideBadge;
+    Span slackPublishPostBodyOverrideBadge;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -64,13 +75,15 @@ public class ProfileView extends VerticalLayout {
     public ProfileView(
         UserService userService, FileStorageService fileStorageService,
         StatDefinitionRepository statDefinitionRepository,
-        PersonalStatDefinitionRepository personalStatDefinitionRepository
+        PersonalStatDefinitionRepository personalStatDefinitionRepository,
+        GroupSettingsService groupSettingsService
     ) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
         this.statDefinitionRepository = statDefinitionRepository;
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
-        
+        this.groupSettingsService = groupSettingsService;
+
         setSizeFull();
         setPadding(true);
         setSpacing(true);
@@ -133,8 +146,22 @@ public class ProfileView extends VerticalLayout {
         notifSection.setSpacing(true);
         notifSection.setPadding(false);
 
-        // Save Button
-        saveButton = new Button("Save Changes");
+        // Slack publishing preferences — visibility/disabled state computed in loadUserData()
+        H3 slackHeader = new H3("Slack publishing");
+        slackPublishStatsCheckbox = new Checkbox("Publish my stats to Slack when I finish a post");
+        slackPublishPostBodyCheckbox = new Checkbox("Publish my post body to Slack when I finish a post");
+        slackPublishStatsOverrideBadge = createOverrideBadge();
+        slackPublishPostBodyOverrideBadge = createOverrideBadge();
+        HorizontalLayout statsRow = checkboxRow(slackPublishStatsCheckbox, slackPublishStatsOverrideBadge);
+        HorizontalLayout bodyRow = checkboxRow(slackPublishPostBodyCheckbox, slackPublishPostBodyOverrideBadge);
+        slackPublishSection = new VerticalLayout(slackHeader, statsRow, bodyRow);
+        slackPublishSection.setSpacing(true);
+        slackPublishSection.setPadding(false);
+        slackPublishSection.setVisible(false); // default hidden; loadUserData() will reveal if group allows
+
+        // Save Button — styled consistently with the Admin Integrations save button
+        saveButton = new Button("Save Changes", VaadinIcon.CHECK.create());
+        saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(e -> saveProfile());
 
         // Layout
@@ -142,7 +169,7 @@ public class ProfileView extends VerticalLayout {
         formLayout.setSpacing(true);
         formLayout.setPadding(false);
         formLayout.addClassName("form-section");
-        formLayout.add(firstNameField, lastNameField, phoneNumberField, notifSection, saveButton);
+        formLayout.add(firstNameField, lastNameField, phoneNumberField, notifSection, slackPublishSection, saveButton);
         
         HorizontalLayout mainLayout = new HorizontalLayout();
         mainLayout.setSpacing(true);
@@ -481,6 +508,8 @@ public class ProfileView extends VerticalLayout {
 
             notifyNewPostsCheckbox.setValue(Boolean.TRUE.equals(currentUser.getNotifyNewPosts()));
 
+            applySlackPublishSectionState();
+
             if (currentUser.getProfileImage() != null && !currentUser.getProfileImage().isEmpty()) {
                 String imageUrl = fileStorageService.getFileUrl(currentUser.getProfileImage());
                 profileImage.setSrc(imageUrl);
@@ -507,7 +536,19 @@ public class ProfileView extends VerticalLayout {
             // Store normalized phone number (digits only)
             currentUser.setPhoneNumber(normalizePhoneNumber(phoneNumber));
             currentUser.setNotifyNewPosts(notifyNewPostsCheckbox.getValue());
-            
+
+            // Persist whichever value the user can actually change. When a group-level
+            // override is on, the corresponding checkbox is disabled in the UI and its
+            // value is force-checked; we keep the previously stored value so that
+            // turning the global override off later restores the member's choice.
+            GroupSettings settings = groupSettingsService.getSettings();
+            if (settings.isSlackPublishPostData() && !settings.isSlackPublishStats()) {
+                currentUser.setSlackPublishStats(slackPublishStatsCheckbox.getValue());
+            }
+            if (settings.isSlackPublishPostData() && !settings.isSlackPublishPostBody()) {
+                currentUser.setSlackPublishPostBody(slackPublishPostBodyCheckbox.getValue());
+            }
+
             try {
                 userService.saveUser(currentUser);
                 AppNotification.success("Profile saved successfully");
@@ -515,5 +556,46 @@ public class ProfileView extends VerticalLayout {
                 AppNotification.error("Error saving profile");
             }
         }
+    }
+
+    /**
+     * Computes visibility + enabled state for the Slack publishing section based on
+     * the group's master toggle and per-channel overrides. When the master is off,
+     * the whole section is hidden. When a per-channel override is on, the matching
+     * checkbox is shown checked and read-only, with a visible "Required by group"
+     * badge so the override is obvious without hovering.
+     */
+    void applySlackPublishSectionState() {
+        GroupSettings settings = groupSettingsService.getSettings();
+        boolean masterOn = settings.isSlackPublishPostData();
+        slackPublishSection.setVisible(masterOn);
+        if (!masterOn) {
+            return;
+        }
+        boolean statsForced = settings.isSlackPublishStats();
+        slackPublishStatsCheckbox.setValue(statsForced || Boolean.TRUE.equals(currentUser.getSlackPublishStats()));
+        slackPublishStatsCheckbox.setReadOnly(statsForced);
+        slackPublishStatsOverrideBadge.setVisible(statsForced);
+
+        boolean bodyForced = settings.isSlackPublishPostBody();
+        slackPublishPostBodyCheckbox.setValue(bodyForced || Boolean.TRUE.equals(currentUser.getSlackPublishPostBody()));
+        slackPublishPostBodyCheckbox.setReadOnly(bodyForced);
+        slackPublishPostBodyOverrideBadge.setVisible(bodyForced);
+    }
+
+    private Span createOverrideBadge() {
+        Span badge = new Span("Required by group settings");
+        badge.getElement().getThemeList().add("badge contrast small");
+        badge.getStyle().set("margin-inline-start", "var(--lumo-space-s)");
+        badge.setVisible(false);
+        return badge;
+    }
+
+    private HorizontalLayout checkboxRow(Checkbox checkbox, Span badge) {
+        HorizontalLayout row = new HorizontalLayout(checkbox, badge);
+        row.setSpacing(false);
+        row.setPadding(false);
+        row.setAlignItems(Alignment.CENTER);
+        return row;
     }
 } 

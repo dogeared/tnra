@@ -25,16 +25,22 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
 
     private final GroupSettingsService groupSettingsService;
     private final PostTokenService postTokenService;
+    private final SlackPostBodyRenderer slackPostBodyRenderer;
+    private final SlackStatsRenderer slackStatsRenderer;
     private final String baseUrl;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public SlackNotificationServiceImpl(
         GroupSettingsService groupSettingsService,
         PostTokenService postTokenService,
+        SlackPostBodyRenderer slackPostBodyRenderer,
+        SlackStatsRenderer slackStatsRenderer,
         @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
         this.groupSettingsService = groupSettingsService;
         this.postTokenService = postTokenService;
+        this.slackPostBodyRenderer = slackPostBodyRenderer;
+        this.slackStatsRenderer = slackStatsRenderer;
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
     }
 
@@ -52,7 +58,7 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
             return;
         }
 
-        String message = buildMessage(post);
+        String message = buildMessage(post, settings);
         try {
             String payload = objectMapper.writeValueAsString(Map.of("text", message));
             doPost(webhookUrl, payload);
@@ -74,7 +80,7 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
             .discardContent();
     }
 
-    String buildMessage(Post post) {
+    String buildMessage(Post post, GroupSettings settings) {
         User user = post.getUser();
         String username = "Someone";
         if (user != null) {
@@ -95,7 +101,42 @@ public class SlackNotificationServiceImpl implements SlackNotificationService {
             ? baseUrl + "/posts/" + postTokenService.encode(post.getId())
             : baseUrl + "/posts/";
 
-        return escapeSlack(username) + " finished a post | Started: " + started + " | Finished: " + finished + " | View <" + postUrl + "|here>";
+        StringBuilder message = new StringBuilder();
+        message.append(escapeSlack(username))
+            .append(" finished a post | Started: ").append(started)
+            .append(" | Finished: ").append(finished)
+            .append(" | View <").append(postUrl).append("|here>");
+
+        // Body before stats when both are requested.
+        if (shouldPublishBody(settings, user)) {
+            String body = slackPostBodyRenderer.render(post);
+            if (body != null && !body.isBlank()) {
+                message.append("\n\n").append(body);
+            }
+        }
+        if (shouldPublishStats(settings, user)) {
+            String stats = slackStatsRenderer.render(post);
+            if (stats != null && !stats.isBlank()) {
+                message.append("\n\n").append(stats);
+            }
+        }
+        return message.toString();
+    }
+
+    static boolean shouldPublishBody(GroupSettings settings, User user) {
+        if (!settings.isSlackPublishPostData()) {
+            return false;
+        }
+        return settings.isSlackPublishPostBody()
+            || (user != null && Boolean.TRUE.equals(user.getSlackPublishPostBody()));
+    }
+
+    static boolean shouldPublishStats(GroupSettings settings, User user) {
+        if (!settings.isSlackPublishPostData()) {
+            return false;
+        }
+        return settings.isSlackPublishStats()
+            || (user != null && Boolean.TRUE.equals(user.getSlackPublishStats()));
     }
 
     private static String escapeSlack(String input) {

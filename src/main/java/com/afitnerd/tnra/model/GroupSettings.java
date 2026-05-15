@@ -26,6 +26,15 @@ public class GroupSettings {
     @Column(name = "slack_enabled")
     private boolean slackEnabled;
 
+    @Column(name = "slack_publish_post_data")
+    private boolean slackPublishPostData;
+
+    @Column(name = "slack_publish_stats")
+    private boolean slackPublishStats;
+
+    @Column(name = "slack_publish_post_body")
+    private boolean slackPublishPostBody;
+
     @Column(name = "created_at")
     private Date createdAt = new Date();
 
@@ -39,6 +48,15 @@ public class GroupSettings {
 
     public boolean isSlackEnabled() { return slackEnabled; }
     public void setSlackEnabled(boolean slackEnabled) { this.slackEnabled = slackEnabled; }
+
+    public boolean isSlackPublishPostData() { return slackPublishPostData; }
+    public void setSlackPublishPostData(boolean slackPublishPostData) { this.slackPublishPostData = slackPublishPostData; }
+
+    public boolean isSlackPublishStats() { return slackPublishStats; }
+    public void setSlackPublishStats(boolean slackPublishStats) { this.slackPublishStats = slackPublishStats; }
+
+    public boolean isSlackPublishPostBody() { return slackPublishPostBody; }
+    public void setSlackPublishPostBody(boolean slackPublishPostBody) { this.slackPublishPostBody = slackPublishPostBody; }
 
     public Date getCreatedAt() { return createdAt; }
     public void setCreatedAt(Date createdAt) { this.createdAt = createdAt; }

@@ -496,7 +496,48 @@ public class AdminView extends VerticalLayout {
         Checkbox enabledCheckbox = new Checkbox("Enable Slack notifications");
         enabledCheckbox.setValue(settings.isSlackEnabled());
 
-        Button saveBtn = new Button("Save", VaadinIcon.CHECK.create());
+        H3 publishHeader = new H3("Post content publishing");
+        publishHeader.addClassName("section-header");
+
+        Paragraph publishDescription = new Paragraph(
+            "Optionally include the post body and/or stats in the Slack message. "
+                + "Members can opt in or out of each in their profile — unless a setting "
+                + "below is checked, in which case it's required for everyone in the group."
+        );
+        publishDescription.addClassName("admin-subtitle");
+
+        Paragraph encryptionWarning = new Paragraph(
+            "⚠️ Heads up: post content is encrypted at rest in our database. "
+                + "Enabling Slack publishing means any content sent (body and/or stats) "
+                + "leaves the encrypted system and becomes visible to anyone with access "
+                + "to your Slack workspace. That trade-off is up to your group — and to "
+                + "each member, when no group-level override forces it."
+        );
+        encryptionWarning.addClassName("admin-subtitle");
+        encryptionWarning.getStyle()
+            .set("background-color", "var(--lumo-error-color-10pct)")
+            .set("border-left", "4px solid var(--lumo-error-color)")
+            .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
+        Checkbox publishPostDataCheckbox = new Checkbox("Publish post data to Slack (master toggle)");
+        publishPostDataCheckbox.setValue(settings.isSlackPublishPostData());
+
+        Checkbox publishStatsCheckbox = new Checkbox("Require publishing stats");
+        publishStatsCheckbox.setValue(settings.isSlackPublishStats());
+        publishStatsCheckbox.setEnabled(publishPostDataCheckbox.getValue());
+
+        Checkbox publishPostBodyCheckbox = new Checkbox("Require publishing post body");
+        publishPostBodyCheckbox.setValue(settings.isSlackPublishPostBody());
+        publishPostBodyCheckbox.setEnabled(publishPostDataCheckbox.getValue());
+
+        publishPostDataCheckbox.addValueChangeListener(ev -> {
+            boolean on = Boolean.TRUE.equals(ev.getValue());
+            publishStatsCheckbox.setEnabled(on);
+            publishPostBodyCheckbox.setEnabled(on);
+        });
+
+        Button saveBtn = new Button("Save Changes", VaadinIcon.CHECK.create());
         saveBtn.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveBtn.addClickListener(e -> {
             String url = webhookUrlField.getValue().isBlank() ? null : webhookUrlField.getValue().trim();
@@ -507,6 +548,9 @@ public class AdminView extends VerticalLayout {
             GroupSettings current = groupSettingsService.getSettings();
             current.setSlackWebhookUrl(url);
             current.setSlackEnabled(enabledCheckbox.getValue());
+            current.setSlackPublishPostData(publishPostDataCheckbox.getValue());
+            current.setSlackPublishStats(publishStatsCheckbox.getValue());
+            current.setSlackPublishPostBody(publishPostBodyCheckbox.getValue());
             try {
                 groupSettingsService.save(current);
                 AppNotification.success("Slack settings saved");
@@ -515,7 +559,12 @@ public class AdminView extends VerticalLayout {
             }
         });
 
-        content.add(header, description, slackHeader, webhookUrlField, enabledCheckbox, saveBtn);
+        content.add(
+            header, description, slackHeader, webhookUrlField, enabledCheckbox,
+            publishHeader, publishDescription, encryptionWarning,
+            publishPostDataCheckbox, publishStatsCheckbox, publishPostBodyCheckbox,
+            saveBtn
+        );
         return content;
     }
 
