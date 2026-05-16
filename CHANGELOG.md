@@ -2,6 +2,18 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.4.0] - 2026-05-16
+
+### Added
+- **Landing page service (`tnra-landing`).** New standalone Spring Boot + Vaadin service hosted at `tnra.app`. Includes a public landing page describing TNRA and a request access form (group name, contact name, email, estimated size, description). Submissions are persisted to a dedicated `tnra_landing` MySQL database and trigger a Mailgun email notification to the founder. Per-IP rate limiting (5 requests/hour) is enforced. The service is fully public — no Keycloak dependency.
+- **Production infra for the landing service.** `docker-compose.production.yml` adds a `tnra-landing` container on port 8081 connected to the shared MySQL. `nginx/sites/tnra-landing.conf` routes `tnra.app` and `www.tnra.app` to the container with HTTPS and HTTP→HTTPS redirect.
+
+### Fixed (landing build flow)
+- **Local Docker build was running the full Vaadin frontend build inside the Maven builder container.** Under Docker Desktop on macOS the embedded npm would crash with `Exit handler never called!` after tens of minutes, leaving the resulting JAR with no `META-INF/VAADIN/webapp/VAADIN/build/` bundle. `landing/Dockerfile.dev` is now runtime-only (matches `Dockerfile` for the main app): the JAR is built on the host with `mvn package -DskipTests -Pproduction` first, then Docker just packages it.
+- **`<vaadin.version>` bumped from 24.9.9 → 24.9.10** in `landing/pom.xml`. 24.9.9's `vaadin-maven-plugin` shipped Jackson 2.19.1 while Spring Boot 3.5.11 pulls 2.19.4, triggering a `MissingNode → ObjectNode` ClassCast inside Vaadin's reflector class loader during `build-frontend`. 24.9.10 aligns the versions.
+- **`SecurityConfig.filterChain` no longer calls `authorizeHttpRequests(...).anyRequest().permitAll()`.** The transitive `vaadin-spring` (24.9.11) adds its own `requestMatchers(...)` inside `VaadinSecurityConfigurer.init()`, which trips a Spring Security 6.5 assertion (`Can't configure requestMatchers after anyRequest`) when `anyRequest()` is called before init runs. `@AnonymousAllowed` on `LandingView` is what actually grants public access — Vaadin's configurer reads the annotation.
+- **`docker-compose.yml` sets `VAADIN_PRODUCTIONMODE=true`** for the `tnra-landing` service. Redundant once the production JAR is host-built (the bundle in the JAR is the authoritative signal), but explicit about runtime intent.
+
 ## [8.3.1] - 2026-05-16
 
 ### Changed
@@ -37,6 +49,7 @@ All notable changes to TNRA are documented in this file.
 
 ### Fixed
 - **Finishing a post no longer leaves fields editable.** After clicking "Finish Post", the UI now switches to the completed-post view, selects the just-finished post in the dropdown, and sets all fields read-only. Previously, the view remained in the editable in-progress state, which caused the next new post to inherit the previous post's data.
+
 
 ## [8.1.14] - 2026-04-28
 

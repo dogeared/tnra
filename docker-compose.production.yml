@@ -41,6 +41,27 @@ services:
       - tnra-production-shared
     env_file: .env
 
+  tnra-landing:
+    container_name: tnra-landing
+    image: tnra-landing:latest
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/tnra_landing?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MAILGUN_KEY_PRIVATE: ${MAILGUN_KEY_PRIVATE}
+      MAILGUN_URL: ${MAILGUN_URL}
+      TNRA_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL}
+      TNRA_NOTIFY_ENABLED: "true"
+      VAADIN_PRODUCTIONMODE: "true"
+    ports:
+      - '127.0.0.1:8081:8080'
+    networks:
+      - tnra-production-shared
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   cloudflared:
     profiles: [cloudflare]
     image: cloudflare/cloudflared:latest
