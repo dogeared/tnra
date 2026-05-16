@@ -13,8 +13,12 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        // VaadinSecurityConfigurer reads @AnonymousAllowed on each view to grant
+        // anonymous access. LandingView is annotated, so nothing extra is needed.
+        // Explicitly calling `authorizeHttpRequests(...).anyRequest()` before
+        // VaadinSecurityConfigurer.init() runs trips a "Can't configure
+        // requestMatchers after anyRequest" assertion in Vaadin 24.9.11+.
         http.with(VaadinSecurityConfigurer.vaadin(), cfg -> {});
-        http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         return http.build();
     }
 }

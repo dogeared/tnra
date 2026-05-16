@@ -1,13 +1,20 @@
-FROM maven:3.9-eclipse-temurin-21 AS builder
-WORKDIR /app
-COPY pom.xml .
-RUN mvn dependency:go-offline -q
-COPY src ./src
-RUN mvn clean package -DskipTests -q
+# Local-dev Dockerfile for the landing service.
+#
+# Builds the same way the main TNRA app does: the JAR is built on the host
+# (where Node/npm have enough memory and a stable toolchain), then this
+# Dockerfile just packages the pre-built JAR. Running the full Vaadin
+# `build-frontend` inside the Maven container was unreliable on Docker
+# Desktop on Mac — npm would OOM with "Exit handler never called" after
+# tens of minutes inside the constrained builder layer.
+#
+# Build the JAR first from the landing/ directory:
+#   mvn clean package -DskipTests -Pproduction
+# Then:
+#   docker compose up tnra-landing --build -d
 
 FROM eclipse-temurin:21-jammy
 RUN useradd -r -u 1001 -g root appuser
 VOLUME /tmp
-COPY --from=builder /app/target/*.jar app.jar
+ADD target/*.jar app.jar
 USER appuser
 ENTRYPOINT ["java", "-jar", "/app.jar"]
