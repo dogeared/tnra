@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - '.github/badges/**'
   pull_request:
     branches:
       - main
@@ -50,6 +48,13 @@ jobs:
         continue-on-error: true
         run: ./mvnw --batch-mode verify
 
+      - name: Checkout badges branch into subdir
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        uses: actions/checkout@v4
+        with:
+          ref: badges
+          path: badges-branch
+
       - name: Set build badge metadata
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         id: build_badge
@@ -68,23 +73,28 @@ jobs:
         with:
           generate-branches-badge: false
           jacoco-csv-file: target/site/jacoco/jacoco.csv
-          badges-directory: .github/badges
+          badges-directory: badges-branch
 
       - name: Generate build badge
         if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
         run: |
           curl -fsSL \
             "https://img.shields.io/badge/build-${{ steps.build_badge.outputs.status }}-${{ steps.build_badge.outputs.color }}.svg" \
-            -o .github/badges/build.svg
+            -o badges-branch/build.svg
 
-      - name: Commit and push the badge
-        uses: EndBug/add-and-commit@v9
-        with:
-          # Commits the generated badge file to the repository
-          add: '.github/badges/*.svg'
-          message: 'chore: generate JaCoCo coverage badge'
-        # Only run on the main branch pushes, not PRs
-        if: github.ref == 'refs/heads/main'
+      - name: Commit and push to badges branch
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        working-directory: badges-branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add *.svg
+          if git diff --staged --quiet; then
+            echo "No badge changes — skipping commit"
+            exit 0
+          fi
+          git commit -m "chore: update badges (coverage / build)"
+          git push origin badges
 
       - name: Fail job if verification failed
         if: steps.verify.outcome != 'success'

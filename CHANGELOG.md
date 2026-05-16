@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.3.1] - 2026-05-16
+
+### Changed
+- **Coverage badge moved off `main`.** The JaCoCo coverage badge SVG is now stored on a dedicated orphan `badges` branch rather than being committed back into `main` by CI. `main`'s history reflects human intent only; the bot push lands on a separate branch and never triggers the main workflow. The README badge now references the SVG via the raw GitHub URL pointing at the `badges` branch.
+
 ## [8.3.0] - 2026-05-14
 
 ### Added
