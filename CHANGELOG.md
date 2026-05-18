@@ -2,6 +2,22 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.0.0] - 2026-06-04
+
+### Changed (breaking — structural)
+- **Project restructured into a Maven multi-module layout.** The repo root is now a parent aggregator (`<packaging>pom</packaging>`, modules: `tnra-app`, `tnra-cli-app`, `tnra-landing-app`). The main app's `src/`, `pom.xml`, `Dockerfile`, and `docker-entrypoint.sh` moved into `tnra-app/`; `cli/` was renamed to `tnra-cli-app/`; `landing/` was renamed to `tnra-landing-app/`. **No Java code or package names changed** — every import stays identical, and 697 tests (656 main + 33 CLI + 8 landing) pass unchanged from root via `./mvnw clean test`.
+- **Per-group docker-compose template** (`tnra-cli-app/src/main/resources/templates/docker-compose.yml.tmpl`) now points its build context at `./tnra-app` instead of `.`, so the production Dockerfile inside `tnra-app/` resolves correctly when the compose runs from `~/tnra/` on the VPS.
+- **Module versions aligned at 9.0.0.** Previously `tnra` was `0.0.1-SNAPSHOT`, `tnra-cli` was `1.0.0`, and `tnra-landing` was `1.0.0-SNAPSHOT`. All three now report 9.0.0, matching `VERSION` and the git tag.
+- **Operator commands.** From the repo root, `./mvnw clean test` runs every module's tests. To scope a build to just the main app (skipping the landing Vaadin frontend build), use `./mvnw -pl tnra-app -am clean package -Pproduction -DskipTests`. `spring-boot:run` requires `-pl tnra-app` since the aggregator isn't itself a Spring Boot app. Updated in PRODUCTION.vps.md, PRODUCTION.cloudflare.md, and the per-group instructions template.
+- **Documentation updated** for the new paths: README's *Project Structure* tree, both PRODUCTION docs, `CLAUDE.md` test directory, and the CLI's `instructions.md.tmpl`. `Procfile` and `bootstrap.sh` printed-instructions updated to reference `tnra-app/target/*.jar` and `tnra-cli-app/target/tnra-cli.jar`.
+- **CI**: `.github/workflows/tests.yml` `cd cli` → `cd tnra-cli-app`; JaCoCo coverage path → `tnra-app/target/site/jacoco/jacoco.csv`. `./mvnw verify` from root unchanged (aggregator runs all modules).
+
+### Migration notes
+- **Local dev**: pull, then run `./mvnw -pl tnra-app -am clean package` once to populate the new module's `target/`. IDE projects may need to re-import the root pom.
+- **VPS deployment**: `git pull` on the VPS. The next deploy needs the JAR at `tnra-app/target/*.jar` instead of `target/*.jar`; updated build commands in PRODUCTION.vps.md reflect this. Existing per-group `docker-compose.yml` files in `~/tnra/provision/<group>/` will need regeneration via the CLI to pick up the new `./tnra-app` build context — or hand-edit the `context:` line.
+- **Heroku**: `Procfile` updated to reference `tnra-app/target/*.jar`. No app-side changes needed beyond a redeploy.
+- **No database migration**, no Java source changes, no Vaadin frontend changes.
+
 ## [8.6.0] - 2026-06-03
 
 ### Added
