@@ -8,6 +8,7 @@ import com.afitnerd.tnra.model.GroupSettings;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.GroupSettingsService;
+import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
@@ -38,9 +39,14 @@ import java.util.function.Predicate;
 
 import org.mockito.MockedStatic;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,6 +55,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import org.mockito.ArgumentCaptor;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -76,6 +83,9 @@ class AdminViewTest {
 
     @Mock
     private GroupSettingsService groupSettingsService;
+
+    @Mock
+    private PostDataExportService postDataExportService;
 
     private UI ui;
 
@@ -110,7 +120,7 @@ class AdminViewTest {
     void buildsHeaderTabsAndCurrentSetGrid() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         assertTrue(view.hasClassName("admin-view"));
         assertTrue(anyComponent(view, H2.class, h -> "Admin Dashboard".equals(h.getText())));
@@ -126,7 +136,7 @@ class AdminViewTest {
         newSet.setGoToGuyPairs(new ArrayList<>());
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenReturn(newSet);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
         Button addPairButton = firstComponent(view, Button.class, b -> "Add Pair".equals(b.getText()));
@@ -146,7 +156,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenThrow(new RuntimeException("boom"));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
 
@@ -157,7 +167,7 @@ class AdminViewTest {
     @Test
     void getUserDisplayNameHandlesAllFallbacks() throws Exception {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         Method method = AdminView.class.getDeclaredMethod("getUserDisplayName", User.class);
         method.setAccessible(true);
@@ -201,7 +211,7 @@ class AdminViewTest {
         bFresh.setId(20L);
 
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         Method method = AdminView.class.getDeclaredMethod("findActiveIndex", List.class, StatDefinition.class);
         method.setAccessible(true);
@@ -236,7 +246,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(a, b)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.moveStatUp(b, statsList);
@@ -258,7 +268,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(a)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.moveStatUp(a, statsList);
@@ -280,7 +290,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(a, b)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.moveStatDown(a, statsList);
@@ -302,7 +312,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(a)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.moveStatDown(a, statsList);
@@ -329,7 +339,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(a, b)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.archiveStat(a, statsList);
@@ -350,7 +360,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(a)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.archiveStat(a, statsList);
@@ -380,7 +390,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>(List.of(active)));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.restoreStat(archived, statsList);
@@ -402,7 +412,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(new ArrayList<>());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.restoreStat(archived, statsList);
@@ -421,7 +431,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.refreshStatsList(statsList);
@@ -449,7 +459,7 @@ class AdminViewTest {
         when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc())
             .thenReturn(List.of(active));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         view.refreshStatsList(statsList);
@@ -466,7 +476,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout statsList = new VerticalLayout();
         assertDoesNotThrow(() -> view.openAddStatDialog(statsList));
@@ -481,7 +491,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         com.vaadin.flow.component.grid.Grid<User> membersGrid = new com.vaadin.flow.component.grid.Grid<>();
         assertDoesNotThrow(() -> view.openInviteMemberDialog(membersGrid));
@@ -496,7 +506,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         // Should not throw
         assertDoesNotThrow(() -> view.showValidationError(null, null, List.of()));
@@ -507,7 +517,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User user = new User();
         user.setId(1L);
@@ -521,7 +531,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User caller = new User();
         caller.setId(1L);
@@ -545,7 +555,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User caller = new User();
         caller.setId(1L);
@@ -582,11 +592,11 @@ class AdminViewTest {
 
         // Constructing the view exercises the component column lambda which creates
         // Deactivate buttons for active non-self users
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         // Verify the grid was populated with users
-        verify(userService).getAllUsers();
+        verify(userService, atLeastOnce()).getAllUsers();
         verify(userService).getCurrentUser();
     }
 
@@ -610,10 +620,10 @@ class AdminViewTest {
 
         // Constructing the view exercises the component column lambda which creates
         // Reactivate buttons for inactive non-self users
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
-        verify(userService).getAllUsers();
+        verify(userService, atLeastOnce()).getAllUsers();
     }
 
     @Test
@@ -629,7 +639,7 @@ class AdminViewTest {
         when(userService.getAllUsers()).thenReturn(List.of(currentUser));
 
         // Constructing the view with only the self user covers the isSelf branch
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         verify(userService).getCurrentUser();
@@ -649,11 +659,11 @@ class AdminViewTest {
         when(userService.getCurrentUser()).thenReturn(null);
         when(userService.getAllUsers()).thenReturn(List.of(userWithName));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         // View construction exercises the name column lambda with first + last name
-        verify(userService).getAllUsers();
+        verify(userService, atLeastOnce()).getAllUsers();
     }
 
     @Test
@@ -668,18 +678,18 @@ class AdminViewTest {
         when(userService.getCurrentUser()).thenReturn(null);
         when(userService.getAllUsers()).thenReturn(List.of(userNoName));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         // View construction exercises the name column lambda with null first/last name
-        verify(userService).getAllUsers();
+        verify(userService, atLeastOnce()).getAllUsers();
     }
 
     @Test
     void refreshMembersGridCallsGetAllUsers() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         Grid<User> grid = new Grid<>();
         view.refreshMembersGrid(grid);
@@ -700,7 +710,7 @@ class AdminViewTest {
         newSet.setGoToGuyPairs(new ArrayList<>());
         when(callChainPresenter.createNewGoToGuySet(anyList())).thenReturn(newSet);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         Button createButton = firstComponent(view, Button.class, b -> "Create New Go To Guy Set".equals(b.getText()));
@@ -726,7 +736,7 @@ class AdminViewTest {
     @Test
     void formatMemberNameReturnsFirstAndLastName() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User user = new User();
         user.setFirstName("Jane");
@@ -737,7 +747,7 @@ class AdminViewTest {
     @Test
     void formatMemberNameReturnsFirstNameOnlyWhenLastNull() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User user = new User();
         user.setFirstName("Jane");
@@ -747,7 +757,7 @@ class AdminViewTest {
     @Test
     void formatMemberNameReturnsNotYetLoggedInWhenNoName() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User user = new User();
         assertEquals("(not yet logged in)", view.formatMemberName(user));
@@ -760,7 +770,7 @@ class AdminViewTest {
     @Test
     void formatMemberStatusReturnsActiveForActiveUser() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User user = new User();
         user.setActive(true);
@@ -770,7 +780,7 @@ class AdminViewTest {
     @Test
     void formatMemberStatusReturnsInactiveForInactiveUser() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User user = new User();
         user.setActive(false);
@@ -784,7 +794,7 @@ class AdminViewTest {
     @Test
     void createMemberActionComponentReturnsSelfSpan() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User self = new User();
         self.setId(1L);
@@ -797,7 +807,7 @@ class AdminViewTest {
     @Test
     void createMemberActionComponentReturnsDeactivateButtonForActiveNonSelf() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User currentUser = new User(); currentUser.setId(1L);
         User other = new User(); other.setId(2L); other.setActive(true);
@@ -811,7 +821,7 @@ class AdminViewTest {
     @Test
     void createMemberActionComponentReturnsReactivateButtonForInactiveNonSelf() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User currentUser = new User(); currentUser.setId(1L);
         User other = new User(); other.setId(2L); other.setActive(false);
@@ -825,7 +835,7 @@ class AdminViewTest {
     @Test
     void createMemberActionComponentNullCurrentUserNotSelf() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User other = new User(); other.setId(2L); other.setActive(true);
         com.vaadin.flow.component.grid.Grid<User> grid = new com.vaadin.flow.component.grid.Grid<>();
@@ -838,7 +848,7 @@ class AdminViewTest {
     @Test
     void createMemberActionComponentDeactivateButtonClickCallsService() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User currentUser = new User(); currentUser.setId(1L);
         User other = new User(); other.setId(2L); other.setActive(true); other.setFirstName("Bob");
@@ -855,7 +865,7 @@ class AdminViewTest {
     @Test
     void createMemberActionComponentReactivateButtonClickCallsService() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(null);
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         User currentUser = new User(); currentUser.setId(1L);
         User other = new User(); other.setId(2L); other.setActive(false); other.setFirstName("Bob");
@@ -895,7 +905,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
         when(groupSettingsService.getSettings()).thenReturn(new GroupSettings());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
         assertNotNull(integrationsTab);
@@ -909,7 +919,7 @@ class AdminViewTest {
         settings.setSlackEnabled(true);
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
         assertNotNull(integrationsTab);
@@ -922,7 +932,7 @@ class AdminViewTest {
         when(groupSettingsService.getSettings()).thenReturn(settings);
         when(groupSettingsService.save(any(GroupSettings.class))).thenReturn(settings);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
@@ -937,7 +947,7 @@ class AdminViewTest {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
         when(groupSettingsService.getSettings()).thenReturn(new GroupSettings());
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
 
         // 4 total: existing "Enable Slack notifications" + 3 new publish checkboxes
@@ -955,7 +965,7 @@ class AdminViewTest {
         settings.setSlackPublishPostData(false);
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
 
         Checkbox statsBox = firstComponent(integrationsTab, Checkbox.class, c -> c.getLabel().contains("publishing stats"));
@@ -971,7 +981,7 @@ class AdminViewTest {
         settings.setSlackPublishPostData(true);
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
 
         Checkbox statsBox = firstComponent(integrationsTab, Checkbox.class, c -> c.getLabel().contains("publishing stats"));
@@ -987,7 +997,7 @@ class AdminViewTest {
         when(groupSettingsService.getSettings()).thenReturn(settings);
         when(groupSettingsService.save(any(GroupSettings.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
 
@@ -1015,7 +1025,7 @@ class AdminViewTest {
         when(groupSettingsService.getSettings()).thenReturn(settings);
         when(groupSettingsService.save(any(GroupSettings.class))).thenThrow(new RuntimeException("DB error"));
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
@@ -1033,7 +1043,7 @@ class AdminViewTest {
         GroupSettings settings = new GroupSettings();
         when(groupSettingsService.getSettings()).thenReturn(settings);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         try (org.mockito.MockedStatic<AppNotification> mocked = mockStatic(AppNotification.class)) {
@@ -1056,7 +1066,7 @@ class AdminViewTest {
         when(groupSettingsService.getSettings()).thenReturn(settings);
         when(groupSettingsService.save(any(GroupSettings.class))).thenReturn(settings);
 
-        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService);
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
         ui.add(view);
 
         VerticalLayout integrationsTab = view.createIntegrationsTabContent();
@@ -1093,4 +1103,89 @@ class AdminViewTest {
         return matches;
     }
 
+    // === Data Export tab ===
+
+    @Test
+    void dataExportTab_rendersUserSelectorAndControls() {
+        com.afitnerd.tnra.model.User u1 = new com.afitnerd.tnra.model.User("Alice", "Smith", "alice@example.com");
+        u1.setId(11L);
+        when(userService.getAllUsers()).thenReturn(java.util.List.of(u1));
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        assertNotNull(view.exportUserSelector, "User selector exists");
+        assertNotNull(view.exportFromDatePicker);
+        assertNotNull(view.exportToDatePicker);
+        assertNotNull(view.exportAllDataCheckbox);
+        assertNotNull(view.exportDownloadLink);
+    }
+
+    @Test
+    void dataExportTab_allDataCheckboxDisablesDatePickers() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+        when(userService.getAllUsers()).thenReturn(java.util.List.of());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        // Toggling "All data" on disables both date pickers — the listener wires both.
+        view.exportAllDataCheckbox.setValue(true);
+        assertFalse(view.exportFromDatePicker.isEnabled());
+        assertFalse(view.exportToDatePicker.isEnabled());
+    }
+
+    @Test
+    void dataExportTab_buildCsvCallsServiceWithSelectedUserAndRange() {
+        com.afitnerd.tnra.model.User target = new com.afitnerd.tnra.model.User("Bob", "Lee", "bob@example.com");
+        target.setId(22L);
+        when(userService.getAllUsers()).thenReturn(java.util.List.of(target));
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        view.exportUserSelector.setValue(target);
+        java.time.LocalDate from = java.time.LocalDate.of(2026, 3, 1);
+        java.time.LocalDate to = java.time.LocalDate.of(2026, 4, 1);
+        view.exportFromDatePicker.setValue(from);
+        view.exportToDatePicker.setValue(to);
+        when(postDataExportService.exportToCsv(target, from, to)).thenReturn("data".getBytes());
+
+        byte[] result = view.buildAdminExportCsv();
+
+        assertArrayEquals("data".getBytes(), result);
+        verify(postDataExportService).exportToCsv(target, from, to);
+    }
+
+    @Test
+    void dataExportTab_buildCsvReturnsEmptyWhenNoUserSelected() {
+        when(userService.getAllUsers()).thenReturn(java.util.List.of());
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        byte[] result = view.buildAdminExportCsv();
+
+        assertEquals(0, result.length);
+        verify(postDataExportService, never()).exportToCsv(any(), any(), any());
+    }
+
+    @Test
+    void dataExportTab_buildCsvIgnoresRangeWhenAllDataChecked() {
+        com.afitnerd.tnra.model.User target = new com.afitnerd.tnra.model.User("Bob", "Lee", "bob@example.com");
+        target.setId(22L);
+        when(userService.getAllUsers()).thenReturn(java.util.List.of(target));
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        view.exportUserSelector.setValue(target);
+        view.exportAllDataCheckbox.setValue(true);
+        view.exportFromDatePicker.setValue(java.time.LocalDate.of(2026, 1, 1));
+        when(postDataExportService.exportToCsv(target, null, null)).thenReturn("all".getBytes());
+
+        byte[] result = view.buildAdminExportCsv();
+
+        assertArrayEquals("all".getBytes(), result);
+        verify(postDataExportService).exportToCsv(target, null, null);
+    }
 }

@@ -7,14 +7,17 @@ import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.GroupSettingsService;
+import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -27,6 +30,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
@@ -36,6 +40,8 @@ import jakarta.annotation.security.PermitAll;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -50,6 +56,7 @@ public class ProfileView extends VerticalLayout {
     private final StatDefinitionRepository statDefinitionRepository;
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final GroupSettingsService groupSettingsService;
+    private final PostDataExportService postDataExportService;
     private User currentUser;
     private VerticalLayout myStatsList;
 
@@ -67,6 +74,12 @@ public class ProfileView extends VerticalLayout {
     Checkbox slackPublishPostBodyCheckbox;
     Span slackPublishStatsOverrideBadge;
     Span slackPublishPostBodyOverrideBadge;
+
+    // Data export — package-private for testing
+    DatePicker exportFromDatePicker;
+    DatePicker exportToDatePicker;
+    Checkbox exportAllDataCheckbox;
+    Anchor exportDownloadLink;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -76,13 +89,15 @@ public class ProfileView extends VerticalLayout {
         UserService userService, FileStorageService fileStorageService,
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository,
-        GroupSettingsService groupSettingsService
+        GroupSettingsService groupSettingsService,
+        PostDataExportService postDataExportService
     ) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
         this.statDefinitionRepository = statDefinitionRepository;
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.groupSettingsService = groupSettingsService;
+        this.postDataExportService = postDataExportService;
 
         setSizeFull();
         setPadding(true);
@@ -181,6 +196,76 @@ public class ProfileView extends VerticalLayout {
 
         // My Stats section
         add(createMyStatsSection());
+
+        // Download my data section
+        add(createDataExportSection());
+    }
+
+    private VerticalLayout createDataExportSection() {
+        VerticalLayout section = new VerticalLayout();
+        section.setSpacing(true);
+        section.setPadding(false);
+        section.addClassName("data-export-section");
+
+        H3 header = new H3("Download my data");
+
+        Paragraph warning = new Paragraph(
+            "⚠️ Heads up: your post content is encrypted at rest in our database. "
+                + "Downloading a CSV copy means that data leaves the encrypted system "
+                + "and lives on your device in plaintext. Treat the downloaded file as "
+                + "you would any other sensitive document."
+        );
+        warning.getStyle()
+            .set("background-color", "var(--lumo-error-color-10pct)")
+            .set("border-left", "4px solid var(--lumo-error-color)")
+            .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
+        exportFromDatePicker = new DatePicker("From");
+        exportToDatePicker = new DatePicker("To");
+        exportAllDataCheckbox = new Checkbox("All my data (ignore date range)");
+        exportAllDataCheckbox.addValueChangeListener(ev -> {
+            boolean all = Boolean.TRUE.equals(ev.getValue());
+            exportFromDatePicker.setEnabled(!all);
+            exportToDatePicker.setEnabled(!all);
+        });
+
+        HorizontalLayout rangeRow = new HorizontalLayout(exportFromDatePicker, exportToDatePicker);
+        rangeRow.setSpacing(true);
+        rangeRow.setPadding(false);
+        rangeRow.setAlignItems(Alignment.END);
+
+        // The Anchor wraps a download button. Clicking the button bubbles up
+        // to the Anchor, the browser follows the href, which streams the CSV.
+        // The StreamResource supplier runs at fetch time, so it always reads
+        // the CURRENT field values — each click yields a fresh CSV.
+        String filename = "tnra-posts-" + LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".csv";
+        StreamResource resource = new StreamResource(filename, () -> new ByteArrayInputStream(buildExportCsv()));
+        resource.setContentType("text/csv;charset=UTF-8");
+
+        exportDownloadLink = new Anchor(resource, "");
+        exportDownloadLink.getElement().setAttribute("download", filename);
+        Button downloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
+        downloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        exportDownloadLink.add(downloadButton);
+
+        section.add(header, warning, rangeRow, exportAllDataCheckbox, exportDownloadLink);
+        return section;
+    }
+
+    /**
+     * Reads current selections off the date pickers and "all data" checkbox
+     * and calls the export service. Invoked by the {@link StreamResource} at
+     * fetch time, so the latest UI state wins on every click.
+     */
+    byte[] buildExportCsv() {
+        if (currentUser == null) {
+            return new byte[0];
+        }
+        boolean all = Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = all ? null : exportFromDatePicker.getValue();
+        LocalDate to = all ? null : exportToDatePicker.getValue();
+        return postDataExportService.exportToCsv(currentUser, from, to);
     }
 
     private VerticalLayout createMyStatsSection() {

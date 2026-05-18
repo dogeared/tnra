@@ -8,6 +8,7 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.GroupSettingsService;
+import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
@@ -15,7 +16,9 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -29,11 +32,15 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 
+import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @PageTitle("Admin Dashboard - TNRA")
@@ -48,6 +55,7 @@ public class AdminView extends VerticalLayout {
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final UserService userService;
     private final GroupSettingsService groupSettingsService;
+    private final PostDataExportService postDataExportService;
     private GoToGuySet workingSet;
 
     public AdminView(
@@ -56,7 +64,8 @@ public class AdminView extends VerticalLayout {
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository,
         UserService userService,
-        GroupSettingsService groupSettingsService
+        GroupSettingsService groupSettingsService,
+        PostDataExportService postDataExportService
     ) {
         this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
@@ -64,6 +73,7 @@ public class AdminView extends VerticalLayout {
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.userService = userService;
         this.groupSettingsService = groupSettingsService;
+        this.postDataExportService = postDataExportService;
 
         addClassName("admin-view");
         setSizeFull();
@@ -91,6 +101,7 @@ public class AdminView extends VerticalLayout {
         tabSheet.add("Members", createMembersTabContent());
         tabSheet.add("Stats Config", createStatsConfigTabContent());
         tabSheet.add("Integrations", createIntegrationsTabContent());
+        tabSheet.add("Data Export", createDataExportTabContent());
         tabSheet.add("Build Info", createBuildInfoTabContent());
 
         add(tabSheet);
@@ -566,6 +577,109 @@ public class AdminView extends VerticalLayout {
             saveBtn
         );
         return content;
+    }
+
+    // ========================
+    // Data Export Tab
+    // ========================
+
+    // Package-private fields for testing
+    ComboBox<User> exportUserSelector;
+    DatePicker exportFromDatePicker;
+    DatePicker exportToDatePicker;
+    Checkbox exportAllDataCheckbox;
+    Anchor exportDownloadLink;
+
+    VerticalLayout createDataExportTabContent() {
+        VerticalLayout content = new VerticalLayout();
+        content.setSizeFull();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        H3 header = new H3("Member data export");
+        header.addClassName("section-header");
+
+        Paragraph description = new Paragraph(
+            "Download a CSV of any member's posts (intro, personal/family/work, and stats). "
+                + "Use the date range to limit to a specific window, or check \"All data\" to export the full history."
+        );
+        description.addClassName("admin-subtitle");
+
+        Paragraph warning = new Paragraph(
+            "⚠️ Heads up: member post content is encrypted at rest. Exporting a CSV means "
+                + "that data leaves the encrypted system and lives on your device in plaintext. "
+                + "Treat the downloaded file as sensitive."
+        );
+        warning.getStyle()
+            .set("background-color", "var(--lumo-error-color-10pct)")
+            .set("border-left", "4px solid var(--lumo-error-color)")
+            .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
+        exportUserSelector = new ComboBox<>("Member");
+        exportUserSelector.setItems(userService.getAllUsers());
+        exportUserSelector.setItemLabelGenerator(this::userLabel);
+        exportUserSelector.setWidth("300px");
+
+        exportFromDatePicker = new DatePicker("From");
+        exportToDatePicker = new DatePicker("To");
+        exportAllDataCheckbox = new Checkbox("All data (ignore date range)");
+        exportAllDataCheckbox.addValueChangeListener(ev -> {
+            boolean all = Boolean.TRUE.equals(ev.getValue());
+            exportFromDatePicker.setEnabled(!all);
+            exportToDatePicker.setEnabled(!all);
+        });
+
+        HorizontalLayout rangeRow = new HorizontalLayout(exportFromDatePicker, exportToDatePicker);
+        rangeRow.setSpacing(true);
+        rangeRow.setPadding(false);
+        rangeRow.setAlignItems(Alignment.END);
+
+        String filename = "tnra-member-posts-" + LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".csv";
+        StreamResource resource = new StreamResource(filename, () -> new ByteArrayInputStream(buildAdminExportCsv()));
+        resource.setContentType("text/csv;charset=UTF-8");
+
+        exportDownloadLink = new Anchor(resource, "");
+        Button downloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
+        downloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        downloadButton.addClickListener(e -> {
+            if (exportUserSelector.getValue() == null) {
+                AppNotification.error("Select a member first.");
+            } else {
+                // Update download filename to include username on each click
+                String name = exportUserSelector.getValue().getFirstName();
+                String safe = (name == null || name.isBlank()) ? "member" : name.trim().toLowerCase().replaceAll("[^a-z0-9-]+", "-");
+                exportDownloadLink.getElement().setAttribute("download",
+                    "tnra-posts-" + safe + "-" + LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".csv");
+            }
+        });
+        exportDownloadLink.add(downloadButton);
+
+        content.add(header, description, warning, exportUserSelector, rangeRow, exportAllDataCheckbox, exportDownloadLink);
+        return content;
+    }
+
+    /**
+     * Invoked by the {@link StreamResource} at fetch time so the latest UI state
+     * (member selection, date range, all-data toggle) drives every download.
+     */
+    byte[] buildAdminExportCsv() {
+        User target = (exportUserSelector == null) ? null : exportUserSelector.getValue();
+        if (target == null) {
+            return new byte[0];
+        }
+        boolean all = Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = all ? null : exportFromDatePicker.getValue();
+        LocalDate to = all ? null : exportToDatePicker.getValue();
+        return postDataExportService.exportToCsv(target, from, to);
+    }
+
+    private String userLabel(User u) {
+        if (u == null) return "";
+        String first = u.getFirstName() == null ? "" : u.getFirstName().trim();
+        String last = u.getLastName() == null ? "" : u.getLastName().trim();
+        String name = (first + " " + last).trim();
+        return name.isEmpty() ? (u.getEmail() == null ? "(no name)" : u.getEmail()) : name;
     }
 
     // ========================

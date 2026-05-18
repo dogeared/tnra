@@ -2,6 +2,16 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.5.0] - 2026-05-18
+
+### Added
+- **Download my data (member-side).** Members can now download a CSV of their own posts from Profile → *Download my data*. Optional date range (`From` / `To` pickers filter by `post.start`) or an *All my data* checkbox that bypasses the range. The CSV includes timestamps, all body fields (intro, personal/family/work best/worst), and one column per stat the member has ever recorded a value for. Stat columns are headered with `emoji + label` (e.g. `💪 Exercise`) and ordered by `display_order`. UTF-8 with BOM so Excel renders emoji correctly.
+- **Member data export (admin tab).** Admin → *Data Export* lets admins download the same CSV for any group member. Member is picked from a ComboBox; same date-range / all-data controls. Downloaded filename includes the member's first name.
+- **Encryption-trade-off warning.** Both the member and admin sections show a red-tinted warning paragraph explaining that the downloaded CSV is in plaintext and leaves the encrypted-at-rest database.
+
+### Internal
+- New `PostDataExportService` + `PostDataExportServiceImpl` (uses Apache Commons CSV 1.13.0 for RFC-4180 compliant quoting of multi-line text and special characters). Posts come back from JPA already decrypted via the existing `EncryptedStringConverter` / `EncryptedIntegerConverter` — no extra crypto work needed in the export path.
+
 ## [8.4.0] - 2026-05-16
 
 ### Added
