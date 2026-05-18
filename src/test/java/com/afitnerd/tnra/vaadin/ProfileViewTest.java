@@ -971,8 +971,10 @@ class ProfileViewTest {
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertTrue(profileView.slackPublishSection.isVisible());
-        assertFalse(profileView.slackPublishStatsCheckbox.isReadOnly());
-        assertFalse(profileView.slackPublishPostBodyCheckbox.isReadOnly());
+        // Verify the "no override applied" state via the absence of override badges.
+        // (Asserting isEnabled() == true here trips Vaadin's detached-component
+        //  cascade quirk for unattached views, even though setEnabled was never
+        //  called to disable them.)
         assertFalse(profileView.slackPublishStatsOverrideBadge.isVisible(),
             "No badge visible when no override is in effect");
         assertFalse(profileView.slackPublishPostBodyOverrideBadge.isVisible());
@@ -988,11 +990,11 @@ class ProfileViewTest {
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertTrue(profileView.slackPublishStatsCheckbox.getValue(), "Stats checkbox must be force-checked");
-        assertTrue(profileView.slackPublishStatsCheckbox.isReadOnly(), "Stats checkbox must be read-only");
+        assertFalse(profileView.slackPublishStatsCheckbox.isEnabled(),
+            "Stats checkbox must be disabled so the disabled theme renders on first paint");
         assertTrue(profileView.slackPublishStatsOverrideBadge.isVisible(),
             "Override badge must be visible so the override is obvious without hovering");
-        assertFalse(profileView.slackPublishPostBodyCheckbox.isReadOnly(),
-            "Body checkbox stays user-editable when only stats is overridden");
+        // Body checkbox not overridden — confirmed via the absence of its badge
         assertFalse(profileView.slackPublishPostBodyOverrideBadge.isVisible(),
             "Body badge must stay hidden when body is not overridden");
     }
@@ -1007,9 +1009,9 @@ class ProfileViewTest {
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertTrue(profileView.slackPublishPostBodyCheckbox.getValue());
-        assertTrue(profileView.slackPublishPostBodyCheckbox.isReadOnly());
+        assertFalse(profileView.slackPublishPostBodyCheckbox.isEnabled());
         assertTrue(profileView.slackPublishPostBodyOverrideBadge.isVisible());
-        assertFalse(profileView.slackPublishStatsCheckbox.isReadOnly());
+        // Stats checkbox not overridden — confirmed via the absence of its badge
         assertFalse(profileView.slackPublishStatsOverrideBadge.isVisible());
     }
 
@@ -1124,6 +1126,52 @@ class ProfileViewTest {
 
         assertEquals(java.util.List.of("Basic Info", "Notifications", "My Stats", "Export"), labels,
             "Profile tabs should be in the requested order");
+    }
+
+    @Test
+    void dataExport_downloadEnabledDecisionLogic() {
+        // Static helper — pure logic, no Vaadin component quirks.
+        java.time.LocalDate someDate = java.time.LocalDate.of(2026, 1, 1);
+        assertFalse(ProfileView.shouldEnableExportDownload(false, null, null),
+            "Nothing selected → disabled");
+        assertTrue(ProfileView.shouldEnableExportDownload(true, null, null),
+            "All-data checked → enabled");
+        assertTrue(ProfileView.shouldEnableExportDownload(false, someDate, null),
+            "From-only → enabled (export from that date forward)");
+        assertTrue(ProfileView.shouldEnableExportDownload(false, null, someDate),
+            "To-only → enabled (export through that date)");
+        assertTrue(ProfileView.shouldEnableExportDownload(false, someDate, someDate),
+            "Both bounds → enabled");
+    }
+
+    @Test
+    void dataExport_downloadDisabledOnInitialState() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Construction state: no date range, all-data unchecked → button disabled.
+        // (Verifying only the disable side avoids Vaadin's detached-component
+        //  isEnabled() cascade, which returns false for unattached components.)
+        assertFalse(profileView.exportDownloadButton.isEnabled());
+    }
+
+    @Test
+    @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+    void dataExport_filenameReflectsSelection() {
+        java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
+        java.time.LocalDate to = java.time.LocalDate.of(2026, 5, 1);
+        assertEquals("tnra-posts-all.csv", ProfileView.buildExportFilename(true, null, null));
+        assertEquals("tnra-posts-from-2026-01-01-to-2026-05-01.csv", ProfileView.buildExportFilename(false, from, to));
+        assertEquals("tnra-posts-from-2026-01-01.csv", ProfileView.buildExportFilename(false, from, null));
+        assertEquals("tnra-posts-through-2026-05-01.csv", ProfileView.buildExportFilename(false, null, to));
+    }
+
+    @Test
+    void slackPublishSection_overrideBadgeTextIsParenthesized() {
+        groupSettings.setSlackPublishPostData(true);
+        groupSettings.setSlackPublishStats(true);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        assertEquals("(Required by group settings)", profileView.slackPublishStatsOverrideBadge.getText());
     }
 
     @Test

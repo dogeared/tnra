@@ -11,6 +11,14 @@ All notable changes to TNRA are documented in this file.
 
 ### Changed
 - **Profile view re-organized into a tabbed layout** (matches the AdminView pattern). Four tabs: *Basic Info* (image, name, phone), *Notifications* (email notification toggle + Slack publishing), *My Stats* (personal stat definitions), *Export* (the new download-my-data section). Each settings tab has its own *Save Changes* button — both invoke `saveProfile()` which still persists every field at once, so editing across tabs without saving doesn't lose work.
+- **Personal stats marked with `(p)` in the exported CSV.** Header for a personal stat column is now `emoji label (p)` (e.g. `💪 Push-ups (p)`); global stats are unchanged.
+- **Active stats included even when the user has no data yet.** The CSV now has a column for every active global stat and every active personal stat for the user, in addition to any stats they have historical values for. Cells are blank when no value exists.
+- **Export filename reflects the selection.** `tnra-posts-all.csv`, `tnra-posts-from-{date}-to-{date}.csv`, `tnra-posts-from-{date}.csv`, or `tnra-posts-through-{date}.csv` for the member-side download. The admin variant prepends the member name.
+- **"Required by group settings" badge now wrapped in parens** so the override marker reads as a clarifying note rather than a competing label.
+- **Slack publishing checkboxes use `setEnabled(false)` for the disabled-by-group state** (was `setReadOnly(true)`). Vaadin renders the disabled theme on first paint with `setEnabled`; the previous read-only setting only showed the primary color until a follow-up property push styled it correctly on the next round-trip.
+
+### Fixed
+- **Download CSV button is disabled when nothing is selected.** Until the user picks at least one date bound or checks *All my data*, the button is disabled. Admin tab additionally requires a member to be selected. Open-ended ranges (from-only / to-only) are fully supported by the service — from-only exports forward to the most recent post (including in-progress); to-only exports from the beginning of time up to that date.
 
 ### Internal
 - New `PostDataExportService` + `PostDataExportServiceImpl` (uses Apache Commons CSV 1.13.0 for RFC-4180 compliant quoting of multi-line text and special characters). Posts come back from JPA already decrypted via the existing `EncryptedStringConverter` / `EncryptedIntegerConverter` — no extra crypto work needed in the export path.

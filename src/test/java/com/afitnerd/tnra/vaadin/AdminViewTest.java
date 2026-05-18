@@ -1170,6 +1170,53 @@ class AdminViewTest {
     }
 
     @Test
+    @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+    void dataExportTab_downloadEnabledDecisionLogic() {
+        // Static helper — pure logic. Admin export needs both a member AND
+        // at least one scope selection (date or all-data).
+        com.afitnerd.tnra.model.User target = new com.afitnerd.tnra.model.User("Bob", "Lee", "bob@example.com");
+        target.setId(22L);
+        java.time.LocalDate someDate = java.time.LocalDate.of(2026, 1, 1);
+
+        assertFalse(AdminView.shouldEnableAdminExportDownload(null, true, someDate, someDate),
+            "No user → disabled even if every other field is set");
+        assertFalse(AdminView.shouldEnableAdminExportDownload(target, false, null, null),
+            "User but nothing else → disabled");
+        assertTrue(AdminView.shouldEnableAdminExportDownload(target, true, null, null),
+            "User + all-data → enabled");
+        assertTrue(AdminView.shouldEnableAdminExportDownload(target, false, someDate, null),
+            "User + from-only → enabled");
+        assertTrue(AdminView.shouldEnableAdminExportDownload(target, false, null, someDate),
+            "User + to-only → enabled");
+    }
+
+    @Test
+    void dataExportTab_downloadDisabledOnInitialState() {
+        when(userService.getAllUsers()).thenReturn(java.util.List.of());
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        // Construction state: no user picked, no selection → disabled.
+        // (Assert only the disable side; Vaadin's detached-component
+        //  isEnabled() cascade returns false even after setEnabled(true).)
+        assertFalse(view.exportDownloadButton.isEnabled());
+    }
+
+    @Test
+    @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+    void dataExportTab_filenameReflectsSelection() {
+        // Pure static-method test — none of the class-level @Mock stubs are
+        // invoked, so we relax strictness to avoid UnnecessaryStubbing.
+        java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
+        java.time.LocalDate to = java.time.LocalDate.of(2026, 5, 1);
+        assertEquals("tnra-posts-bob-all.csv", AdminView.buildAdminExportFilename("bob", true, null, null));
+        assertEquals("tnra-posts-bob-from-2026-01-01-to-2026-05-01.csv", AdminView.buildAdminExportFilename("bob", false, from, to));
+        assertEquals("tnra-posts-bob-from-2026-01-01.csv", AdminView.buildAdminExportFilename("bob", false, from, null));
+        assertEquals("tnra-posts-bob-through-2026-05-01.csv", AdminView.buildAdminExportFilename("bob", false, null, to));
+    }
+
+    @Test
     void dataExportTab_buildCsvIgnoresRangeWhenAllDataChecked() {
         com.afitnerd.tnra.model.User target = new com.afitnerd.tnra.model.User("Bob", "Lee", "bob@example.com");
         target.setId(22L);

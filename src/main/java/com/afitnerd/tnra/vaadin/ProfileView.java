@@ -42,7 +42,6 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -83,6 +82,7 @@ public class ProfileView extends VerticalLayout {
     DatePicker exportToDatePicker;
     Checkbox exportAllDataCheckbox;
     Anchor exportDownloadLink;
+    Button exportDownloadButton;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -256,7 +256,10 @@ public class ProfileView extends VerticalLayout {
             boolean all = Boolean.TRUE.equals(ev.getValue());
             exportFromDatePicker.setEnabled(!all);
             exportToDatePicker.setEnabled(!all);
+            updateExportDownloadState();
         });
+        exportFromDatePicker.addValueChangeListener(ev -> updateExportDownloadState());
+        exportToDatePicker.addValueChangeListener(ev -> updateExportDownloadState());
 
         HorizontalLayout rangeRow = new HorizontalLayout(exportFromDatePicker, exportToDatePicker);
         rangeRow.setSpacing(true);
@@ -266,19 +269,69 @@ public class ProfileView extends VerticalLayout {
         // The Anchor wraps a download button. Clicking the button bubbles up
         // to the Anchor, the browser follows the href, which streams the CSV.
         // The StreamResource supplier runs at fetch time, so it always reads
-        // the CURRENT field values — each click yields a fresh CSV.
-        String filename = "tnra-posts-" + LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".csv";
-        StreamResource resource = new StreamResource(filename, () -> new ByteArrayInputStream(buildExportCsv()));
+        // the CURRENT field values — each click yields a fresh CSV. The
+        // `download` attribute is recomputed in updateExportDownloadState()
+        // whenever the selection changes so the filename reflects the range.
+        StreamResource resource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildExportCsv()));
         resource.setContentType("text/csv;charset=UTF-8");
 
         exportDownloadLink = new Anchor(resource, "");
-        exportDownloadLink.getElement().setAttribute("download", filename);
-        Button downloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
-        downloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        exportDownloadLink.add(downloadButton);
+        exportDownloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
+        exportDownloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        exportDownloadLink.add(exportDownloadButton);
 
         section.add(header, warning, rangeRow, exportAllDataCheckbox, exportDownloadLink);
+        updateExportDownloadState();
         return section;
+    }
+
+    /**
+     * Recomputes the download button's enabled state and the file's filename
+     * from current field values. Disabled when neither "All my data" nor any
+     * date bound is selected — there's no meaningful download in that state.
+     */
+    void updateExportDownloadState() {
+        boolean all = exportAllDataCheckbox != null && Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = exportFromDatePicker == null ? null : exportFromDatePicker.getValue();
+        LocalDate to = exportToDatePicker == null ? null : exportToDatePicker.getValue();
+        if (exportDownloadButton != null) {
+            exportDownloadButton.setEnabled(shouldEnableExportDownload(all, from, to));
+        }
+        if (exportDownloadLink != null) {
+            exportDownloadLink.getElement().setAttribute("download", buildExportFilename(all, from, to));
+        }
+    }
+
+    /**
+     * Pure decision logic for whether the export download is meaningful.
+     * Extracted so tests can verify both directions without hitting Vaadin's
+     * detached-component {@code isEnabled()} cascade quirk.
+     */
+    static boolean shouldEnableExportDownload(boolean all, LocalDate from, LocalDate to) {
+        return all || from != null || to != null;
+    }
+
+    /**
+     * Composes the download filename from the current selection:
+     *   tnra-posts-all.csv             when "All my data" is checked
+     *   tnra-posts-from-FROM-to-TO.csv when both date bounds are set
+     *   tnra-posts-from-FROM.csv       when only the from date is set
+     *   tnra-posts-through-TO.csv      when only the to date is set
+     */
+    static String buildExportFilename(boolean all, LocalDate from, LocalDate to) {
+        if (all) {
+            return "tnra-posts-all.csv";
+        }
+        if (from != null && to != null) {
+            return "tnra-posts-from-" + from + "-to-" + to + ".csv";
+        }
+        if (from != null) {
+            return "tnra-posts-from-" + from + ".csv";
+        }
+        if (to != null) {
+            return "tnra-posts-through-" + to + ".csv";
+        }
+        return "tnra-posts.csv"; // never used — button is disabled in this state
     }
 
     /**
@@ -687,17 +740,21 @@ public class ProfileView extends VerticalLayout {
         }
         boolean statsForced = settings.isSlackPublishStats();
         slackPublishStatsCheckbox.setValue(statsForced || Boolean.TRUE.equals(currentUser.getSlackPublishStats()));
-        slackPublishStatsCheckbox.setReadOnly(statsForced);
+        // setEnabled(false) paints the greyed/disabled styling on first render.
+        // setReadOnly(true) prevents edits but Vaadin applies the disabled theme
+        // on a follow-up property push, so the initial paint shows primary
+        // color until the next round-trip — confusing.
+        slackPublishStatsCheckbox.setEnabled(!statsForced);
         slackPublishStatsOverrideBadge.setVisible(statsForced);
 
         boolean bodyForced = settings.isSlackPublishPostBody();
         slackPublishPostBodyCheckbox.setValue(bodyForced || Boolean.TRUE.equals(currentUser.getSlackPublishPostBody()));
-        slackPublishPostBodyCheckbox.setReadOnly(bodyForced);
+        slackPublishPostBodyCheckbox.setEnabled(!bodyForced);
         slackPublishPostBodyOverrideBadge.setVisible(bodyForced);
     }
 
     private Span createOverrideBadge() {
-        Span badge = new Span("Required by group settings");
+        Span badge = new Span("(Required by group settings)");
         badge.getElement().getThemeList().add("badge contrast small");
         badge.getStyle().set("margin-inline-start", "var(--lumo-space-s)");
         badge.setVisible(false);

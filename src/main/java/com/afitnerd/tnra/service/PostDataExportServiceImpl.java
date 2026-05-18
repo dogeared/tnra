@@ -2,11 +2,14 @@ package com.afitnerd.tnra.service;
 
 import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostStatValue;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.PostRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.springframework.stereotype.Service;
@@ -43,9 +46,17 @@ public class PostDataExportServiceImpl implements PostDataExportService {
     );
 
     private final PostRepository postRepository;
+    private final StatDefinitionRepository statDefinitionRepository;
+    private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
 
-    public PostDataExportServiceImpl(PostRepository postRepository) {
+    public PostDataExportServiceImpl(
+        PostRepository postRepository,
+        StatDefinitionRepository statDefinitionRepository,
+        PersonalStatDefinitionRepository personalStatDefinitionRepository
+    ) {
         this.postRepository = postRepository;
+        this.statDefinitionRepository = statDefinitionRepository;
+        this.personalStatDefinitionRepository = personalStatDefinitionRepository;
     }
 
     @Override
@@ -53,8 +64,10 @@ public class PostDataExportServiceImpl implements PostDataExportService {
         List<Post> all = postRepository.findByUser(user);
         List<Post> posts = filterByDate(all, from, to);
 
-        // Stat definitions actually used by these posts, ordered by display order
-        LinkedHashMap<Long, StatDefinition> statDefs = collectStatDefinitions(posts);
+        // Column set = (active globals + active personals for user) ∪ stats with values on these posts.
+        // Active-but-unused stats get a column with empty cells so the export reflects today's stat config.
+        // Archived stats that the user has historical values for stay in (preserving history).
+        LinkedHashMap<Long, StatDefinition> statDefs = collectStatDefinitions(user, posts);
         List<String> headers = new ArrayList<>(BASE_HEADERS);
         for (StatDefinition def : statDefs.values()) {
             headers.add(columnHeaderFor(def));
@@ -101,13 +114,28 @@ public class PostDataExportServiceImpl implements PostDataExportService {
     }
 
     /**
-     * Collects every distinct {@link StatDefinition} the posts have a value for,
-     * ordered by {@link StatDefinition#getDisplayOrder()} ascending. Definitions
-     * with null order sort last. Archived stats are still included if any post
-     * has a value — historical data is preserved.
+     * Builds the union of:
+     * <ul>
+     *   <li>active global stat definitions,</li>
+     *   <li>active personal stat definitions for {@code user},</li>
+     *   <li>any stat definition the posts have a value for (preserves archived stats with history).</li>
+     * </ul>
+     * Ordered by {@link StatDefinition#getDisplayOrder()} ascending; null orders sort last.
      */
-    private LinkedHashMap<Long, StatDefinition> collectStatDefinitions(List<Post> posts) {
+    private LinkedHashMap<Long, StatDefinition> collectStatDefinitions(User user, List<Post> posts) {
         Map<Long, StatDefinition> unique = new LinkedHashMap<>();
+
+        for (StatDefinition def : statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()) {
+            if (def.getId() != null) {
+                unique.putIfAbsent(def.getId(), def);
+            }
+        }
+        for (PersonalStatDefinition def : personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(user)) {
+            if (def.getId() != null) {
+                unique.putIfAbsent(def.getId(), def);
+            }
+        }
+
         for (Post post : posts) {
             if (post.getStatValues() == null) continue;
             for (PostStatValue v : post.getStatValues()) {
@@ -118,6 +146,7 @@ public class PostDataExportServiceImpl implements PostDataExportService {
                 }
             }
         }
+
         LinkedHashMap<Long, StatDefinition> ordered = new LinkedHashMap<>();
         unique.values().stream()
             .sorted(Comparator.comparing(
@@ -127,17 +156,22 @@ public class PostDataExportServiceImpl implements PostDataExportService {
         return ordered;
     }
 
-    /** Emoji prefix + label, falling back to {@code name} when label is blank. */
+    /**
+     * Emoji prefix + label, falling back to {@code name} when label is blank.
+     * Personal stats get a trailing {@code (p)} so users can tell global from
+     * personal at a glance in the spreadsheet.
+     */
     static String columnHeaderFor(StatDefinition def) {
         String label = def.getLabel();
         if (label == null || label.isBlank()) {
             label = def.getName();
         }
+        String suffix = (def instanceof PersonalStatDefinition) ? " (p)" : "";
         String emoji = def.getEmoji();
         if (emoji != null && !emoji.isBlank()) {
-            return emoji.trim() + " " + label;
+            return emoji.trim() + " " + label + suffix;
         }
-        return label;
+        return label + suffix;
     }
 
     private List<Object> rowFor(Post post, LinkedHashMap<Long, StatDefinition> statDefs) {

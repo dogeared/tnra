@@ -40,7 +40,6 @@ import jakarta.annotation.security.RolesAllowed;
 
 import java.io.ByteArrayInputStream;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @PageTitle("Admin Dashboard - TNRA")
@@ -589,6 +588,7 @@ public class AdminView extends VerticalLayout {
     DatePicker exportToDatePicker;
     Checkbox exportAllDataCheckbox;
     Anchor exportDownloadLink;
+    Button exportDownloadButton;
 
     VerticalLayout createDataExportTabContent() {
         VerticalLayout content = new VerticalLayout();
@@ -620,6 +620,7 @@ public class AdminView extends VerticalLayout {
         exportUserSelector.setItems(userService.getAllUsers());
         exportUserSelector.setItemLabelGenerator(this::userLabel);
         exportUserSelector.setWidth("300px");
+        exportUserSelector.addValueChangeListener(ev -> updateAdminExportDownloadState());
 
         exportFromDatePicker = new DatePicker("From");
         exportToDatePicker = new DatePicker("To");
@@ -628,35 +629,87 @@ public class AdminView extends VerticalLayout {
             boolean all = Boolean.TRUE.equals(ev.getValue());
             exportFromDatePicker.setEnabled(!all);
             exportToDatePicker.setEnabled(!all);
+            updateAdminExportDownloadState();
         });
+        exportFromDatePicker.addValueChangeListener(ev -> updateAdminExportDownloadState());
+        exportToDatePicker.addValueChangeListener(ev -> updateAdminExportDownloadState());
 
         HorizontalLayout rangeRow = new HorizontalLayout(exportFromDatePicker, exportToDatePicker);
         rangeRow.setSpacing(true);
         rangeRow.setPadding(false);
         rangeRow.setAlignItems(Alignment.END);
 
-        String filename = "tnra-member-posts-" + LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".csv";
-        StreamResource resource = new StreamResource(filename, () -> new ByteArrayInputStream(buildAdminExportCsv()));
+        StreamResource resource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildAdminExportCsv()));
         resource.setContentType("text/csv;charset=UTF-8");
 
         exportDownloadLink = new Anchor(resource, "");
-        Button downloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
-        downloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        downloadButton.addClickListener(e -> {
-            if (exportUserSelector.getValue() == null) {
-                AppNotification.error("Select a member first.");
-            } else {
-                // Update download filename to include username on each click
-                String name = exportUserSelector.getValue().getFirstName();
-                String safe = (name == null || name.isBlank()) ? "member" : name.trim().toLowerCase().replaceAll("[^a-z0-9-]+", "-");
-                exportDownloadLink.getElement().setAttribute("download",
-                    "tnra-posts-" + safe + "-" + LocalDate.now().format(DateTimeFormatter.ISO_DATE) + ".csv");
-            }
-        });
-        exportDownloadLink.add(downloadButton);
+        exportDownloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
+        exportDownloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        exportDownloadLink.add(exportDownloadButton);
 
         content.add(header, description, warning, exportUserSelector, rangeRow, exportAllDataCheckbox, exportDownloadLink);
+        updateAdminExportDownloadState();
         return content;
+    }
+
+    /**
+     * Recomputes the admin download button's enabled state and the download
+     * filename. Requires a selected member AND at least one selection (date
+     * range or "all data") — otherwise the button is disabled.
+     */
+    void updateAdminExportDownloadState() {
+        User target = exportUserSelector == null ? null : exportUserSelector.getValue();
+        boolean all = exportAllDataCheckbox != null && Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = exportFromDatePicker == null ? null : exportFromDatePicker.getValue();
+        LocalDate to = exportToDatePicker == null ? null : exportToDatePicker.getValue();
+        if (exportDownloadButton != null) {
+            exportDownloadButton.setEnabled(shouldEnableAdminExportDownload(target, all, from, to));
+        }
+        if (exportDownloadLink != null) {
+            String namePart = (target == null) ? "member" : safeName(target);
+            exportDownloadLink.getElement().setAttribute("download",
+                buildAdminExportFilename(namePart, all, from, to));
+        }
+    }
+
+    /**
+     * Pure decision logic. Admin export needs both a member AND at least one
+     * scope selection (date range or "all data"). Extracted from the view
+     * code so tests can verify both directions without hitting Vaadin's
+     * detached-component {@code isEnabled()} cascade quirk.
+     */
+    static boolean shouldEnableAdminExportDownload(User target, boolean all, LocalDate from, LocalDate to) {
+        if (target == null) return false;
+        return all || from != null || to != null;
+    }
+
+    private static String safeName(User u) {
+        String name = u == null ? null : u.getFirstName();
+        if (name == null || name.isBlank()) {
+            return "member";
+        }
+        return name.trim().toLowerCase().replaceAll("[^a-z0-9-]+", "-");
+    }
+
+    /**
+     * Composes the admin filename from the current selection. Member's
+     * first name is included so an admin downloading several members'
+     * CSVs in a row can tell them apart.
+     */
+    static String buildAdminExportFilename(String namePart, boolean all, LocalDate from, LocalDate to) {
+        if (all) {
+            return "tnra-posts-" + namePart + "-all.csv";
+        }
+        if (from != null && to != null) {
+            return "tnra-posts-" + namePart + "-from-" + from + "-to-" + to + ".csv";
+        }
+        if (from != null) {
+            return "tnra-posts-" + namePart + "-from-" + from + ".csv";
+        }
+        if (to != null) {
+            return "tnra-posts-" + namePart + "-through-" + to + ".csv";
+        }
+        return "tnra-posts-" + namePart + ".csv"; // never used — button is disabled in this state
     }
 
     /**

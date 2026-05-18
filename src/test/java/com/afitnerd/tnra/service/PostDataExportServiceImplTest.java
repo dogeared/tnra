@@ -2,12 +2,15 @@ package com.afitnerd.tnra.service;
 
 import com.afitnerd.tnra.model.Category;
 import com.afitnerd.tnra.model.Intro;
+import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.PostState;
 import com.afitnerd.tnra.model.PostStatValue;
 import com.afitnerd.tnra.model.StatDefinition;
 import com.afitnerd.tnra.model.User;
+import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.PostRepository;
+import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -22,12 +25,15 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class PostDataExportServiceImplTest {
 
     private PostRepository postRepository;
+    private StatDefinitionRepository statDefinitionRepository;
+    private PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private PostDataExportServiceImpl service;
     private User user;
     private final AtomicLong nextId = new AtomicLong(100);
@@ -35,7 +41,12 @@ class PostDataExportServiceImplTest {
     @BeforeEach
     void setUp() {
         postRepository = mock(PostRepository.class);
-        service = new PostDataExportServiceImpl(postRepository);
+        statDefinitionRepository = mock(StatDefinitionRepository.class);
+        personalStatDefinitionRepository = mock(PersonalStatDefinitionRepository.class);
+        // Default: no active stats configured; individual tests override
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(new ArrayList<>());
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(any())).thenReturn(new ArrayList<>());
+        service = new PostDataExportServiceImpl(postRepository, statDefinitionRepository, personalStatDefinitionRepository);
         user = new User("Test", "User", "test@example.com");
         user.setId(1L);
     }
@@ -304,6 +315,64 @@ class PostDataExportServiceImplTest {
 
         StatDefinition blankLabel = statDef("fallback", "  ", "🌟", 0);
         assertEquals("🌟 fallback", PostDataExportServiceImpl.columnHeaderFor(blankLabel));
+    }
+
+    @Test
+    void personalStatColumnGetsPSuffix() {
+        PersonalStatDefinition personal = new PersonalStatDefinition("pushups", "Push-ups", "💪", 0, user);
+        personal.setId(nextId.incrementAndGet());
+        assertEquals("💪 Push-ups (p)", PostDataExportServiceImpl.columnHeaderFor(personal));
+
+        PersonalStatDefinition noEmoji = new PersonalStatDefinition("running", "Running", null, 1, user);
+        noEmoji.setId(nextId.incrementAndGet());
+        assertEquals("Running (p)", PostDataExportServiceImpl.columnHeaderFor(noEmoji));
+    }
+
+    @Test
+    void activeGlobalStatsIncludedAsEmptyColumnsEvenWithoutValues() {
+        when(postRepository.findByUser(user)).thenReturn(new ArrayList<>());
+        StatDefinition active = statDef("exercise", "Exercise", "💪", 0);
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(List.of(active));
+
+        String csv = exportAsString(null, null);
+        String header = csv.lines().findFirst().orElseThrow();
+
+        assertTrue(header.contains("💪 Exercise"),
+            "Active global stat must be a column even with zero values: " + header);
+    }
+
+    @Test
+    void activePersonalStatsIncludedAsEmptyColumnsEvenWithoutValues() {
+        when(postRepository.findByUser(user)).thenReturn(new ArrayList<>());
+        PersonalStatDefinition personal = new PersonalStatDefinition("flossing", "Flossing", "🦷", 0, user);
+        personal.setId(99L);
+        when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(user))
+            .thenReturn(List.of(personal));
+
+        String csv = exportAsString(null, null);
+        String header = csv.lines().findFirst().orElseThrow();
+
+        assertTrue(header.contains("🦷 Flossing (p)"),
+            "Active personal stat must be a column with (p) suffix: " + header);
+    }
+
+    @Test
+    void rowHasEmptyCellForActiveStatWithoutValue() {
+        Post post = simplePost("2026-05-10");
+        StatDefinition exercise = statDef("exercise", "Exercise", "💪", 0);
+        StatDefinition meditate = statDef("meditate", "Meditate", "🧘", 1);
+        // Only exercise has a value on this post
+        post.setStatValues(new ArrayList<>(List.of(new PostStatValue(post, exercise, 5))));
+        when(postRepository.findByUser(user)).thenReturn(List.of(post));
+        // Both are active globals
+        when(statDefinitionRepository.findGlobalActiveOrderByDisplayOrderAsc()).thenReturn(List.of(exercise, meditate));
+
+        List<String> rows = exportAsString(null, null).lines().toList();
+        assertEquals(2, rows.size()); // header + 1 data row
+        // Last column should be empty (Meditate value missing)
+        String dataRow = rows.get(1);
+        assertTrue(dataRow.endsWith(",5,"),
+            "Last column (Meditate) should be empty when no value exists: " + dataRow);
     }
 
     // --- helpers ---
