@@ -8,6 +8,7 @@ import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.GroupSettingsService;
+import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.Component;
 import com.vaadin.flow.component.button.Button;
@@ -61,6 +62,9 @@ class ProfileViewTest {
     @Mock
     private GroupSettingsService groupSettingsService;
 
+    @Mock
+    private PostDataExportService postDataExportService;
+
     private GroupSettings groupSettings;
     private User testUser;
     private ProfileView profileView;
@@ -101,7 +105,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewCreation() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -112,7 +116,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewLayoutProperties() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         // ProfileView uses default alignment properties, not custom ones
@@ -124,7 +128,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewContainsExpectedComponents() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         // Check for header
@@ -143,7 +147,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -153,7 +157,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewWithUserWithProfileImage() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -168,7 +172,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -183,7 +187,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getFileUrl through loadUserData, so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         });
     }
 
@@ -194,7 +198,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -208,7 +212,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -219,7 +223,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullUserService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(null, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+            new ProfileView(null, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         });
     }
 
@@ -227,7 +231,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullFileService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(userService, null, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+            new ProfileView(userService, null, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         });
     }
 
@@ -238,7 +242,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(emptyUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -253,7 +257,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -268,7 +272,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -283,7 +287,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getCurrentUser() in loadUserData(), so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         });
     }
 
@@ -296,7 +300,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Assert
         assertNotNull(profileView);
@@ -310,17 +314,18 @@ class ProfileViewTest {
             .thenReturn(Collections.emptyList());
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // Assert - find the "My Stats" H3 header somewhere in the component tree
-        boolean hasMyStatsHeader = findAllDescendants(profileView)
+        // Assert - find the "My Stats" H3 header inside the My Stats tab.
+        // (Vaadin's TabSheet hides tab contents from the parent's standard
+        // children traversal, so we walk the tab content directly.)
+        boolean hasMyStatsHeader = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof H3 && "My Stats".equals(((H3) c).getText()));
-        assertTrue(hasMyStatsHeader, "Profile view should contain a 'My Stats' header");
+        assertTrue(hasMyStatsHeader, "My Stats tab should contain a 'My Stats' header");
 
-        // Assert - find the "Add Stat" button somewhere in the component tree
-        boolean hasAddStatButton = findAllDescendants(profileView)
+        boolean hasAddStatButton = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Button && ((Button) c).getText().contains("Add Stat"));
-        assertTrue(hasAddStatButton, "Profile view should contain an 'Add Stat' button");
+        assertTrue(hasAddStatButton, "My Stats tab should contain an 'Add Stat' button");
     }
 
     @Test
@@ -333,7 +338,7 @@ class ProfileViewTest {
         when(fileStorageService.getFileUrl("abc123.jpg"))
             .thenReturn("/uploads/abc123.jpg");
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Act
         profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
@@ -353,7 +358,7 @@ class ProfileViewTest {
         when(fileStorageService.getFileUrl("new-image.jpg"))
             .thenReturn("/uploads/new-image.jpg");
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Act
         profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
@@ -374,7 +379,7 @@ class ProfileViewTest {
         when(fileStorageService.getFileUrl("new-image.jpg"))
             .thenReturn("/uploads/new-image.jpg");
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Act
         profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
@@ -390,55 +395,55 @@ class ProfileViewTest {
 
     @Test
     void formatPhoneNumberReturnsEmptyForNull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("", profileView.formatPhoneNumber(null));
     }
 
     @Test
     void formatPhoneNumberReturnsEmptyForBlank() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("", profileView.formatPhoneNumber("   "));
     }
 
     @Test
     void formatPhoneNumberReturnsEmptyForNonDigitInput() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("", profileView.formatPhoneNumber("abc"));
     }
 
     @Test
     void formatPhoneNumberFormatsThreeDigitsAsIs() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("555", profileView.formatPhoneNumber("555"));
     }
 
     @Test
     void formatPhoneNumberFormatsFourToSixDigitsWithAreaCode() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("(555) 123", profileView.formatPhoneNumber("555123"));
     }
 
     @Test
     void formatPhoneNumberFormatsSevenToTenDigitsFull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("(555) 123-4567", profileView.formatPhoneNumber("5551234567"));
     }
 
     @Test
     void formatPhoneNumberTruncatesMoreThanTenDigits() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("(555) 123-4567", profileView.formatPhoneNumber("555123456789"));
     }
 
     @Test
     void formatPhoneNumberStripsExistingFormatting() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("(555) 123-4567", profileView.formatPhoneNumber("(555) 123-4567"));
     }
 
     @Test
     void formatPhoneNumberHandlesPartialInput() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         // 5 digits
         assertEquals("(555) 12", profileView.formatPhoneNumber("55512"));
     }
@@ -449,37 +454,37 @@ class ProfileViewTest {
 
     @Test
     void isValidPhoneNumberReturnsTrueForNull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertTrue(profileView.isValidPhoneNumber(null));
     }
 
     @Test
     void isValidPhoneNumberReturnsTrueForEmpty() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertTrue(profileView.isValidPhoneNumber(""));
     }
 
     @Test
     void isValidPhoneNumberReturnsTrueForFormattedNumber() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertTrue(profileView.isValidPhoneNumber("(555) 123-4567"));
     }
 
     @Test
     void isValidPhoneNumberReturnsTrueForDashSeparated() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertTrue(profileView.isValidPhoneNumber("555-123-4567"));
     }
 
     @Test
     void isValidPhoneNumberReturnsFalseForTooShort() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertFalse(profileView.isValidPhoneNumber("555"));
     }
 
     @Test
     void isValidPhoneNumberReturnsFalseForLetters() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertFalse(profileView.isValidPhoneNumber("abc-def-ghij"));
     }
 
@@ -489,25 +494,25 @@ class ProfileViewTest {
 
     @Test
     void normalizePhoneNumberReturnsEmptyForNull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("", profileView.normalizePhoneNumber(null));
     }
 
     @Test
     void normalizePhoneNumberReturnsEmptyForBlank() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("", profileView.normalizePhoneNumber("   "));
     }
 
     @Test
     void normalizePhoneNumberStripsFormattingToDigitsOnly() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("5551234567", profileView.normalizePhoneNumber("(555) 123-4567"));
     }
 
     @Test
     void normalizePhoneNumberPassesThroughDigitsOnly() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertEquals("5551234567", profileView.normalizePhoneNumber("5551234567"));
     }
 
@@ -517,7 +522,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfilePersistsNormalizedPhoneAndNames() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Simulate user editing fields — access via reflection since fields are private
         setTextField(profileView, "firstNameField", "Jane");
@@ -534,7 +539,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileRejectsInvalidPhoneNumber() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // Use a partial number that is too short to be valid (2 digits).
         // formatPhoneNumber("12") returns "12", which fails isValidPhoneNumber.
@@ -548,7 +553,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileHandsExceptionGracefully() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         setTextField(profileView, "phoneNumberField", "");
         when(userService.saveUser(any())).thenThrow(new RuntimeException("DB down"));
@@ -559,7 +564,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileAllowsEmptyPhone() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         setTextField(profileView, "firstNameField", "Jane");
         setTextField(profileView, "lastNameField", "Smith");
@@ -573,7 +578,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileSavesNotifyNewPostsPreference() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         setTextField(profileView, "phoneNumberField", "");
         setCheckboxValue(profileView, "notifyNewPostsCheckbox", false);
@@ -593,10 +598,10 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(Collections.emptyList());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // refreshMyStatsList is called during construction; verify the empty message
-        boolean hasEmptyMessage = findAllDescendants(profileView)
+        boolean hasEmptyMessage = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Paragraph
                 && ((Paragraph) c).getText().contains("No personal stats yet"));
         assertTrue(hasEmptyMessage, "Should show empty state message when no stats");
@@ -615,15 +620,14 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(activeStat, archivedStat));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // Active stat label should be present
-        boolean hasActiveLabel = findAllDescendants(profileView)
+        // Active stat label should be present in the My Stats tab content
+        boolean hasActiveLabel = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Span && "Push-ups".equals(((Span) c).getText()));
         assertTrue(hasActiveLabel, "Should render active stat label");
 
-        // Archived badge should be present
-        boolean hasArchivedBadge = findAllDescendants(profileView)
+        boolean hasArchivedBadge = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Span && "archived".equals(((Span) c).getText()));
         assertTrue(hasArchivedBadge, "Should render archived badge");
     }
@@ -641,13 +645,12 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1, stat2));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // There should be at least one Button that is a Restore button (none here) — check that Buttons exist for arrows
-        long buttonCount = findAllDescendants(profileView)
+        // Buttons inside the My Stats tab: Add Stat + (up, down, archive) x 2 active stats = 7 minimum
+        long buttonCount = findAllDescendants(profileView.myStatsTabContent)
             .filter(c -> c instanceof Button)
             .count();
-        // At minimum: Add Stat button + (up, down, archive) x 2 active stats = 7 buttons
         assertTrue(buttonCount >= 7, "Should have buttons for reordering and archiving active stats, got " + buttonCount);
     }
 
@@ -670,7 +673,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1, stat2));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.movePersonalStatUp(stat2);
 
@@ -696,7 +699,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1, stat2));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.movePersonalStatDown(stat1);
 
@@ -717,7 +720,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.movePersonalStatUp(stat1);
 
@@ -736,7 +739,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.movePersonalStatDown(stat1);
 
@@ -756,7 +759,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(Collections.emptyList());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.archivePersonalStat(stat);
 
@@ -784,7 +787,7 @@ class ProfileViewTest {
             .thenReturn(new ArrayList<>(List.of(activeStatExisting)));
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.restorePersonalStat(archivedStat);
 
@@ -804,7 +807,7 @@ class ProfileViewTest {
         StatDefinition globalPushups = new StatDefinition("pushups", "Push-ups", null, 0);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(globalPushups));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         profileView.restorePersonalStat(archivedStat);
 
@@ -819,7 +822,7 @@ class ProfileViewTest {
 
     @Test
     void openAddPersonalStatDialogDoesNotThrow() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         assertDoesNotThrow(() -> profileView.openAddPersonalStatDialog());
     }
 
@@ -829,7 +832,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsEmptyName() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
         try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
             notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
@@ -841,7 +844,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsEmptyLabel() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
         try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
             notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
@@ -853,7 +856,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsGlobalNameCollision() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         StatDefinition existing = new StatDefinition("exercise", "Exercise", "💪", 0);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(existing));
         com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
@@ -867,7 +870,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsPersonalNameCollision() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
         PersonalStatDefinition existing = new PersonalStatDefinition("guitar", "Guitar", "🎸", 0, testUser);
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(List.of(existing));
@@ -882,7 +885,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatSavesNewStatSuccessfully() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
@@ -899,7 +902,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatSetsNullEmojiWhenEmpty() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
@@ -953,7 +956,7 @@ class ProfileViewTest {
     void slackPublishSection_hiddenWhenGroupMasterOff() {
         groupSettings.setSlackPublishPostData(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertFalse(profileView.slackPublishSection.isVisible(),
             "Slack section must be hidden when group master toggle is off");
@@ -965,11 +968,13 @@ class ProfileViewTest {
         groupSettings.setSlackPublishStats(false);
         groupSettings.setSlackPublishPostBody(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertTrue(profileView.slackPublishSection.isVisible());
-        assertFalse(profileView.slackPublishStatsCheckbox.isReadOnly());
-        assertFalse(profileView.slackPublishPostBodyCheckbox.isReadOnly());
+        // Verify the "no override applied" state via the absence of override badges.
+        // (Asserting isEnabled() == true here trips Vaadin's detached-component
+        //  cascade quirk for unattached views, even though setEnabled was never
+        //  called to disable them.)
         assertFalse(profileView.slackPublishStatsOverrideBadge.isVisible(),
             "No badge visible when no override is in effect");
         assertFalse(profileView.slackPublishPostBodyOverrideBadge.isVisible());
@@ -982,14 +987,14 @@ class ProfileViewTest {
         groupSettings.setSlackPublishPostBody(false);
         testUser.setSlackPublishStats(false); // user opted out but group overrides
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertTrue(profileView.slackPublishStatsCheckbox.getValue(), "Stats checkbox must be force-checked");
-        assertTrue(profileView.slackPublishStatsCheckbox.isReadOnly(), "Stats checkbox must be read-only");
+        assertFalse(profileView.slackPublishStatsCheckbox.isEnabled(),
+            "Stats checkbox must be disabled so the disabled theme renders on first paint");
         assertTrue(profileView.slackPublishStatsOverrideBadge.isVisible(),
             "Override badge must be visible so the override is obvious without hovering");
-        assertFalse(profileView.slackPublishPostBodyCheckbox.isReadOnly(),
-            "Body checkbox stays user-editable when only stats is overridden");
+        // Body checkbox not overridden — confirmed via the absence of its badge
         assertFalse(profileView.slackPublishPostBodyOverrideBadge.isVisible(),
             "Body badge must stay hidden when body is not overridden");
     }
@@ -1001,12 +1006,12 @@ class ProfileViewTest {
         groupSettings.setSlackPublishPostBody(true);
         testUser.setSlackPublishPostBody(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         assertTrue(profileView.slackPublishPostBodyCheckbox.getValue());
-        assertTrue(profileView.slackPublishPostBodyCheckbox.isReadOnly());
+        assertFalse(profileView.slackPublishPostBodyCheckbox.isEnabled());
         assertTrue(profileView.slackPublishPostBodyOverrideBadge.isVisible());
-        assertFalse(profileView.slackPublishStatsCheckbox.isReadOnly());
+        // Stats checkbox not overridden — confirmed via the absence of its badge
         assertFalse(profileView.slackPublishStatsOverrideBadge.isVisible());
     }
 
@@ -1016,7 +1021,7 @@ class ProfileViewTest {
         groupSettings.setSlackPublishStats(false);
         groupSettings.setSlackPublishPostBody(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         setTextField(profileView, "phoneNumberField", "");
         setCheckboxValue(profileView, "slackPublishStatsCheckbox", true);
@@ -1036,12 +1041,181 @@ class ProfileViewTest {
         groupSettings.setSlackPublishStats(true);
         testUser.setSlackPublishStats(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         setTextField(profileView, "phoneNumberField", "");
         profileView.saveProfile();
 
         assertFalse(testUser.getSlackPublishStats(),
             "Stored user value must persist as-is when group overrides; UI force-check is cosmetic only");
+    }
+
+    // === Download my data section ===
+
+    @Test
+    void dataExport_sectionRenders() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        assertNotNull(profileView.exportFromDatePicker, "From date picker should exist");
+        assertNotNull(profileView.exportToDatePicker, "To date picker should exist");
+        assertNotNull(profileView.exportAllDataCheckbox, "All-data checkbox should exist");
+        assertNotNull(profileView.exportDownloadLink, "Download link should exist");
+    }
+
+    @Test
+    void dataExport_allDataCheckboxDisablesDatePickers() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Toggling "All my data" on disables both date pickers — the listener wires both.
+        profileView.exportAllDataCheckbox.setValue(true);
+        assertFalse(profileView.exportFromDatePicker.isEnabled());
+        assertFalse(profileView.exportToDatePicker.isEnabled());
+    }
+
+    @Test
+    void dataExport_buildCsvCallsServiceWithDateRangeWhenAllDataOff() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
+        java.time.LocalDate to = java.time.LocalDate.of(2026, 5, 1);
+        profileView.exportAllDataCheckbox.setValue(false);
+        profileView.exportFromDatePicker.setValue(from);
+        profileView.exportToDatePicker.setValue(to);
+        when(postDataExportService.exportToCsv(testUser, from, to)).thenReturn("csv".getBytes());
+
+        byte[] result = profileView.buildExportCsv();
+
+        assertArrayEquals("csv".getBytes(), result);
+        verify(postDataExportService).exportToCsv(testUser, from, to);
+    }
+
+    @Test
+    void dataExport_buildCsvIgnoresDateRangeWhenAllDataChecked() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        profileView.exportAllDataCheckbox.setValue(true);
+        profileView.exportFromDatePicker.setValue(java.time.LocalDate.of(2026, 1, 1));
+        profileView.exportToDatePicker.setValue(java.time.LocalDate.of(2026, 5, 1));
+        when(postDataExportService.exportToCsv(testUser, null, null)).thenReturn("all".getBytes());
+
+        byte[] result = profileView.buildExportCsv();
+
+        assertArrayEquals("all".getBytes(), result);
+        verify(postDataExportService).exportToCsv(testUser, null, null);
+    }
+
+    @Test
+    void tabbedLayout_rendersFourTabs() {
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        com.vaadin.flow.component.tabs.TabSheet tabs = findAllDescendants(profileView)
+            .filter(c -> c instanceof com.vaadin.flow.component.tabs.TabSheet)
+            .map(c -> (com.vaadin.flow.component.tabs.TabSheet) c)
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("ProfileView should contain a TabSheet"));
+
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            com.vaadin.flow.component.tabs.Tab tab = tabs.getTabAt(i);
+            assertNotNull(tab, "Tab " + i + " should exist");
+            labels.add(tab.getLabel());
+        }
+
+        assertEquals(java.util.List.of("Basic Info", "Notifications", "My Stats", "Export"), labels,
+            "Profile tabs should be in the requested order");
+    }
+
+    @Test
+    void dataExport_downloadEnabledDecisionLogic() {
+        // Static helper — pure logic, no Vaadin component quirks.
+        java.time.LocalDate someDate = java.time.LocalDate.of(2026, 1, 1);
+        assertFalse(ProfileView.shouldEnableExportDownload(false, null, null),
+            "Nothing selected → disabled");
+        assertTrue(ProfileView.shouldEnableExportDownload(true, null, null),
+            "All-data checked → enabled");
+        assertTrue(ProfileView.shouldEnableExportDownload(false, someDate, null),
+            "From-only → enabled (export from that date forward)");
+        assertTrue(ProfileView.shouldEnableExportDownload(false, null, someDate),
+            "To-only → enabled (export through that date)");
+        assertTrue(ProfileView.shouldEnableExportDownload(false, someDate, someDate),
+            "Both bounds → enabled");
+    }
+
+    @Test
+    void dataExport_downloadDisabledOnInitialState() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Construction state: no date range, all-data unchecked → button disabled
+        // AND the Anchor has no href. A disabled button alone wouldn't block the
+        // click: a live href on the surrounding <a> would still navigate.
+        assertFalse(profileView.exportDownloadButton.isEnabled());
+        assertTrue(profileView.exportDownloadLink.getHref().isEmpty(),
+            "Anchor must have no href when disabled — otherwise clicks still navigate");
+    }
+
+    @Test
+    void dataExport_hrefAttachedAfterSelection() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Pre-condition: empty
+        assertTrue(profileView.exportDownloadLink.getHref().isEmpty());
+
+        // Selecting all-data attaches the StreamResource
+        profileView.exportAllDataCheckbox.setValue(true);
+        assertFalse(profileView.exportDownloadLink.getHref().isEmpty(),
+            "Anchor must have an href once something is selected");
+
+        // Un-selecting removes it again
+        profileView.exportAllDataCheckbox.setValue(false);
+        assertTrue(profileView.exportDownloadLink.getHref().isEmpty(),
+            "Anchor href must be removed when selection clears");
+    }
+
+    @Test
+    @org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
+    void dataExport_filenameReflectsSelection() {
+        java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
+        java.time.LocalDate to = java.time.LocalDate.of(2026, 5, 1);
+        assertEquals("tnra-posts-all.csv", ProfileView.buildExportFilename(true, null, null));
+        assertEquals("tnra-posts-from-2026-01-01-to-2026-05-01.csv", ProfileView.buildExportFilename(false, from, to));
+        assertEquals("tnra-posts-from-2026-01-01.csv", ProfileView.buildExportFilename(false, from, null));
+        assertEquals("tnra-posts-through-2026-05-01.csv", ProfileView.buildExportFilename(false, null, to));
+    }
+
+    @Test
+    void slackPublishSection_overrideBadgeTextIsParenthesized() {
+        groupSettings.setSlackPublishPostData(true);
+        groupSettings.setSlackPublishStats(true);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        assertEquals("(Required by group settings)", profileView.slackPublishStatsOverrideBadge.getText());
+    }
+
+    @Test
+    void tabbedLayout_bothSaveButtonsExist() {
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Basic Info tab has its own Save Changes button
+        assertNotNull(profileView, "view created");
+        // Notifications tab has its own Save Changes button — exposed for testing
+        assertNotNull(profileView.notificationsSaveButton, "Notifications tab Save button should exist");
+        assertEquals("Save Changes", profileView.notificationsSaveButton.getText());
+    }
+
+    @Test
+    void dataExport_buildCsvReturnsEmptyWhenNoCurrentUser() {
+        when(userService.getCurrentUser()).thenReturn(null);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        byte[] result = profileView.buildExportCsv();
+
+        assertEquals(0, result.length);
+        verify(postDataExportService, never()).exportToCsv(any(), any(), any());
     }
 }

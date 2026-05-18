@@ -7,14 +7,17 @@ import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.GroupSettingsService;
+import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
@@ -24,9 +27,11 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.Upload;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
@@ -36,6 +41,7 @@ import jakarta.annotation.security.PermitAll;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -50,8 +56,10 @@ public class ProfileView extends VerticalLayout {
     private final StatDefinitionRepository statDefinitionRepository;
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final GroupSettingsService groupSettingsService;
+    private final PostDataExportService postDataExportService;
     private User currentUser;
     private VerticalLayout myStatsList;
+    VerticalLayout myStatsTabContent; // package-private for testing
 
     private TextField firstNameField;
     private TextField lastNameField;
@@ -59,6 +67,7 @@ public class ProfileView extends VerticalLayout {
     private Image profileImage;
     private Upload imageUpload;
     private Button saveButton;
+    Button notificationsSaveButton; // package-private for testing
     private Checkbox notifyNewPostsCheckbox;
 
     // Slack publishing — package-private for testing
@@ -67,6 +76,14 @@ public class ProfileView extends VerticalLayout {
     Checkbox slackPublishPostBodyCheckbox;
     Span slackPublishStatsOverrideBadge;
     Span slackPublishPostBodyOverrideBadge;
+
+    // Data export — package-private for testing
+    DatePicker exportFromDatePicker;
+    DatePicker exportToDatePicker;
+    Checkbox exportAllDataCheckbox;
+    Anchor exportDownloadLink;
+    Button exportDownloadButton;
+    private StreamResource exportStreamResource;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -76,13 +93,15 @@ public class ProfileView extends VerticalLayout {
         UserService userService, FileStorageService fileStorageService,
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository,
-        GroupSettingsService groupSettingsService
+        GroupSettingsService groupSettingsService,
+        PostDataExportService postDataExportService
     ) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
         this.statDefinitionRepository = statDefinitionRepository;
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.groupSettingsService = groupSettingsService;
+        this.postDataExportService = postDataExportService;
 
         setSizeFull();
         setPadding(true);
@@ -99,12 +118,23 @@ public class ProfileView extends VerticalLayout {
         header.addClassName("profile-title");
         add(header);
 
-        // Profile Image Section
-        VerticalLayout imageSection = new VerticalLayout();
-        imageSection.setSpacing(true);
-        imageSection.setPadding(false);
-        imageSection.addClassName("profile-image-section");
-        
+        // Build all field components first so cross-tab loads/saves can reference them
+        buildBasicInfoFields();
+        buildNotificationFields();
+
+        TabSheet tabs = new TabSheet();
+        tabs.setSizeFull();
+        tabs.addClassName("profile-tabs");
+        tabs.add("Basic Info", createBasicInfoTabContent());
+        tabs.add("Notifications", createNotificationsTabContent());
+        myStatsTabContent = createMyStatsSection();
+        tabs.add("My Stats", myStatsTabContent);
+        tabs.add("Export", createDataExportSection());
+
+        add(tabs);
+    }
+
+    private void buildBasicInfoFields() {
         profileImage = new Image();
         profileImage.setWidth("120px");
         profileImage.setHeight("120px");
@@ -122,65 +152,214 @@ public class ProfileView extends VerticalLayout {
         imageUpload.setMaxFileSize(5 * 1024 * 1024); // 5MB limit
         imageUpload.setDropLabel(new Div(new Paragraph("Drop image here or click to upload")));
         imageUpload.setUploadButton(new Button("Upload Image"));
-        
-        imageSection.add(profileImage, imageUpload);
-        
-        // Form Fields
+
         firstNameField = new TextField("First Name");
         firstNameField.setWidth("100%");
         firstNameField.setMaxLength(50);
-        
+
         lastNameField = new TextField("Last Name");
         lastNameField.setWidth("100%");
         lastNameField.setMaxLength(50);
-        
-        // Phone number field with formatting and validation
+
         phoneNumberField = createPhoneNumberField();
-        
-        // Notification Preferences
-        H3 notifHeader = new H3("Email Notifications");
+    }
+
+    private void buildNotificationFields() {
         notifyNewPostsCheckbox = new Checkbox("Notify me when someone posts a weekly update");
         notifyNewPostsCheckbox.setValue(true);
 
-        VerticalLayout notifSection = new VerticalLayout(notifHeader, notifyNewPostsCheckbox);
-        notifSection.setSpacing(true);
-        notifSection.setPadding(false);
-
-        // Slack publishing preferences — visibility/disabled state computed in loadUserData()
-        H3 slackHeader = new H3("Slack publishing");
+        // Slack publishing — visibility/disabled state computed in loadUserData()
         slackPublishStatsCheckbox = new Checkbox("Publish my stats to Slack when I finish a post");
         slackPublishPostBodyCheckbox = new Checkbox("Publish my post body to Slack when I finish a post");
         slackPublishStatsOverrideBadge = createOverrideBadge();
         slackPublishPostBodyOverrideBadge = createOverrideBadge();
-        HorizontalLayout statsRow = checkboxRow(slackPublishStatsCheckbox, slackPublishStatsOverrideBadge);
-        HorizontalLayout bodyRow = checkboxRow(slackPublishPostBodyCheckbox, slackPublishPostBodyOverrideBadge);
-        slackPublishSection = new VerticalLayout(slackHeader, statsRow, bodyRow);
-        slackPublishSection.setSpacing(true);
-        slackPublishSection.setPadding(false);
-        slackPublishSection.setVisible(false); // default hidden; loadUserData() will reveal if group allows
+    }
 
-        // Save Button — styled consistently with the Admin Integrations save button
+    private VerticalLayout createBasicInfoTabContent() {
+        VerticalLayout imageSection = new VerticalLayout(profileImage, imageUpload);
+        imageSection.setSpacing(true);
+        imageSection.setPadding(false);
+        imageSection.addClassName("profile-image-section");
+
+        // The single Save button persists every field on the user — fields
+        // outside Basic Info (notifications, slack) still load with the user,
+        // so saving here doesn't lose anything edited on another tab.
         saveButton = new Button("Save Changes", VaadinIcon.CHECK.create());
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(e -> saveProfile());
 
-        // Layout
         VerticalLayout formLayout = new VerticalLayout();
         formLayout.setSpacing(true);
         formLayout.setPadding(false);
         formLayout.addClassName("form-section");
-        formLayout.add(firstNameField, lastNameField, phoneNumberField, notifSection, slackPublishSection, saveButton);
-        
+        formLayout.add(firstNameField, lastNameField, phoneNumberField, saveButton);
+
         HorizontalLayout mainLayout = new HorizontalLayout();
         mainLayout.setSpacing(true);
         mainLayout.setPadding(false);
         mainLayout.add(imageSection, formLayout);
         mainLayout.setFlexGrow(1, formLayout);
-        
-        add(mainLayout);
 
-        // My Stats section
-        add(createMyStatsSection());
+        VerticalLayout tab = new VerticalLayout(mainLayout);
+        tab.setPadding(true);
+        tab.setSpacing(true);
+        return tab;
+    }
+
+    private VerticalLayout createNotificationsTabContent() {
+        H3 emailHeader = new H3("Email Notifications");
+        VerticalLayout emailSection = new VerticalLayout(emailHeader, notifyNewPostsCheckbox);
+        emailSection.setSpacing(true);
+        emailSection.setPadding(false);
+
+        H3 slackHeader = new H3("Slack publishing");
+        HorizontalLayout statsRow = checkboxRow(slackPublishStatsCheckbox, slackPublishStatsOverrideBadge);
+        HorizontalLayout bodyRow = checkboxRow(slackPublishPostBodyCheckbox, slackPublishPostBodyOverrideBadge);
+        slackPublishSection = new VerticalLayout(slackHeader, statsRow, bodyRow);
+        slackPublishSection.setSpacing(true);
+        slackPublishSection.setPadding(false);
+        slackPublishSection.setVisible(false); // default hidden; loadUserData() reveals if group allows
+
+        notificationsSaveButton = new Button("Save Changes", VaadinIcon.CHECK.create());
+        notificationsSaveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        notificationsSaveButton.addClickListener(e -> saveProfile());
+
+        VerticalLayout tab = new VerticalLayout(emailSection, slackPublishSection, notificationsSaveButton);
+        tab.setPadding(true);
+        tab.setSpacing(true);
+        return tab;
+    }
+
+    private VerticalLayout createDataExportSection() {
+        VerticalLayout section = new VerticalLayout();
+        section.setSpacing(true);
+        section.setPadding(false);
+        section.addClassName("data-export-section");
+
+        H3 header = new H3("Download my data");
+
+        Paragraph warning = new Paragraph(
+            "⚠️ Heads up: your post content is encrypted at rest in our database. "
+                + "Downloading a CSV copy means that data leaves the encrypted system "
+                + "and lives on your device in plaintext. Treat the downloaded file as "
+                + "you would any other sensitive document."
+        );
+        warning.getStyle()
+            .set("background-color", "var(--lumo-error-color-10pct)")
+            .set("border-left", "4px solid var(--lumo-error-color)")
+            .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
+        exportFromDatePicker = new DatePicker("From");
+        exportToDatePicker = new DatePicker("To");
+        exportAllDataCheckbox = new Checkbox("All my data (ignore date range)");
+        exportAllDataCheckbox.addValueChangeListener(ev -> {
+            boolean all = Boolean.TRUE.equals(ev.getValue());
+            exportFromDatePicker.setEnabled(!all);
+            exportToDatePicker.setEnabled(!all);
+            updateExportDownloadState();
+        });
+        exportFromDatePicker.addValueChangeListener(ev -> updateExportDownloadState());
+        exportToDatePicker.addValueChangeListener(ev -> updateExportDownloadState());
+
+        HorizontalLayout rangeRow = new HorizontalLayout(exportFromDatePicker, exportToDatePicker);
+        rangeRow.setSpacing(true);
+        rangeRow.setPadding(false);
+        rangeRow.setAlignItems(Alignment.END);
+
+        // The Anchor wraps a download button. Clicking the button bubbles up
+        // to the Anchor, the browser follows the href, which streams the CSV.
+        // The StreamResource supplier runs at fetch time, so it always reads
+        // the CURRENT field values — each click yields a fresh CSV. The
+        // `download` attribute is recomputed in updateExportDownloadState()
+        // whenever the selection changes so the filename reflects the range.
+        exportStreamResource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildExportCsv()));
+        exportStreamResource.setContentType("text/csv;charset=UTF-8");
+
+        // Start with no href so the disabled-by-default download is also
+        // non-navigable. updateExportDownloadState() attaches the resource
+        // once the user has selected something.
+        exportDownloadLink = new Anchor();
+        exportDownloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
+        exportDownloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        exportDownloadLink.add(exportDownloadButton);
+
+        section.add(header, warning, rangeRow, exportAllDataCheckbox, exportDownloadLink);
+        updateExportDownloadState();
+        return section;
+    }
+
+    /**
+     * Recomputes the download button's enabled state, the link's href, and the
+     * file's filename from current field values. When nothing is selected the
+     * button is disabled <em>and</em> the {@link Anchor}'s href is removed, so
+     * clicks have nothing to navigate to — a disabled button inside an Anchor
+     * with a live href would still trigger the link.
+     */
+    void updateExportDownloadState() {
+        boolean all = exportAllDataCheckbox != null && Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = exportFromDatePicker == null ? null : exportFromDatePicker.getValue();
+        LocalDate to = exportToDatePicker == null ? null : exportToDatePicker.getValue();
+        boolean enabled = shouldEnableExportDownload(all, from, to);
+        if (exportDownloadButton != null) {
+            exportDownloadButton.setEnabled(enabled);
+        }
+        if (exportDownloadLink != null) {
+            if (enabled && exportStreamResource != null) {
+                exportDownloadLink.setHref(exportStreamResource);
+                exportDownloadLink.getElement().setAttribute("download", buildExportFilename(all, from, to));
+            } else {
+                exportDownloadLink.removeHref();
+                exportDownloadLink.getElement().removeAttribute("download");
+            }
+        }
+    }
+
+    /**
+     * Pure decision logic for whether the export download is meaningful.
+     * Extracted so tests can verify both directions without hitting Vaadin's
+     * detached-component {@code isEnabled()} cascade quirk.
+     */
+    static boolean shouldEnableExportDownload(boolean all, LocalDate from, LocalDate to) {
+        return all || from != null || to != null;
+    }
+
+    /**
+     * Composes the download filename from the current selection:
+     *   tnra-posts-all.csv             when "All my data" is checked
+     *   tnra-posts-from-FROM-to-TO.csv when both date bounds are set
+     *   tnra-posts-from-FROM.csv       when only the from date is set
+     *   tnra-posts-through-TO.csv      when only the to date is set
+     */
+    static String buildExportFilename(boolean all, LocalDate from, LocalDate to) {
+        if (all) {
+            return "tnra-posts-all.csv";
+        }
+        if (from != null && to != null) {
+            return "tnra-posts-from-" + from + "-to-" + to + ".csv";
+        }
+        if (from != null) {
+            return "tnra-posts-from-" + from + ".csv";
+        }
+        if (to != null) {
+            return "tnra-posts-through-" + to + ".csv";
+        }
+        return "tnra-posts.csv"; // never used — button is disabled in this state
+    }
+
+    /**
+     * Reads current selections off the date pickers and "all data" checkbox
+     * and calls the export service. Invoked by the {@link StreamResource} at
+     * fetch time, so the latest UI state wins on every click.
+     */
+    byte[] buildExportCsv() {
+        if (currentUser == null) {
+            return new byte[0];
+        }
+        boolean all = Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = all ? null : exportFromDatePicker.getValue();
+        LocalDate to = all ? null : exportToDatePicker.getValue();
+        return postDataExportService.exportToCsv(currentUser, from, to);
     }
 
     private VerticalLayout createMyStatsSection() {
@@ -574,17 +753,21 @@ public class ProfileView extends VerticalLayout {
         }
         boolean statsForced = settings.isSlackPublishStats();
         slackPublishStatsCheckbox.setValue(statsForced || Boolean.TRUE.equals(currentUser.getSlackPublishStats()));
-        slackPublishStatsCheckbox.setReadOnly(statsForced);
+        // setEnabled(false) paints the greyed/disabled styling on first render.
+        // setReadOnly(true) prevents edits but Vaadin applies the disabled theme
+        // on a follow-up property push, so the initial paint shows primary
+        // color until the next round-trip — confusing.
+        slackPublishStatsCheckbox.setEnabled(!statsForced);
         slackPublishStatsOverrideBadge.setVisible(statsForced);
 
         boolean bodyForced = settings.isSlackPublishPostBody();
         slackPublishPostBodyCheckbox.setValue(bodyForced || Boolean.TRUE.equals(currentUser.getSlackPublishPostBody()));
-        slackPublishPostBodyCheckbox.setReadOnly(bodyForced);
+        slackPublishPostBodyCheckbox.setEnabled(!bodyForced);
         slackPublishPostBodyOverrideBadge.setVisible(bodyForced);
     }
 
     private Span createOverrideBadge() {
-        Span badge = new Span("Required by group settings");
+        Span badge = new Span("(Required by group settings)");
         badge.getElement().getThemeList().add("badge contrast small");
         badge.getStyle().set("margin-inline-start", "var(--lumo-space-s)");
         badge.setVisible(false);

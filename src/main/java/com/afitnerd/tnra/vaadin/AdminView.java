@@ -8,6 +8,7 @@ import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.repository.PersonalStatDefinitionRepository;
 import com.afitnerd.tnra.repository.StatDefinitionRepository;
 import com.afitnerd.tnra.service.GroupSettingsService;
+import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
 import com.afitnerd.tnra.vaadin.presenter.CallChainPresenter;
 import com.afitnerd.tnra.vaadin.presenter.VaadinAdminPresenter;
@@ -15,7 +16,9 @@ import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
+import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
 import com.vaadin.flow.component.grid.Grid;
@@ -29,11 +32,14 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.data.renderer.TextRenderer;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.RolesAllowed;
 
+import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
 import java.util.List;
 
 @PageTitle("Admin Dashboard - TNRA")
@@ -48,6 +54,7 @@ public class AdminView extends VerticalLayout {
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final UserService userService;
     private final GroupSettingsService groupSettingsService;
+    private final PostDataExportService postDataExportService;
     private GoToGuySet workingSet;
 
     public AdminView(
@@ -56,7 +63,8 @@ public class AdminView extends VerticalLayout {
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository,
         UserService userService,
-        GroupSettingsService groupSettingsService
+        GroupSettingsService groupSettingsService,
+        PostDataExportService postDataExportService
     ) {
         this.vaadinAdminPresenter = vaadinAdminPresenter;
         this.callChainPresenter = callChainPresenter;
@@ -64,6 +72,7 @@ public class AdminView extends VerticalLayout {
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.userService = userService;
         this.groupSettingsService = groupSettingsService;
+        this.postDataExportService = postDataExportService;
 
         addClassName("admin-view");
         setSizeFull();
@@ -91,6 +100,7 @@ public class AdminView extends VerticalLayout {
         tabSheet.add("Members", createMembersTabContent());
         tabSheet.add("Stats Config", createStatsConfigTabContent());
         tabSheet.add("Integrations", createIntegrationsTabContent());
+        tabSheet.add("Data Export", createDataExportTabContent());
         tabSheet.add("Build Info", createBuildInfoTabContent());
 
         add(tabSheet);
@@ -566,6 +576,174 @@ public class AdminView extends VerticalLayout {
             saveBtn
         );
         return content;
+    }
+
+    // ========================
+    // Data Export Tab
+    // ========================
+
+    // Package-private fields for testing
+    ComboBox<User> exportUserSelector;
+    DatePicker exportFromDatePicker;
+    DatePicker exportToDatePicker;
+    Checkbox exportAllDataCheckbox;
+    Anchor exportDownloadLink;
+    Button exportDownloadButton;
+    private StreamResource exportStreamResource;
+
+    VerticalLayout createDataExportTabContent() {
+        VerticalLayout content = new VerticalLayout();
+        content.setSizeFull();
+        content.setSpacing(true);
+        content.setPadding(true);
+
+        H3 header = new H3("Member data export");
+        header.addClassName("section-header");
+
+        Paragraph description = new Paragraph(
+            "Download a CSV of any member's posts (intro, personal/family/work, and stats). "
+                + "Use the date range to limit to a specific window, or check \"All data\" to export the full history."
+        );
+        description.addClassName("admin-subtitle");
+
+        Paragraph warning = new Paragraph(
+            "⚠️ Heads up: member post content is encrypted at rest. Exporting a CSV means "
+                + "that data leaves the encrypted system and lives on your device in plaintext. "
+                + "Treat the downloaded file as sensitive."
+        );
+        warning.getStyle()
+            .set("background-color", "var(--lumo-error-color-10pct)")
+            .set("border-left", "4px solid var(--lumo-error-color)")
+            .set("padding", "var(--lumo-space-s) var(--lumo-space-m)")
+            .set("border-radius", "var(--lumo-border-radius-m)");
+
+        exportUserSelector = new ComboBox<>("Member");
+        exportUserSelector.setItems(userService.getAllUsers());
+        exportUserSelector.setItemLabelGenerator(this::userLabel);
+        exportUserSelector.setWidth("300px");
+        exportUserSelector.addValueChangeListener(ev -> updateAdminExportDownloadState());
+
+        exportFromDatePicker = new DatePicker("From");
+        exportToDatePicker = new DatePicker("To");
+        exportAllDataCheckbox = new Checkbox("All data (ignore date range)");
+        exportAllDataCheckbox.addValueChangeListener(ev -> {
+            boolean all = Boolean.TRUE.equals(ev.getValue());
+            exportFromDatePicker.setEnabled(!all);
+            exportToDatePicker.setEnabled(!all);
+            updateAdminExportDownloadState();
+        });
+        exportFromDatePicker.addValueChangeListener(ev -> updateAdminExportDownloadState());
+        exportToDatePicker.addValueChangeListener(ev -> updateAdminExportDownloadState());
+
+        HorizontalLayout rangeRow = new HorizontalLayout(exportFromDatePicker, exportToDatePicker);
+        rangeRow.setSpacing(true);
+        rangeRow.setPadding(false);
+        rangeRow.setAlignItems(Alignment.END);
+
+        exportStreamResource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildAdminExportCsv()));
+        exportStreamResource.setContentType("text/csv;charset=UTF-8");
+
+        // Start with no href; updateAdminExportDownloadState() attaches the
+        // resource once the admin picks both a member and a scope. A disabled
+        // button inside an Anchor with a live href would still navigate on
+        // click, so removing the href is what actually prevents downloads.
+        exportDownloadLink = new Anchor();
+        exportDownloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
+        exportDownloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        exportDownloadLink.add(exportDownloadButton);
+
+        content.add(header, description, warning, exportUserSelector, rangeRow, exportAllDataCheckbox, exportDownloadLink);
+        updateAdminExportDownloadState();
+        return content;
+    }
+
+    /**
+     * Recomputes the admin download button's enabled state and the download
+     * filename. Requires a selected member AND at least one selection (date
+     * range or "all data") — otherwise the button is disabled.
+     */
+    void updateAdminExportDownloadState() {
+        User target = exportUserSelector == null ? null : exportUserSelector.getValue();
+        boolean all = exportAllDataCheckbox != null && Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = exportFromDatePicker == null ? null : exportFromDatePicker.getValue();
+        LocalDate to = exportToDatePicker == null ? null : exportToDatePicker.getValue();
+        boolean enabled = shouldEnableAdminExportDownload(target, all, from, to);
+        if (exportDownloadButton != null) {
+            exportDownloadButton.setEnabled(enabled);
+        }
+        if (exportDownloadLink != null) {
+            if (enabled && exportStreamResource != null) {
+                exportDownloadLink.setHref(exportStreamResource);
+                exportDownloadLink.getElement().setAttribute("download",
+                    buildAdminExportFilename(safeName(target), all, from, to));
+            } else {
+                exportDownloadLink.removeHref();
+                exportDownloadLink.getElement().removeAttribute("download");
+            }
+        }
+    }
+
+    /**
+     * Pure decision logic. Admin export needs both a member AND at least one
+     * scope selection (date range or "all data"). Extracted from the view
+     * code so tests can verify both directions without hitting Vaadin's
+     * detached-component {@code isEnabled()} cascade quirk.
+     */
+    static boolean shouldEnableAdminExportDownload(User target, boolean all, LocalDate from, LocalDate to) {
+        if (target == null) return false;
+        return all || from != null || to != null;
+    }
+
+    private static String safeName(User u) {
+        String name = u == null ? null : u.getFirstName();
+        if (name == null || name.isBlank()) {
+            return "member";
+        }
+        return name.trim().toLowerCase().replaceAll("[^a-z0-9-]+", "-");
+    }
+
+    /**
+     * Composes the admin filename from the current selection. Member's
+     * first name is included so an admin downloading several members'
+     * CSVs in a row can tell them apart.
+     */
+    static String buildAdminExportFilename(String namePart, boolean all, LocalDate from, LocalDate to) {
+        if (all) {
+            return "tnra-posts-" + namePart + "-all.csv";
+        }
+        if (from != null && to != null) {
+            return "tnra-posts-" + namePart + "-from-" + from + "-to-" + to + ".csv";
+        }
+        if (from != null) {
+            return "tnra-posts-" + namePart + "-from-" + from + ".csv";
+        }
+        if (to != null) {
+            return "tnra-posts-" + namePart + "-through-" + to + ".csv";
+        }
+        return "tnra-posts-" + namePart + ".csv"; // never used — button is disabled in this state
+    }
+
+    /**
+     * Invoked by the {@link StreamResource} at fetch time so the latest UI state
+     * (member selection, date range, all-data toggle) drives every download.
+     */
+    byte[] buildAdminExportCsv() {
+        User target = (exportUserSelector == null) ? null : exportUserSelector.getValue();
+        if (target == null) {
+            return new byte[0];
+        }
+        boolean all = Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
+        LocalDate from = all ? null : exportFromDatePicker.getValue();
+        LocalDate to = all ? null : exportToDatePicker.getValue();
+        return postDataExportService.exportToCsv(target, from, to);
+    }
+
+    private String userLabel(User u) {
+        if (u == null) return "";
+        String first = u.getFirstName() == null ? "" : u.getFirstName().trim();
+        String last = u.getLastName() == null ? "" : u.getLastName().trim();
+        String name = (first + " " + last).trim();
+        return name.isEmpty() ? (u.getEmail() == null ? "(no name)" : u.getEmail()) : name;
     }
 
     // ========================
