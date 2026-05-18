@@ -4,12 +4,12 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.afitnerd</groupId>
-    <artifactId>tnra</artifactId>
+    <artifactId>tnra-app</artifactId>
     <version>9.0.0</version>
     <packaging>jar</packaging>
 
-    <name>tnra</name>
-    <description>Demo project for Spring Boot</description>
+    <name>tnra-app</name>
+    <description>TNRA main app — Spring Boot + Vaadin accountability tracker.</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
