@@ -8,8 +8,11 @@ If gstack skills aren't working, run `cd .claude/skills/gstack && ./setup` to bu
 
 ## Testing
 
-Run command: `./mvnw clean test`
-Test directory: `src/test/java/com/afitnerd/tnra/`
+Run command: `./mvnw clean test` (runs across all modules from the repo root aggregator)
+Test directories:
+- Main app: `tnra-app/src/test/java/com/afitnerd/tnra/`
+- CLI: `tnra-cli-app/src/test/java/com/afitnerd/tnra/cli/`
+- Landing: `tnra-landing-app/src/test/java/com/afitnerd/tnra/landing/`
 
 - 100% test coverage is the goal — tests make vibe coding safe
 - When writing new functions, write a corresponding test

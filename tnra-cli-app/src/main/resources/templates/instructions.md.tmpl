@@ -45,7 +45,7 @@ The `.env` file has host-accessible URLs (`localhost:3307` for MySQL,
 
 ```bash
 set -a && source provision/{{GROUP_NAME}}/.env && set +a
-./mvnw spring-boot:run
+./mvnw -pl tnra-app spring-boot:run
 ```
 
 Or configure your IDE to load `provision/{{GROUP_NAME}}/.env` as
@@ -61,8 +61,8 @@ Access at `https://{{GROUP_NAME}}.{{DOMAIN}}`.
 ## Step 4b: Run as Docker container (local testing / production)
 
 ```bash
-# Build the production JAR first (if not already built)
-./mvnw clean package -DskipTests -Pproduction
+# Build the production JAR first (scoped to main app + its deps)
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 
 # Start the group's container
 docker compose -f provision/{{GROUP_NAME}}/docker-compose.yml up --build -d

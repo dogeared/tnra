@@ -168,7 +168,7 @@ so a compromised settings record cannot redirect notifications to an external se
 cd ~/tnra
 
 # Build the app
-./mvnw clean package -DskipTests -Pproduction
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 
 # Start all services (mysql, keycloak, cloudflared, app containers)
 docker compose up --build -d
@@ -184,7 +184,7 @@ docker compose logs -f server
 cd ~/tnra
 git pull origin main
 
-./mvnw clean package -DskipTests -Pproduction
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 docker compose up --build -d
 
 docker compose logs -f server
@@ -327,13 +327,13 @@ All containers share the `tnra-production-shared` Docker network.
 ### Step 1: Build the CLI (on your local machine)
 
 ```bash
-cd cli && mvn package -DskipTests && cd ..
+cd tnra-cli-app && mvn package -DskipTests && cd ..
 ```
 
 ### Step 2: Provision
 
 ```bash
-java -jar cli/target/tnra-cli.jar provision <group-name> --domain tnra.app
+java -jar tnra-cli-app/target/tnra-cli.jar provision <group-name> --domain tnra.app
 ```
 
 Replace `tnra.app` with your production domain. This generates config files in
@@ -492,7 +492,7 @@ Run the app against the test database:
 SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3307/tnra_migration_test \
 SPRING_DATASOURCE_USERNAME=root \
 SPRING_DATASOURCE_PASSWORD=<password> \
-./mvnw spring-boot:run
+./mvnw -pl tnra-app spring-boot:run
 ```
 
 Watch logs for successful migration messages. Verify:
@@ -525,7 +525,7 @@ SELECT widwytk FROM post LIMIT 1;
 cd ~/tnra
 git pull origin main
 
-./mvnw clean package -DskipTests -Pproduction
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 docker compose up --build -d
 
 docker compose logs -f server
