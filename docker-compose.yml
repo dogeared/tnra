@@ -44,7 +44,7 @@ services:
   tnra-landing:
     container_name: tnra-landing
     build:
-      context: ./landing
+      context: ./tnra-landing-app
       dockerfile: Dockerfile.dev
     restart: unless-stopped
     environment:
