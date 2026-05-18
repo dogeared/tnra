@@ -83,6 +83,7 @@ public class ProfileView extends VerticalLayout {
     Checkbox exportAllDataCheckbox;
     Anchor exportDownloadLink;
     Button exportDownloadButton;
+    private StreamResource exportStreamResource;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -272,10 +273,13 @@ public class ProfileView extends VerticalLayout {
         // the CURRENT field values — each click yields a fresh CSV. The
         // `download` attribute is recomputed in updateExportDownloadState()
         // whenever the selection changes so the filename reflects the range.
-        StreamResource resource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildExportCsv()));
-        resource.setContentType("text/csv;charset=UTF-8");
+        exportStreamResource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildExportCsv()));
+        exportStreamResource.setContentType("text/csv;charset=UTF-8");
 
-        exportDownloadLink = new Anchor(resource, "");
+        // Start with no href so the disabled-by-default download is also
+        // non-navigable. updateExportDownloadState() attaches the resource
+        // once the user has selected something.
+        exportDownloadLink = new Anchor();
         exportDownloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
         exportDownloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         exportDownloadLink.add(exportDownloadButton);
@@ -286,19 +290,28 @@ public class ProfileView extends VerticalLayout {
     }
 
     /**
-     * Recomputes the download button's enabled state and the file's filename
-     * from current field values. Disabled when neither "All my data" nor any
-     * date bound is selected — there's no meaningful download in that state.
+     * Recomputes the download button's enabled state, the link's href, and the
+     * file's filename from current field values. When nothing is selected the
+     * button is disabled <em>and</em> the {@link Anchor}'s href is removed, so
+     * clicks have nothing to navigate to — a disabled button inside an Anchor
+     * with a live href would still trigger the link.
      */
     void updateExportDownloadState() {
         boolean all = exportAllDataCheckbox != null && Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
         LocalDate from = exportFromDatePicker == null ? null : exportFromDatePicker.getValue();
         LocalDate to = exportToDatePicker == null ? null : exportToDatePicker.getValue();
+        boolean enabled = shouldEnableExportDownload(all, from, to);
         if (exportDownloadButton != null) {
-            exportDownloadButton.setEnabled(shouldEnableExportDownload(all, from, to));
+            exportDownloadButton.setEnabled(enabled);
         }
         if (exportDownloadLink != null) {
-            exportDownloadLink.getElement().setAttribute("download", buildExportFilename(all, from, to));
+            if (enabled && exportStreamResource != null) {
+                exportDownloadLink.setHref(exportStreamResource);
+                exportDownloadLink.getElement().setAttribute("download", buildExportFilename(all, from, to));
+            } else {
+                exportDownloadLink.removeHref();
+                exportDownloadLink.getElement().removeAttribute("download");
+            }
         }
     }
 

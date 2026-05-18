@@ -1197,10 +1197,34 @@ class AdminViewTest {
 
         AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
 
-        // Construction state: no user picked, no selection → disabled.
-        // (Assert only the disable side; Vaadin's detached-component
-        //  isEnabled() cascade returns false even after setEnabled(true).)
+        // Construction state: no user picked, no selection → disabled AND
+        // the Anchor has no href. The disabled button alone wouldn't block
+        // the click: a live href on the surrounding <a> would still navigate.
         assertFalse(view.exportDownloadButton.isEnabled());
+        assertTrue(view.exportDownloadLink.getHref().isEmpty(),
+            "Anchor must have no href when disabled");
+    }
+
+    @Test
+    void dataExportTab_hrefAttachedOnlyWhenUserAndScopeBothSelected() {
+        com.afitnerd.tnra.model.User target = new com.afitnerd.tnra.model.User("Bob", "Lee", "bob@example.com");
+        target.setId(22L);
+        when(userService.getAllUsers()).thenReturn(java.util.List.of(target));
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        // Just a user → still no href
+        view.exportUserSelector.setValue(target);
+        assertTrue(view.exportDownloadLink.getHref().isEmpty());
+
+        // User + all-data → href attached
+        view.exportAllDataCheckbox.setValue(true);
+        assertFalse(view.exportDownloadLink.getHref().isEmpty());
+
+        // Clear the user → href removed even though all-data is checked
+        view.exportUserSelector.setValue(null);
+        assertTrue(view.exportDownloadLink.getHref().isEmpty());
     }
 
     @Test

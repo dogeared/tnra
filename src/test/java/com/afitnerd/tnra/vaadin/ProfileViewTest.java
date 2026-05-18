@@ -1148,10 +1148,30 @@ class ProfileViewTest {
     void dataExport_downloadDisabledOnInitialState() {
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // Construction state: no date range, all-data unchecked → button disabled.
-        // (Verifying only the disable side avoids Vaadin's detached-component
-        //  isEnabled() cascade, which returns false for unattached components.)
+        // Construction state: no date range, all-data unchecked → button disabled
+        // AND the Anchor has no href. A disabled button alone wouldn't block the
+        // click: a live href on the surrounding <a> would still navigate.
         assertFalse(profileView.exportDownloadButton.isEnabled());
+        assertTrue(profileView.exportDownloadLink.getHref().isEmpty(),
+            "Anchor must have no href when disabled — otherwise clicks still navigate");
+    }
+
+    @Test
+    void dataExport_hrefAttachedAfterSelection() {
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Pre-condition: empty
+        assertTrue(profileView.exportDownloadLink.getHref().isEmpty());
+
+        // Selecting all-data attaches the StreamResource
+        profileView.exportAllDataCheckbox.setValue(true);
+        assertFalse(profileView.exportDownloadLink.getHref().isEmpty(),
+            "Anchor must have an href once something is selected");
+
+        // Un-selecting removes it again
+        profileView.exportAllDataCheckbox.setValue(false);
+        assertTrue(profileView.exportDownloadLink.getHref().isEmpty(),
+            "Anchor href must be removed when selection clears");
     }
 
     @Test

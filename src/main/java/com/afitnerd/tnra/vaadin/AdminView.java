@@ -589,6 +589,7 @@ public class AdminView extends VerticalLayout {
     Checkbox exportAllDataCheckbox;
     Anchor exportDownloadLink;
     Button exportDownloadButton;
+    private StreamResource exportStreamResource;
 
     VerticalLayout createDataExportTabContent() {
         VerticalLayout content = new VerticalLayout();
@@ -639,10 +640,14 @@ public class AdminView extends VerticalLayout {
         rangeRow.setPadding(false);
         rangeRow.setAlignItems(Alignment.END);
 
-        StreamResource resource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildAdminExportCsv()));
-        resource.setContentType("text/csv;charset=UTF-8");
+        exportStreamResource = new StreamResource("tnra-posts.csv", () -> new ByteArrayInputStream(buildAdminExportCsv()));
+        exportStreamResource.setContentType("text/csv;charset=UTF-8");
 
-        exportDownloadLink = new Anchor(resource, "");
+        // Start with no href; updateAdminExportDownloadState() attaches the
+        // resource once the admin picks both a member and a scope. A disabled
+        // button inside an Anchor with a live href would still navigate on
+        // click, so removing the href is what actually prevents downloads.
+        exportDownloadLink = new Anchor();
         exportDownloadButton = new Button("Download CSV", VaadinIcon.DOWNLOAD.create());
         exportDownloadButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         exportDownloadLink.add(exportDownloadButton);
@@ -662,13 +667,19 @@ public class AdminView extends VerticalLayout {
         boolean all = exportAllDataCheckbox != null && Boolean.TRUE.equals(exportAllDataCheckbox.getValue());
         LocalDate from = exportFromDatePicker == null ? null : exportFromDatePicker.getValue();
         LocalDate to = exportToDatePicker == null ? null : exportToDatePicker.getValue();
+        boolean enabled = shouldEnableAdminExportDownload(target, all, from, to);
         if (exportDownloadButton != null) {
-            exportDownloadButton.setEnabled(shouldEnableAdminExportDownload(target, all, from, to));
+            exportDownloadButton.setEnabled(enabled);
         }
         if (exportDownloadLink != null) {
-            String namePart = (target == null) ? "member" : safeName(target);
-            exportDownloadLink.getElement().setAttribute("download",
-                buildAdminExportFilename(namePart, all, from, to));
+            if (enabled && exportStreamResource != null) {
+                exportDownloadLink.setHref(exportStreamResource);
+                exportDownloadLink.getElement().setAttribute("download",
+                    buildAdminExportFilename(safeName(target), all, from, to));
+            } else {
+                exportDownloadLink.removeHref();
+                exportDownloadLink.getElement().removeAttribute("download");
+            }
         }
     }
 
