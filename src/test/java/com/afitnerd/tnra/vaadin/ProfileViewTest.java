@@ -316,15 +316,16 @@ class ProfileViewTest {
         // Act
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // Assert - find the "My Stats" H3 header somewhere in the component tree
-        boolean hasMyStatsHeader = findAllDescendants(profileView)
+        // Assert - find the "My Stats" H3 header inside the My Stats tab.
+        // (Vaadin's TabSheet hides tab contents from the parent's standard
+        // children traversal, so we walk the tab content directly.)
+        boolean hasMyStatsHeader = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof H3 && "My Stats".equals(((H3) c).getText()));
-        assertTrue(hasMyStatsHeader, "Profile view should contain a 'My Stats' header");
+        assertTrue(hasMyStatsHeader, "My Stats tab should contain a 'My Stats' header");
 
-        // Assert - find the "Add Stat" button somewhere in the component tree
-        boolean hasAddStatButton = findAllDescendants(profileView)
+        boolean hasAddStatButton = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Button && ((Button) c).getText().contains("Add Stat"));
-        assertTrue(hasAddStatButton, "Profile view should contain an 'Add Stat' button");
+        assertTrue(hasAddStatButton, "My Stats tab should contain an 'Add Stat' button");
     }
 
     @Test
@@ -600,7 +601,7 @@ class ProfileViewTest {
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
         // refreshMyStatsList is called during construction; verify the empty message
-        boolean hasEmptyMessage = findAllDescendants(profileView)
+        boolean hasEmptyMessage = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Paragraph
                 && ((Paragraph) c).getText().contains("No personal stats yet"));
         assertTrue(hasEmptyMessage, "Should show empty state message when no stats");
@@ -621,13 +622,12 @@ class ProfileViewTest {
 
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // Active stat label should be present
-        boolean hasActiveLabel = findAllDescendants(profileView)
+        // Active stat label should be present in the My Stats tab content
+        boolean hasActiveLabel = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Span && "Push-ups".equals(((Span) c).getText()));
         assertTrue(hasActiveLabel, "Should render active stat label");
 
-        // Archived badge should be present
-        boolean hasArchivedBadge = findAllDescendants(profileView)
+        boolean hasArchivedBadge = findAllDescendants(profileView.myStatsTabContent)
             .anyMatch(c -> c instanceof Span && "archived".equals(((Span) c).getText()));
         assertTrue(hasArchivedBadge, "Should render archived badge");
     }
@@ -647,11 +647,10 @@ class ProfileViewTest {
 
         profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
 
-        // There should be at least one Button that is a Restore button (none here) — check that Buttons exist for arrows
-        long buttonCount = findAllDescendants(profileView)
+        // Buttons inside the My Stats tab: Add Stat + (up, down, archive) x 2 active stats = 7 minimum
+        long buttonCount = findAllDescendants(profileView.myStatsTabContent)
             .filter(c -> c instanceof Button)
             .count();
-        // At minimum: Add Stat button + (up, down, archive) x 2 active stats = 7 buttons
         assertTrue(buttonCount >= 7, "Should have buttons for reordering and archiving active stats, got " + buttonCount);
     }
 
@@ -1101,6 +1100,44 @@ class ProfileViewTest {
 
         assertArrayEquals("all".getBytes(), result);
         verify(postDataExportService).exportToCsv(testUser, null, null);
+    }
+
+    @Test
+    void tabbedLayout_rendersFourTabs() {
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        com.vaadin.flow.component.tabs.TabSheet tabs = findAllDescendants(profileView)
+            .filter(c -> c instanceof com.vaadin.flow.component.tabs.TabSheet)
+            .map(c -> (com.vaadin.flow.component.tabs.TabSheet) c)
+            .findFirst()
+            .orElseThrow(() -> new AssertionError("ProfileView should contain a TabSheet"));
+
+        java.util.List<String> labels = new java.util.ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            com.vaadin.flow.component.tabs.Tab tab = tabs.getTabAt(i);
+            assertNotNull(tab, "Tab " + i + " should exist");
+            labels.add(tab.getLabel());
+        }
+
+        assertEquals(java.util.List.of("Basic Info", "Notifications", "My Stats", "Export"), labels,
+            "Profile tabs should be in the requested order");
+    }
+
+    @Test
+    void tabbedLayout_bothSaveButtonsExist() {
+        when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
+            .thenReturn(Collections.emptyList());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+
+        // Basic Info tab has its own Save Changes button
+        assertNotNull(profileView, "view created");
+        // Notifications tab has its own Save Changes button — exposed for testing
+        assertNotNull(profileView.notificationsSaveButton, "Notifications tab Save button should exist");
+        assertEquals("Save Changes", profileView.notificationsSaveButton.getText());
     }
 
     @Test

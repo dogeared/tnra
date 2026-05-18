@@ -27,6 +27,7 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.upload.Upload;
@@ -59,6 +60,7 @@ public class ProfileView extends VerticalLayout {
     private final PostDataExportService postDataExportService;
     private User currentUser;
     private VerticalLayout myStatsList;
+    VerticalLayout myStatsTabContent; // package-private for testing
 
     private TextField firstNameField;
     private TextField lastNameField;
@@ -66,6 +68,7 @@ public class ProfileView extends VerticalLayout {
     private Image profileImage;
     private Upload imageUpload;
     private Button saveButton;
+    Button notificationsSaveButton; // package-private for testing
     private Checkbox notifyNewPostsCheckbox;
 
     // Slack publishing — package-private for testing
@@ -114,12 +117,23 @@ public class ProfileView extends VerticalLayout {
         header.addClassName("profile-title");
         add(header);
 
-        // Profile Image Section
-        VerticalLayout imageSection = new VerticalLayout();
-        imageSection.setSpacing(true);
-        imageSection.setPadding(false);
-        imageSection.addClassName("profile-image-section");
-        
+        // Build all field components first so cross-tab loads/saves can reference them
+        buildBasicInfoFields();
+        buildNotificationFields();
+
+        TabSheet tabs = new TabSheet();
+        tabs.setSizeFull();
+        tabs.addClassName("profile-tabs");
+        tabs.add("Basic Info", createBasicInfoTabContent());
+        tabs.add("Notifications", createNotificationsTabContent());
+        myStatsTabContent = createMyStatsSection();
+        tabs.add("My Stats", myStatsTabContent);
+        tabs.add("Export", createDataExportSection());
+
+        add(tabs);
+    }
+
+    private void buildBasicInfoFields() {
         profileImage = new Image();
         profileImage.setWidth("120px");
         profileImage.setHeight("120px");
@@ -137,68 +151,82 @@ public class ProfileView extends VerticalLayout {
         imageUpload.setMaxFileSize(5 * 1024 * 1024); // 5MB limit
         imageUpload.setDropLabel(new Div(new Paragraph("Drop image here or click to upload")));
         imageUpload.setUploadButton(new Button("Upload Image"));
-        
-        imageSection.add(profileImage, imageUpload);
-        
-        // Form Fields
+
         firstNameField = new TextField("First Name");
         firstNameField.setWidth("100%");
         firstNameField.setMaxLength(50);
-        
+
         lastNameField = new TextField("Last Name");
         lastNameField.setWidth("100%");
         lastNameField.setMaxLength(50);
-        
-        // Phone number field with formatting and validation
+
         phoneNumberField = createPhoneNumberField();
-        
-        // Notification Preferences
-        H3 notifHeader = new H3("Email Notifications");
+    }
+
+    private void buildNotificationFields() {
         notifyNewPostsCheckbox = new Checkbox("Notify me when someone posts a weekly update");
         notifyNewPostsCheckbox.setValue(true);
 
-        VerticalLayout notifSection = new VerticalLayout(notifHeader, notifyNewPostsCheckbox);
-        notifSection.setSpacing(true);
-        notifSection.setPadding(false);
-
-        // Slack publishing preferences — visibility/disabled state computed in loadUserData()
-        H3 slackHeader = new H3("Slack publishing");
+        // Slack publishing — visibility/disabled state computed in loadUserData()
         slackPublishStatsCheckbox = new Checkbox("Publish my stats to Slack when I finish a post");
         slackPublishPostBodyCheckbox = new Checkbox("Publish my post body to Slack when I finish a post");
         slackPublishStatsOverrideBadge = createOverrideBadge();
         slackPublishPostBodyOverrideBadge = createOverrideBadge();
-        HorizontalLayout statsRow = checkboxRow(slackPublishStatsCheckbox, slackPublishStatsOverrideBadge);
-        HorizontalLayout bodyRow = checkboxRow(slackPublishPostBodyCheckbox, slackPublishPostBodyOverrideBadge);
-        slackPublishSection = new VerticalLayout(slackHeader, statsRow, bodyRow);
-        slackPublishSection.setSpacing(true);
-        slackPublishSection.setPadding(false);
-        slackPublishSection.setVisible(false); // default hidden; loadUserData() will reveal if group allows
+    }
 
-        // Save Button — styled consistently with the Admin Integrations save button
+    private VerticalLayout createBasicInfoTabContent() {
+        VerticalLayout imageSection = new VerticalLayout(profileImage, imageUpload);
+        imageSection.setSpacing(true);
+        imageSection.setPadding(false);
+        imageSection.addClassName("profile-image-section");
+
+        // The single Save button persists every field on the user — fields
+        // outside Basic Info (notifications, slack) still load with the user,
+        // so saving here doesn't lose anything edited on another tab.
         saveButton = new Button("Save Changes", VaadinIcon.CHECK.create());
         saveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         saveButton.addClickListener(e -> saveProfile());
 
-        // Layout
         VerticalLayout formLayout = new VerticalLayout();
         formLayout.setSpacing(true);
         formLayout.setPadding(false);
         formLayout.addClassName("form-section");
-        formLayout.add(firstNameField, lastNameField, phoneNumberField, notifSection, slackPublishSection, saveButton);
-        
+        formLayout.add(firstNameField, lastNameField, phoneNumberField, saveButton);
+
         HorizontalLayout mainLayout = new HorizontalLayout();
         mainLayout.setSpacing(true);
         mainLayout.setPadding(false);
         mainLayout.add(imageSection, formLayout);
         mainLayout.setFlexGrow(1, formLayout);
-        
-        add(mainLayout);
 
-        // My Stats section
-        add(createMyStatsSection());
+        VerticalLayout tab = new VerticalLayout(mainLayout);
+        tab.setPadding(true);
+        tab.setSpacing(true);
+        return tab;
+    }
 
-        // Download my data section
-        add(createDataExportSection());
+    private VerticalLayout createNotificationsTabContent() {
+        H3 emailHeader = new H3("Email Notifications");
+        VerticalLayout emailSection = new VerticalLayout(emailHeader, notifyNewPostsCheckbox);
+        emailSection.setSpacing(true);
+        emailSection.setPadding(false);
+
+        H3 slackHeader = new H3("Slack publishing");
+        HorizontalLayout statsRow = checkboxRow(slackPublishStatsCheckbox, slackPublishStatsOverrideBadge);
+        HorizontalLayout bodyRow = checkboxRow(slackPublishPostBodyCheckbox, slackPublishPostBodyOverrideBadge);
+        slackPublishSection = new VerticalLayout(slackHeader, statsRow, bodyRow);
+        slackPublishSection.setSpacing(true);
+        slackPublishSection.setPadding(false);
+        slackPublishSection.setVisible(false); // default hidden; loadUserData() reveals if group allows
+
+        notificationsSaveButton = new Button("Save Changes", VaadinIcon.CHECK.create());
+        notificationsSaveButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        notificationsSaveButton.addClickListener(e -> saveProfile());
+
+        VerticalLayout tab = new VerticalLayout(emailSection, slackPublishSection, notificationsSaveButton);
+        tab.setPadding(true);
+        tab.setSpacing(true);
+        return tab;
     }
 
     private VerticalLayout createDataExportSection() {

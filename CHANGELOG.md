@@ -9,6 +9,9 @@ All notable changes to TNRA are documented in this file.
 - **Member data export (admin tab).** Admin → *Data Export* lets admins download the same CSV for any group member. Member is picked from a ComboBox; same date-range / all-data controls. Downloaded filename includes the member's first name.
 - **Encryption-trade-off warning.** Both the member and admin sections show a red-tinted warning paragraph explaining that the downloaded CSV is in plaintext and leaves the encrypted-at-rest database.
 
+### Changed
+- **Profile view re-organized into a tabbed layout** (matches the AdminView pattern). Four tabs: *Basic Info* (image, name, phone), *Notifications* (email notification toggle + Slack publishing), *My Stats* (personal stat definitions), *Export* (the new download-my-data section). Each settings tab has its own *Save Changes* button — both invoke `saveProfile()` which still persists every field at once, so editing across tabs without saving doesn't lose work.
+
 ### Internal
 - New `PostDataExportService` + `PostDataExportServiceImpl` (uses Apache Commons CSV 1.13.0 for RFC-4180 compliant quoting of multi-line text and special characters). Posts come back from JPA already decrypted via the existing `EncryptedStringConverter` / `EncryptedIntegerConverter` — no extra crypto work needed in the export path.
 
