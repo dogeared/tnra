@@ -87,7 +87,7 @@ SPRING_DATASOURCE_USERNAME=root \
 SPRING_DATASOURCE_PASSWORD=<password> \
 SPRING_FLYWAY_BASELINE_ON_MIGRATE=true \
 SPRING_FLYWAY_BASELINE_VERSION=1 \
-./mvnw spring-boot:run
+./mvnw -pl tnra-app spring-boot:run
 ```
 
 Watch logs for:
@@ -143,11 +143,13 @@ With the app running against `tnra_migration_test`:
 cd ~/tnra
 git pull origin main
 
-./mvnw clean package -DskipTests -Pproduction
-docker compose up --build -d
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
+
+# Redeploy the group whose database you migrated (Flyway runs on startup); replace <group-name>
+docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up -d --build
 
 # Watch logs
-docker compose logs -f server
+docker logs tnra-<group-name> -f
 # Look for: "Successfully applied 1 migration" and "Started TnraApplication"
 ```
 

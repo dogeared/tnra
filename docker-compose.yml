@@ -41,27 +41,10 @@ services:
       - './mysql:/docker-entrypoint-initdb.d:ro'
     networks:
       - tnra-shared
-  tnra-landing:
-    container_name: tnra-landing
-    build:
-      context: ./tnra-landing-app
-      dockerfile: Dockerfile.dev
-    restart: unless-stopped
-    environment:
-      VAADIN_PRODUCTIONMODE: "true"
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/tnra_landing?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      TNRA_NOTIFY_ENABLED: "false"
-      TNRA_NOTIFY_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL:-tnra@dogeared.dev}
-    ports:
-      - '127.0.0.1:8081:8080'
-    networks:
-      - tnra-shared
-    depends_on:
-      mysql:
-        condition: service_healthy
 
+  # Dev runs the apps (tnra-app :8080, tnra-landing-app :8081) from the IDE/host —
+  # only the shared infrastructure (mysql, keycloak, proxy) runs in Docker. Nginx
+  # reaches the host-run apps via host.docker.internal (see nginx/sites/*-dev.conf).
   proxy:
     container_name: proxy
     image: nginx:latest
@@ -74,7 +57,7 @@ services:
     networks:
       - tnra-shared
     depends_on:
-      - tnra-landing
+      - keycloak
 volumes:
   keycloak-data:
   mysql-db:

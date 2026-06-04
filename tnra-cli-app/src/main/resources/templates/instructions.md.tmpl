@@ -60,12 +60,22 @@ Access at `https://{{GROUP_NAME}}.{{DOMAIN}}`.
 
 ## Step 4b: Run as Docker container (local testing / production)
 
-```bash
-# Build the production JAR first (scoped to main app + its deps)
-./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
+Build the production JAR first (scoped to main app + its deps):
 
-# Start the group's container
-docker compose -f provision/{{GROUP_NAME}}/docker-compose.yml up --build -d
+```bash
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
+```
+
+Then start the group's container, layered onto the shared infrastructure so it joins the
+`tnra-shared` network and reads `TNRA_ENCRYPTION_MASTER_KEY` from the repo-root `.env`. Pick the
+base compose for your environment (the shared infra must already be up so the network exists):
+
+```bash
+# Local testing — onto the dev infra (mysql, keycloak, proxy)
+docker compose -f docker-compose.yml -f provision/{{GROUP_NAME}}/docker-compose.yml up --build -d
+
+# Production — onto the shared production infra
+docker compose -f docker-compose.production.yml -f provision/{{GROUP_NAME}}/docker-compose.yml up --build -d
 ```
 
 All credentials and URLs are embedded directly in the compose `environment`
@@ -74,7 +84,7 @@ block. Docker-internal URLs for MySQL (`mysql:3306`) and Keycloak
 
 Watch logs:
 ```bash
-docker compose -f provision/{{GROUP_NAME}}/docker-compose.yml logs -f
+docker logs tnra-{{GROUP_NAME}} -f
 ```
 
 Look for: `Started TnraApplication` and Flyway migration messages.

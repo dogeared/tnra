@@ -158,15 +158,16 @@ so a compromised settings record cannot redirect notifications to an external se
 
 ### First deployment
 
+Build the app JAR (the per-group containers bake `tnra-app/target/*.jar` via their `./tnra-app`
+build context):
+
 ```bash
 cd ~/tnra
-
-# Install Maven wrapper dependencies and build
 ./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
-
-# Start all services
-docker compose up --build -d
 ```
+
+Then bring everything up — start the shared infrastructure, then each provisioned group. See
+[Bringing the Stack Up](#bringing-the-stack-up) for the one-liners.
 
 ### Deploy the landing service
 
@@ -184,7 +185,7 @@ Then build the JAR (requires the production Vaadin frontend bundle) and deploy:
 
 ```bash
 cd ~/tnra
-mvn clean package -Pproduction -DskipTests -f tnra-landing-app/pom.xml
+./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
 docker build -t tnra-landing:latest tnra-landing-app/
 docker compose -f docker-compose.production.yml up -d tnra-landing
 ```
@@ -207,7 +208,7 @@ curl -sk https://tnra.app | grep -o "<title>.*</title>"
 ```bash
 cd ~/tnra
 git pull origin main
-mvn clean package -Pproduction -DskipTests -f tnra-landing-app/pom.xml
+./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
 docker build -t tnra-landing:latest tnra-landing-app/
 docker compose -f docker-compose.production.yml up -d --no-deps tnra-landing
 ```
@@ -219,11 +220,57 @@ cd ~/tnra
 git pull origin main
 
 ./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
-docker compose up --build -d
 
-# Verify startup
-docker compose logs -f server
+# Rebuild and restart every provisioned group (shared infra stays up)
+for g in provision/*/; do
+  docker compose -f docker-compose.production.yml -f "${g}docker-compose.yml" up -d --build
+done
+
+# Verify a group's startup (replace <group-name>)
+docker logs tnra-<group-name> -f
 # Look for: "Started TnraApplication" and any Flyway migration messages
+```
+
+## Bringing the Stack Up
+
+The deployment is **two layers**: one set of **global shared services** defined in
+`docker-compose.production.yml`, and **one container per group** under `provision/<group>/`.
+Bring the shared layer up first — it creates the `tnra-shared` Docker network that
+every group container attaches to.
+
+### Global / shared infrastructure (one-liner)
+
+```bash
+cd ~/tnra
+docker compose -f docker-compose.production.yml up -d
+```
+
+Starts MySQL, Keycloak, and the `tnra-landing` site. Build the landing image once before the
+first run (see [Deploy the landing service](#deploy-the-landing-service)). To start only the
+data plane (no landing site), scope it:
+
+```bash
+docker compose -f docker-compose.production.yml up -d mysql keycloak
+```
+
+### All provisioned sites in `provision/`
+
+Build the app JAR once — the group containers bake `tnra-app/target/*.jar` via their `./tnra-app`
+build context — then loop over every provisioned group:
+
+```bash
+cd ~/tnra
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
+
+for g in provision/*/; do
+  docker compose -f docker-compose.production.yml -f "${g}docker-compose.yml" up -d --build
+done
+```
+
+Bring up (or restart) a single site by naming it:
+
+```bash
+docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up -d --build
 ```
 
 ## Running as a systemd Service
@@ -239,14 +286,19 @@ systemctl enable tnra.service
 systemctl start tnra.service
 ```
 
-The service runs `tnra.start.sh`, which sources `.env` and runs `docker-compose up --build --detach`.
+The service runs `tnra.start.sh`, which sources `.env`, brings up the shared infrastructure
+(adding `--profile cloudflare` automatically when `CLOUDFLARE_TUNNEL_TOKEN` is set), then starts
+every group under `provision/`. `tnra.stop.sh` stops them all.
 
 ```bash
 # Check status
 systemctl status tnra.service
 
-# View logs
-docker compose logs -f server
+# View a group's logs (replace <group-name>)
+docker logs tnra-<group-name> -f
+
+# View shared-infra logs
+docker compose -f docker-compose.production.yml logs -f
 
 # Stop
 ./tnra.stop.sh  # or: systemctl stop tnra.service
@@ -371,7 +423,7 @@ them manually.
                     └──────────────────────────────────────┘
 ```
 
-All containers share the `tnra-production-shared` Docker network. Each group's container connects to
+All containers share the `tnra-shared` Docker network. Each group's container connects to
 MySQL and Keycloak using internal Docker hostnames (`mysql`, `keycloak`).
 
 ### Step 1: Build the CLI (on your local machine)
@@ -506,7 +558,7 @@ prevents duplicate group names. Keep this file backed up on the VPS.
 ### Migrating the existing group
 
 The existing single-tenant deployment is registered as the first group in `groups.json`
-(name: "tnra", port: 8080). After adding the `tnra-production-shared` network to `docker-compose.yml`
+(name: "tnra", port: 8080). After adding the `tnra-shared` network to `docker-compose.yml`
 and restarting, it continues to work as before. No data migration required.
 
 ## Database Migration from V1
@@ -602,9 +654,11 @@ cd ~/tnra
 git pull origin main
 
 ./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
-docker compose up --build -d
 
-docker compose logs -f server
+# Redeploy the group whose database you migrated (Flyway runs on startup); replace <group-name>
+docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up -d --build
+
+docker logs tnra-<group-name> -f
 # Verify: "Successfully applied N migrations" and "Started TnraApplication"
 ```
 

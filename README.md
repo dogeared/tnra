@@ -49,6 +49,15 @@ database). Files are UUID-named and served via `/uploads/{filename}`. Max size: 
 
 ## Local Development Setup
 
+The dev model splits cleanly in two:
+
+- **Infrastructure runs in Docker** — MySQL, Keycloak, and the Nginx proxy
+  (`docker-compose.yml`). Nginx reaches the host-run apps via `host.docker.internal`.
+- **The apps run from your IDE** — `tnra-app` on port **8080** and `tnra-landing-app` on
+  port **8081**. Run/debug them straight from IntelliJ/VS Code, or via `./mvnw -pl <module> spring-boot:run`.
+- **The CLI always runs from the command line** — `tnra-cli-app` (see
+  [Running Multiple Groups Locally](#running-multiple-groups-locally)).
+
 ### 1. Clone the repository
 
 ```bash
@@ -72,75 +81,64 @@ The `tnra` database user (matching `application.yml` defaults) is auto-created b
 `mysql/init-local-user.sql` on first MySQL container start. Keycloak defaults work
 out of the box for local dev (`tnra-app` / `tnra-app-secret` / `http://localhost:8180/realms/tnra`).
 
-### 3. Choose a run option
-
-#### Option A: H2 in-memory (quick start, no MySQL needed)
-
-Tests use H2 automatically. For local dev with H2 (data resets on restart):
+### 3. Start the infrastructure in Docker
 
 ```bash
-# Start Keycloak (pre-configured realm auto-imports on first start)
-docker compose up keycloak -d
-
-# Run with H2
-./mvnw spring-boot:run
-```
-
-H2 uses `ddl-auto: create-drop` and Flyway is disabled.
-
-#### Option B: MySQL via Docker (persistent data, matches production)
-
-```bash
-# Start MySQL and Keycloak (first time)
-docker compose up mysql keycloak -d
+# First run — start MySQL, Keycloak, and the Nginx proxy
+docker compose up -d
 
 # Or, restart existing containers from a previous run
-docker compose start mysql keycloak
+docker compose start
 
 # Wait for MySQL to be healthy
 docker compose exec mysql mysqladmin ping -h localhost --wait=30
-
-# Run the app
-./mvnw spring-boot:run
 ```
 
-MySQL is available at `localhost:3307` (mapped from container port 3306). The `tnra` database
-and a `tnra` user (matching `application.yml` defaults) are created automatically on first
-container start. Flyway runs all migrations on first app start.
+This brings up **only** the shared infrastructure — `docker-compose.yml` no longer defines any
+app containers. MySQL is at `localhost:3307` (mapped from container `3306`); Keycloak's admin is
+at `http://localhost:8180/admin`. The `tnra` database and user are created automatically on first
+container start.
 
 > **Note:** If you already have a MySQL Docker volume, the init script won't re-run.
-> Reset with: `docker compose down -v && docker compose up mysql keycloak -d`
+> Reset with: `docker compose down -v && docker compose up -d`
 
-#### Option C: Full stack via Docker Compose (app + MySQL + Keycloak + Nginx)
+### 4. SSL certificates and local DNS (for the Nginx proxy)
 
-```bash
-# Build the production JAR
-./mvnw clean package -DskipTests -Pproduction
+The proxy terminates TLS and routes the dev hostnames. Add them to `/etc/hosts`:
 
-# Start everything
-docker compose up --build -d
+```
+127.0.0.1 auth.dev.dogeared.dev tnra.dev.dogeared.dev landing.dev.dogeared.dev
 ```
 
-The app is available at `https://localhost:443` via Nginx proxy (requires SSL certs, see below).
-
-### 4. SSL Certificates for Local Nginx
-
-Only needed for Option C. Place certs in `nginx/.cert/`:
+Place certs in `nginx/.cert/` (a wildcard cert covers all three hostnames):
 
 ```bash
 mkdir -p nginx/.cert
-
-# Option 1: mkcert (trusted local certs)
 mkcert -install
-mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem localhost
-
-# Option 2: Self-signed (browser will show warning)
-openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-  -keyout nginx/.cert/key.pem -out nginx/.cert/cert.pem \
-  -subj "/CN=localhost"
+mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem \
+  localhost auth.dev.dogeared.dev "*.dev.dogeared.dev"
 ```
 
-### 5. Create a test user in Keycloak
+### 5. Run the apps from your IDE
+
+Both apps default to port 8080, so the landing app must override its port to **8081**.
+
+```bash
+# Main app — http://localhost:8080  (proxied as https://tnra.dev.dogeared.dev)
+./mvnw -pl tnra-app spring-boot:run
+
+# Landing app — http://localhost:8081  (proxied as https://landing.dev.dogeared.dev)
+SERVER_PORT=8081 ./mvnw -pl tnra-landing-app spring-boot:run
+```
+
+In an IDE, run the `TnraApplication` and `TnraLandingApplication` main classes directly; set
+`SERVER_PORT=8081` (or `-Dserver.port=8081`) on the landing run configuration.
+
+> **Quick start without MySQL:** the main app also runs on H2 (data resets on restart) — just
+> start Keycloak (`docker compose up keycloak -d`) and run `./mvnw -pl tnra-app spring-boot:run`.
+> H2 uses `ddl-auto: create-drop` with Flyway disabled.
+
+### 6. Create a test user in Keycloak
 
 1. Go to `http://localhost:8180/admin` (admin/admin)
 2. Select the `tnra` realm
@@ -155,26 +153,36 @@ Pre-configured demo accounts (imported with realm):
 - `elaine@seinfeld.com` / `limbo5unfair!PRETTY` (member)
 - `george@seinfeld.com` / `VETO7rugs@connors` (member)
 
-### 6. Access the application
+### 7. Access the applications
 
-- **Options A/B:** `http://localhost:8080`
-- **Option C:** `https://localhost:443`
+| Service | Direct (IDE) | Via Nginx proxy |
+|---|---|---|
+| Main app | `http://localhost:8080` | `https://tnra.dev.dogeared.dev` |
+| Landing app | `http://localhost:8081` | `https://landing.dev.dogeared.dev` |
+| Keycloak admin | `http://localhost:8180/admin` | `https://auth.dev.dogeared.dev/admin` |
 
 ## Running Multiple Groups Locally
 
 Each TNRA group runs as its own container with its own database and Keycloak realm. The
 `tnra-cli` tool generates all the config files you need to provision a new group.
 
+Group containers join the **same dockerized dev infrastructure** described above (MySQL,
+Keycloak, and the Nginx proxy on the `tnra-shared` network), so each group is reachable over
+HTTPS at `https://<group>.dev.dogeared.dev`.
+
 ### Prerequisites
 
-- The base infrastructure running (`docker compose up mysql keycloak -d` for first run, or `docker compose start mysql keycloak` to restart existing containers)
+- The dev infrastructure running: `docker compose up -d` (mysql, keycloak, proxy). The group
+  containers attach to its `tnra-shared` network.
+- `TNRA_ENCRYPTION_MASTER_KEY` set in the **repo-root `.env`** — group containers read it from
+  there via compose interpolation. Generate one with `openssl rand -base64 32` if needed.
 - [mkcert](https://github.com/FiloSottile/mkcert) installed for local HTTPS
 - Java 21 (to run the CLI)
 
 ### 1. Build the CLI
 
 ```bash
-cd tnra-cli-app && mvn package -DskipTests && cd ..
+./mvnw -pl tnra-cli-app -am package -DskipTests
 ```
 
 ### 2. Provision a new group
@@ -190,7 +198,7 @@ java -jar tnra-cli-app/target/tnra-cli.jar provision tnra1 \
 Save the temporary admin password shown in the output. The admin must change it on first login.
 
 This generates 7 files in `provision/tnra1/`:
-- `docker-compose.yml` — app container on the shared network
+- `docker-compose.yml` — app container on the shared `tnra-shared` network
 - `tnra1-realm.json` — Keycloak realm with client, roles, and admin user
 - `tnra1.conf` — Nginx subdomain routing
 - `init-db.sql` — MySQL database and user creation
@@ -235,10 +243,14 @@ with the admin user pre-created.
 ### 7. Start the group's container
 
 ```bash
-# Build the production JAR first (if not already built)
-./mvnw clean package -DskipTests -Pproduction
+# Build the production JAR first (if not already built — the group container
+# bakes tnra-app/target/*.jar via its build context of ./tnra-app)
+./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 
-docker compose -f provision/tnra1/docker-compose.yml up --build -d
+# Layer the group onto the dev compose so it joins the tnra-shared network and reads
+# TNRA_ENCRYPTION_MASTER_KEY from the repo-root .env. Naming the service starts only it
+# (the shared infra from the Prerequisites stays up).
+docker compose -f docker-compose.yml -f provision/tnra1/docker-compose.yml up --build -d tnra-tnra1
 ```
 
 ### 8. Seed the admin user
@@ -276,8 +288,8 @@ Each group has fully isolated data, users, and authentication.
 To fully remove a provisioned group (e.g., `tnra1`):
 
 ```bash
-# 1. Stop the group's container
-docker compose -f provision/tnra1/docker-compose.yml down
+# 1. Stop and remove just the group's container (leaves the shared infra running)
+docker compose -f docker-compose.yml -f provision/tnra1/docker-compose.yml rm -sf tnra-tnra1
 
 # 2. Remove the Nginx config and reload
 rm nginx/sites/tnra1.conf
@@ -318,7 +330,8 @@ etc.) and prevents duplicate group names.
 ./mvnw clean test
 ```
 
-JaCoCo coverage reports are generated in `target/site/jacoco/`.
+JaCoCo coverage reports are generated per module under `<module>/target/site/jacoco/`
+(e.g. `tnra-app/target/site/jacoco/` for the main app).
 
 Tests use H2 with `ddl-auto: create-drop` (Flyway disabled). Flyway migrations are
 MySQL-specific SQL and are not run during tests.
@@ -445,8 +458,8 @@ tnra/
 │   ├── templates/                   # Default Nginx config template
 │   ├── sites/                       # Per-group Nginx server blocks (generated by CLI)
 │   └── .cert/                       # SSL certificates
-├── docker-compose.yml               # Base infrastructure (app, MySQL, Keycloak, Nginx)
-├── docker-compose.production.yml    # Shared production infra (mysql-prod, keycloak-prod, cloudflared)
+├── docker-compose.yml               # Dev infrastructure only (MySQL, Keycloak, Nginx) — apps run from the IDE
+├── docker-compose.production.yml    # Shared production infra (mysql, keycloak, tnra-landing, cloudflared)
 ├── groups.json.example              # Template for group registry (copy to groups.json)
 └── uploads/                         # Profile image storage (created at runtime)
 ```
