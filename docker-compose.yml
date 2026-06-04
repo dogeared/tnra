@@ -53,7 +53,7 @@ services:
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       TNRA_NOTIFY_ENABLED: "false"
-      TNRA_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL:-tnra@dogeared.dev}
+      TNRA_NOTIFY_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL:-tnra@dogeared.dev}
     ports:
       - '127.0.0.1:8081:8080'
     networks:

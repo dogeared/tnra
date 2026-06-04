@@ -41,6 +41,12 @@ Review and tighten all templates in `cli/src/main/resources/templates/` for corr
 - **Effort:** S (human: ~1 day / CC: ~20 min)
 - **Context:** Templates to review: `realm.json.tmpl`, `docker-compose.yml.tmpl`, `env.tmpl`, `instructions.md.tmpl`, `nginx.conf.tmpl`, `init-db.sql.tmpl`, `seed-admin.sql.tmpl`. Check for: hardcoded values that should be CLI options, missing Keycloak realm settings (e.g. session timeouts, brute-force protection), INSTRUCTIONS.md accuracy against actual deployment steps, and any template vars that are set but unused (or used but not set).
 
+### Default the `founder-email` Notify Property
+Add a default to `@Value("${tnra.notify.founder-email}")` in landing's `MailgunNotificationServiceImpl` (e.g. `${tnra.notify.founder-email:tnra@dogeared.dev}`).
+- **Why:** It's the only notify `@Value` with no default, so a missing/mis-named env var (Spring relaxed binding expects `TNRA_NOTIFY_FOUNDER_EMAIL`) takes the whole landing context down at startup instead of degrading gracefully. This bit us in local dev when docker-compose set `TNRA_FOUNDER_EMAIL` — fixed the env var name, but the brittle binding remains.
+- **Effort:** XS (CC: ~5 min)
+- **Context:** Do this on the module/parent-pom branch alongside config consolidation. Consider also splitting the nginx `include /etc/nginx/sites/*.conf` so provisioned-tenant confs (`tnra1.conf`, `tnra2.conf`) live in a separate dir from the dev stack — stray tenant upstreams currently crash the dev `proxy`. Those two confs are parked in `nginx/sites-disabled/`.
+
 ### Slack Integration — Part 2: Stats and Full-Post Tiers
 Extend Part 1 with two additional admin-selectable content tiers: stats-only (username + stat values, no narrative text) and full-post (all post sections, decrypted at send time). Admin selects tier per group.
 - **Why:** Groups that are comfortable with the trade-off can opt into richer Slack notifications.
@@ -84,6 +90,12 @@ Monthly meeting notes as a rich-text field per month, viewable by all group memb
 - **Effort:** S (human: ~2 days / CC: ~30 min)
 - **Depends on:** Core wedge (encryption, configurable stats, Keycloak, provisioning) shipped.
 - **Context:** Monthly cadence involves a group meeting to review and make new commitments. Notes are currently unstructured in Google Docs. Rich-text editing in Vaadin requires a component (e.g., CKEditor or similar).
+
+### Persistent Session Store (Survive Redeploys)
+Move HTTP sessions out of Tomcat's in-memory store into a persistent store (Spring Session + JDBC or Redis) so authenticated sessions survive app restarts/redeploys.
+- **Why:** The 30-day "stay logged in" fix (persistent `JSESSIONID` cookie + 30d server timeout, shipped this release) makes sessions survive browser restarts, but server-side sessions are still in-memory — every container restart/redeploy wipes them and forces a (silent, Keycloak-backed) re-auth. For truly uninterrupted 30-day sessions across deploys, sessions must persist outside the JVM.
+- **Effort:** M (human: ~2-3 days / CC: ~30 min)
+- **Context:** Spring Session JDBC could reuse the existing MySQL (`SPRING_SESSION_*` tables via its schema), avoiding a new Redis dependency — but note session payloads would land in the DB; confirm that's acceptable alongside the app-level column encryption. Per-group deployment means each group's DB carries its own sessions. The silent Keycloak re-auth on restart is low-friction, so this is reliability polish, not urgent. Tackle on the module/parent-pom branch alongside config consolidation. See also [Default the founder-email Notify Property].
 
 ### Text/SMS Notifications (Rebuild from Scratch)
 Proper SMS notifications using a real provider (Twilio, AWS SNS, or similar).

@@ -2,6 +2,15 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [8.6.0] - 2026-06-03
+
+### Added
+- **Home-screen install icon.** Adding the app to a mobile home screen now shows a branded forest-green **TNRA** icon and the short label `TNRA` (previously iOS rendered a generated letter glyph with the truncated page title "TNRA-Takingthe..."). Wired by hand through `AppShellConfigurator` — a static `manifest.webmanifest` (icons + `short_name`, `display: standalone`, brand colors) for Android, plus an `apple-touch-icon` link and `apple-mobile-web-app-*` meta tags for iOS. Works across iOS Safari, iOS Chrome/Edge/Firefox (all WebKit), and Android browsers. Implemented manually rather than via `@PWA` because Vaadin 24.9.9's `@PWA` `build-frontend` step crashes the production build (`MissingNode cannot be cast to ObjectNode` reading the token file). Icons are full-bleed opaque squares (iOS renders transparency as black and rounds corners itself), generated on-brand per DESIGN.md.
+
+### Fixed
+- **Stay logged in for the full 30 days.** The `JSESSIONID` cookie had no `Max-Age`, so it was a browser-session cookie the browser discarded on close — users were logged out (then silently re-authenticated via Keycloak's still-valid SSO session) well before the 30-day server session expired. Added `server.servlet.session.cookie.max-age=30d` to `application.properties` (baked default, so every deployment inherits it on the next redeploy) and mirrored it as `SERVER_SERVLET_SESSION_COOKIE_MAX_AGE` in the provisioning `docker-compose` template. Server-side sessions remain in-memory, so a redeploy still triggers a (silent) re-auth; a persistent session store is tracked as a follow-up.
+- **Local dev: `tnra-landing` failed to start.** `docker-compose.yml` set `TNRA_FOUNDER_EMAIL`, which doesn't bind to the `tnra.notify.founder-email` property (Spring relaxed binding expects `TNRA_NOTIFY_FOUNDER_EMAIL`); the landing context failed on startup. Renamed the env var so it resolves.
+
 ## [8.5.0] - 2026-05-18
 
 ### Added
