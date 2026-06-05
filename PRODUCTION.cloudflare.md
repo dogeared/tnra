@@ -211,6 +211,9 @@ Starts MySQL, Keycloak, the `tnra-landing` site, and the `cloudflared` tunnel. T
 image isn't built at `up` time — build it once first:
 
 ```bash
+# application.yml is gitignored — seed it from the tracked sample on first build.
+cp -n tnra-landing-app/src/main/resources/application.yml.sample \
+      tnra-landing-app/src/main/resources/application.yml
 ./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
 docker build -t tnra-landing:latest tnra-landing-app/
 ```

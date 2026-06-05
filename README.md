@@ -127,18 +127,27 @@ mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem \
 
 ### 5. Run the apps from your IDE
 
-Both apps default to port 8080, so the landing app must override its port to **8081**.
+The landing app's `application.yml` is gitignored (the repo ignores `*.yml`), so copy its tracked
+sample once. The dev defaults connect to the dockerized MySQL as the `tnra` user and set the
+landing port to **8081** (the main app uses its tracked `application.properties`, so it needs no
+copy):
+
+```bash
+cp tnra-landing-app/src/main/resources/application.yml.sample \
+   tnra-landing-app/src/main/resources/application.yml
+```
+
+Then run both apps:
 
 ```bash
 # Main app — http://localhost:8080  (proxied as https://tnra.dev.dogeared.dev)
 ./mvnw -pl tnra-app spring-boot:run
 
 # Landing app — http://localhost:8081  (proxied as https://landing.dev.dogeared.dev)
-SERVER_PORT=8081 ./mvnw -pl tnra-landing-app spring-boot:run
+./mvnw -pl tnra-landing-app spring-boot:run
 ```
 
-In an IDE, run the `TnraApplication` and `TnraLandingApplication` main classes directly; set
-`SERVER_PORT=8081` (or `-Dserver.port=8081`) on the landing run configuration.
+In an IDE, run the `TnraApplication` and `TnraLandingApplication` main classes directly.
 
 > **Quick start without MySQL:** the main app also runs on H2 (data resets on restart) — just
 > start Keycloak (`docker compose up keycloak -d`) and run `./mvnw -pl tnra-app spring-boot:run`.

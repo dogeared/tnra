@@ -185,6 +185,10 @@ Then build the JAR (requires the production Vaadin frontend bundle) and deploy:
 
 ```bash
 cd ~/tnra
+# application.yml is gitignored — seed it from the tracked sample on first build (it provides
+# server.forward-headers-strategy + Flyway settings; the datasource is overridden by env).
+cp -n tnra-landing-app/src/main/resources/application.yml.sample \
+      tnra-landing-app/src/main/resources/application.yml
 ./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
 docker build -t tnra-landing:latest tnra-landing-app/
 docker compose -f docker-compose.production.yml up -d tnra-landing
