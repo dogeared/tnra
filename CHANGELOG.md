@@ -2,6 +2,35 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.0.0] - 2026-06-04
+
+### Changed (breaking — structural)
+- **Project restructured into a Maven multi-module layout.** The repo root is now a parent aggregator (`<packaging>pom</packaging>`, modules: `tnra-app`, `tnra-cli-app`, `tnra-landing-app`). The main app's `src/`, `pom.xml`, `Dockerfile`, and `docker-entrypoint.sh` moved into `tnra-app/`; `cli/` was renamed to `tnra-cli-app/`; `landing/` was renamed to `tnra-landing-app/`. **No Java code or package names changed** — every import stays identical, and 702 tests (661 main + 33 CLI + 8 landing) pass unchanged from root via `./mvnw clean test`.
+- **Per-group docker-compose template** (`tnra-cli-app/src/main/resources/templates/docker-compose.yml.tmpl`) now points its build context at `./tnra-app` instead of `.`, so the production Dockerfile inside `tnra-app/` resolves correctly when the compose runs from `~/tnra/` on the VPS.
+- **Main app artifactId renamed `tnra` → `tnra-app`** to match the new module directory name (was previously `tnra` because the main app lived at the repo root). The Maven Reactor Summary now reads `tnra-app` / `tnra-cli` / `tnra-landing` under the `TNRA` parent, which is unambiguous. Produced JAR is now `tnra-app/target/tnra-app-9.0.0.jar` (was `tnra-9.0.0.jar`). All Dockerfile / Procfile references use `*.jar` globs, so no runtime references break.
+- **Module versions aligned at 9.0.0.** Previously `tnra` was `0.0.1-SNAPSHOT`, `tnra-cli` was `1.0.0`, and `tnra-landing` was `1.0.0-SNAPSHOT`. All three now report 9.0.0, matching `VERSION` and the git tag.
+- **Operator commands.** From the repo root, `./mvnw clean test` runs every module's tests. To scope a build to just the main app (skipping the landing Vaadin frontend build), use `./mvnw -pl tnra-app -am clean package -Pproduction -DskipTests`. `spring-boot:run` requires `-pl tnra-app` since the aggregator isn't itself a Spring Boot app. Updated in PRODUCTION.vps.md, PRODUCTION.cloudflare.md, and the per-group instructions template.
+- **Documentation updated** for the new paths: README's *Project Structure* tree, both PRODUCTION docs, `CLAUDE.md` test directory, and the CLI's `instructions.md.tmpl`. `Procfile` and `bootstrap.sh` printed-instructions updated to reference `tnra-app/target/*.jar` and `tnra-cli-app/target/tnra-cli.jar`.
+- **CI**: `.github/workflows/tests.yml` `cd cli` → `cd tnra-cli-app`; JaCoCo coverage path → `tnra-app/target/site/jacoco/jacoco.csv`. `./mvnw verify` from root unchanged (aggregator runs all modules).
+
+### Changed (dev & deploy workflow)
+- **Dev runs the apps from the IDE; only infrastructure runs in Docker.** `docker-compose.yml` no longer defines any app container — it brings up MySQL, Keycloak, and the Nginx proxy on the `tnra-shared` network. The main app (`tnra-app`, port 8080) and landing app (`tnra-landing-app`, port 8081 via `SERVER_PORT`) run from the IDE or `./mvnw -pl <module> spring-boot:run`; Nginx reaches them via `host.docker.internal` (`nginx/sites/tnra-landing-dev.conf` repointed from the `tnra-landing` container to `host.docker.internal:8081`). The production landing config moved to `nginx/sites-disabled/tnra-landing.conf` so the dev proxy — which `include`s every `nginx/sites/*.conf` — no longer fails to start on the now-absent `tnra-landing` container. The CLI always runs from the command line.
+- **Shared Docker network unified to `tnra-shared`.** `docker-compose.production.yml` and the per-group template previously used `tnra-production-shared`, a transition name introduced to coexist with the (now retired) single-tenant deployment. With that gone, all infrastructure and group containers — dev and prod — share one `tnra-shared` network, so a single generated group `docker-compose.yml` works identically in both environments.
+- **Local multi-group testing is a Docker flow.** Group containers join the dockerized dev infra: `docker compose -f docker-compose.yml -f provision/<group>/docker-compose.yml up --build -d <service>`, reachable at `https://<group>.dev.dogeared.dev` through the proxy. The group reads `TNRA_ENCRYPTION_MASTER_KEY` from the repo-root `.env`.
+- **New "Bringing the Stack Up" sections** in both PRODUCTION guides give one-liners for the shared/global infrastructure and a loop to bring up every site under `provision/`.
+
+### Fixed
+- **Landing app runs zero-config from the IDE.** Its `application.yml` dev defaults connected as `root` with `${MYSQL_ROOT_PASSWORD:changeme}`, so an IDE run (no env vars set) was denied by the dev MySQL container. The dev defaults now use the auto-created `tnra` user (same as the main app) against a pre-created `tnra_landing` database — `mysql/init-local-user.sql` creates the database and grants `tnra`. Because `application.yml` is gitignored (local dev only), those defaults ship as a tracked `tnra-landing-app/src/main/resources/application.yml.sample` — copy it to `application.yml` for IDE dev (README notes this). Production does not use `application.yml` at all: the landing container runs on env from `docker-compose.production.yml` (datasource as `root`, etc.) plus Spring defaults.
+- **Landing founder-email env var in production.** `docker-compose.production.yml` set `TNRA_FOUNDER_EMAIL`, which only bound to `tnra.notify.founder-email` via the app's `application.yml` placeholder; switched to `TNRA_NOTIFY_FOUNDER_EMAIL` (direct Spring relaxed binding), matching the dev compose and the 8.6.0 fix. The host `.env` key stays `TNRA_FOUNDER_EMAIL`; `bootstrap.sh` now seeds it.
+- **Single-tenant leftovers removed from docs and scripts.** The old single `server`/`tnra` container is gone, so `docker compose logs -f server`, bare `docker compose up --build -d`, and the `tnra.start.sh` / `tnra.stop.sh` systemd scripts (which did `docker stop tnra`/`mysql`/`proxy`) were rewritten to the shared-infra + per-group model across both PRODUCTION guides and `MIGRATION-V3-STATS.md`.
+- **Stale multi-module command references.** `bootstrap.sh` (`cd cli` → `tnra-cli-app`), README dev commands (`./mvnw spring-boot:run` → `./mvnw -pl tnra-app spring-boot:run`), and several bare `./mvnw clean package` invocations now scope to the right module.
+
+### Migration notes
+- **Local dev**: pull, then run `./mvnw -pl tnra-app -am clean package` once to populate the new module's `target/`. IDE projects may need to re-import the root pom.
+- **VPS deployment**: `git pull` on the VPS. The next deploy needs the JAR at `tnra-app/target/*.jar` instead of `target/*.jar`; updated build commands in PRODUCTION.vps.md reflect this. Existing per-group `docker-compose.yml` files in `~/tnra/provision/<group>/` will need regeneration via the CLI to pick up the new `./tnra-app` build context — or hand-edit the `context:` line.
+- **Heroku**: `Procfile` updated to reference `tnra-app/target/*.jar`. No app-side changes needed beyond a redeploy.
+- **No database migration**, no Java source changes, no Vaadin frontend changes.
+
 ## [8.6.0] - 2026-06-03
 
 ### Added

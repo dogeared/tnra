@@ -52,5 +52,5 @@ emails
 !groups.json.example
 !keycloak/*.json
 .gstack/
-cli/dependency-reduced-pom.xml
+tnra-cli-app/dependency-reduced-pom.xml
 .claude/skills/gstack/

@@ -17,7 +17,7 @@ services:
     volumes:
       - 'mysql-db:/var/lib/mysql'
     networks:
-      - tnra-production-shared
+      - tnra-shared
     env_file: .env
 
   keycloak:
@@ -38,7 +38,7 @@ services:
       - 'keycloak-data:/opt/keycloak/data'
       - './keycloak/themes/tnra:/opt/keycloak/themes/tnra:ro'
     networks:
-      - tnra-production-shared
+      - tnra-shared
     env_file: .env
 
   tnra-landing:
@@ -51,13 +51,14 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MAILGUN_KEY_PRIVATE: ${MAILGUN_KEY_PRIVATE}
       MAILGUN_URL: ${MAILGUN_URL}
-      TNRA_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL}
+      # Binds to tnra.notify.founder-email via Spring relaxed binding (host key stays TNRA_FOUNDER_EMAIL)
+      TNRA_NOTIFY_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL}
       TNRA_NOTIFY_ENABLED: "true"
       VAADIN_PRODUCTIONMODE: "true"
     ports:
       - '127.0.0.1:8081:8080'
     networks:
-      - tnra-production-shared
+      - tnra-shared
     depends_on:
       mysql:
         condition: service_healthy
@@ -68,12 +69,12 @@ services:
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     restart: unless-stopped
     networks:
-      - tnra-production-shared
+      - tnra-shared
 
 volumes:
   keycloak-data:
   mysql-db:
 
 networks:
-  tnra-production-shared:
-    name: tnra-production-shared
+  tnra-shared:
+    name: tnra-shared

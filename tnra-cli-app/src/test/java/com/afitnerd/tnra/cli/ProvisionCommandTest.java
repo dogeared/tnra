@@ -73,7 +73,7 @@ class ProvisionCommandTest {
         assertTrue(compose.contains("SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_USER_NAME_ATTRIBUTE: \"sub\""), "should set user-name-attribute to sub so Spring Security can resolve principal");
         assertTrue(compose.contains("127.0.0.1:8081:8080"), "should expose host port from registry");
         assertTrue(compose.contains("./provision/recovery-guys/uploads:/uploads:rw"), "should use project-relative path for uploads volume");
-        assertTrue(compose.contains("tnra-production-shared"));
+        assertTrue(compose.contains("tnra-shared"), "should attach to the shared tnra-shared network");
 
         // Verify .env is for local IDE dev only (localhost port, placeholder encryption key)
         String env = Files.readString(groupDir.resolve(".env"));

@@ -3,7 +3,7 @@ services:
     container_name: tnra-{{GROUP_NAME}}
     image: tnra
     build:
-      context: .
+      context: ./tnra-app
       dockerfile: Dockerfile
     environment:
       SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID: "{{GROUP_NAME}}-app"
@@ -33,9 +33,9 @@ services:
     volumes:
       - ./provision/{{GROUP_NAME}}/uploads:/uploads:rw
     networks:
-      - tnra-production-shared
+      - tnra-shared
 
 networks:
-  tnra-production-shared:
+  tnra-shared:
     external: true
-    name: tnra-production-shared
+    name: tnra-shared

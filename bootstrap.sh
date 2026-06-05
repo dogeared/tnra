@@ -218,6 +218,8 @@ TNRA_ENCRYPTION_MASTER_KEY=$TNRA_ENCRYPTION_MASTER_KEY
 MAILGUN_KEY_PRIVATE=
 MAILGUN_KEY_PUBLIC=
 MAILGUN_URL=
+# Landing-site access-request notifications go here (binds to TNRA_NOTIFY_FOUNDER_EMAIL)
+TNRA_FOUNDER_EMAIL=
 
 # --- Monitoring ---
 DD_AGENT_MAJOR_VERSION=
@@ -288,11 +290,11 @@ printf "────────────────────────
 printf "\n"
 printf "  ${BOLD}Step 1${RESET} — Build the CLI (run on your local machine):\n"
 printf "\n"
-printf "    cd cli && mvn package -DskipTests && cd ..\n"
+printf "    ./mvnw -pl tnra-cli-app -am package -DskipTests\n"
 printf "\n"
 printf "  ${BOLD}Step 2${RESET} — Provision your first group:\n"
 printf "\n"
-printf "    java -jar cli/target/tnra-cli.jar provision <group-name> \\\\\n"
+printf "    java -jar tnra-cli-app/target/tnra-cli.jar provision <group-name> \\\\\n"
 printf "      --domain %s \\\\\n" "$DOMAIN"
 printf "      --admin-email <email> \\\\\n"
 printf "      --admin-first-name <first> \\\\\n"
