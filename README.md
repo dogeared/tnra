@@ -96,11 +96,17 @@ docker compose exec mysql mysqladmin ping -h localhost --wait=30
 
 This brings up **only** the shared infrastructure — `docker-compose.yml` no longer defines any
 app containers. MySQL is at `localhost:3307` (mapped from container `3306`); Keycloak's admin is
-at `http://localhost:8180/admin`. The `tnra` database and user are created automatically on first
-container start.
+at `http://localhost:8180/admin`. On first container start, `mysql/init-local-user.sql` creates
+the `tnra` user and both app databases (`tnra` and `tnra_landing`) so the main and landing apps
+run zero-config from the IDE.
 
-> **Note:** If you already have a MySQL Docker volume, the init script won't re-run.
-> Reset with: `docker compose down -v && docker compose up -d`
+> **Note:** If you already have a MySQL Docker volume, the init script won't re-run. Either reset
+> with `docker compose down -v && docker compose up -d`, or apply just the landing grant once:
+> ```bash
+> set -a && source ./.env && set +a
+> docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e \
+>   "CREATE DATABASE IF NOT EXISTS tnra_landing; GRANT ALL PRIVILEGES ON tnra_landing.* TO 'tnra'@'%'; FLUSH PRIVILEGES;"
+> ```
 
 ### 4. SSL certificates and local DNS (for the Nginx proxy)
 
