@@ -192,7 +192,7 @@ docker compose -f docker-compose.production.yml up -d tnra-landing
 
 Copy the nginx config and reload:
 ```bash
-cp nginx/sites/tnra-landing.conf /etc/nginx/sites-enabled/
+cp nginx/sites-disabled/tnra-landing.conf /etc/nginx/sites-enabled/
 nginx -t && systemctl reload nginx
 ```
 
