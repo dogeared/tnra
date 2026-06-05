@@ -185,6 +185,7 @@ git pull origin main
 
 # Rebuild and restart every provisioned group (shared infra stays up)
 for g in provision/*/; do
+  [ -f "${g}docker-compose.yml" ] || continue
   docker compose -f docker-compose.production.yml -f "${g}docker-compose.yml" up -d --build
 done
 
@@ -211,12 +212,12 @@ Starts MySQL, Keycloak, the `tnra-landing` site, and the `cloudflared` tunnel. T
 image isn't built at `up` time — build it once first:
 
 ```bash
-# application.yml is gitignored — seed it from the tracked sample on first build.
-cp -n tnra-landing-app/src/main/resources/application.yml.sample \
-      tnra-landing-app/src/main/resources/application.yml
 ./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
 docker build -t tnra-landing:latest tnra-landing-app/
 ```
+
+The landing app's `application.yml` is for local dev only — production runs on env from
+`docker-compose.production.yml` plus Spring defaults (so `server.port` = 8080).
 
 To start only the data plane (no landing, no tunnel), scope it:
 
@@ -234,6 +235,7 @@ cd ~/tnra
 ./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 
 for g in provision/*/; do
+  [ -f "${g}docker-compose.yml" ] || continue
   docker compose -f docker-compose.production.yml -f "${g}docker-compose.yml" up -d --build
 done
 ```

@@ -185,14 +185,15 @@ Then build the JAR (requires the production Vaadin frontend bundle) and deploy:
 
 ```bash
 cd ~/tnra
-# application.yml is gitignored — seed it from the tracked sample on first build (it provides
-# server.forward-headers-strategy + Flyway settings; the datasource is overridden by env).
-cp -n tnra-landing-app/src/main/resources/application.yml.sample \
-      tnra-landing-app/src/main/resources/application.yml
 ./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
 docker build -t tnra-landing:latest tnra-landing-app/
 docker compose -f docker-compose.production.yml up -d tnra-landing
 ```
+
+The landing app's `application.yml` is for local dev only — production does not use it. All
+config the container needs is supplied via env in `docker-compose.production.yml`
+(`SPRING_DATASOURCE_*`, `TNRA_NOTIFY_*`, `VAADIN_PRODUCTIONMODE`); everything else falls back to
+Spring defaults (including `server.port` = 8080, matching the port mapping and proxy target).
 
 Copy the nginx config and reload:
 ```bash
@@ -227,6 +228,7 @@ git pull origin main
 
 # Rebuild and restart every provisioned group (shared infra stays up)
 for g in provision/*/; do
+  [ -f "${g}docker-compose.yml" ] || continue
   docker compose -f docker-compose.production.yml -f "${g}docker-compose.yml" up -d --build
 done
 
@@ -267,6 +269,7 @@ cd ~/tnra
 ./mvnw -pl tnra-app -am clean package -DskipTests -Pproduction
 
 for g in provision/*/; do
+  [ -f "${g}docker-compose.yml" ] || continue
   docker compose -f docker-compose.production.yml -f "${g}docker-compose.yml" up -d --build
 done
 ```
