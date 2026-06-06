@@ -31,9 +31,15 @@ class MarkdownServiceTest {
 
     @Test
     void renderClasspathResourceRendersTheAboutPage() {
-        String html = service.renderClasspathResource("/about-us.md");
+        String html = service.renderClasspathResource("/content/about-us.md");
         assertTrue(html.contains("<h1>About TNRA</h1>"), html);
         assertTrue(html.contains("<blockquote>"), html);
+    }
+
+    @Test
+    void readClasspathResourceReturnsRawMarkdown() {
+        String raw = service.readClasspathResource("/content/about-us.md");
+        assertTrue(raw.contains("# About TNRA"), raw);
     }
 
     @Test

@@ -34,18 +34,28 @@ public class MarkdownService {
     /**
      * Load a Markdown file from the classpath and render it to HTML.
      *
-     * @param classpathResource e.g. {@code "/about-us.md"}
+     * @param classpathResource e.g. {@code "/content/about-us.md"}
      * @throws IllegalArgumentException if the resource does not exist
      */
     public String renderClasspathResource(String classpathResource) {
+        return toHtml(readClasspathResource(classpathResource));
+    }
+
+    /**
+     * Read a UTF-8 text resource from the classpath verbatim (no rendering). Used
+     * by the content parser, which needs the raw modified-Markdown source.
+     *
+     * @param classpathResource e.g. {@code "/content/landing.md"}
+     * @throws IllegalArgumentException if the resource does not exist
+     */
+    public String readClasspathResource(String classpathResource) {
         try (InputStream in = getClass().getResourceAsStream(classpathResource)) {
             if (in == null) {
-                throw new IllegalArgumentException("Markdown resource not found: " + classpathResource);
+                throw new IllegalArgumentException("Content resource not found: " + classpathResource);
             }
-            String markdown = new String(in.readAllBytes(), StandardCharsets.UTF_8);
-            return toHtml(markdown);
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
         } catch (IOException e) {
-            throw new UncheckedIOException("Failed to read markdown resource: " + classpathResource, e);
+            throw new UncheckedIOException("Failed to read content resource: " + classpathResource, e);
         }
     }
 }
