@@ -45,6 +45,16 @@
     color: var(--tnra-primary);
 }
 
+/* Logo is now a router link — strip the default underline. */
+.nav-logo {
+    text-decoration: none;
+}
+
+/* About Us sits to the left of Request Access, grouped on the right. */
+.nav-links {
+    gap: 1.75rem;
+}
+
 
 /* =========================================
    HERO
@@ -248,6 +258,347 @@
 
 
 /* =========================================
+   THE TNRA WAY
+   ========================================= */
+
+.tnra-way-section {
+    padding: 5rem 2rem 4rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.tnra-way-title {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem 0;
+}
+
+.tnra-way-intro {
+    font-size: 1.1rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.75;
+    max-width: 680px;
+    margin: 0 auto 3rem;
+}
+
+.cadence-title {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: var(--tnra-primary);
+    letter-spacing: -0.01em;
+    text-align: center;
+    margin: 0 0 2rem 0;
+}
+
+.cadence-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+}
+
+.cadence-card {
+    aspect-ratio: 1 / 1;
+    background-color: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    box-shadow: var(--tnra-shadow-sm);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.cadence-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+.cadence-card-header {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 0.5rem 0;
+}
+
+.cadence-card-body {
+    font-size: 0.9rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.55;
+    margin: 0;
+}
+
+.tnra-way-cta {
+    display: inline-block;
+    margin-top: 2.5rem;
+    background-color: var(--tnra-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.05rem;
+    padding: 0.85rem 2rem;
+    border-radius: var(--tnra-radius-sm);
+    box-shadow: var(--tnra-shadow-md);
+    transition: background-color var(--tnra-transition), box-shadow var(--tnra-transition), transform var(--tnra-transition);
+    letter-spacing: -0.01em;
+}
+
+.tnra-way-cta:hover {
+    background-color: var(--tnra-primary-hover);
+    box-shadow: var(--tnra-shadow-lg);
+    transform: translateY(-2px);
+}
+
+
+/* =========================================
+   ABOUT US (markdown content)
+   ========================================= */
+
+.about-section {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 4rem 2rem 5rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.about-markdown {
+    color: var(--tnra-text);
+    line-height: 1.75;
+    font-size: 1.05rem;
+}
+
+.about-markdown h1 {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin: 0 0 1.5rem 0;
+}
+
+.about-markdown h2 {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.02em;
+    margin: 2.5rem 0 1rem 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--tnra-primary);
+}
+
+.about-markdown h3 {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--tnra-text);
+    margin: 2rem 0 0.75rem 0;
+}
+
+.about-markdown p {
+    color: var(--tnra-text-secondary);
+    margin: 0 0 1.25rem 0;
+}
+
+.about-markdown a {
+    color: var(--tnra-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.about-markdown a:hover {
+    color: var(--tnra-primary-hover);
+}
+
+.about-markdown strong {
+    color: var(--tnra-text);
+    font-weight: 700;
+}
+
+.about-markdown ul,
+.about-markdown ol {
+    color: var(--tnra-text-secondary);
+    margin: 0 0 1.25rem 0;
+    padding-left: 1.4rem;
+}
+
+.about-markdown li {
+    margin-bottom: 0.5rem;
+}
+
+.about-markdown blockquote {
+    margin: 1.5rem 0;
+    padding: 0.75rem 1.25rem;
+    border-left: 4px solid var(--tnra-primary);
+    background-color: var(--tnra-primary-light);
+    border-radius: 0 var(--tnra-radius-sm) var(--tnra-radius-sm) 0;
+    color: var(--tnra-text-secondary);
+    font-style: italic;
+}
+
+.about-markdown blockquote p {
+    margin: 0;
+}
+
+.about-markdown code {
+    font-family: var(--tnra-font-data), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background-color: var(--tnra-surface-dim);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-sm);
+    padding: 0.1rem 0.35rem;
+}
+
+.about-markdown hr {
+    border: none;
+    border-top: 1px solid var(--tnra-border-subtle);
+    margin: 2.5rem 0;
+}
+
+
+/* =========================================
+   PRICING
+   ========================================= */
+
+.pricing-section {
+    padding: 5rem 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.pricing-title {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem 0;
+}
+
+.pricing-intro {
+    font-size: 1.1rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.75;
+    max-width: 640px;
+    margin: 0 auto 3rem;
+}
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.pricing-card {
+    background-color: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    box-shadow: var(--tnra-shadow-sm);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.pricing-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Highlight the recommended tier. */
+.pricing-card-featured {
+    border: 2px solid var(--tnra-primary);
+    box-shadow: var(--tnra-shadow-md);
+}
+
+.pricing-tier {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem 0;
+}
+
+.pricing-price-row {
+    margin-bottom: 1.5rem;
+}
+
+.pricing-price {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2.4rem;
+    color: var(--tnra-primary);
+    letter-spacing: -0.02em;
+}
+
+.pricing-period {
+    font-size: 0.95rem;
+    color: var(--tnra-text-muted);
+}
+
+.pricing-features {
+    width: 100%;
+    margin-bottom: 1.75rem;
+}
+
+.pricing-feature {
+    font-size: 0.95rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.5;
+    margin: 0 0 0.65rem 0;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--tnra-border-subtle);
+}
+
+.pricing-feature:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.pricing-cta {
+    display: inline-block;
+    margin-top: auto;
+    background-color: var(--tnra-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--tnra-radius-sm);
+    box-shadow: var(--tnra-shadow-sm);
+    transition: background-color var(--tnra-transition), box-shadow var(--tnra-transition), transform var(--tnra-transition);
+    letter-spacing: -0.01em;
+}
+
+.pricing-cta:hover {
+    background-color: var(--tnra-primary-hover);
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+
+/* =========================================
    RESPONSIVE
    ========================================= */
 
@@ -270,5 +621,31 @@
 
     .landing-nav {
         padding: 0.875rem 1.25rem;
+    }
+
+    .tnra-way-section {
+        padding: 3.5rem 1.25rem 3rem;
+    }
+
+    /* Two-up squares on narrow screens. */
+    .cadence-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .about-section {
+        padding: 3rem 1.25rem 3.5rem;
+    }
+
+    .pricing-section {
+        padding: 3.5rem 1.25rem;
+    }
+
+    /* Stack pricing tiers on narrow screens. */
+    .pricing-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nav-links {
+        gap: 1.1rem;
     }
 }

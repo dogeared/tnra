@@ -40,6 +40,13 @@ tnra:
   notify:
     founder-email: ${TNRA_FOUNDER_EMAIL:tnra@dogeared.dev}
     enabled: ${TNRA_NOTIFY_ENABLED:true}
+  # Optional HTTP Basic gate over the whole site. Default off (public). Set
+  # enabled=true plus username/password to password-protect a production deploy
+  # for private review before launch. Enabling without credentials fails fast.
+  basic-auth:
+    enabled: ${TNRA_BASIC_AUTH_ENABLED:false}
+    username: ${TNRA_BASIC_AUTH_USERNAME:}
+    password: ${TNRA_BASIC_AUTH_PASSWORD:}
 
 mailgun:
   key:

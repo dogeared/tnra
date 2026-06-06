@@ -10,7 +10,6 @@ import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.*;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
@@ -37,24 +36,14 @@ public class LandingView extends VerticalLayout {
         setPadding(false);
         setSpacing(false);
 
-        add(buildNav(), buildHero(), buildFeatures(), buildForm(), buildFooter());
-    }
-
-    private Component buildNav() {
-        HorizontalLayout nav = new HorizontalLayout();
-        nav.addClassName("landing-nav");
-        nav.setWidthFull();
-        nav.setAlignItems(Alignment.CENTER);
-        nav.setJustifyContentMode(JustifyContentMode.BETWEEN);
-
-        Span logo = new Span("TNRA");
-        logo.addClassName("nav-logo");
-
-        Anchor requestLink = new Anchor("#request-access", "Request Access");
-        requestLink.addClassName("nav-link");
-
-        nav.add(logo, requestLink);
-        return nav;
+        add(
+            LandingChrome.nav(true),
+            buildHero(),
+            buildTnraWay(),
+            buildFeatures(),
+            buildForm(),
+            LandingChrome.footer()
+        );
     }
 
     private Component buildHero() {
@@ -78,6 +67,53 @@ public class LandingView extends VerticalLayout {
         return hero;
     }
 
+    private Component buildTnraWay() {
+        Div section = new Div();
+        section.addClassName("tnra-way-section");
+
+        H2 title = new H2("The TNRA Way");
+        title.addClassName("tnra-way-title");
+
+        Paragraph intro = new Paragraph(
+            "Placeholder: a short introduction to the TNRA philosophy goes here. " +
+            "Describe how the rhythm of daily, weekly, monthly, and yearly practices " +
+            "keeps a group grounded and accountable over the long haul."
+        );
+        intro.addClassName("tnra-way-intro");
+
+        H3 cadenceHeading = new H3("Cadence");
+        cadenceHeading.addClassName("cadence-title");
+
+        Div grid = new Div();
+        grid.addClassName("cadence-grid");
+        grid.add(
+            cadenceCard("Daily", "Placeholder content for the daily practice."),
+            cadenceCard("Weekly", "Placeholder content for the weekly practice."),
+            cadenceCard("Monthly", "Placeholder content for the monthly practice."),
+            cadenceCard("Yearly", "Placeholder content for the yearly practice.")
+        );
+
+        Anchor cta = new Anchor("#request-access", "Request Access");
+        cta.addClassName("tnra-way-cta");
+
+        section.add(title, intro, cadenceHeading, grid, cta);
+        return section;
+    }
+
+    private Component cadenceCard(String header, String body) {
+        Div card = new Div();
+        card.addClassName("cadence-card");
+
+        H3 h = new H3(header);
+        h.addClassName("cadence-card-header");
+
+        Paragraph p = new Paragraph(body);
+        p.addClassName("cadence-card-body");
+
+        card.add(h, p);
+        return card;
+    }
+
     private Component buildFeatures() {
         Div features = new Div();
         features.addClassName("features-section");
@@ -90,7 +126,7 @@ public class LandingView extends VerticalLayout {
         grid.add(
             featureCard("📝", "Structured weekly posts",
                 "Every member fills out the same format: intro, kryptonite, commitments, best & worst across life domains, and configurable stats. Consistency builds accountability."),
-            featureCard("🔔", "Real-time Slack notifications",
+            featureCard("🔔", "Optional Slack integration",
                 "When a member finishes a post, your group's Slack channel gets a notification with a secure deep link. No more wondering who posted."),
             featureCard("🔒", "Encrypted at rest",
                 "All post content and stats are encrypted with AES-256-GCM. Your group's entries don't leave the encrypted database unless you choose to share them.")
@@ -205,13 +241,6 @@ public class LandingView extends VerticalLayout {
         card.add(title, intro, groupName, contactName, email, estimatedSize, description, submit, successMsg);
         section.add(card);
         return section;
-    }
-
-    private Component buildFooter() {
-        Footer footer = new Footer();
-        footer.addClassName("landing-footer");
-        footer.add(new Paragraph("© 2026 TNRA. Built for groups that take commitment seriously."));
-        return footer;
     }
 
     private boolean validateForm(TextField groupName, TextField contactName, EmailField email) {
