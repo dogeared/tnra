@@ -94,11 +94,24 @@ success: Thanks! We'll be in touch at {email}.
 messages are derived from the labels (e.g. `group-label` → "Group name is required").
 The fields themselves and validation logic live in `LandingView`.
 
+## Section anchors
+
+Any directive block (`:::cards`, `:::hero`, `:::cta`) can declare an anchor id with a
+`#id` token in its args. The id is set on the section element so it can be a scroll target:
+
+```
+:::cards squares #the-tnra-way
+```
+
+The home page (`LandingView`) scrolls to a section when arrived at with `?to=<id>`. The
+Request Access form's id is `request-access`.
+
 ## Links and scrolling
 
-- `[…](#request-access)` — same-page smooth scroll to the form (use on the home page).
-- `[…](/?to=request-access)` — from another page; opens the home page and `LandingView`
-  scrolls the form into view (handled server-side, no fragment-timing issue).
+- `[…](#request-access)` — same-page smooth scroll (browser-native) to an element id on the
+  current page; use on the home page (e.g. the form, `request-access`).
+- `[…](/?to=request-access)` or `[…](/?to=the-tnra-way)` — from another page; opens the home
+  page and `LandingView` scrolls that section into view (server-side, no fragment-timing issue).
 
 ## Notes
 
