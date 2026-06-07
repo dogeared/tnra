@@ -79,6 +79,64 @@ class LandingContentParserTest {
     }
 
     @Test
+    void bareFenceLineIsTreatedAsText() {
+        // A ":::" with no type is not an opening fence, so it stays as Markdown text.
+        List<Block> blocks = LandingContentParser.parse(":::\nstill text");
+        assertEquals(1, blocks.size());
+        assertEquals("markdown", blocks.get(0).type());
+        assertTrue(blocks.get(0).body().contains(":::"));
+    }
+
+    @Test
+    void unclosedFenceConsumesToEndOfFile() {
+        List<Block> blocks = LandingContentParser.parse(":::cards squares\n:: A\nbody");
+        assertEquals(1, blocks.size());
+        assertEquals("cards", blocks.get(0).type());
+        assertTrue(blocks.get(0).body().contains(":: A"));
+    }
+
+    @Test
+    void crlfLineEndingsAreNormalized() {
+        List<Block> blocks = LandingContentParser.parse("intro\r\n:::cta\r\n[x](#y)\r\n:::\r\n");
+        assertEquals(2, blocks.size());
+        assertEquals("markdown", blocks.get(0).type());
+        assertEquals("cta", blocks.get(1).type());
+        assertTrue(blocks.get(1).body().contains("[x](#y)"));
+    }
+
+    @Test
+    void singleWordCardHeadingHasNoIcon() {
+        var cb = LandingContentParser.parseCards(":: Daily\nbody");
+        assertNull(cb.cards().get(0).icon());
+        assertEquals("Daily", cb.cards().get(0).title());
+    }
+
+    @Test
+    void bareCardMarkerYieldsEmptyHeading() {
+        var cb = LandingContentParser.parseCards("::\nbody");
+        assertEquals(1, cb.cards().size());
+        assertEquals("", cb.cards().get(0).title());
+        assertEquals("body", cb.cards().get(0).body());
+    }
+
+    @Test
+    void parseFieldsIgnoresLinesWithoutAKey() {
+        Map<String, String> fields = LandingContentParser.parseFields("title: Hi\nno colon here\n: novalue");
+        assertEquals(1, fields.size());
+        assertEquals("Hi", fields.get("title"));
+    }
+
+    @Test
+    void parseFieldsHandlesNullBody() {
+        assertTrue(LandingContentParser.parseFields(null).isEmpty());
+    }
+
+    @Test
+    void parseCardsHandlesNullBody() {
+        assertTrue(LandingContentParser.parseCards(null).cards().isEmpty());
+    }
+
+    @Test
     void parseFieldsReadsKeyValueLines() {
         Map<String, String> fields = LandingContentParser.parseFields(
             "title: Request access\nsubmit: Send Request\nsuccess: Thanks at {email}.");

@@ -50,4 +50,13 @@ class MarkdownServiceTest {
         );
         assertTrue(ex.getMessage().contains("does-not-exist.md"));
     }
+
+    @Test
+    void readClasspathResourceThrowsWhenMissing() {
+        IllegalArgumentException ex = assertThrows(
+            IllegalArgumentException.class,
+            () -> service.readClasspathResource("/nope.md")
+        );
+        assertTrue(ex.getMessage().contains("nope.md"));
+    }
 }

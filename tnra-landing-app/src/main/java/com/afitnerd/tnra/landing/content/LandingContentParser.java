@@ -73,10 +73,8 @@ public final class LandingContentParser {
         if (!stripped.startsWith(":::") || stripped.equals(":::")) {
             return null;
         }
+        // stripped is non-empty after ":::" here (a bare ":::" is rejected above).
         String rest = stripped.substring(3).strip();
-        if (rest.isEmpty()) {
-            return null;
-        }
         int space = rest.indexOf(' ');
         if (space < 0) {
             return new String[] {rest, ""};
