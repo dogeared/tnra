@@ -13,6 +13,30 @@ permissions:
   contents: write
 
 jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: pom versions must match the VERSION file
+        run: |
+          V=$(cat VERSION | tr -d '[:space:]')
+          # Project version is shared across all modules; check every pom's own version line.
+          MISMATCH=0
+          for p in pom.xml */pom.xml; do
+            POM=$(sed -n 's:.*<version>\(.*\)</version>.*:\1:p' "$p" | head -1)
+            if [ "$POM" != "$V" ]; then
+              echo "::error file=$p::$p version ($POM) != VERSION ($V)"
+              MISMATCH=1
+            fi
+          done
+          if [ "$MISMATCH" = "1" ]; then
+            echo "Fix with: ./mvnw versions:set -DnewVersion=$V -DgenerateBackupPoms=false -DprocessAllModules"
+            exit 1
+          fi
+          echo "All pom versions match VERSION ($V)."
+
   cli-test:
     runs-on: ubuntu-latest
     steps:
