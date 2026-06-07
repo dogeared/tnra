@@ -194,6 +194,30 @@ docker logs tnra-<group-name> -f
 # Look for: "Started TnraApplication" and Flyway migration messages
 ```
 
+### Deploying only the landing page
+
+The landing site (`tnra-landing`) is a separate container and image from the per-group app
+containers, so it can ship on its own cadence when only the public marketing pages change.
+Its page copy is bundled in the jar (`tnra-landing-app/src/main/resources/content/*.md`), so
+even a content-only edit needs a rebuild. Rebuild just the landing jar and image, then
+recreate only that container — `--no-deps` leaves MySQL, Keycloak, the `cloudflared` tunnel,
+and every provisioned group container running:
+
+```bash
+cd ~/tnra
+git pull origin main
+
+./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
+docker build -t tnra-landing:latest tnra-landing-app/
+docker compose -f docker-compose.production.yml up -d --no-deps tnra-landing
+
+# Verify
+docker logs tnra-landing -f   # look for: "Started TnraLandingApplication"
+```
+
+The tunnel routes (apex/`www` → `tnra-landing`) are unchanged, so no Cloudflare dashboard
+edits are needed.
+
 ## Bringing the Stack Up
 
 The deployment is **two layers**: one set of **global shared services** defined in
