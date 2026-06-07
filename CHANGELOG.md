@@ -2,6 +2,16 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.1.1] - 2026-06-07
+
+### Fixed
+- **Clean production build no longer fails the first time.** Added Vaadin's `prepare-frontend` goal ahead of `build-frontend` in `tnra-app` and `tnra-landing-app` — it generates the `flow-build-info.json` token file `build-frontend` reads, which a freshly cleaned `target/` was missing (the old "run it twice" workaround).
+- **Missing `TNRA_FOUNDER_EMAIL` in `.env.template`** — referenced by `docker-compose.production.yml` but absent, causing a "variable is not set" warning.
+
+### Changed
+- **Pom versions now match the `VERSION` file** (had drifted to 9.0.0 since the reorg). Added a `version-check` CI job that fails if any module pom version differs from `VERSION`.
+- **Landing host port is configurable** via `TNRA_LANDING_PORT` (default 8081) in `docker-compose.production.yml`, for when 8081 is already in use on the host.
+
 ## [9.1.0] - 2026-06-06
 
 ### Added
