@@ -2,6 +2,22 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.1.0] - 2026-06-06
+
+### Added
+- **About Us (`/about-us`) and Pricing (`/pricing`) pages** on the public landing site, reachable from a shared nav (`About Us | Pricing | Request Access`).
+- **The TNRA Way** section on the home page — an intro plus a "Cadence" grid of Daily/Weekly/Monthly/Yearly squares — and a Request Access CTA below it.
+- **Landing content externalized to Markdown.** All copy now lives in `tnra-landing-app/src/main/resources/content/*.md` using a documented "modified Markdown" (plain Markdown plus `:::` container directives: `:::cards squares|features|pricing`, `:::hero`, `:::cta`, `:::form`). New `LandingContentParser` + `LandingContentRenderer`; the `:::form` block stays a live component with all labels/messages externalized. Format reference in `content/README.md`. Editing copy now needs only a redeploy.
+- **Optional HTTP Basic gate for the landing site** to password-protect a production deploy for private review before launch. Off by default (public); enable with `TNRA_BASIC_AUTH_ENABLED` / `TNRA_BASIC_AUTH_USERNAME` / `TNRA_BASIC_AUTH_PASSWORD` (wired into `docker-compose.production.yml`, `.env.template`, `application.yml.sample`). Fails fast if enabled without credentials.
+
+### Changed
+- **"Real-time Slack notifications" → "Optional Slack integration"** on the home page.
+- **Request Access links scroll to the form server-side** (`?to=request-access` handled in `LandingView.afterNavigation` via `Component.scrollIntoView`) so the jump works from any page with no inline JavaScript; clicking the **TNRA logo** always scrolls to the top of the home page.
+- **Cadence squares** are centered and wrap evenly (4 → 2×2) with top-aligned, left-aligned body text; section spacing tightened.
+
+### Docs
+- Documented how to build and deploy only the landing container independently of the main app (`PRODUCTION.cloudflare.md`, `PRODUCTION.vps.md`).
+
 ## [9.0.0] - 2026-06-04
 
 ### Changed (breaking — structural)
