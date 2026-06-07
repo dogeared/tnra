@@ -30,7 +30,7 @@ and so we're releasing the application for general availability for your account
 
 TNRA is what happens when you take that ritual seriously and give it a real home.
 
-For more on the rhythm we recommend, see [**The TNRA Way**](/) on our home page —
+For more on the rhythm we recommend, see [**The TNRA Way**](/?to=the-tnra-way) on our home page —
 covering the `Daily`, `Weekly`, `Monthly`, and `Yearly` cadence.
 
 ---

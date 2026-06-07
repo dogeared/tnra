@@ -2,6 +2,18 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.1.2] - 2026-06-07
+
+### Added
+- **Cross-page section links.** A content block can declare an anchor with `#id` in its directive (e.g. `:::cards squares #the-tnra-way`); linking with `/?to=<id>` from any landing page scrolls that section into view server-side. The About Us page now links to The TNRA Way section on the home page. Documented in `content/README.md`.
+
+### Fixed
+- **Navigating to a landing page now lands at the top.** About Us / Pricing preserved the previous scroll position on SPA navigation (e.g. you'd arrive mid-page). Scroll handling is centralized in `LandingChrome` and applied by all landing views: scroll to the `?to=` section if present, otherwise to the top.
+- **Paragraph spacing.** Prose paragraphs (`.content-prose`) and section intros (`.cards-intro`) had too little/no gap between paragraphs; both now have clear vertical spacing.
+
+### Changed
+- Section `#anchor` jumps land below the sticky nav via `scroll-padding-top` on `html` (Vaadin's `@CssImport` pipeline strips `scroll-margin-top`, so the offset lives on the scroll container instead).
+
 ## [9.1.1] - 2026-06-07
 
 ### Fixed

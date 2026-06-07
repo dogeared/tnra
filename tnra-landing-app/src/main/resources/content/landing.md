@@ -8,7 +8,7 @@ stays yours.
 [Request Access for Your Group](#request-access)
 :::
 
-:::cards squares
+:::cards squares #the-tnra-way
 ## The TNRA Way
 
 The original TNRA group has lasted for over 23 years. This is in no small part because of the 
@@ -16,7 +16,7 @@ light touch it has in our busy lives, while still providing a meaningful structu
 yearly activities. It's this loose structure that provides the cadence for a TNRA group.
 
 We recommend a group size between 4 and 6 people. In our experience, with more than 6 people, the group gets bogged
-down and with less than 4, there aren't enough member for a good rotation of calls between members.
+down and with less than 4, there aren't enough members for a good rotation of calls between members.
 
 ### Cadence
 :: Daily

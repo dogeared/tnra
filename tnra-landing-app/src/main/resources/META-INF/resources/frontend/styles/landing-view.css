@@ -10,6 +10,11 @@
     color: var(--tnra-text);
 }
 
+/* Offset #anchor scroll targets (e.g. /?to=the-tnra-way) below the sticky nav. */
+html {
+    scroll-padding-top: 84px;
+}
+
 
 /* =========================================
    NAV
@@ -295,7 +300,11 @@
     font-size: 1.1rem;
     color: var(--tnra-text-secondary);
     line-height: 1.75;
-    margin: 0 auto;
+    margin: 0 auto 1rem;
+}
+
+.cards-intro p:last-child {
+    margin-bottom: 0;
 }
 
 /* Fixed-size squares, grouped and centered, wrapping to even rows when they
@@ -434,7 +443,7 @@
 
 .content-prose p {
     color: var(--tnra-text-secondary);
-    margin: 0 0 1.25rem 0;
+    margin: 0 0 1.5rem 0;
 }
 
 .content-prose a {

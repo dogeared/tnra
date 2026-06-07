@@ -91,6 +91,25 @@ class LandingContentRendererTest {
     }
 
     @Test
+    void anchorIdParsesHashTokenAndVariantIgnoresIt() {
+        assertEquals("the-tnra-way", LandingContentRenderer.anchorId("squares #the-tnra-way"));
+        assertEquals("squares", LandingContentRenderer.firstArg("squares #the-tnra-way"));
+        assertEquals("the-tnra-way", LandingContentRenderer.anchorId("#the-tnra-way"));
+        assertEquals(null, LandingContentRenderer.anchorId("squares"));
+        assertEquals(null, LandingContentRenderer.anchorId(null));
+    }
+
+    @Test
+    void blockAnchorBecomesComponentId() {
+        List<Component> out = renderer.render(
+            LandingContentParser.parse(":::cards squares #the-tnra-way\n:: Daily\nbody\n:::"), null);
+        assertEquals(1, out.size());
+        assertEquals("the-tnra-way", out.get(0).getId().orElse(""));
+        // variant still resolves (squares -> cadence-grid) even with the anchor present
+        assertTrue(out.get(0).getElement().getOuterHTML().contains("cadence-grid"));
+    }
+
+    @Test
     void unknownVariantFallsBackToSquares() {
         String html = renderOne(":::cards bogus\n:: A\nbody\n:::");
         assertTrue(html.contains("cadence-grid"), html);

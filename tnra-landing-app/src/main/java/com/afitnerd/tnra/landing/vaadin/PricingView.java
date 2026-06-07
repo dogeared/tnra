@@ -5,6 +5,8 @@ import com.afitnerd.tnra.landing.content.LandingContentRenderer;
 import com.afitnerd.tnra.landing.service.MarkdownService;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
@@ -17,7 +19,7 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 @AnonymousAllowed
 @CssImport("./styles/theme.css")
 @CssImport("./styles/landing-view.css")
-public class PricingView extends VerticalLayout {
+public class PricingView extends VerticalLayout implements AfterNavigationObserver {
 
     static final String CONTENT_RESOURCE = "/content/pricing.md";
 
@@ -32,5 +34,10 @@ public class PricingView extends VerticalLayout {
             null
         ).forEach(this::add);
         add(LandingChrome.footer());
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        LandingChrome.scrollOnNavigation(this, event);
     }
 }

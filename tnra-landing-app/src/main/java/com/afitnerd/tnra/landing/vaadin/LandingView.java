@@ -29,7 +29,6 @@ import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
-import java.util.List;
 import java.util.Map;
 
 @Route("")
@@ -41,14 +40,7 @@ public class LandingView extends VerticalLayout implements AfterNavigationObserv
 
     static final String CONTENT_RESOURCE = "/content/landing.md";
 
-    /** A nav/cross-page link with ?to=request-access scrolls the form into view. */
-    public static final String SCROLL_PARAM = "to";
-    public static final String SCROLL_FORM = "request-access";
-
     private final RequestAccessService requestAccessService;
-
-    /** The Request Access form section, scrolled into view on ?to=request-access. */
-    private Component requestForm;
 
     public LandingView(RequestAccessService requestAccessService,
                        MarkdownService markdownService,
@@ -68,18 +60,7 @@ public class LandingView extends VerticalLayout implements AfterNavigationObserv
 
     @Override
     public void afterNavigation(AfterNavigationEvent event) {
-        List<String> to = event.getLocation().getQueryParameters().getParameters()
-            .getOrDefault(SCROLL_PARAM, List.of());
-        // Vaadin defers these until the component is rendered client-side, so no
-        // fragment-timing workaround is needed.
-        if (requestForm != null && to.contains(SCROLL_FORM)) {
-            requestForm.scrollIntoView();
-        } else {
-            // Any other arrival at the home page (e.g. clicking the TNRA logo) lands
-            // at the top, even from a scrolled position. Scroll the view root (not the
-            // sticky nav, which is always in view and so never scrolls).
-            scrollIntoView();
-        }
+        LandingChrome.scrollOnNavigation(this, event);
     }
 
     private Component buildCustomBlock(Block block) {
@@ -95,7 +76,7 @@ public class LandingView extends VerticalLayout implements AfterNavigationObserv
 
         Div section = new Div();
         section.addClassName("form-section");
-        section.setId("request-access");
+        section.setId(LandingChrome.SCROLL_FORM);
 
         Div card = new Div();
         card.addClassName("form-card");
@@ -179,7 +160,6 @@ public class LandingView extends VerticalLayout implements AfterNavigationObserv
 
         card.add(title, intro, groupName, contactName, email, estimatedSize, description, submit, successMsg);
         section.add(card);
-        requestForm = section;
         return section;
     }
 

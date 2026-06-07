@@ -54,10 +54,42 @@ public class LandingContentRenderer {
                 default -> customFactory == null ? null : customFactory.apply(block);
             };
             if (component != null) {
+                // An #anchor in the directive args becomes the element id so links like
+                // /?to=the-tnra-way can scroll straight to this section (see LandingView).
+                String anchor = anchorId(block.args());
+                if (anchor != null) {
+                    component.setId(anchor);
+                }
                 components.add(component);
             }
         }
         return components;
+    }
+
+    /** The {@code #anchor} token from a directive's args, or null. */
+    static String anchorId(String args) {
+        if (args == null) {
+            return null;
+        }
+        for (String token : args.trim().split("\\s+")) {
+            if (token.length() > 1 && token.startsWith("#")) {
+                return token.substring(1);
+            }
+        }
+        return null;
+    }
+
+    /** The first non-anchor token from a directive's args (e.g. the cards variant). */
+    static String firstArg(String args) {
+        if (args == null) {
+            return "";
+        }
+        for (String token : args.trim().split("\\s+")) {
+            if (!token.startsWith("#")) {
+                return token;
+            }
+        }
+        return "";
     }
 
     private Component section(String sectionClass, String innerClass, String innerHtml) {
@@ -71,7 +103,7 @@ public class LandingContentRenderer {
     }
 
     private Component cardsBlock(Block block) {
-        Variant variant = VARIANTS.getOrDefault(block.args(), VARIANTS.get("squares"));
+        Variant variant = VARIANTS.getOrDefault(firstArg(block.args()), VARIANTS.get("squares"));
         CardsBlock parsed = LandingContentParser.parseCards(block.body());
 
         StringBuilder html = new StringBuilder();

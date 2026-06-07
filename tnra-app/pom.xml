@@ -5,7 +5,7 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-app</artifactId>
-    <version>9.1.1</version>
+    <version>9.1.2</version>
     <packaging>jar</packaging>
 
     <name>tnra-app</name>
