@@ -1,30 +1,25 @@
 package com.afitnerd.tnra.landing.vaadin;
 
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Footer;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment;
 import com.vaadin.flow.component.orderedlayout.FlexComponent.JustifyContentMode;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.RouterLink;
 
 /**
- * Shared nav + footer for the public landing pages so the two views
- * ({@link LandingView}, {@link AboutUsView}) stay visually consistent and the
- * nav links live in one place.
+ * Shared nav + footer for the public landing pages so the views
+ * ({@link LandingView}, {@link AboutUsView}, {@link PricingView}) stay visually
+ * consistent and the nav links live in one place.
  */
 final class LandingChrome {
 
     private LandingChrome() {
     }
 
-    /**
-     * @param onHomePage when true, the Request Access link is an in-page anchor
-     *                   (smooth scroll); otherwise it navigates to the home page
-     *                   and jumps to the form.
-     */
-    static Component nav(boolean onHomePage) {
+    static Component nav() {
         HorizontalLayout nav = new HorizontalLayout();
         nav.addClassName("landing-nav");
         nav.setWidthFull();
@@ -40,15 +35,10 @@ final class LandingChrome {
         RouterLink pricingLink = new RouterLink("Pricing", PricingView.class);
         pricingLink.addClassName("nav-link");
 
-        Anchor requestLink;
-        if (onHomePage) {
-            requestLink = new Anchor("#request-access", "Request Access");
-        } else {
-            requestLink = new Anchor("/#request-access", "Request Access");
-            // Force a real browser navigation so the home page loads and scrolls
-            // to the form, instead of an SPA route that drops the hash fragment.
-            requestLink.setRouterIgnore(true);
-        }
+        // Routes to the home page with ?to=request-access; LandingView scrolls the
+        // form into view server-side (works from any page, no fragment timing issue).
+        RouterLink requestLink = new RouterLink("Request Access", LandingView.class);
+        requestLink.setQueryParameters(QueryParameters.of(LandingView.SCROLL_PARAM, LandingView.SCROLL_FORM));
         requestLink.addClassName("nav-link");
 
         HorizontalLayout links = new HorizontalLayout(aboutLink, pricingLink, requestLink);

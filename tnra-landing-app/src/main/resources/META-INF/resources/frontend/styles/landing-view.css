@@ -63,7 +63,7 @@
 .landing-hero {
     width: 100%;
     box-sizing: border-box;
-    padding: 6rem 2rem 5rem;
+    padding: 3.5rem 2rem 2.5rem;
     text-align: center;
 }
 
@@ -117,7 +117,7 @@
 
 .features-section {
     background-color: var(--tnra-surface-dim);
-    padding: 4rem 2rem;
+    padding: 3rem 2rem;
     width: 100%;
     box-sizing: border-box;
 }
@@ -172,7 +172,7 @@
    ========================================= */
 
 .form-section {
-    padding: 5rem 2rem;
+    padding: 3rem 2rem;
     max-width: 600px;
     margin: 0 auto;
     width: 100%;
@@ -256,7 +256,7 @@
 
 /* Centered wrapper for squares + pricing grids (features has its own band). */
 .cards-section {
-    padding: 5rem 2rem 4rem;
+    padding: 2.5rem 2rem;
     max-width: 1000px;
     margin: 0 auto;
     width: 100%;
@@ -320,8 +320,8 @@
     padding: 1.5rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: flex-start;
     text-align: center;
     transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
 }
@@ -345,6 +345,7 @@
     color: var(--tnra-text-secondary);
     line-height: 1.55;
     margin: 0;
+    text-align: left;
 }
 
 /* Keep 4 squares even: once they no longer fit one row, cap the grid so they
@@ -391,7 +392,7 @@
 .content-section {
     max-width: 760px;
     margin: 0 auto;
-    padding: 4rem 2rem 5rem;
+    padding: 3rem 2rem;
     width: 100%;
     box-sizing: border-box;
 }

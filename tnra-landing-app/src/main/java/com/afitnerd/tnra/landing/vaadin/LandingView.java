@@ -22,11 +22,14 @@ import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
 
+import java.util.List;
 import java.util.Map;
 
 @Route("")
@@ -34,11 +37,18 @@ import java.util.Map;
 @AnonymousAllowed
 @CssImport("./styles/theme.css")
 @CssImport("./styles/landing-view.css")
-public class LandingView extends VerticalLayout {
+public class LandingView extends VerticalLayout implements AfterNavigationObserver {
 
     static final String CONTENT_RESOURCE = "/content/landing.md";
 
+    /** A nav/cross-page link with ?to=request-access scrolls the form into view. */
+    public static final String SCROLL_PARAM = "to";
+    public static final String SCROLL_FORM = "request-access";
+
     private final RequestAccessService requestAccessService;
+
+    /** The Request Access form section, scrolled into view on ?to=request-access. */
+    private Component requestForm;
 
     public LandingView(RequestAccessService requestAccessService,
                        MarkdownService markdownService,
@@ -48,12 +58,28 @@ public class LandingView extends VerticalLayout {
         setPadding(false);
         setSpacing(false);
 
-        add(LandingChrome.nav(true));
+        add(LandingChrome.nav());
         renderer.render(
             LandingContentParser.parse(markdownService.readClasspathResource(CONTENT_RESOURCE)),
             this::buildCustomBlock
         ).forEach(this::add);
         add(LandingChrome.footer());
+    }
+
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        List<String> to = event.getLocation().getQueryParameters().getParameters()
+            .getOrDefault(SCROLL_PARAM, List.of());
+        // Vaadin defers these until the component is rendered client-side, so no
+        // fragment-timing workaround is needed.
+        if (requestForm != null && to.contains(SCROLL_FORM)) {
+            requestForm.scrollIntoView();
+        } else {
+            // Any other arrival at the home page (e.g. clicking the TNRA logo) lands
+            // at the top, even from a scrolled position. Scroll the view root (not the
+            // sticky nav, which is always in view and so never scrolls).
+            scrollIntoView();
+        }
     }
 
     private Component buildCustomBlock(Block block) {
@@ -153,6 +179,7 @@ public class LandingView extends VerticalLayout {
 
         card.add(title, intro, groupName, contactName, email, estimatedSize, description, submit, successMsg);
         section.add(card);
+        requestForm = section;
         return section;
     }
 

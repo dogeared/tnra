@@ -35,4 +35,4 @@ covering the `Daily`, `Weekly`, `Monthly`, and `Yearly` cadence.
 
 ---
 
-Questions? [Request access](/#request-access) and tell us about your group.
+Questions? [Request access](/?to=request-access) and tell us about your group.

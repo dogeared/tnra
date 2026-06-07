@@ -27,7 +27,7 @@ public class AboutUsView extends VerticalLayout {
         setPadding(false);
         setSpacing(false);
 
-        add(LandingChrome.nav(false));
+        add(LandingChrome.nav());
         renderer.render(
             LandingContentParser.parse(markdownService.readClasspathResource(CONTENT_RESOURCE)),
             null

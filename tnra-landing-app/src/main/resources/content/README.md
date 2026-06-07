@@ -28,7 +28,7 @@ Markdown before the first card is the section title/intro. Each card starts with
   icon, e.g. `:: 📝 Structured weekly posts`.
 - **`pricing`** — pricing tiers. Add `{featured}` to a heading to highlight it,
   e.g. `:: Group {featured}`. The body is normal Markdown: a `**price**` (rendered
-  large), a `-` list of features, and a `[Request Access](/#request-access)` link
+  large), a `-` list of features, and a `[Request Access](/?to=request-access)` link
   (rendered as a button).
 
 ```
@@ -97,7 +97,8 @@ The fields themselves and validation logic live in `LandingView`.
 ## Links and scrolling
 
 - `[…](#request-access)` — same-page smooth scroll to the form (use on the home page).
-- `[…](/#request-access)` — from another page; loads the home page and scrolls to the form.
+- `[…](/?to=request-access)` — from another page; opens the home page and `LandingView`
+  scrolls the form into view (handled server-side, no fragment-timing issue).
 
 ## Notes
 
