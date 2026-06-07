@@ -210,6 +210,12 @@ curl -sk https://tnra.app | grep -o "<title>.*</title>"
 
 ### Updating the landing service
 
+The landing site is a separate container and image from the per-group app, so it can ship on
+its own cadence when only the public pages change. Its page copy is bundled in the jar
+(`tnra-landing-app/src/main/resources/content/*.md`), so even a content-only edit needs a
+rebuild. `--no-deps` recreates just the landing container and leaves MySQL, Keycloak, and
+every group container running:
+
 ```bash
 cd ~/tnra
 git pull origin main

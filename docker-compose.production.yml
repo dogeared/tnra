@@ -54,6 +54,11 @@ services:
       # Binds to tnra.notify.founder-email via Spring relaxed binding (host key stays TNRA_FOUNDER_EMAIL)
       TNRA_NOTIFY_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL}
       TNRA_NOTIFY_ENABLED: "true"
+      # Optional HTTP Basic gate for a private pre-launch review. Leave disabled
+      # (default) for the public site; set all three (in .env) to password-protect.
+      TNRA_BASIC_AUTH_ENABLED: "${TNRA_BASIC_AUTH_ENABLED:-false}"
+      TNRA_BASIC_AUTH_USERNAME: "${TNRA_BASIC_AUTH_USERNAME:-}"
+      TNRA_BASIC_AUTH_PASSWORD: "${TNRA_BASIC_AUTH_PASSWORD:-}"
       VAADIN_PRODUCTIONMODE: "true"
     ports:
       - '127.0.0.1:8081:8080'

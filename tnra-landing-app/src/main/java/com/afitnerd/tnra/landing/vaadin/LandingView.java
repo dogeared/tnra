@@ -1,123 +1,98 @@
 package com.afitnerd.tnra.landing.vaadin;
 
+import com.afitnerd.tnra.landing.content.LandingContentParser;
+import com.afitnerd.tnra.landing.content.LandingContentParser.Block;
+import com.afitnerd.tnra.landing.content.LandingContentRenderer;
 import com.afitnerd.tnra.landing.model.RequestAccess;
+import com.afitnerd.tnra.landing.service.MarkdownService;
 import com.afitnerd.tnra.landing.service.RequestAccessService;
 import com.vaadin.flow.component.Component;
-import com.vaadin.flow.component.HasComponents;
 import com.vaadin.flow.component.Text;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
-import com.vaadin.flow.component.html.*;
+import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.html.H2;
+import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.notification.NotificationVariant;
-import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.textfield.EmailField;
 import com.vaadin.flow.component.textfield.IntegerField;
 import com.vaadin.flow.component.textfield.TextArea;
 import com.vaadin.flow.component.textfield.TextField;
+import com.vaadin.flow.router.AfterNavigationEvent;
+import com.vaadin.flow.router.AfterNavigationObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.Route;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.auth.AnonymousAllowed;
-import com.vaadin.flow.component.dependency.CssImport;
+
+import java.util.List;
+import java.util.Map;
 
 @Route("")
 @PageTitle("TNRA — Accountability for Groups That Mean It")
 @AnonymousAllowed
 @CssImport("./styles/theme.css")
 @CssImport("./styles/landing-view.css")
-public class LandingView extends VerticalLayout {
+public class LandingView extends VerticalLayout implements AfterNavigationObserver {
+
+    static final String CONTENT_RESOURCE = "/content/landing.md";
+
+    /** A nav/cross-page link with ?to=request-access scrolls the form into view. */
+    public static final String SCROLL_PARAM = "to";
+    public static final String SCROLL_FORM = "request-access";
 
     private final RequestAccessService requestAccessService;
 
-    public LandingView(RequestAccessService requestAccessService) {
+    /** The Request Access form section, scrolled into view on ?to=request-access. */
+    private Component requestForm;
+
+    public LandingView(RequestAccessService requestAccessService,
+                       MarkdownService markdownService,
+                       LandingContentRenderer renderer) {
         this.requestAccessService = requestAccessService;
         addClassName("landing-view");
         setPadding(false);
         setSpacing(false);
 
-        add(buildNav(), buildHero(), buildFeatures(), buildForm(), buildFooter());
+        add(LandingChrome.nav());
+        renderer.render(
+            LandingContentParser.parse(markdownService.readClasspathResource(CONTENT_RESOURCE)),
+            this::buildCustomBlock
+        ).forEach(this::add);
+        add(LandingChrome.footer());
     }
 
-    private Component buildNav() {
-        HorizontalLayout nav = new HorizontalLayout();
-        nav.addClassName("landing-nav");
-        nav.setWidthFull();
-        nav.setAlignItems(Alignment.CENTER);
-        nav.setJustifyContentMode(JustifyContentMode.BETWEEN);
-
-        Span logo = new Span("TNRA");
-        logo.addClassName("nav-logo");
-
-        Anchor requestLink = new Anchor("#request-access", "Request Access");
-        requestLink.addClassName("nav-link");
-
-        nav.add(logo, requestLink);
-        return nav;
+    @Override
+    public void afterNavigation(AfterNavigationEvent event) {
+        List<String> to = event.getLocation().getQueryParameters().getParameters()
+            .getOrDefault(SCROLL_PARAM, List.of());
+        // Vaadin defers these until the component is rendered client-side, so no
+        // fragment-timing workaround is needed.
+        if (requestForm != null && to.contains(SCROLL_FORM)) {
+            requestForm.scrollIntoView();
+        } else {
+            // Any other arrival at the home page (e.g. clicking the TNRA logo) lands
+            // at the top, even from a scrolled position. Scroll the view root (not the
+            // sticky nav, which is always in view and so never scrolls).
+            scrollIntoView();
+        }
     }
 
-    private Component buildHero() {
-        Div hero = new Div();
-        hero.addClassName("landing-hero");
-
-        H1 headline = new H1("Accountability for groups that mean it.");
-        headline.addClassName("hero-headline");
-
-        Paragraph sub = new Paragraph(
-            "TNRA gives recovery groups, faith communities, and professional accountability circles " +
-            "a structured home for weekly posts, group stats, and mutual visibility — " +
-            "with end-to-end encryption so your content stays yours."
-        );
-        sub.addClassName("hero-sub");
-
-        Anchor cta = new Anchor("#request-access", "Request Access for Your Group");
-        cta.addClassName("hero-cta");
-
-        hero.add(headline, sub, cta);
-        return hero;
+    private Component buildCustomBlock(Block block) {
+        return "form".equals(block.type()) ? buildForm(block) : null;
     }
 
-    private Component buildFeatures() {
-        Div features = new Div();
-        features.addClassName("features-section");
+    private Component buildForm(Block block) {
+        Map<String, String> fields = LandingContentParser.parseFields(block.body());
+        String successTemplate = fields.getOrDefault("success", "Thanks! We'll be in touch at {email}.");
+        String groupLabel = fields.getOrDefault("group-label", "Group name");
+        String nameLabel = fields.getOrDefault("name-label", "Your name");
+        String emailLabel = fields.getOrDefault("email-label", "Your email");
 
-        H2 title = new H2("What your group gets");
-        title.addClassName("features-title");
-
-        Div grid = new Div();
-        grid.addClassName("features-grid");
-        grid.add(
-            featureCard("📝", "Structured weekly posts",
-                "Every member fills out the same format: intro, kryptonite, commitments, best & worst across life domains, and configurable stats. Consistency builds accountability."),
-            featureCard("🔔", "Real-time Slack notifications",
-                "When a member finishes a post, your group's Slack channel gets a notification with a secure deep link. No more wondering who posted."),
-            featureCard("🔒", "Encrypted at rest",
-                "All post content and stats are encrypted with AES-256-GCM. Your group's entries don't leave the encrypted database unless you choose to share them.")
-        );
-
-        features.add(title, grid);
-        return features;
-    }
-
-    private Component featureCard(String icon, String heading, String body) {
-        Div card = new Div();
-        card.addClassName("feature-card");
-
-        Span iconEl = new Span(icon);
-        iconEl.addClassName("feature-icon");
-
-        H3 h = new H3(heading);
-        h.addClassName("feature-heading");
-
-        Paragraph p = new Paragraph(body);
-        p.addClassName("feature-body");
-
-        card.add(iconEl, h, p);
-        return card;
-    }
-
-    private Component buildForm() {
         Div section = new Div();
         section.addClassName("form-section");
         section.setId("request-access");
@@ -125,48 +100,52 @@ public class LandingView extends VerticalLayout {
         Div card = new Div();
         card.addClassName("form-card");
 
-        H2 title = new H2("Request access");
+        H2 title = new H2(fields.getOrDefault("title", "Request access"));
         title.addClassName("form-title");
 
         Paragraph intro = new Paragraph(
-            "TNRA is invite-only. Tell us about your group and we'll be in touch."
+            fields.getOrDefault("intro", "TNRA is invite-only. Tell us about your group and we'll be in touch.")
         );
         intro.addClassName("form-intro");
 
-        TextField groupName = new TextField("Group name");
+        TextField groupName = new TextField(groupLabel);
         groupName.setRequired(true);
+        groupName.setErrorMessage(groupLabel + " is required");
         groupName.setWidthFull();
         groupName.addClassName("form-field");
 
-        TextField contactName = new TextField("Your name");
+        TextField contactName = new TextField(nameLabel);
         contactName.setRequired(true);
+        contactName.setErrorMessage(nameLabel + " is required");
         contactName.setWidthFull();
         contactName.addClassName("form-field");
 
-        EmailField email = new EmailField("Your email");
+        EmailField email = new EmailField(emailLabel);
         email.setRequired(true);
+        email.setErrorMessage("A valid email is required");
         email.setWidthFull();
         email.addClassName("form-field");
 
-        IntegerField estimatedSize = new IntegerField("Estimated group size");
+        IntegerField estimatedSize = new IntegerField(fields.getOrDefault("size-label", "Estimated group size"));
         estimatedSize.setMin(1);
         estimatedSize.setWidthFull();
         estimatedSize.addClassName("form-field");
 
-        TextArea description = new TextArea("Tell us about your group");
-        description.setPlaceholder("What brings your group together? What are you hoping TNRA will help with?");
+        TextArea description = new TextArea(fields.getOrDefault("description-label", "Tell us about your group"));
+        description.setPlaceholder(fields.getOrDefault("description-placeholder",
+            "What brings your group together? What are you hoping TNRA will help with?"));
         description.setWidthFull();
         description.setMinHeight("120px");
         description.addClassName("form-field");
 
-        Button submit = new Button("Send Request");
+        Button submit = new Button(fields.getOrDefault("submit", "Send Request"));
         submit.addThemeVariants(ButtonVariant.LUMO_PRIMARY, ButtonVariant.LUMO_LARGE);
         submit.addClassName("submit-button");
+        String sentLabel = fields.getOrDefault("sent", "Sent!");
 
         Div successMsg = new Div();
         successMsg.addClassName("success-message");
         successMsg.setVisible(false);
-        successMsg.add(new Span("Thanks! We'll be in touch at "), new Span(), new Span("."));
 
         submit.addClickListener(e -> {
             if (!validateForm(groupName, contactName, email)) return;
@@ -193,42 +172,45 @@ public class LandingView extends VerticalLayout {
             estimatedSize.setEnabled(false);
             description.setEnabled(false);
             submit.setEnabled(false);
-            submit.setText("Sent!");
+            submit.setText(sentLabel);
 
-            Span emailSpan = new Span(request.getEmail());
-            emailSpan.getStyle().set("font-weight", "600");
-            successMsg.removeAll();
-            successMsg.add(new Text("Thanks! We'll be in touch at "), emailSpan, new Text("."));
-            successMsg.setVisible(true);
+            showSuccess(successMsg, successTemplate, request.getEmail());
         });
 
         card.add(title, intro, groupName, contactName, email, estimatedSize, description, submit, successMsg);
         section.add(card);
+        requestForm = section;
         return section;
     }
 
-    private Component buildFooter() {
-        Footer footer = new Footer();
-        footer.addClassName("landing-footer");
-        footer.add(new Paragraph("© 2026 TNRA. Built for groups that take commitment seriously."));
-        return footer;
+    /** Render the success template, substituting a bolded {email}. */
+    private void showSuccess(Div successMsg, String template, String emailValue) {
+        Span emailSpan = new Span(emailValue);
+        emailSpan.getStyle().set("font-weight", "600");
+
+        String[] parts = template.split("\\{email\\}", 2);
+        successMsg.removeAll();
+        successMsg.add(new Text(parts[0]), emailSpan);
+        if (parts.length > 1) {
+            successMsg.add(new Text(parts[1]));
+        }
+        successMsg.setVisible(true);
     }
 
     private boolean validateForm(TextField groupName, TextField contactName, EmailField email) {
+        // Error messages are set on each field at creation (derived from the
+        // content-supplied labels); validation just toggles the invalid state.
         boolean valid = true;
         if (groupName.getValue().isBlank()) {
             groupName.setInvalid(true);
-            groupName.setErrorMessage("Group name is required");
             valid = false;
         }
         if (contactName.getValue().isBlank()) {
             contactName.setInvalid(true);
-            contactName.setErrorMessage("Your name is required");
             valid = false;
         }
         if (email.getValue().isBlank() || email.isInvalid()) {
             email.setInvalid(true);
-            email.setErrorMessage("A valid email is required");
             valid = false;
         }
         return valid;

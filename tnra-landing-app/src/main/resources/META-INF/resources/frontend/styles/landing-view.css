@@ -45,19 +45,34 @@
     color: var(--tnra-primary);
 }
 
+/* Logo is now a router link — strip the default underline. */
+.nav-logo {
+    text-decoration: none;
+}
+
+/* About Us sits to the left of Request Access, grouped on the right. */
+.nav-links {
+    gap: 1.75rem;
+}
+
 
 /* =========================================
    HERO
    ========================================= */
 
 .landing-hero {
-    padding: 6rem 2rem 5rem;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 3.5rem 2rem 2.5rem;
     text-align: center;
+}
+
+.hero-inner {
     max-width: 720px;
     margin: 0 auto;
 }
 
-.hero-headline {
+.landing-hero h1 {
     font-family: var(--tnra-font-display);
     font-weight: 700;
     font-size: clamp(2rem, 5vw, 3.2rem);
@@ -67,17 +82,15 @@
     margin: 0 0 1.5rem 0;
 }
 
-.hero-sub {
+.landing-hero p {
     font-size: 1.15rem;
     color: var(--tnra-text-secondary);
     line-height: 1.75;
-    margin: 0 0 2.5rem 0;
+    margin: 0 auto 2.5rem;
     max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
 }
 
-.hero-cta {
+.landing-hero a {
     display: inline-block;
     background-color: var(--tnra-primary);
     color: white;
@@ -91,7 +104,7 @@
     letter-spacing: -0.01em;
 }
 
-.hero-cta:hover {
+.landing-hero a:hover {
     background-color: var(--tnra-primary-hover);
     box-shadow: var(--tnra-shadow-lg);
     transform: translateY(-2px);
@@ -104,19 +117,9 @@
 
 .features-section {
     background-color: var(--tnra-surface-dim);
-    padding: 4rem 2rem;
+    padding: 3rem 2rem;
     width: 100%;
     box-sizing: border-box;
-}
-
-.features-title {
-    font-family: var(--tnra-font-display);
-    font-weight: 600;
-    font-size: 1.6rem;
-    color: var(--tnra-text);
-    letter-spacing: -0.02em;
-    text-align: center;
-    margin: 0 0 2.5rem 0;
 }
 
 .features-grid {
@@ -169,7 +172,7 @@
    ========================================= */
 
 .form-section {
-    padding: 5rem 2rem;
+    padding: 3rem 2rem;
     max-width: 600px;
     margin: 0 auto;
     width: 100%;
@@ -248,6 +251,363 @@
 
 
 /* =========================================
+   CARD GRIDS (squares / features / pricing)
+   ========================================= */
+
+/* Centered wrapper for squares + pricing grids (features has its own band). */
+.cards-section {
+    padding: 2.5rem 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+}
+
+/* Title + intro that lead a card grid (rendered from the block's intro Markdown). */
+.cards-intro {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 2.5rem;
+}
+
+.cards-intro h1,
+.cards-intro h2 {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem 0;
+}
+
+/* e.g. the "Cadence" sub-heading under The TNRA Way. */
+.cards-intro h3 {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.4rem;
+    color: var(--tnra-primary);
+    letter-spacing: -0.01em;
+    margin: 1.75rem 0 0 0;
+}
+
+.cards-intro p {
+    font-size: 1.1rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.75;
+    margin: 0 auto;
+}
+
+/* Fixed-size squares, grouped and centered, wrapping to even rows when they
+   don't fit one line. Flex + justify-content:center keeps every row (including a
+   partial last row) centered for any number of cards. */
+.cadence-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.25rem;
+    margin: 0 auto;
+}
+
+.cadence-card {
+    flex: 0 0 200px;
+    box-sizing: border-box;
+    aspect-ratio: 1 / 1;
+    background-color: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    box-shadow: var(--tnra-shadow-sm);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    text-align: center;
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.cadence-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+.cadence-card-header {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 0.5rem 0;
+}
+
+.cadence-card-body {
+    font-size: 0.9rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.55;
+    margin: 0;
+    text-align: left;
+}
+
+/* Keep 4 squares even: once they no longer fit one row, cap the grid so they
+   wrap 2x2 (centered) instead of an uneven 3 + 1. */
+@media (max-width: 920px) {
+    .cadence-grid[data-count="4"] {
+        max-width: 440px;
+    }
+}
+
+/* Standalone primary-button CTA (:::cta block). */
+.content-cta {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 0 2rem 1rem;
+}
+
+.content-cta a {
+    display: inline-block;
+    background-color: var(--tnra-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1.05rem;
+    padding: 0.85rem 2rem;
+    border-radius: var(--tnra-radius-sm);
+    box-shadow: var(--tnra-shadow-md);
+    transition: background-color var(--tnra-transition), box-shadow var(--tnra-transition), transform var(--tnra-transition);
+    letter-spacing: -0.01em;
+}
+
+.content-cta a:hover {
+    background-color: var(--tnra-primary-hover);
+    box-shadow: var(--tnra-shadow-lg);
+    transform: translateY(-2px);
+}
+
+
+/* =========================================
+   PROSE (About page + any plain-Markdown block)
+   ========================================= */
+
+.content-section {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 3rem 2rem;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.content-prose {
+    color: var(--tnra-text);
+    line-height: 1.75;
+    font-size: 1.05rem;
+}
+
+.content-prose h1 {
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2.2rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.03em;
+    line-height: 1.2;
+    margin: 0 0 1.5rem 0;
+}
+
+.content-prose h2 {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.02em;
+    margin: 2.5rem 0 1rem 0;
+    padding-left: 0.75rem;
+    border-left: 3px solid var(--tnra-primary);
+}
+
+.content-prose h3 {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.2rem;
+    color: var(--tnra-text);
+    margin: 2rem 0 0.75rem 0;
+}
+
+.content-prose p {
+    color: var(--tnra-text-secondary);
+    margin: 0 0 1.25rem 0;
+}
+
+.content-prose a {
+    color: var(--tnra-primary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.content-prose a:hover {
+    color: var(--tnra-primary-hover);
+}
+
+.content-prose strong {
+    color: var(--tnra-text);
+    font-weight: 700;
+}
+
+.content-prose ul,
+.content-prose ol {
+    color: var(--tnra-text-secondary);
+    margin: 0 0 1.25rem 0;
+    padding-left: 1.4rem;
+}
+
+.content-prose li {
+    margin-bottom: 0.5rem;
+}
+
+.content-prose blockquote {
+    margin: 1.5rem 0;
+    padding: 0.75rem 1.25rem;
+    border-left: 4px solid var(--tnra-primary);
+    background-color: var(--tnra-primary-light);
+    border-radius: 0 var(--tnra-radius-sm) var(--tnra-radius-sm) 0;
+    color: var(--tnra-text-secondary);
+    font-style: italic;
+}
+
+.content-prose blockquote p {
+    margin: 0;
+}
+
+.content-prose code {
+    font-family: var(--tnra-font-data), ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background-color: var(--tnra-surface-dim);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-sm);
+    padding: 0.1rem 0.35rem;
+}
+
+.content-prose hr {
+    border: none;
+    border-top: 1px solid var(--tnra-border-subtle);
+    margin: 2.5rem 0;
+}
+
+
+/* =========================================
+   PRICING
+   ========================================= */
+
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.5rem;
+    align-items: stretch;
+}
+
+.pricing-card {
+    background-color: var(--tnra-surface);
+    border: 1px solid var(--tnra-border-subtle);
+    border-radius: var(--tnra-radius-md);
+    box-shadow: var(--tnra-shadow-sm);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: box-shadow var(--tnra-transition), transform var(--tnra-transition);
+}
+
+.pricing-card:hover {
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+/* Highlight the recommended tier ({featured} on the :: heading in pricing.md). */
+.pricing-card-featured {
+    border: 2px solid var(--tnra-primary);
+    box-shadow: var(--tnra-shadow-md);
+}
+
+/* Tier name (the :: heading). */
+.pricing-tier {
+    font-family: var(--tnra-font-display);
+    font-weight: 600;
+    font-size: 1.25rem;
+    color: var(--tnra-text);
+    letter-spacing: -0.01em;
+    margin: 0 0 1rem 0;
+}
+
+/* Card body is Markdown: **price** / period, a feature list, then a CTA link. */
+.pricing-card-body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    width: 100%;
+}
+
+.pricing-card-body > p:first-child {
+    margin: 0 0 1.5rem 0;
+    color: var(--tnra-text-muted);
+    font-size: 0.95rem;
+}
+
+.pricing-card-body strong {
+    display: block;
+    font-family: var(--tnra-font-display);
+    font-weight: 700;
+    font-size: 2.4rem;
+    color: var(--tnra-primary);
+    letter-spacing: -0.02em;
+}
+
+.pricing-card-body ul {
+    list-style: none;
+    margin: 0 0 1.75rem 0;
+    padding: 0;
+    text-align: left;
+    width: 100%;
+}
+
+.pricing-card-body li {
+    font-size: 0.95rem;
+    color: var(--tnra-text-secondary);
+    line-height: 1.5;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--tnra-border-subtle);
+}
+
+.pricing-card-body li:last-child {
+    border-bottom: none;
+}
+
+/* Push the CTA paragraph to the bottom so CTAs align across tiers. */
+.pricing-card-body > p:last-child {
+    margin: auto 0 0 0;
+}
+
+.pricing-card-body a {
+    display: inline-block;
+    background-color: var(--tnra-primary);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: var(--tnra-radius-sm);
+    box-shadow: var(--tnra-shadow-sm);
+    transition: background-color var(--tnra-transition), box-shadow var(--tnra-transition), transform var(--tnra-transition);
+    letter-spacing: -0.01em;
+}
+
+.pricing-card-body a:hover {
+    background-color: var(--tnra-primary-hover);
+    box-shadow: var(--tnra-shadow-md);
+    transform: translateY(-2px);
+}
+
+
+/* =========================================
    RESPONSIVE
    ========================================= */
 
@@ -270,5 +630,22 @@
 
     .landing-nav {
         padding: 0.875rem 1.25rem;
+    }
+
+    .cards-section {
+        padding: 3.5rem 1.25rem 3rem;
+    }
+
+    .content-section {
+        padding: 3rem 1.25rem 3.5rem;
+    }
+
+    /* Stack pricing tiers on narrow screens. */
+    .pricing-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .nav-links {
+        gap: 1.1rem;
     }
 }
