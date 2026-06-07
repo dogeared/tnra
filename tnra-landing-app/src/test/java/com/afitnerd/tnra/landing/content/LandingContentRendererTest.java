@@ -84,6 +84,13 @@ class LandingContentRendererTest {
     }
 
     @Test
+    void cardGridExposesCardCount() {
+        // data-count drives the even-wrap CSS (e.g. 4 squares -> 2x2).
+        String html = renderOne(":::cards squares\n:: A\nx\n:: B\ny\n:: C\nz\n:::");
+        assertTrue(html.contains("data-count=\"3\""), html);
+    }
+
+    @Test
     void unknownVariantFallsBackToSquares() {
         String html = renderOne(":::cards bogus\n:: A\nbody\n:::");
         assertTrue(html.contains("cadence-grid"), html);

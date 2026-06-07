@@ -298,13 +298,20 @@
     margin: 0 auto;
 }
 
+/* Fixed-size squares, grouped and centered, wrapping to even rows when they
+   don't fit one line. Flex + justify-content:center keeps every row (including a
+   partial last row) centered for any number of cards. */
 .cadence-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 1.25rem;
+    margin: 0 auto;
 }
 
 .cadence-card {
+    flex: 0 0 200px;
+    box-sizing: border-box;
     aspect-ratio: 1 / 1;
     background-color: var(--tnra-surface);
     border: 1px solid var(--tnra-border-subtle);
@@ -338,6 +345,14 @@
     color: var(--tnra-text-secondary);
     line-height: 1.55;
     margin: 0;
+}
+
+/* Keep 4 squares even: once they no longer fit one row, cap the grid so they
+   wrap 2x2 (centered) instead of an uneven 3 + 1. */
+@media (max-width: 920px) {
+    .cadence-grid[data-count="4"] {
+        max-width: 440px;
+    }
 }
 
 /* Standalone primary-button CTA (:::cta block). */
@@ -618,11 +633,6 @@
 
     .cards-section {
         padding: 3.5rem 1.25rem 3rem;
-    }
-
-    /* Two-up squares on narrow screens. */
-    .cadence-grid {
-        grid-template-columns: repeat(2, 1fr);
     }
 
     .content-section {

@@ -79,7 +79,8 @@ public class LandingContentRenderer {
         if (!parsed.intro().isBlank()) {
             html.append("<div class=\"cards-intro\">").append(markdown.toHtml(parsed.intro())).append("</div>");
         }
-        html.append("<div class=\"").append(variant.grid()).append("\">");
+        html.append("<div class=\"").append(variant.grid())
+            .append("\" data-count=\"").append(parsed.cards().size()).append("\">");
         for (Card card : parsed.cards()) {
             html.append(renderCard(variant, card));
         }
