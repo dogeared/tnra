@@ -54,6 +54,17 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 - **Depends on:** Slack Part 1 shipped, landing page shipped, at least one group providing feedback on Part 1.
 - **Context:** Tier selection stored in `group_settings`. Full-post tier decrypts content in-memory before sending to Slack — clear security warning in the admin UI that post content will leave the encrypted DB. Stats-only tier sends stat names + values only (no narrative). Slack message layout adapts per tier.
 
+### Billing — "comp_until expiring soon" reminder
+Scheduled job in `tnra-billing-app` that emails a member ~7 days before their local `comp_until`
+waiver (e.g. "first 3 months free" promo) expires, so they're nudged to add a card before access flips.
+- **Why:** With local time-boxed waivers (not Lemon Squeezy trials), there's no card on file, so at
+  expiry the member must actively come pay. A reminder reduces conversion drop-off at the cliff.
+- **Effort:** XS (human: ~2h / CC: ~10 min)
+- **Depends on:** Billing feature shipped (`tnra-billing-app`). Deferred out of v1 — v1 enforcement is
+  lazy-at-gate (member hits PENDING_PAYMENT on next login after expiry), which needs no scheduler.
+- **Context:** See `BILLING_PLAN.md`. Add a `@Scheduled` sweep over `billing_account.comp_until`
+  within 7 days and not yet reminded; send via the existing mail path. Mark reminded to avoid repeats.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast
