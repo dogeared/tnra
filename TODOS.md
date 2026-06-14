@@ -2,13 +2,13 @@
 
 ## P1.5 — Branch 5 (Next Up)
 
-### [NEXT] Deploy Encryption to Active Group
+### ~~Deploy Encryption to Active Group~~ ✓ Completed (ops)
 Roll out v8.0.3 to the current active group for real-world testing before new features land.
 - **Why:** Validates encryption migrations, JPA converters, and master key config in production before the user base grows.
 - **Effort:** XS (human: ~1 hour / CC: n/a — ops task)
 - **Context:** Run Flyway V7–V10 migrations against the live DB. Confirm encrypted columns read/write correctly via the UI. Master key must be set in the group's `.env`. This is a gate before Slack Part 1 ships.
 
-### Slack Integration — Part 1: Activity-Only with Post Link
+### [NEXT] Slack Integration — Part 1: Activity-Only with Post Link
 Admin-configurable incoming webhook for a Slack channel. When a member finishes a post, post a message to the configured channel containing: username, start time, finish time, and a deep link to the post.
 - **Why:** Gives groups immediate visibility into posting activity without exposing encrypted post content outside the DB. Deep link enforces authentication before content is visible.
 - **Effort:** S (human: ~2 days / CC: ~20 min)
@@ -22,7 +22,7 @@ Replace the raw database ID in post deep links (`/post/42`) with an AES-GCM-encr
 - **Depends on:** Slack Part 1 shipped. Encryption infrastructure already in place (V7/V8 migrations, `EncryptedStringConverter`).
 - **Context:** Reuse the existing AES-256-GCM service to encrypt the `Long` post ID (serialize as a string, encrypt, base64url-encode for URL safety). Expose a `PostTokenService` (or method on the existing crypto service) with `encode(Long id)` and `decode(String token)`. Update the PostView router to decode the token before fetching. Update `SlackNotificationServiceImpl.buildMessage()` to encode the ID when constructing the deep link. The existing `/post/{id}` route stays but checks ownership; the token route is the new public-facing path. Decryption failure or post-not-found both return 404 — no information leakage.
 
-### Landing Page with Request Access Form
+### ~~Landing Page with Request Access Form~~ ✓ Completed v9.1.0
 Static or Vaadin public route for prospective groups. Form: group name, contact name, email, estimated size, description. Submissions stored in `request_access` table + email notification to founder.
 - **Why:** Need somewhere to point prospective groups. Supports go-to-market.
 - **Effort:** S (human: ~2 days / CC: ~15 min)

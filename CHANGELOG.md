@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.1.3] - 2026-06-13
+
+### Changed
+- **Pricing page updated.** Hosted plans are now **Hosted per Month** ($7 / month / member) and **Hosted per Year** ($60 / year / member, featured), replacing the previous per-member / Hosted Group tiers; both list the same feature set with 24-hour chat support. Minor copy capitalization fixes.
+
 ## [9.1.2] - 2026-06-07
 
 ### Added
