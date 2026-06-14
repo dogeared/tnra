@@ -65,6 +65,27 @@ waiver (e.g. "first 3 months free" promo) expires, so they're nudged to add a ca
 - **Context:** See `BILLING_PLAN.md`. Add a `@Scheduled` sweep over `billing_account.comp_until`
   within 7 days and not yet reminded; send via the existing mail path. Mark reminded to avoid repeats.
 
+### Billing — bulk "cover all uncovered members" gift
+One-click admin action to gift-cover every not-yet-covered member at once (vs gifting one at a time).
+- **Why:** Convenience for a founder/ministry leader sponsoring a whole group; reduces N clicks to 1.
+- **Effort:** S (human: ~half day / CC: ~10 min)
+- **Depends on:** Billing gift subscriptions shipped (v1 supports single-beneficiary gifting already).
+- **Context:** See `BILLING_PLAN.md` gift section. Iterate uncovered members → create a gift checkout per
+  member under the payer's card. Deferred from v1 because one-at-a-time gifting already delivers the
+  capability; this is pure convenience.
+
+### Self-serve onboarding — leader signup → pay → auto-provision
+Turn group creation from a CLI operation into a self-serve flow: a leader signs up on the landing site,
+pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain), no CLI step.
+- **Why:** This is the confirmed product goal (self-serve growth). The billing app is its foundation;
+  this is the next platform bet that makes groups onboard without the founder touching the CLI.
+- **Effort:** L (human: ~1-2 weeks / CC: ~hours)
+- **Depends on:** `tnra-billing-app` shipped; provisioning logic (currently in tnra-cli-app) made callable
+  as a service. Likely needs a runtime group registry (the central app already introduces one).
+- **Context:** See CEO plan `~/.gstack/projects/dogeared-tnra/ceo-plans/2026-06-14-billing-monetization.md`.
+  The hard part is automating what `ProvisionCommand` does today (templating + DB/realm/nginx creation)
+  triggered by a successful first payment, safely and idempotently.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast

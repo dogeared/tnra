@@ -80,7 +80,8 @@ CREATE TABLE group_billing (
 CREATE TABLE billing_account (
   id                 BIGINT AUTO_INCREMENT PRIMARY KEY,
   group_slug         VARCHAR(64)  NOT NULL,
-  email              VARCHAR(255) NOT NULL,
+  email              VARCHAR(255) NOT NULL,    -- BENEFICIARY (who is entitled)
+  payer_email        VARCHAR(255) NULL,        -- NULL = self-pay; set = gifted by this person
   status             VARCHAR(32)  NOT NULL DEFAULT 'PENDING_PAYMENT',
   exempt             BOOLEAN      NOT NULL DEFAULT FALSE,
   comp_until         DATETIME     NULL,
@@ -91,7 +92,8 @@ CREATE TABLE billing_account (
   updated_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_group_email (group_slug, email),
   KEY idx_subscription (ls_subscription_id),
-  KEY idx_customer (ls_customer_id)
+  KEY idx_customer (ls_customer_id),
+  KEY idx_payer (group_slug, payer_email)      -- "subscriptions I'm covering"
 );
 
 CREATE TABLE billing_webhook_event (
@@ -107,11 +109,14 @@ CREATE TABLE billing_webhook_event (
 ```
 
 **Endpoints:**
-- `POST /api/v1/checkout` (group token) — body `{email, variant}`; group_slug from token. Reuse-or-create
-  `billing_account` (dedup on `{group_slug,email}`), call LS `POST /v1/checkouts` with `custom`
-  `{group_slug, email}`, return hosted URL.
-- `GET /api/v1/entitlement?email=` (group token) — returns `{entitled, status, reason}`.
-- `GET /api/v1/portal?email=` (group token) — returns LS Customer Portal URL for that account.
+- `POST /api/v1/checkout` (group token) — body `{beneficiary_email, variant, payer_email}`; group_slug from
+  token. `payer_email == beneficiary_email` → self-pay; differ → GIFT. Reuse-or-create the BENEFICIARY's
+  `billing_account` (dedup on `{group_slug, beneficiary_email}`), set `payer_email`, call LS `POST /v1/checkouts`
+  with `custom` `{group_slug, beneficiary_email, payer_email}`, return hosted URL (charged to the payer).
+- `GET /api/v1/entitlement?email=` (group token) — returns `{entitled, status, reason}` (beneficiary-keyed;
+  gift vs self-pay is irrelevant to entitlement).
+- `GET /api/v1/covering?payer_email=` (group token) — accounts this person is paying for (their gift list).
+- `GET /api/v1/portal?email=` (group token) — LS Customer Portal URL for the PAYER of that account.
 - `POST /api/billing/webhook` (LS only) — HMAC-SHA256 verify over raw body (401 on mismatch);
   insert `ls_event_id` (dup → 200 no-op); persist raw; resolve account via subscription/customer id;
   map event → status (`subscription_created`/`updated` → ACTIVE or ON_GRACE_PERIOD per LS status;
@@ -132,15 +137,55 @@ by self-hosters.
 - `/billing` view: "Pay (monthly/yearly)" → central `/checkout` → redirect; "Update payment" → central
   `/portal` URL. Shows "payment processing" when status is PENDING right after redirect-back.
 - Config: `TNRA_BILLING_ENABLED` (default false), `TNRA_BILLING_API_URL`, `TNRA_BILLING_API_TOKEN`.
+- **Accepted tradeoffs:** (a) the ~60s entitlement cache means a status change (trial expiry, suspension)
+  can take up to ~60s / next navigation to bite — fine for this app. (b) fail-open means a central-app
+  outage silently disables the paywall (everyone stays entitled); chosen over locking out paying members.
 - **No new columns on `users`/`group_settings`.** No V13 on the group DB. `User.active` unchanged
   (admin enable/disable stays orthogonal and local).
 
+## Gift subscriptions (member or admin pays for another member) — SELECTIVE EXPANSION add
+
+Payer ≠ beneficiary, but still ONE subscription per beneficiary (NOT a quantity-N group subscription —
+that would resurrect the rejected per-seat model). "Admin pays for the whole group annually" = N
+individual gift subscriptions under the admin's card, each entitling one member; reimbursement is the
+admin's private concern (out of scope). Eases the launch friction risk: a committed member/founder can
+carry anyone who'd otherwise stall at the payment wall, so money never breaks the call chain. Also
+captures the church/ministry-sponsor case through the per-member model (no separate org tier needed).
+
+- **Data:** `billing_account.payer_email` (null = self-pay; set = gifted). Entitlement is beneficiary-keyed
+  and unchanged.
+- **Flow:** payer P opens checkout for beneficiary M (`POST /api/v1/checkout {beneficiary_email:M, payer_email:P}`);
+  LS subscription is created under P's customer/card; webhook maps it to M's `billing_account` (M becomes
+  ACTIVE) with `payer_email=P`.
+- **v1 scope:** single-beneficiary gifting ("cover this member") from the member list, for self OR admin,
+  monthly or annual. Admin-covers-whole-group works in v1 by gifting members one at a time.
+- **Gift payment-failure edge (MUST design in):** if the PAYER's card fails, the BENEFICIARY would otherwise
+  be suspended through no fault of their own and can't fix it. Rule: on a gifted-subscription
+  `payment_failed`/`expired`, NOTIFY the payer to update their card AND let the beneficiary SELF-PAY to take
+  over. Same on gift cancellation: notify the beneficiary; they self-pay or fall back to any active trial/comp.
+- **Supersede is a TWO-SIDED operation (money bug if half-done):** when a beneficiary self-pays to replace a
+  gift, the prior gift subscription MUST be CANCELLED in Lemon Squeezy (API call), not merely detached in our
+  DB — otherwise the gifter keeps getting charged for a subscription that no longer entitles anyone. Order:
+  create the self-pay subscription → on its `subscription_created` webhook, cancel the old gift sub in LS →
+  then clear `payer_email`/swap `ls_subscription_id`. Test that the old sub is actually cancelled in LS.
+- **Self-pay identity guard:** for self-pay checkout, the server forces `beneficiary_email` = the authenticated
+  OIDC email (ignore any client-supplied value); only gifts may name a different beneficiary. Prevents a
+  member checking out under a different email and then computing as PENDING. Tests required for all the above.
+
+## Launch posture: group free-trial default-ON
+
+New groups start in a free-trial window so the brotherhood forms BEFORE anyone is asked to pay (mitigates
+the per-member friction risk). Provisioning sets `group_billing.comp_until = now + TRIAL_DAYS`
+(`TRIAL_DAYS` default 60, CLI-overridable). During the trial every member is entitled; at expiry, members
+without a subscription (self-paid or gifted) flip to PENDING_PAYMENT on next login. `--billing-exempt`
+still means forever-free (pilot), distinct from the time-boxed trial.
+
 ## CLI / provisioning (tnra-cli-app)
 
-- On provision: register the group in central via an admin call (creates `group_billing` row, mints the
-  per-group API token), write `TNRA_BILLING_*` into the group's `.env`/`docker-compose` (blank by
-  default so self-host stays off). `--billing-exempt` / `--comp-until` set the central `group_billing`
-  row, not group DB.
+- On provision: register the group in central via an admin call (creates `group_billing` row with
+  `comp_until = now + TRIAL_DAYS`, mints the per-group API token), write `TNRA_BILLING_*` into the group's
+  `.env`/`docker-compose` (blank by default so self-host stays off). `--billing-exempt` / `--comp-until` /
+  `--trial-days` override the central `group_billing` row, not the group DB.
 
 ## Rollout / existing live group (CRITICAL)
 
@@ -159,6 +204,8 @@ no group-DB migration now.) **Regression test required.**
 
 ## NOT in scope (deferred)
 
+- Bulk "cover all uncovered members" one-click gift action — fast-follow; v1 gifts member-by-member.
+- Org/ministry-sponsor tier as a distinct product — gift subscriptions cover this case for now.
 - Partial/percentage discounts (LS coupons, price-level) — defer.
 - Proration / mid-cycle plan switch — LS Portal handles it; react to `subscription_updated`.
 - Local "comp_until expiring soon" reminder email — needs a scheduled job in the billing app; deferred
@@ -196,6 +243,14 @@ no group-DB migration now.) **Regression test required.**
   reachable while suspended, posts/stats not.
 - E2E: first-login → checkout → ACTIVE (monthly + yearly); renewal-fail → grace → suspended;
   suspended → portal → update → ACTIVE; redirect-back-before-webhook shows processing then resolves.
+
+**Gift + trial:**
+- Gift checkout: payer≠beneficiary records beneficiary ACTIVE with payer_email set; entitlement unchanged.
+- Gift payment-failure: payer card fails → beneficiary grace/suspended → beneficiary self-pay supersedes
+  (payer_email cleared); gift cancellation → beneficiary notified + can self-pay.
+- `GET /covering` lists a payer's gifted accounts.
+- Group trial: provision sets comp_until = now + TRIAL_DAYS; members entitled during trial; at expiry,
+  uncovered members → PENDING_PAYMENT; trial (time-boxed) vs exempt (forever) behave distinctly.
 
 **Rollout:** seeding existing members ACTIVE (or group exempt) — **CRITICAL regression**.
 
