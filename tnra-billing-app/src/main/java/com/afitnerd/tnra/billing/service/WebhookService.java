@@ -9,41 +9,49 @@ import com.afitnerd.tnra.billing.repository.BillingWebhookEventRepository;
 import com.afitnerd.tnra.billing.util.HashUtil;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Processes Lemon Squeezy webhooks. The flow is deliberately fail-loud on auth and never-lose on data:
+ * Processes Lemon Squeezy webhooks. Fail-loud on auth, never-lose on data:
  *
  * <pre>
  *   verify HMAC-SHA256(body, secret) == X-Signature   ── mismatch ─► 401 (nothing persisted)
  *   ls_event_id = sha256(body) (stable across retries)
  *   already seen?                                       ── yes ─► no-op
  *   persist raw event (always)
- *   route: subscription id ─► account, else custom_data {group_slug, beneficiary_email}
- *      matched   ─► update status + ls ids + payer, mark processed
- *      unmatched ─► leave matched_account_id null + error, for reconciliation (NOT dropped)
+ *   route ─► matched: update status; unmatched: error + keep for reconciliation (never dropped)
  * </pre>
  *
- * Lemon Squeezy subscription statuses → ours: active/on_trial → ACTIVE; past_due → ON_GRACE_PERIOD;
- * unpaid/cancelled/expired/paused → SUSPENDED. Event names override: subscription_payment_failed →
- * ON_GRACE_PERIOD; subscription_expired/cancelled → SUSPENDED.
+ * Routing is subscription-id-first. The tricky case is GIFT SUPERSEDE: a beneficiary self-pays to
+ * replace a gift, creating a NEW subscription. Its {@code subscription_created} routes by custom_data
+ * to the account, which still points at the OLD gift subscription — we cancel the old one in Lemon
+ * Squeezy (or the gifter keeps being charged), adopt the new one, and clear payer_email. Later events
+ * for the OLD subscription id then no longer match the account's current sub and are ignored as stale,
+ * so an old cancellation can't wrongly suspend a member who already took over.
  */
 @Service
 public class WebhookService {
 
+    private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
+
     private final BillingWebhookEventRepository eventRepository;
     private final BillingAccountRepository accountRepository;
+    private final LemonSqueezyClient lemonSqueezyClient;
     private final LemonSqueezyProperties props;
     private final ObjectMapper objectMapper;
 
     public WebhookService(BillingWebhookEventRepository eventRepository,
                           BillingAccountRepository accountRepository,
+                          LemonSqueezyClient lemonSqueezyClient,
                           LemonSqueezyProperties props,
                           ObjectMapper objectMapper) {
         this.eventRepository = eventRepository;
         this.accountRepository = accountRepository;
+        this.lemonSqueezyClient = lemonSqueezyClient;
         this.props = props;
         this.objectMapper = objectMapper;
     }
@@ -85,48 +93,94 @@ public class WebhookService {
         JsonNode attrs = data.path("attributes");
         JsonNode custom = root.path("meta").path("custom_data");
 
-        String lsSubscriptionId = text(data.path("id"));
+        String incomingSub = text(data.path("id"));
         String customerId = text(attrs.path("customer_id"));
         String lsStatus = text(attrs.path("status"));
         String groupSlug = text(custom.path("group_slug"));
         String beneficiary = text(custom.path("beneficiary_email"));
         String payer = text(custom.path("payer_email"));
 
-        BillingAccount account = findAccount(lsSubscriptionId, groupSlug, beneficiary);
+        // 1) The account that already owns this subscription id — the normal update path.
+        BillingAccount bySub = incomingSub == null ? null
+            : accountRepository.findByLsSubscriptionId(incomingSub).orElse(null);
+        if (bySub != null) {
+            applyStatus(bySub, eventName, lsStatus);
+            accountRepository.save(bySub);
+            markMatched(event, bySub);
+            return;
+        }
+
+        // 2) No account owns this sub id — route by custom data (group + beneficiary).
+        BillingAccount account = (groupSlug != null && beneficiary != null)
+            ? accountRepository.findByGroupSlugAndEmail(groupSlug, beneficiary).orElse(null)
+            : null;
         if (account == null) {
             event.setProcessed(false);
-            event.setError("unmatched: no account for subscription=" + lsSubscriptionId
+            event.setError("unmatched: no account for subscription=" + incomingSub
                 + " group=" + groupSlug + " beneficiary=" + beneficiary);
             return;
         }
 
-        if (lsSubscriptionId != null) {
-            account.setLsSubscriptionId(lsSubscriptionId);
+        String current = account.getLsSubscriptionId();
+        if (current != null && incomingSub != null && !current.equals(incomingSub)) {
+            if ("subscription_created".equals(eventName)) {
+                // Supersede: a new subscription replaces the one the account holds (e.g. self-pay
+                // taking over a gift). Cancel the old sub in LS or the prior payer keeps being charged.
+                cancelOldBestEffort(current, event);
+                adopt(account, incomingSub, customerId, payer, beneficiary);
+                applyStatus(account, eventName, lsStatus);
+                accountRepository.save(account);
+                markMatched(event, account);
+            } else {
+                // Stale event about a subscription this account no longer holds — record, ignore status.
+                event.setMatchedAccountId(account.getId());
+                event.setProcessed(true);
+                event.setError("ignored stale event for superseded subscription " + incomingSub);
+            }
+            return;
+        }
+
+        // 3) First subscription for this beneficiary (account had no sub id yet).
+        adopt(account, incomingSub, customerId, payer, beneficiary);
+        applyStatus(account, eventName, lsStatus);
+        accountRepository.save(account);
+        markMatched(event, account);
+    }
+
+    /** Set sub/customer ids and payer (gift vs self-pay) from the event's custom data. */
+    private void adopt(BillingAccount account, String incomingSub, String customerId,
+                       String payer, String beneficiary) {
+        if (incomingSub != null) {
+            account.setLsSubscriptionId(incomingSub);
         }
         if (customerId != null) {
             account.setLsCustomerId(customerId);
         }
-        if (payer != null && beneficiary != null && !payer.equalsIgnoreCase(beneficiary)) {
-            account.setPayerEmail(payer);
+        if (payer != null && beneficiary != null) {
+            // self-pay clears any prior gift payer; a gift records the gifter
+            account.setPayerEmail(payer.equalsIgnoreCase(beneficiary) ? null : payer);
         }
-        account.setStatus(mapStatus(eventName, lsStatus));
-        accountRepository.save(account);
-
-        event.setMatchedAccountId(account.getId());
-        event.setProcessed(true);
     }
 
-    private BillingAccount findAccount(String lsSubscriptionId, String groupSlug, String beneficiary) {
-        if (lsSubscriptionId != null) {
-            BillingAccount bySub = accountRepository.findByLsSubscriptionId(lsSubscriptionId).orElse(null);
-            if (bySub != null) {
-                return bySub;
-            }
+    private void cancelOldBestEffort(String oldSubscriptionId, BillingWebhookEvent event) {
+        try {
+            lemonSqueezyClient.cancelSubscription(oldSubscriptionId);
+        } catch (Exception e) {
+            // Don't fail the new subscription over this — but flag it: the old sub may still bill the
+            // prior payer until reconciled.
+            log.warn("Failed to cancel superseded subscription {}: {}", oldSubscriptionId, e.getMessage());
+            event.setError("WARNING: could not cancel superseded subscription " + oldSubscriptionId
+                + " (" + e.getMessage() + ") — reconcile to stop billing the prior payer");
         }
-        if (groupSlug != null && beneficiary != null) {
-            return accountRepository.findByGroupSlugAndEmail(groupSlug, beneficiary).orElse(null);
-        }
-        return null;
+    }
+
+    private void applyStatus(BillingAccount account, String eventName, String lsStatus) {
+        account.setStatus(mapStatus(eventName, lsStatus));
+    }
+
+    private void markMatched(BillingWebhookEvent event, BillingAccount account) {
+        event.setMatchedAccountId(account.getId());
+        event.setProcessed(true);
     }
 
     BillingStatus mapStatus(String eventName, String lsStatus) {

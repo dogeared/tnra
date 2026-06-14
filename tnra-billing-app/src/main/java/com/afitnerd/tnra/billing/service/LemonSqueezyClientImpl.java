@@ -84,6 +84,16 @@ public class LemonSqueezyClientImpl implements LemonSqueezyClient {
         return requireText(resp, "customer portal url", "data", "attributes", "urls", "customer_portal");
     }
 
+    @Override
+    public void cancelSubscription(String lsSubscriptionId) {
+        restClient.delete()
+            .uri("/v1/subscriptions/{id}", lsSubscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .accept(JSON_API)
+            .retrieve()
+            .toBodilessEntity();
+    }
+
     private String requireText(JsonNode root, String what, String... path) {
         JsonNode node = root;
         for (String key : path) {

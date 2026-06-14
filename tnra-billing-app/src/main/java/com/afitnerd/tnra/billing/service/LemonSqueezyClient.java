@@ -18,4 +18,10 @@ public interface LemonSqueezyClient {
 
     /** Hosted Customer Portal URL for the payer of the given subscription (update card / cancel). */
     String getCustomerPortalUrl(String lsSubscriptionId);
+
+    /**
+     * Cancel a subscription in Lemon Squeezy. Used when a beneficiary self-pays to replace a gift —
+     * the prior gift subscription MUST be cancelled or the gifter keeps being charged.
+     */
+    void cancelSubscription(String lsSubscriptionId);
 }

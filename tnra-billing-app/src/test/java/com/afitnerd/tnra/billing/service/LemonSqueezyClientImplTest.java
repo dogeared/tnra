@@ -68,6 +68,17 @@ class LemonSqueezyClientImplTest {
     }
 
     @Test
+    void cancelSubscription_issuesDelete() {
+        server.expect(requestTo("https://api.lemonsqueezy.com/v1/subscriptions/old_sub"))
+            .andExpect(method(org.springframework.http.HttpMethod.DELETE))
+            .andExpect(header("Authorization", "Bearer test-key"))
+            .andRespond(withSuccess());
+
+        client.cancelSubscription("old_sub");
+        server.verify();
+    }
+
+    @Test
     void getCustomerPortalUrl_returnsPortal() {
         server.expect(requestTo("https://api.lemonsqueezy.com/v1/subscriptions/sub_9"))
             .andExpect(method(GET))

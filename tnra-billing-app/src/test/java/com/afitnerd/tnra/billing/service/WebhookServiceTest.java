@@ -32,6 +32,7 @@ class WebhookServiceTest {
 
     private BillingWebhookEventRepository eventRepo;
     private BillingAccountRepository accountRepo;
+    private LemonSqueezyClient lsClient;
     private LemonSqueezyProperties props;
     private WebhookService service;
 
@@ -39,10 +40,19 @@ class WebhookServiceTest {
     void setUp() {
         eventRepo = mock(BillingWebhookEventRepository.class);
         accountRepo = mock(BillingAccountRepository.class);
+        lsClient = mock(LemonSqueezyClient.class);
         props = new LemonSqueezyProperties();
         props.setWebhookSecret(SECRET);
-        service = new WebhookService(eventRepo, accountRepo, props, new ObjectMapper());
+        service = new WebhookService(eventRepo, accountRepo, lsClient, props, new ObjectMapper());
         when(accountRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+    }
+
+    /** Subscription event with a chosen event name, subscription id, and payer (for gift/self-pay). */
+    private String body(String eventName, String subId, String payerEmail) {
+        return "{\"meta\":{\"event_name\":\"" + eventName + "\","
+            + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"m@x.com\","
+            + "\"payer_email\":\"" + payerEmail + "\"}},"
+            + "\"data\":{\"id\":\"" + subId + "\",\"attributes\":{\"status\":\"active\",\"customer_id\":42}}}";
     }
 
     private String sign(String body) {
@@ -133,6 +143,70 @@ class WebhookServiceTest {
         verify(eventRepo).save(ev.capture());
         assertFalse(ev.getValue().getProcessed());
         assertTrue(ev.getValue().getError().contains("unparseable"));
+    }
+
+    @Test
+    void selfPaySupersedesGift_cancelsOldSub_adoptsNew_clearsPayer() {
+        // Account currently holds a GIFT subscription (old_sub, paid by admin).
+        BillingAccount account = new BillingAccount();
+        account.setId(5L);
+        account.setGroupSlug("rome");
+        account.setEmail("m@x.com");
+        account.setStatus(BillingStatus.ON_GRACE_PERIOD);
+        account.setLsSubscriptionId("old_sub");
+        account.setPayerEmail("admin@x.com");
+        // New self-pay subscription created (payer == beneficiary).
+        String body = body("subscription_created", "new_sub", "m@x.com");
+        when(eventRepo.existsByLsEventId(any())).thenReturn(false);
+        when(accountRepo.findByLsSubscriptionId("new_sub")).thenReturn(Optional.empty());
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(account));
+
+        service.process(body, sign(body));
+
+        verify(lsClient).cancelSubscription("old_sub");
+        assertEquals("new_sub", account.getLsSubscriptionId());
+        assertNull(account.getPayerEmail());
+        assertEquals(BillingStatus.ACTIVE, account.getStatus());
+    }
+
+    @Test
+    void staleEventForSupersededSub_isIgnoredForStatus() {
+        // Account already moved on to new_sub; a late cancellation for old_sub must NOT suspend it.
+        BillingAccount account = new BillingAccount();
+        account.setId(5L);
+        account.setGroupSlug("rome");
+        account.setEmail("m@x.com");
+        account.setStatus(BillingStatus.ACTIVE);
+        account.setLsSubscriptionId("new_sub");
+        String body = body("subscription_cancelled", "old_sub", "m@x.com");
+        when(eventRepo.existsByLsEventId(any())).thenReturn(false);
+        when(accountRepo.findByLsSubscriptionId("old_sub")).thenReturn(Optional.empty());
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(account));
+
+        service.process(body, sign(body));
+
+        assertEquals(BillingStatus.ACTIVE, account.getStatus()); // unchanged
+        verify(accountRepo, never()).save(any());
+        ArgumentCaptor<BillingWebhookEvent> ev = ArgumentCaptor.forClass(BillingWebhookEvent.class);
+        verify(eventRepo).save(ev.capture());
+        assertTrue(ev.getValue().getProcessed());
+        assertTrue(ev.getValue().getError().contains("stale"));
+    }
+
+    @Test
+    void knownSubscriptionUpdate_routesBySubscriptionId() {
+        BillingAccount account = new BillingAccount();
+        account.setId(9L);
+        account.setLsSubscriptionId("sub_1");
+        account.setStatus(BillingStatus.ACTIVE);
+        String body = body("subscription_payment_failed", "sub_1", "m@x.com");
+        when(eventRepo.existsByLsEventId(any())).thenReturn(false);
+        when(accountRepo.findByLsSubscriptionId("sub_1")).thenReturn(Optional.of(account));
+
+        service.process(body, sign(body));
+
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, account.getStatus());
+        verify(accountRepo).save(account);
     }
 
     @Test
