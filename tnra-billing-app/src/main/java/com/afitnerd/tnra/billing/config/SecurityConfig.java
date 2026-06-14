@@ -39,6 +39,7 @@ public class SecurityConfig {
             .addFilterBefore(groupTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/billing/webhook").permitAll()
+                .requestMatchers("/api/admin/**").permitAll() // AdminController enforces X-Admin-Token
                 .requestMatchers("/actuator/health").permitAll()
                 .anyRequest().authenticated()
             );

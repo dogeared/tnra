@@ -35,6 +35,9 @@ lemonsqueezy:
 billing:
   # Default free-trial window applied to a new group at provisioning (group_billing.comp_until).
   trial-days: ${TNRA_TRIAL_DAYS:60}
+  # Shared secret guarding the provisioning/admin API (/api/admin/**). Blank = admin API disabled
+  # (fail closed). The CLI sends it as X-Admin-Token when registering a group.
+  admin-token: ${BILLING_ADMIN_TOKEN:}
 
 logging:
   level:
