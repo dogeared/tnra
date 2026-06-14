@@ -21,7 +21,7 @@ class MyServiceInitListenerTest {
 
     @Test
     void storesExtendedClientDetailsOnUiInit() {
-        MyServiceInitListener listener = new MyServiceInitListener();
+        MyServiceInitListener listener = new MyServiceInitListener(mock(EntitlementGate.class));
 
         ServiceInitEvent event = mock(ServiceInitEvent.class);
         VaadinService service = mock(VaadinService.class);

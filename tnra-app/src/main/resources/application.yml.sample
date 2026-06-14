@@ -39,6 +39,13 @@ tnra:
     schedule: "0 0 12 * * ?"
   emailService:
     enabled: false
+  # Billing is OFF by default (open-source self-host runs the full app with no payment surface).
+  # SaaS deploys set enabled=true and point at the central tnra-billing-app with the per-group token
+  # minted at provisioning. When enabled, api-url and api-token are required (fail fast if missing).
+  billing:
+    enabled: ${TNRA_BILLING_ENABLED:false}
+    api-url: ${TNRA_BILLING_API_URL:http://localhost:8082}
+    api-token: ${TNRA_BILLING_API_TOKEN:}
 server:
   port: 8080
   servlet:

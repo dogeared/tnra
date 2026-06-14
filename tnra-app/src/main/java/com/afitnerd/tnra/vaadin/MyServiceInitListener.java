@@ -8,6 +8,13 @@ import com.vaadin.flow.spring.annotation.SpringComponent;
 
 @SpringComponent
 public class MyServiceInitListener implements VaadinServiceInitListener {
+
+    private final EntitlementGate entitlementGate;
+
+    public MyServiceInitListener(EntitlementGate entitlementGate) {
+        this.entitlementGate = entitlementGate;
+    }
+
     @Override
     public void serviceInit(ServiceInitEvent event) {
         event.getSource().addUIInitListener(uiInitEvent -> {
@@ -17,6 +24,8 @@ public class MyServiceInitListener implements VaadinServiceInitListener {
                 // Store ExtendedClientDetails in the session
                 ui.getSession().setAttribute(ExtendedClientDetails.class, details);
             });
+            // Gate navigation on billing entitlement (no-op when billing is disabled).
+            ui.addBeforeEnterListener(entitlementGate::beforeEnter);
         });
     }
 }
