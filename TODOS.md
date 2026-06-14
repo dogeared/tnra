@@ -86,6 +86,23 @@ pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain)
   The hard part is automating what `ProvisionCommand` does today (templating + DB/realm/nginx creation)
   triggered by a successful first payment, safely and idempotently.
 
+## Tech debt / DevEx
+
+### Revisit `.gitignore` rule for `application.properties`
+`.gitignore` ignores `application.properties` (to protect runtime secrets), but every module's
+TEST config lives in `src/test/resources/application.properties` and must be `git add -f`'d to commit
+(tnra-app and tnra-billing-app both do this). Easy to forget; `git add .` silently skips it.
+- **Why:** A required, non-secret, committed file that the default ignore rule fights is a footgun —
+  a new test config can be silently left untracked and CI/other devs run without it.
+- **Effort:** XS (human: ~30 min / CC: ~10 min)
+- **Options:** (a) scope the ignore to main only (`**/src/main/resources/application.properties`) so test
+  configs are tracked normally; or (b) rename test config to the Spring-profile form
+  `application-test.properties` (hyphen — NOTE: `application.test.properties` with a dot is NOT a Spring
+  auto-loaded name) and activate the `test` profile in tests, keeping `application.properties` ignored for
+  runtime secrets. Recommend (a) — smallest change, no profile wiring, and test config is genuinely safe to
+  commit. Apply consistently across tnra-app + tnra-billing-app (+ any future module).
+- **Context:** Touches `.gitignore` and the two committed test `application.properties` files.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast
