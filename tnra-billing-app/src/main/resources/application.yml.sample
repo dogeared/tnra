@@ -1,0 +1,42 @@
+# Sample base config for tnra-billing-app (the central billing service).
+#
+# application.yml itself is gitignored (repo `*.yml` rule), so each environment keeps a local copy:
+#   cp tnra-billing-app/src/main/resources/application.yml.sample \
+#      tnra-billing-app/src/main/resources/application.yml
+#
+# This service is a CENTRAL single instance (not run per-group, not run by self-hosters). Production
+# overrides the datasource and the LS_* / billing secrets via env in docker-compose.production.yml.
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  datasource:
+    url: jdbc:mysql://localhost:3307/tnra_billing?useSSL=false&allowPublicKeyRetrieval=true
+    username: tnra
+    password: 123456aA$
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+
+server:
+  port: 8082
+  forward-headers-strategy: framework
+
+# Lemon Squeezy (Merchant of Record). All blank by default; required in production.
+lemonsqueezy:
+  api-key: ${LS_API_KEY:}
+  store-id: ${LS_STORE_ID:}
+  webhook-secret: ${LS_WEBHOOK_SECRET:}
+  variant:
+    monthly: ${LS_VARIANT_MONTHLY:}   # $7 / month / member
+    yearly: ${LS_VARIANT_YEARLY:}     # $60 / year / member
+
+billing:
+  # Default free-trial window applied to a new group at provisioning (group_billing.comp_until).
+  trial-days: ${TNRA_TRIAL_DAYS:60}
+
+logging:
+  level:
+    com.afitnerd.tnra.billing: INFO
+    org.springframework.security: WARN

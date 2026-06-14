@@ -16,6 +16,7 @@
         <module>tnra-app</module>
         <module>tnra-cli-app</module>
         <module>tnra-landing-app</module>
+        <module>tnra-billing-app</module>
     </modules>
 
     <properties>
