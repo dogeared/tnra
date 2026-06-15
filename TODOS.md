@@ -54,6 +54,18 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 - **Depends on:** Slack Part 1 shipped, landing page shipped, at least one group providing feedback on Part 1.
 - **Context:** Tier selection stored in `group_settings`. Full-post tier decrypts content in-memory before sending to Slack — clear security warning in the admin UI that post content will leave the encrypted DB. Stats-only tier sends stat names + values only (no narrative). Slack message layout adapts per tier.
 
+### Slack integration guide in the admin panel
+In-app guidance (an Admin panel tab/section) that walks an admin through setting up the Slack incoming
+webhook: where to create it in Slack, what URL to paste, and how the per-group publish toggles behave.
+- **Why:** The webhook is created in Slack's own UI, not ours — without guidance admins get stuck or
+  paste the wrong value. A guide cuts setup friction and support questions.
+- **Effort:** S (human: ~half day / CC: ~15 min)
+- **Depends on:** Slack Integration Part 1 shipped (the webhook config UI this documents).
+- **Context:** Lives next to the Slack/Integrations config in `AdminView`. Step-by-step for Slack's
+  "Incoming Webhooks" flow (create app → enable incoming webhooks → add to channel → copy URL), a note
+  that the URL is stored encrypted, and what each publish toggle (activity / stats / full-post) sends.
+  Could be a collapsible help section or a dialog. Read DESIGN.md before styling.
+
 ### Billing — "comp_until expiring soon" reminder
 Scheduled job in `tnra-billing-app` that emails a member ~7 days before their local `comp_until`
 waiver (e.g. "first 3 months free" promo) expires, so they're nudged to add a card before access flips.
@@ -85,6 +97,21 @@ pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain)
 - **Context:** See CEO plan `~/.gstack/projects/dogeared-tnra/ceo-plans/2026-06-14-billing-monetization.md`.
   The hard part is automating what `ProvisionCommand` does today (templating + DB/realm/nginx creation)
   triggered by a successful first payment, safely and idempotently.
+
+### Demo site — seeded, self-resetting public sandbox
+A normal TNRA group set up as a public demo: seeded with realistic dummy data and reset on a schedule
+(e.g. hourly) so anyone can log in with published credentials and explore a populated app.
+- **Why:** Lets prospects experience the real product before committing — supports go-to-market /
+  self-serve growth. A populated, always-fresh demo converts far better than screenshots or an empty group.
+- **Effort:** M (human: ~2-3 days / CC: ~30 min)
+- **Depends on:** Nothing hard — reuses normal provisioning (one regular group). Billing must be OFF or
+  the group set billing-exempt so the entitlement gate never blocks the demo login.
+- **Context:** Two pieces. (a) A seed dataset — users, posts (intro/kryptonite/commitments/best&worst/
+  stats), call chain, a few weeks of history — loadable via SQL or a seed routine. (b) A scheduled reset
+  (`@Scheduled` or system cron) that truncates and re-seeds on the chosen interval, so a visitor's edits
+  don't persist past the window. Decide cadence (hourly?), publish the login(s), and either disable
+  destructive/admin actions for the demo account or accept that the reset cleans them up. Keep the demo
+  group's DB/realm/subdomain isolated like any other group.
 
 ## Tech debt / DevEx
 
