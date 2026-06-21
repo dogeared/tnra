@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.billing.BillingClient;
 import com.afitnerd.tnra.model.GroupSettings;
 import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.User;
@@ -12,6 +13,7 @@ import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
+import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -21,12 +23,14 @@ import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
+import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.TabSheet;
 import com.vaadin.flow.component.textfield.TextField;
 import com.vaadin.flow.component.UI;
@@ -35,14 +39,19 @@ import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Route(value = "profile", layout = MainLayout.class)
@@ -57,6 +66,7 @@ public class ProfileView extends VerticalLayout {
     private final PersonalStatDefinitionRepository personalStatDefinitionRepository;
     private final GroupSettingsService groupSettingsService;
     private final PostDataExportService postDataExportService;
+    private final transient Optional<BillingClient> billingClient;
     private User currentUser;
     private VerticalLayout myStatsList;
     VerticalLayout myStatsTabContent; // package-private for testing
@@ -84,6 +94,24 @@ public class ProfileView extends VerticalLayout {
     Anchor exportDownloadLink;
     Button exportDownloadButton;
     private StreamResource exportStreamResource;
+
+    // Billing tab — package-private for testing. Present only when billing is enabled.
+    // Membership section (mirrors the /billing page):
+    H3 billingTitle;
+    Paragraph billingBlurb;
+    HorizontalLayout billingPayButtons;
+    Button billingMonthlyButton;
+    Button billingYearlyButton;
+    Button billingUpdatePaymentButton;
+    // Gift a membership section:
+    ComboBox<User> giftRecipientCombo;
+    Button giftContinueButton;
+    Paragraph giftDisabledNotice;
+    // "Members you're covering" section (gifts you pay for):
+    VerticalLayout coveringSection;
+
+    // The app's external base URL — used to build the post-checkout redirect (LS needs an absolute URL).
+    private final String baseUrl;
     
     // Phone number validation pattern
     private static final Pattern PHONE_PATTERN = Pattern.compile("^\\(?([0-9]{3})\\)?[-.\\s]?([0-9]{3})[-.\\s]?([0-9]{4})$");
@@ -94,7 +122,9 @@ public class ProfileView extends VerticalLayout {
         StatDefinitionRepository statDefinitionRepository,
         PersonalStatDefinitionRepository personalStatDefinitionRepository,
         GroupSettingsService groupSettingsService,
-        PostDataExportService postDataExportService
+        PostDataExportService postDataExportService,
+        Optional<BillingClient> billingClient,
+        @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
         this.userService = userService;
         this.fileStorageService = fileStorageService;
@@ -102,6 +132,8 @@ public class ProfileView extends VerticalLayout {
         this.personalStatDefinitionRepository = personalStatDefinitionRepository;
         this.groupSettingsService = groupSettingsService;
         this.postDataExportService = postDataExportService;
+        this.billingClient = billingClient;
+        this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
 
         setSizeFull();
         setPadding(true);
@@ -130,8 +162,220 @@ public class ProfileView extends VerticalLayout {
         myStatsTabContent = createMyStatsSection();
         tabs.add("My Stats", myStatsTabContent);
         tabs.add("Export", createDataExportSection());
+        // Billing tab only when billing is enabled (the central service is wired in).
+        if (billingClient.isPresent()) {
+            Tab billingTab = tabs.add("Billing", createBillingTabContent());
+            // Lazy-load: hit the billing service only when the Billing tab is actually opened (not on
+            // every profile visit), and refresh on each open so the covering list stays current.
+            tabs.addSelectedChangeListener(e -> {
+                if (e.getSelectedTab() == billingTab) {
+                    applyBillingTabState();
+                }
+            });
+        }
 
         add(tabs);
+    }
+
+    /**
+     * "Billing" tab: a membership section mirroring the {@code /billing} page (pay options shown only
+     * when the member has no active subscription; "Update payment method" always shown), followed by the
+     * "Gift a membership" section. {@link #applyBillingTabState()} (from {@link #loadUserData()}) sets pay
+     * visibility and gift gating from the member's entitlement.
+     */
+    private VerticalLayout createBillingTabContent() {
+        coveringSection = new VerticalLayout();
+        coveringSection.setPadding(false);
+        coveringSection.setSpacing(false);
+        coveringSection.setVisible(false); // populated lazily in applyBillingTabState()
+
+        VerticalLayout tab = new VerticalLayout(
+            createMembershipSection(), new Hr(), createGiftSection(), coveringSection);
+        tab.setPadding(true);
+        tab.setSpacing(true);
+        return tab;
+    }
+
+    /** Membership status + pay/manage controls — the same surface as the {@code /billing} page. */
+    private VerticalLayout createMembershipSection() {
+        billingTitle = new H3("Your membership");
+        billingBlurb = new Paragraph(
+            "Activate your membership to access posts, stats, and the call chain. "
+                + "Choose monthly or yearly — you can change or cancel anytime.");
+
+        billingMonthlyButton = new Button("Pay $7 / month", e -> startMembershipCheckout("monthly"));
+        billingMonthlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        billingYearlyButton = new Button("Pay $60 / year", e -> startMembershipCheckout("yearly"));
+        billingYearlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        billingPayButtons = new HorizontalLayout(billingMonthlyButton, billingYearlyButton);
+        billingPayButtons.setVisible(false); // shown by applyBillingTabState() only if no active sub
+
+        billingUpdatePaymentButton = new Button("Update payment method", e -> openMembershipPortal());
+
+        VerticalLayout section = new VerticalLayout(
+            billingTitle, billingBlurb, billingPayButtons, billingUpdatePaymentButton);
+        section.setPadding(false);
+        section.setSpacing(true);
+        return section;
+    }
+
+    /** "Gift a membership" — pick another member and continue to {@code /billing?gift=<email>}. */
+    private VerticalLayout createGiftSection() {
+        H3 header = new H3("Gift a membership");
+        Paragraph intro = new Paragraph(
+            "Cover another member's membership. Pick someone below and continue to checkout — "
+                + "you pay, and their membership activates once payment completes.");
+
+        giftDisabledNotice = new Paragraph("Gifting is available once your own membership is active.");
+        giftDisabledNotice.getStyle().set("color", "var(--lumo-error-text-color)");
+        giftDisabledNotice.setVisible(false);
+
+        giftRecipientCombo = new ComboBox<>("Member");
+        giftRecipientCombo.setWidth("100%");
+        giftRecipientCombo.setPlaceholder("Select a member to gift");
+        giftRecipientCombo.setItemLabelGenerator(ProfileView::recipientLabel);
+        giftRecipientCombo.addValueChangeListener(e ->
+            giftContinueButton.setEnabled(e.getValue() != null));
+
+        giftContinueButton = new Button("Continue to checkout", VaadinIcon.GIFT.create());
+        giftContinueButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        giftContinueButton.setEnabled(false);
+        giftContinueButton.addClickListener(e -> continueToGiftCheckout());
+
+        VerticalLayout section = new VerticalLayout(header, intro, giftDisabledNotice,
+            giftRecipientCombo, giftContinueButton);
+        section.setPadding(false);
+        section.setSpacing(true);
+        return section;
+    }
+
+    /** Self-pay checkout from the Billing tab — mirrors {@code BillingView}. */
+    void startMembershipCheckout(String variant) {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        String me = currentUser.getEmail();
+        try {
+            String url = billingClient.get().createCheckout(me, variant, me, baseUrl + "/billing/activating");
+            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+        } catch (HttpClientErrorException.Conflict ex) {
+            AppNotification.error(
+                "You're already a member. Use \"Update payment method\" to manage your subscription.");
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't start checkout. Please try again.");
+        }
+    }
+
+    /** Open the hosted Lemon Squeezy customer portal for the current member. */
+    void openMembershipPortal() {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            String url = billingClient.get().portalUrl(currentUser.getEmail());
+            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't open the payment portal. Please try again.");
+        }
+    }
+
+    /** Navigate to the billing view in gift mode for the selected member. */
+    void continueToGiftCheckout() {
+        User recipient = giftRecipientCombo == null ? null : giftRecipientCombo.getValue();
+        if (recipient == null || recipient.getEmail() == null) {
+            return;
+        }
+        getUI().ifPresent(ui -> ui.navigate("billing",
+            QueryParameters.simple(Map.of("gift", recipient.getEmail()))));
+    }
+
+    /**
+     * Drives the Billing tab from the member's entitlement: pay options are shown only when they have no
+     * active subscription, and the gift section is enabled only when they're entitled themselves (the
+     * dropdown lists every other active member). One entitlement call serves both.
+     */
+    void applyBillingTabState() {
+        if (billingClient.isEmpty() || giftRecipientCombo == null || currentUser == null) {
+            return;
+        }
+        BillingClient.Entitlement ent = billingClient.get().entitlement(currentUser.getEmail());
+
+        // Membership options only when there's no active subscription (ACTIVE or dunning). "Update
+        // payment method" always stays visible.
+        boolean hasLiveSubscription = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
+        billingPayButtons.setVisible(!hasLiveSubscription);
+
+        // Reflect the member's actual state in the blurb: active (and, if so, gifted by whom) vs. the
+        // call-to-action to activate.
+        boolean gifted = ent.payerEmail() != null && !ent.payerEmail().isBlank()
+            && !ent.payerEmail().equalsIgnoreCase(currentUser.getEmail());
+        if (hasLiveSubscription && gifted) {
+            billingBlurb.setText("Your membership is active — gifted by " + gifterLabel(ent.payerEmail())
+                + ", who manages the payment.");
+        } else if (hasLiveSubscription) {
+            billingBlurb.setText("Your membership is active. You can change or cancel it anytime "
+                + "via \"Update payment method\".");
+        } else {
+            billingBlurb.setText("Activate your membership to access posts, stats, and the call chain. "
+                + "Choose monthly or yearly — you can change or cancel anytime.");
+        }
+
+        // Gift section: list every other active member; enabled only when the member is entitled.
+        List<User> others = userService.getAllActiveUsers().stream()
+            .filter(u -> u.getEmail() != null && !u.getEmail().equalsIgnoreCase(currentUser.getEmail()))
+            .toList();
+        giftRecipientCombo.setItems(others);
+        giftRecipientCombo.setEnabled(ent.entitled());
+        giftContinueButton.setEnabled(false); // re-enabled by the combo listener once a member is picked
+        giftDisabledNotice.setVisible(!ent.entitled());
+
+        populateCoveringSection(currentUser.getEmail());
+    }
+
+    /**
+     * Renders the "Members you're covering" list (gifts this member pays for), hidden when they cover
+     * no one. Rebuilt from scratch each refresh — cheap (a handful of rows), and keeps state simple.
+     * Managing/cancelling a specific gift happens in the Lemon Squeezy portal via "Update payment method".
+     */
+    private void populateCoveringSection(String email) {
+        coveringSection.removeAll();
+        coveringSection.setVisible(false);
+        if (email == null) {
+            return;
+        }
+        try {
+            List<BillingClient.CoveredMember> covered = billingClient.get().covering(email);
+            if (covered.isEmpty()) {
+                return;
+            }
+            coveringSection.add(new H3("Members you're covering"));
+            for (BillingClient.CoveredMember m : covered) {
+                coveringSection.add(new Paragraph(m.email() + " — " + friendlyStatus(m.status())));
+            }
+            coveringSection.add(new Paragraph(
+                "To change a card or stop covering someone, use \"Update payment method\" above — "
+                + "the payment portal lists every subscription you pay for."));
+            coveringSection.setVisible(true);
+        } catch (Exception e) {
+            // Non-critical: if the covering list can't load, just leave it hidden.
+        }
+    }
+
+    private static String friendlyStatus(String status) {
+        return status == null ? "" : status.toLowerCase().replace('_', ' ');
+    }
+
+    /** Resolve the gifter's email to a friendly "Name (email)" label, falling back to the email. */
+    private String gifterLabel(String payerEmail) {
+        User payer = userService.getUserByEmail(payerEmail);
+        return payer == null ? payerEmail : recipientLabel(payer);
+    }
+
+    static String recipientLabel(User u) {
+        String first = u.getFirstName() == null ? "" : u.getFirstName().trim();
+        String last = u.getLastName() == null ? "" : u.getLastName().trim();
+        String name = (first + " " + last).trim();
+        return name.isEmpty() ? u.getEmail() : name + " (" + u.getEmail() + ")";
     }
 
     private void buildBasicInfoFields() {
@@ -698,6 +942,7 @@ public class ProfileView extends VerticalLayout {
             }
 
             refreshMyStatsList();
+            // Billing tab data is loaded lazily when that tab is opened (see initComponents).
         }
     }
 

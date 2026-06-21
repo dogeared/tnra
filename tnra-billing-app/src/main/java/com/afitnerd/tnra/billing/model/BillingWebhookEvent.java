@@ -5,10 +5,11 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -35,7 +36,9 @@ public class BillingWebhookEvent {
     @Column(name = "event_name", length = 64, nullable = false)
     private String eventName;
 
-    @Lob
+    // Maps to MySQL LONGTEXT (JDBC LONGVARCHAR), matching V1__billing_schema.sql. Plain @Lob would
+    // map a String to CLOB/tinytext and fail Hibernate schema validation against the LONGTEXT column.
+    @JdbcTypeCode(SqlTypes.LONGVARCHAR)
     @Column(name = "raw_payload", nullable = false)
     private String rawPayload;
 

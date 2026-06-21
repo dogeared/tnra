@@ -139,6 +139,27 @@ class EntitlementServiceTest {
     }
 
     @Test
+    void giftedSubscription_carriesPayerEmail() {
+        groupExists(group(false, null));
+        BillingAccount gifted = account(BillingStatus.ACTIVE, false, null);
+        gifted.setPayerEmail("gifter@x.com");
+        accountExists(gifted);
+
+        EntitlementResult r = service.isEntitled("rome", "m@x.com");
+
+        assertTrue(r.entitled());
+        assertEquals("gifter@x.com", r.payerEmail()); // lets the group app show "gifted by …"
+    }
+
+    @Test
+    void selfPaySubscription_hasNoPayerEmail() {
+        groupExists(group(false, null));
+        accountExists(account(BillingStatus.ACTIVE, false, null)); // payer_email null
+
+        assertEquals(null, service.isEntitled("rome", "m@x.com").payerEmail());
+    }
+
+    @Test
     void gracePeriod_entitled() {
         groupExists(group(false, null));
         accountExists(account(BillingStatus.ON_GRACE_PERIOD, false, null));

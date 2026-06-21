@@ -86,6 +86,22 @@ One-click admin action to gift-cover every not-yet-covered member at once (vs gi
   member under the payer's card. Deferred from v1 because one-at-a-time gifting already delivers the
   capability; this is pure convenience.
 
+### Billing — Lemon Squeezy-side "already subscribed" check at checkout
+Before creating a checkout, query the Lemon Squeezy API for an existing active subscription for the
+member's email and warn/short-circuit if found — a second layer on top of the local duplicate-charge
+guard already in `CheckoutService`.
+- **Why:** The local guard reads our own DB, which is authoritative in steady state. It can't catch a
+  case where our DB diverged from LS (e.g. webhooks were down so the account still shows PENDING while
+  LS already has a paid subscription) — exactly the situation that let a member double-charge during
+  local testing. An LS-side lookup closes that gap.
+- **Effort:** S (human: ~half day / CC: ~20 min)
+- **Depends on:** Billing shipped. Deferred post-launch — the local guard covers normal operation, and
+  this adds an LS API call (+ latency, + failure handling) on every checkout.
+- **Context:** `LemonSqueezyClient` — add a lookup (e.g. `GET /v1/subscriptions?filter[user_email]=…&
+  filter[store_id]=…`, status active/on_trial). `CheckoutService.createCheckout` calls it for self-pay
+  and returns 409 (same shape the local guard uses) if a live subscription exists. Fail OPEN if LS is
+  unreachable so a central LS outage can't block legitimate new signups.
+
 ### Self-serve onboarding — leader signup → pay → auto-provision
 Turn group creation from a CLI operation into a self-serve flow: a leader signs up on the landing site,
 pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain), no CLI step.

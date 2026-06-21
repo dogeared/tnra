@@ -48,7 +48,7 @@ class BillingApiControllerTest {
 
     @Test
     void checkout_delegatesWithGroupFromPrincipal() {
-        CheckoutRequest req = new CheckoutRequest("m@x.com", "monthly", null);
+        CheckoutRequest req = new CheckoutRequest("m@x.com", "monthly", null, null);
         when(checkoutService.createCheckout("rome", req)).thenReturn("https://pay/1");
 
         CheckoutResponse resp = controller.checkout(rome, req);

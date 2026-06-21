@@ -47,18 +47,45 @@ public class BillingClientImpl implements BillingClient {
 
     @Override
     public boolean isEntitled(String email) {
-        long now = System.currentTimeMillis();
         CacheEntry cached = entitlementCache.get(email);
-        if (cached != null && cached.expiresAt() > now) {
+        if (cached != null && cached.expiresAt() > System.currentTimeMillis()) {
             return cached.entitled();
         }
+        return fetchAndCache(email);
+    }
+
+    @Override
+    public boolean isEntitledFresh(String email) {
+        return fetchAndCache(email);
+    }
+
+    @Override
+    public Entitlement entitlement(String email) {
         try {
             JsonNode resp = restClient.get()
                 .uri(b -> b.path("/api/v1/entitlement").queryParam("email", email).build())
                 .retrieve()
                 .body(JsonNode.class);
             boolean entitled = resp != null && resp.path("entitled").asBoolean(false);
-            entitlementCache.put(email, new CacheEntry(entitled, now + CACHE_TTL_MILLIS));
+            String status = resp == null ? "" : resp.path("status").asText("");
+            String payerEmail = resp == null ? null : emptyToNull(resp.path("payerEmail").asText(""));
+            return new Entitlement(entitled, status, payerEmail);
+        } catch (Exception e) {
+            // Can't determine — report "not settled" so the gift can proceed; the billing service is the
+            // authoritative guard (returns 409 on the actual checkout if the member is in fact covered).
+            log.warn("Billing entitlement detail unreachable for {}: {}", email, e.getMessage());
+            return new Entitlement(false, "", null);
+        }
+    }
+
+    private boolean fetchAndCache(String email) {
+        try {
+            JsonNode resp = restClient.get()
+                .uri(b -> b.path("/api/v1/entitlement").queryParam("email", email).build())
+                .retrieve()
+                .body(JsonNode.class);
+            boolean entitled = resp != null && resp.path("entitled").asBoolean(false);
+            entitlementCache.put(email, new CacheEntry(entitled, System.currentTimeMillis() + CACHE_TTL_MILLIS));
             return entitled;
         } catch (Exception e) {
             // Fail OPEN: never lock out a paying member because the billing service is unreachable.
@@ -69,14 +96,16 @@ public class BillingClientImpl implements BillingClient {
     }
 
     @Override
-    public String createCheckout(String beneficiaryEmail, String variant, String payerEmail) {
+    public String createCheckout(String beneficiaryEmail, String variant, String payerEmail,
+                                 String redirectUrl) {
         JsonNode resp = restClient.post()
             .uri("/api/v1/checkout")
             .contentType(MediaType.APPLICATION_JSON)
             .body(Map.of(
                 "beneficiaryEmail", beneficiaryEmail,
                 "variant", variant,
-                "payerEmail", payerEmail == null ? "" : payerEmail))
+                "payerEmail", payerEmail == null ? "" : payerEmail,
+                "redirectUrl", redirectUrl == null ? "" : redirectUrl))
             .retrieve()
             .body(JsonNode.class);
         return text(resp, "url");
@@ -112,5 +141,9 @@ public class BillingClientImpl implements BillingClient {
             throw new IllegalStateException("Billing service response missing " + field);
         }
         return node.get(field).asText();
+    }
+
+    private static String emptyToNull(String s) {
+        return s == null || s.isBlank() ? null : s;
     }
 }

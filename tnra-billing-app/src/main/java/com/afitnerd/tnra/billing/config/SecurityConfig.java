@@ -41,6 +41,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/billing/webhook").permitAll()
                 .requestMatchers("/api/admin/**").permitAll() // AdminController enforces X-Admin-Token
                 .requestMatchers("/actuator/health").permitAll()
+                // Permit the error dispatch so a controller's real status (e.g. the webhook's 401 on a
+                // bad signature) reaches the caller instead of being masked as 403 by the /error forward.
+                .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()
             );
         return http.build();

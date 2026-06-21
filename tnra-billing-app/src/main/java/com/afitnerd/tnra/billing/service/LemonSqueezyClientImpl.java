@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -37,22 +38,27 @@ public class LemonSqueezyClientImpl implements LemonSqueezyClient {
 
     @Override
     public String createCheckout(String groupSlug, String beneficiaryEmail, String payerEmail,
-                                 String variant) {
+                                 String variant, String redirectUrl) {
         String variantId = props.variantId(variant);
+
+        Map<String, Object> attributes = new LinkedHashMap<>();
+        attributes.put("checkout_data", Map.of(
+            "email", payerEmail,
+            "custom", Map.of(
+                "group_slug", groupSlug,
+                "beneficiary_email", beneficiaryEmail,
+                "payer_email", payerEmail
+            )
+        ));
+        // Return the buyer to the group app after payment (else they land on the LS store default).
+        if (redirectUrl != null && !redirectUrl.isBlank()) {
+            attributes.put("product_options", Map.of("redirect_url", redirectUrl));
+        }
 
         Map<String, Object> body = Map.of(
             "data", Map.of(
                 "type", "checkouts",
-                "attributes", Map.of(
-                    "checkout_data", Map.of(
-                        "email", payerEmail,
-                        "custom", Map.of(
-                            "group_slug", groupSlug,
-                            "beneficiary_email", beneficiaryEmail,
-                            "payer_email", payerEmail
-                        )
-                    )
-                ),
+                "attributes", attributes,
                 "relationships", Map.of(
                     "store", Map.of("data", Map.of("type", "stores", "id", props.getStoreId())),
                     "variant", Map.of("data", Map.of("type", "variants", "id", variantId))

@@ -40,7 +40,8 @@ public class BillingApiController {
     @GetMapping("/entitlement")
     public EntitlementResponse entitlement(Principal principal, @RequestParam String email) {
         EntitlementResult result = entitlementService.isEntitled(principal.getName(), email);
-        return new EntitlementResponse(result.entitled(), result.status().name(), result.reason());
+        return new EntitlementResponse(result.entitled(), result.status().name(), result.reason(),
+            result.payerEmail());
     }
 
     @PostMapping("/checkout")

@@ -12,9 +12,13 @@ public interface LemonSqueezyClient {
      * are carried in checkout custom data so the webhook can map the resulting subscription back to the
      * right beneficiary account.
      *
+     * {@code redirectUrl} (null/blank to skip) becomes the checkout's {@code product_options.redirect_url}
+     * so Lemon Squeezy returns the buyer to the group app after payment.
+     *
      * @return the hosted checkout URL to redirect the browser to.
      */
-    String createCheckout(String groupSlug, String beneficiaryEmail, String payerEmail, String variant);
+    String createCheckout(String groupSlug, String beneficiaryEmail, String payerEmail, String variant,
+                          String redirectUrl);
 
     /** Hosted Customer Portal URL for the payer of the given subscription (update card / cancel). */
     String getCustomerPortalUrl(String lsSubscriptionId);

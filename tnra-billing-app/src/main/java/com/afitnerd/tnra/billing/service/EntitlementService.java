@@ -52,23 +52,25 @@ public class EntitlementService {
             .findByGroupSlugAndEmail(groupSlug, email)
             .orElse(null);
         BillingStatus status = account != null ? account.getStatus() : BillingStatus.PENDING_PAYMENT;
+        // Who pays for this member — set only on a gift; lets the group app show "gifted by …".
+        String payer = account != null ? account.getPayerEmail() : null;
 
         LocalDateTime now = LocalDateTime.now(clock);
 
         if (Boolean.TRUE.equals(group.getExempt())) {
-            return EntitlementResult.entitled(status, "GROUP_EXEMPT");
+            return EntitlementResult.entitled(status, "GROUP_EXEMPT", payer);
         }
         if (account != null && Boolean.TRUE.equals(account.getExempt())) {
-            return EntitlementResult.entitled(status, "MEMBER_EXEMPT");
+            return EntitlementResult.entitled(status, "MEMBER_EXEMPT", payer);
         }
         if (isFuture(group.getCompUntil(), now)) {
-            return EntitlementResult.entitled(status, "GROUP_TRIAL");
+            return EntitlementResult.entitled(status, "GROUP_TRIAL", payer);
         }
         if (account != null && isFuture(account.getCompUntil(), now)) {
-            return EntitlementResult.entitled(status, "MEMBER_COMP");
+            return EntitlementResult.entitled(status, "MEMBER_COMP", payer);
         }
         if (status == BillingStatus.ACTIVE || status == BillingStatus.ON_GRACE_PERIOD) {
-            return EntitlementResult.entitled(status, "SUBSCRIPTION");
+            return EntitlementResult.entitled(status, "SUBSCRIPTION", payer);
         }
         return EntitlementResult.denied(status, "NOT_ENTITLED");
     }

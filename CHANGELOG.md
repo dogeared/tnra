@@ -2,6 +2,27 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.0.0] - 2026-06-21
+
+### Added
+- **Per-member billing (Lemon Squeezy Merchant of Record).** A new central `tnra-billing-app` service is the single source of truth for entitlement across all groups. It owns its own `tnra_billing` schema and exposes a per-group-token-authenticated API: entitlement checks, hosted-checkout creation, customer-portal links, and "covering" (gift) lookups, plus a Lemon Squeezy webhook sink (HMAC-verified) and a provisioning/admin API guarded by `X-Admin-Token`. Billing is **off by default** — open-source self-host runs the full app with no payment surface; SaaS deploys opt in.
+- **Entitlement gate + membership page in `tnra-app`.** When billing is enabled, a global navigation gate forwards non-entitled members to a `/billing` membership page where they self-pay (monthly $7 / yearly $60) via hosted Lemon Squeezy checkout, or manage their card via the hosted Customer Portal. No card data ever touches the app. Entitlement **fails open** (a central outage never locks members out) and is briefly cached.
+- **Gift a membership.** A member can pay for another member: the Profile **Billing** tab (and `/billing?gift=<email>`) lets an active member pick another member and check out on their behalf. The payer is always the authenticated user; the beneficiary is validated as a real group member.
+- **Profile → Billing tab** consolidating everything in one place: membership status (pay options shown only when there's no active subscription; "Update payment method" always shown), a "Gift a membership" section, and a "Members you're covering" list. Billing-service calls are lazy (only when the tab is opened). The status blurb reflects actual state — active, gifted-by-someone, or a call to activate.
+- **Post-checkout "activating" page** that polls entitlement (cache-bypassing) and forwards the member into the app the moment the webhook confirms payment, eliminating the perceived lag without granting access before payment.
+- **Provisioning support for billing.** The `tnra-cli` `provision` command registers a new group with the central service (`--billing-api-url` / `--billing-admin-token`, plus `--billing-exempt` / `--trial-days`), minting and embedding the group's per-group token.
+- **Docs:** `BILLING_PLAN_LOCAL_TESTING.md` (end-to-end local setup), "Central Billing Service" sections in `PRODUCTION.vps.md` and `PRODUCTION.cloudflare.md`, billing env in `.env.template`, and a `tnra-billing-app` Dockerfile.
+
+### Changed
+- **Checkout guards.** A self-payer can't start a second subscription over an active one, and a gift is rejected (409) when the beneficiary is already settled (active sub, trial, exempt, or an existing gift) — except a member in dunning (`ON_GRACE_PERIOD`), who is still giftable as a rescue that supersedes the failing subscription.
+- **Customer portal link** now falls back to any subscription a member pays for, so a pure gifter (no subscription of their own) can still reach the portal that lists everything they pay for.
+- **Entitlement responses carry the payer's email** so the group app can show "gifted by …".
+- Billing service `SecurityConfig` permits the `/error` dispatch so a controller's real status (e.g. the webhook's 401 on a bad signature) reaches the caller instead of being masked as 403.
+
+### Fixed
+- **`tnra-billing-app` schema validation on MySQL.** `billing_webhook_event.raw_payload` is mapped to `LONGTEXT` (`@JdbcTypeCode(LONGVARCHAR)`) to match the Flyway migration; plain `@Lob` failed Hibernate `validate` against the real column type.
+- **`/actuator/health` returned 403.** Added `spring-boot-starter-actuator` to `tnra-billing-app` so the health endpoint (referenced by the local guide and both production canary steps) actually exists.
+
 ## [9.1.3] - 2026-06-13
 
 ### Changed

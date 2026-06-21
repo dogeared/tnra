@@ -44,18 +44,31 @@ class LemonSqueezyClientImplTest {
             .andExpect(jsonPath("$.data.relationships.variant.data.id").value("var-monthly"))
             .andExpect(jsonPath("$.data.attributes.checkout_data.email").value("payer@x.com"))
             .andExpect(jsonPath("$.data.attributes.checkout_data.custom.beneficiary_email").value("ben@x.com"))
+            .andExpect(jsonPath("$.data.attributes.product_options.redirect_url").value("https://app.local/back"))
             .andRespond(withSuccess("{\"data\":{\"attributes\":{\"url\":\"https://pay.ls/abc\"}}}", JSON_API));
 
-        String url = client.createCheckout("rome", "ben@x.com", "payer@x.com", "monthly");
+        String url = client.createCheckout("rome", "ben@x.com", "payer@x.com", "monthly", "https://app.local/back");
 
         assertEquals("https://pay.ls/abc", url);
         server.verify();
     }
 
     @Test
+    void createCheckout_omitsRedirectWhenBlank() {
+        server.expect(requestTo("https://api.lemonsqueezy.com/v1/checkouts"))
+            .andExpect(method(POST))
+            .andExpect(jsonPath("$.data.attributes.product_options").doesNotExist())
+            .andRespond(withSuccess("{\"data\":{\"attributes\":{\"url\":\"https://pay.ls/x\"}}}", JSON_API));
+
+        assertEquals("https://pay.ls/x",
+            client.createCheckout("rome", "ben@x.com", "payer@x.com", "monthly", ""));
+        server.verify();
+    }
+
+    @Test
     void createCheckout_unknownVariant_throws() {
         assertThrows(IllegalArgumentException.class,
-            () -> client.createCheckout("rome", "ben@x.com", "payer@x.com", "weekly"));
+            () -> client.createCheckout("rome", "ben@x.com", "payer@x.com", "weekly", null));
     }
 
     @Test
@@ -64,7 +77,7 @@ class LemonSqueezyClientImplTest {
             .andRespond(withSuccess("{\"data\":{\"attributes\":{}}}", JSON_API));
 
         assertThrows(IllegalStateException.class,
-            () -> client.createCheckout("rome", "ben@x.com", "payer@x.com", "yearly"));
+            () -> client.createCheckout("rome", "ben@x.com", "payer@x.com", "yearly", null));
     }
 
     @Test
