@@ -1,0 +1,51 @@
+package com.afitnerd.tnra.billing.config;
+
+import com.afitnerd.tnra.billing.security.GroupTokenAuthFilter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+/**
+ * Security for the headless billing service. Stateless REST + a signature-verified webhook,
+ * so no sessions and no CSRF.
+ *
+ * <pre>
+ *   request flow
+ *   ────────────
+ *   POST /api/billing/webhook   ── permitAll ──► controller verifies Lemon Squeezy HMAC itself
+ *   GET  /actuator/health       ── permitAll
+ *   /api/v1/**                  ── authenticated ──► per-group bearer-token filter (T7) scopes
+ *                                                    each caller to its own group_slug
+ *   anyRequest                  ── denied
+ * </pre>
+ *
+ * The webhook is intentionally anonymous at the Spring layer because Lemon Squeezy cannot send a
+ * bearer token; authenticity is established by HMAC-SHA256 over the raw body inside the controller.
+ */
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    SecurityFilterChain filterChain(HttpSecurity http, GroupTokenAuthFilter groupTokenAuthFilter)
+            throws Exception {
+        http
+            .csrf(csrf -> csrf.disable())
+            .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .addFilterBefore(groupTokenAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/billing/webhook").permitAll()
+                .requestMatchers("/api/admin/**").permitAll() // AdminController enforces X-Admin-Token
+                .requestMatchers("/actuator/health").permitAll()
+                // Permit the error dispatch so a controller's real status (e.g. the webhook's 401 on a
+                // bad signature) reaches the caller instead of being masked as 403 by the /error forward.
+                .requestMatchers("/error").permitAll()
+                .anyRequest().authenticated()
+            );
+        return http.build();
+    }
+}

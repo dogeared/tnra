@@ -249,6 +249,16 @@ To start only the data plane (no landing, no tunnel), scope it:
 docker compose -f docker-compose.production.yml up -d mysql keycloak
 ```
 
+The **central billing service** (`tnra-billing`) is opt-in behind the `billing` profile, so even this
+one-liner doesn't start it unless you add `--profile billing`. To run everything including billing:
+
+```bash
+docker compose -f docker-compose.production.yml --profile billing --profile cloudflare up -d
+```
+
+See [Central Billing Service](#central-billing-service-lemon-squeezy) for setup and for running it
+individually.
+
 ### All provisioned sites in `provision/`
 
 Build the app JAR once — the group containers bake `tnra-app/target/*.jar` via their `./tnra-app`
@@ -385,6 +395,131 @@ docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
   alpine tar czf /backup/keycloak-data-$(date +%Y%m%d).tar.gz -C /data .
 ```
 
+## Central Billing Service (Lemon Squeezy)
+
+`tnra-billing-app` is a **single central instance** shared by every group — it is the
+source of truth for entitlement and the only component that talks to Lemon Squeezy
+(Merchant of Record). It is optional: a self-host deploy can leave it off and every group
+runs the full app with no payment surface. Run it only for the paid SaaS deploy.
+
+> Local end-to-end testing of this whole flow is documented separately in
+> `BILLING_PLAN_LOCAL_TESTING.md`.
+
+### Architecture
+
+```
+  group-a.tnra.app ─► tnra-a:8080 ──┐  Bearer <per-group token>
+  group-b.tnra.app ─► tnra-b:8080 ──┤
+                                    ▼
+                          tnra-billing:8082  ──► Lemon Squeezy API
+                              │  tnra_billing DB (shared MySQL)
+  Lemon Squeezy ── webhook ──► https://billing.tnra.app/api/billing/webhook
+```
+
+Each group app reaches billing over its **public** HTTPS URL (`https://billing.tnra.app`),
+authenticated by a per-group bearer token minted at provisioning. The Lemon Squeezy
+webhook must also be publicly reachable. The tunnel routes a `billing` subdomain to the
+service container.
+
+### Step 1: Lemon Squeezy (live mode)
+
+Mirror the test-mode setup in `BILLING_PLAN_LOCAL_TESTING.md` §1, but in **live mode**:
+
+- One subscription Product with **Monthly ($7)** and **Yearly ($60)** variants.
+- Collect live `LS_API_KEY`, `LS_STORE_ID`, `LS_VARIANT_MONTHLY`, `LS_VARIANT_YEARLY`.
+- Webhook endpoint `https://billing.tnra.app/api/billing/webhook` with a strong signing
+  secret (`LS_WEBHOOK_SECRET`), subscribed to `subscription_created`,
+  `subscription_updated`, `subscription_payment_success`, `subscription_payment_failed`,
+  `subscription_cancelled`, `subscription_expired`.
+
+> Live keys are distinct from test keys. Never put test variant ids in production — a
+> misconfigured deploy charges the wrong store or fails to verify webhooks.
+
+### Step 2: Environment
+
+Add to `~/tnra/.env` (read by `docker-compose.production.yml` via `env_file`):
+
+```bash
+# --- Central billing (Lemon Squeezy) ---
+LS_API_KEY=
+LS_STORE_ID=
+LS_WEBHOOK_SECRET=
+LS_VARIANT_MONTHLY=
+LS_VARIANT_YEARLY=
+# Guards the provisioning/admin API (X-Admin-Token). Blank ⇒ admin API disabled (fail closed).
+# Generate with: openssl rand -hex 24
+BILLING_ADMIN_TOKEN=
+# Default free-trial window (days) applied to a new group at registration.
+TNRA_TRIAL_DAYS=60
+```
+
+### Step 3: Build and start the service
+
+The `tnra-billing` service is **already defined** in `docker-compose.production.yml`, behind the
+`billing` profile (so it's opt-in — a bare `up` never starts it). It joins the `tnra-shared` network
+as `tnra-billing` on port 8082; the tunnel publishes it externally. Its datasource defaults to the
+shared MySQL container and **auto-creates** the `tnra_billing` schema on first connect
+(`createDatabaseIfNotExist=true`), so there's no manual `CREATE DATABASE` step. Flyway builds the
+tables on first boot.
+
+`tnra-billing-app/Dockerfile` builds the jar image. Build and start it (from `~/tnra/`, after pulling
+latest):
+
+```bash
+cd ~/tnra
+./mvnw -pl tnra-billing-app -am package -DskipTests
+docker build -t tnra-billing:latest tnra-billing-app
+docker compose -f docker-compose.production.yml --profile billing up -d tnra-billing
+docker logs tnra-billing -f   # look for "Started TnraBillingApplication" + Flyway migrations
+```
+
+> **Running individually or all at once.** Because billing is its own profiled service, you can run it
+> on its own, alongside the landing site, or as part of the whole stack:
+>
+> ```bash
+> # Everything (shared infra + landing + billing + the tunnel):
+> docker compose -f docker-compose.production.yml --profile billing --profile cloudflare up -d
+> # Just billing (+ its MySQL dependency):
+> docker compose -f docker-compose.production.yml up -d tnra-billing
+> # Just the landing site:
+> docker compose -f docker-compose.production.yml up -d tnra-landing
+> # Update only billing, leaving everything else running:
+> docker compose -f docker-compose.production.yml up -d --no-deps tnra-billing
+> ```
+>
+> **Future: separate VM/container.** When billing moves to its own host, run the same
+> `--profile billing` service there and set `BILLING_DATASOURCE_URL` in that host's `.env` to its
+> database. It needs its own `cloudflared` tunnel (or route) on that host; nothing else couples it to
+> the landing host.
+
+### Step 4: Add a Cloudflare tunnel route for `billing`
+
+In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** → your tunnel →
+**Public Hostnames**, add:
+
+| Subdomain | Domain | Service |
+|---|---|---|
+| billing | tnra.app | `http://tnra-billing:8082` |
+
+Cloudflare creates the CNAME automatically. The per-group API and the webhook are both
+token/HMAC authenticated, so routing the whole host is safe.
+
+### Step 5: Verify
+
+```bash
+curl https://billing.tnra.app/actuator/health   # {"status":"UP"}
+
+# admin API reachable (expects 200 + token shown once)
+curl -s -X POST https://billing.tnra.app/api/admin/groups \
+  -H "X-Admin-Token: $BILLING_ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"groupSlug":"smoketest","trialDays":0,"exempt":true}'
+```
+
+New groups are wired to billing during provisioning — see **Provisioning New Groups →
+Step 2** below (`--billing-api-url` / `--billing-admin-token`).
+
+---
+
 ## Provisioning New Groups
 
 Each TNRA group runs as its own Docker container with its own MySQL database and Keycloak
@@ -427,6 +562,27 @@ java -jar tnra-cli-app/target/tnra-cli.jar provision <group-name> --domain tnra.
 Replace `tnra.app` with your production domain. This generates config files in
 `provision/<group-name>/`. The generated `nginx.conf` and SSL-related steps in the
 `instructions.md` output are not needed with Cloudflare Tunnels — skip them.
+
+**To enable billing for the group**, also pass the central billing URL + admin token.
+This registers the group centrally, mints its per-group token, and writes the billing
+env into the generated `docker-compose.yml` (`BILLING_ENABLED=true`, `BILLING_API_URL`,
+`BILLING_API_TOKEN`):
+
+```bash
+java -jar tnra-cli-app/target/tnra-cli.jar provision <group-name> --domain tnra.app \
+  --billing-api-url https://billing.tnra.app \
+  --billing-admin-token "$BILLING_ADMIN_TOKEN" \
+  [--trial-days 60] [--billing-exempt]
+```
+
+- Use the **public** billing URL — the group container reaches it the same way Lemon
+  Squeezy does, and the same value is embedded as the group app's `api-url`.
+- `--billing-exempt` registers a forever-free pilot group; `--trial-days` overrides the
+  default trial window. Omit both for a standard "trial then pay" group.
+- Omit the billing flags entirely for a self-host / non-paid group (billing stays off).
+- Registration happens **before** any local files are written, so a billing failure
+  aborts the provision cleanly. The per-group token is shown once — keep the generated
+  `docker-compose.yml` safe.
 
 ### Step 3: Add a Cloudflare tunnel route
 

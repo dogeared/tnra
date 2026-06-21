@@ -50,6 +50,20 @@ public class ProvisionCommand implements Callable<Integer> {
     @Option(names = "--smtp-password", description = "SMTP password (enables forgot-password flow)")
     private String smtpPassword;
 
+    @Option(names = "--billing-api-url",
+        description = "Central tnra-billing-app URL. Supplying this enables billing for the group: "
+            + "the group is registered centrally and its per-group token is written to the env.")
+    private String billingApiUrl;
+
+    @Option(names = "--billing-admin-token", description = "Admin token (X-Admin-Token) for the billing app")
+    private String billingAdminToken;
+
+    @Option(names = "--billing-exempt", description = "Register the group as billing-exempt (pilot / forever free)")
+    private boolean billingExempt;
+
+    @Option(names = "--trial-days", description = "Override the default group free-trial window (days)")
+    private Integer trialDays;
+
     private final TemplateRenderer renderer = new TemplateRenderer();
     private final SecretGenerator secrets = new SecretGenerator();
 
@@ -77,6 +91,20 @@ public class ProvisionCommand implements Callable<Integer> {
             return 1;
         }
 
+        // Register with the central billing app first (before touching local state) so a failure
+        // aborts cleanly. Skipped entirely when --billing-api-url is omitted (self-host / offline).
+        boolean billingEnabled = billingApiUrl != null && !billingApiUrl.isBlank();
+        String billingToken = "";
+        if (billingEnabled) {
+            try {
+                billingToken = new BillingProvisioningClient(billingApiUrl, billingAdminToken)
+                    .register(groupName, trialDays, billingExempt);
+            } catch (Exception e) {
+                System.err.println("Billing registration failed: " + e.getMessage());
+                return 1;
+            }
+        }
+
         String dbName = "tnra_" + groupName.replace("-", "_");
         String dbUser = "tnra_" + groupName.replace("-", "_");
         String dbPassword = secrets.generate();
@@ -101,6 +129,9 @@ public class ProvisionCommand implements Callable<Integer> {
         vars.put("ADMIN_LAST_NAME", adminLastName);
         vars.put("ADMIN_PASSWORD", adminPassword);
         vars.put("PORT", String.valueOf(entry.port));
+        vars.put("BILLING_ENABLED", String.valueOf(billingEnabled));
+        vars.put("BILLING_API_URL", billingEnabled ? billingApiUrl : "");
+        vars.put("BILLING_API_TOKEN", billingToken);
 
         boolean smtpConfigured = smtpUser != null && !smtpUser.isBlank()
                 && smtpPassword != null && !smtpPassword.isBlank();
@@ -146,6 +177,7 @@ public class ProvisionCommand implements Callable<Integer> {
         System.out.println();
         System.out.println("  Admin:     " + adminEmail);
         System.out.println("  Password:  " + adminPassword + " (temporary — must change on first login)");
+        System.out.println("  Billing:   " + (billingEnabled ? "enabled (registered centrally)" : "disabled"));
         System.out.println();
         System.out.println("Next: read " + outDir.resolve("INSTRUCTIONS.md"));
 

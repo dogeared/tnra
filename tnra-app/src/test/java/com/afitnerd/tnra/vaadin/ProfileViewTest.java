@@ -1,5 +1,6 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.billing.BillingClient;
 import com.afitnerd.tnra.model.GroupSettings;
 import com.afitnerd.tnra.model.PersonalStatDefinition;
 import com.afitnerd.tnra.model.StatDefinition;
@@ -65,6 +66,10 @@ class ProfileViewTest {
     @Mock
     private PostDataExportService postDataExportService;
 
+    // Billing off by default → no Gift tab; existing tests are unaffected. Gift-tab tests below
+    // construct their own ProfileView with Optional.of(billingClientMock).
+    private Optional<BillingClient> billingClient = Optional.empty();
+
     private GroupSettings groupSettings;
     private User testUser;
     private ProfileView profileView;
@@ -105,7 +110,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewCreation() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -116,7 +121,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewLayoutProperties() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         // ProfileView uses default alignment properties, not custom ones
@@ -128,7 +133,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewContainsExpectedComponents() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         // Check for header
@@ -147,7 +152,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -157,7 +162,7 @@ class ProfileViewTest {
     @Test
     void testProfileViewWithUserWithProfileImage() {
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -172,7 +177,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -187,7 +192,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getFileUrl through loadUserData, so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         });
     }
 
@@ -198,7 +203,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -212,7 +217,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -223,7 +228,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullUserService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(null, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+            new ProfileView(null, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         });
     }
 
@@ -231,7 +236,7 @@ class ProfileViewTest {
     void testProfileViewConstructorWithNullFileService() {
         // Act & Assert
         assertThrows(Exception.class, () -> {
-            new ProfileView(userService, null, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+            new ProfileView(userService, null, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         });
     }
 
@@ -242,7 +247,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(emptyUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -257,7 +262,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -272,7 +277,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -287,7 +292,7 @@ class ProfileViewTest {
         // Act & Assert
         // ProfileView constructor calls getCurrentUser() in loadUserData(), so it will throw
         assertThrows(RuntimeException.class, () -> {
-            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+            profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         });
     }
 
@@ -300,7 +305,7 @@ class ProfileViewTest {
         when(userService.getCurrentUser()).thenReturn(testUser);
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert
         assertNotNull(profileView);
@@ -314,7 +319,7 @@ class ProfileViewTest {
             .thenReturn(Collections.emptyList());
 
         // Act
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Assert - find the "My Stats" H3 header inside the My Stats tab.
         // (Vaadin's TabSheet hides tab contents from the parent's standard
@@ -338,7 +343,7 @@ class ProfileViewTest {
         when(fileStorageService.getFileUrl("abc123.jpg"))
             .thenReturn("/uploads/abc123.jpg");
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Act
         profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
@@ -358,7 +363,7 @@ class ProfileViewTest {
         when(fileStorageService.getFileUrl("new-image.jpg"))
             .thenReturn("/uploads/new-image.jpg");
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Act
         profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
@@ -379,7 +384,7 @@ class ProfileViewTest {
         when(fileStorageService.getFileUrl("new-image.jpg"))
             .thenReturn("/uploads/new-image.jpg");
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Act
         profileView.processProfileImageUpload("photo.jpg", "image/jpeg", new byte[]{1, 2, 3});
@@ -395,55 +400,55 @@ class ProfileViewTest {
 
     @Test
     void formatPhoneNumberReturnsEmptyForNull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("", profileView.formatPhoneNumber(null));
     }
 
     @Test
     void formatPhoneNumberReturnsEmptyForBlank() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("", profileView.formatPhoneNumber("   "));
     }
 
     @Test
     void formatPhoneNumberReturnsEmptyForNonDigitInput() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("", profileView.formatPhoneNumber("abc"));
     }
 
     @Test
     void formatPhoneNumberFormatsThreeDigitsAsIs() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("555", profileView.formatPhoneNumber("555"));
     }
 
     @Test
     void formatPhoneNumberFormatsFourToSixDigitsWithAreaCode() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("(555) 123", profileView.formatPhoneNumber("555123"));
     }
 
     @Test
     void formatPhoneNumberFormatsSevenToTenDigitsFull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("(555) 123-4567", profileView.formatPhoneNumber("5551234567"));
     }
 
     @Test
     void formatPhoneNumberTruncatesMoreThanTenDigits() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("(555) 123-4567", profileView.formatPhoneNumber("555123456789"));
     }
 
     @Test
     void formatPhoneNumberStripsExistingFormatting() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("(555) 123-4567", profileView.formatPhoneNumber("(555) 123-4567"));
     }
 
     @Test
     void formatPhoneNumberHandlesPartialInput() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         // 5 digits
         assertEquals("(555) 12", profileView.formatPhoneNumber("55512"));
     }
@@ -454,37 +459,37 @@ class ProfileViewTest {
 
     @Test
     void isValidPhoneNumberReturnsTrueForNull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertTrue(profileView.isValidPhoneNumber(null));
     }
 
     @Test
     void isValidPhoneNumberReturnsTrueForEmpty() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertTrue(profileView.isValidPhoneNumber(""));
     }
 
     @Test
     void isValidPhoneNumberReturnsTrueForFormattedNumber() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertTrue(profileView.isValidPhoneNumber("(555) 123-4567"));
     }
 
     @Test
     void isValidPhoneNumberReturnsTrueForDashSeparated() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertTrue(profileView.isValidPhoneNumber("555-123-4567"));
     }
 
     @Test
     void isValidPhoneNumberReturnsFalseForTooShort() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertFalse(profileView.isValidPhoneNumber("555"));
     }
 
     @Test
     void isValidPhoneNumberReturnsFalseForLetters() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertFalse(profileView.isValidPhoneNumber("abc-def-ghij"));
     }
 
@@ -494,25 +499,25 @@ class ProfileViewTest {
 
     @Test
     void normalizePhoneNumberReturnsEmptyForNull() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("", profileView.normalizePhoneNumber(null));
     }
 
     @Test
     void normalizePhoneNumberReturnsEmptyForBlank() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("", profileView.normalizePhoneNumber("   "));
     }
 
     @Test
     void normalizePhoneNumberStripsFormattingToDigitsOnly() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("5551234567", profileView.normalizePhoneNumber("(555) 123-4567"));
     }
 
     @Test
     void normalizePhoneNumberPassesThroughDigitsOnly() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertEquals("5551234567", profileView.normalizePhoneNumber("5551234567"));
     }
 
@@ -522,7 +527,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfilePersistsNormalizedPhoneAndNames() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Simulate user editing fields — access via reflection since fields are private
         setTextField(profileView, "firstNameField", "Jane");
@@ -539,7 +544,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileRejectsInvalidPhoneNumber() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Use a partial number that is too short to be valid (2 digits).
         // formatPhoneNumber("12") returns "12", which fails isValidPhoneNumber.
@@ -553,7 +558,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileHandsExceptionGracefully() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         setTextField(profileView, "phoneNumberField", "");
         when(userService.saveUser(any())).thenThrow(new RuntimeException("DB down"));
@@ -564,7 +569,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileAllowsEmptyPhone() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         setTextField(profileView, "firstNameField", "Jane");
         setTextField(profileView, "lastNameField", "Smith");
@@ -578,7 +583,7 @@ class ProfileViewTest {
 
     @Test
     void saveProfileSavesNotifyNewPostsPreference() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         setTextField(profileView, "phoneNumberField", "");
         setCheckboxValue(profileView, "notifyNewPostsCheckbox", false);
@@ -598,7 +603,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(Collections.emptyList());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // refreshMyStatsList is called during construction; verify the empty message
         boolean hasEmptyMessage = findAllDescendants(profileView.myStatsTabContent)
@@ -620,7 +625,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(activeStat, archivedStat));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Active stat label should be present in the My Stats tab content
         boolean hasActiveLabel = findAllDescendants(profileView.myStatsTabContent)
@@ -645,7 +650,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1, stat2));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Buttons inside the My Stats tab: Add Stat + (up, down, archive) x 2 active stats = 7 minimum
         long buttonCount = findAllDescendants(profileView.myStatsTabContent)
@@ -673,7 +678,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1, stat2));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.movePersonalStatUp(stat2);
 
@@ -699,7 +704,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1, stat2));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.movePersonalStatDown(stat1);
 
@@ -720,7 +725,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.movePersonalStatUp(stat1);
 
@@ -739,7 +744,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(List.of(stat1));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.movePersonalStatDown(stat1);
 
@@ -759,7 +764,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(Collections.emptyList());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.archivePersonalStat(stat);
 
@@ -787,7 +792,7 @@ class ProfileViewTest {
             .thenReturn(new ArrayList<>(List.of(activeStatExisting)));
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.restorePersonalStat(archivedStat);
 
@@ -807,7 +812,7 @@ class ProfileViewTest {
         StatDefinition globalPushups = new StatDefinition("pushups", "Push-ups", null, 0);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(globalPushups));
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.restorePersonalStat(archivedStat);
 
@@ -822,7 +827,7 @@ class ProfileViewTest {
 
     @Test
     void openAddPersonalStatDialogDoesNotThrow() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         assertDoesNotThrow(() -> profileView.openAddPersonalStatDialog());
     }
 
@@ -832,7 +837,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsEmptyName() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
         try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
             notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
@@ -844,7 +849,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsEmptyLabel() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
         try (org.mockito.MockedStatic<AppNotification> notif = mockStatic(AppNotification.class)) {
             notif.when(() -> AppNotification.error(anyString())).thenAnswer(inv -> null);
@@ -856,7 +861,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsGlobalNameCollision() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         StatDefinition existing = new StatDefinition("exercise", "Exercise", "💪", 0);
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(List.of(existing));
         com.vaadin.flow.component.dialog.Dialog dialog = mock(com.vaadin.flow.component.dialog.Dialog.class);
@@ -870,7 +875,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatRejectsPersonalNameCollision() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
         PersonalStatDefinition existing = new PersonalStatDefinition("guitar", "Guitar", "🎸", 0, testUser);
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(List.of(existing));
@@ -885,7 +890,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatSavesNewStatSuccessfully() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
@@ -902,7 +907,7 @@ class ProfileViewTest {
 
     @Test
     void handleAddPersonalStatSetsNullEmojiWhenEmpty() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
         when(statDefinitionRepository.findGlobalAllOrderByDisplayOrderAsc()).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
         when(personalStatDefinitionRepository.findByUserAndArchivedFalseOrderByDisplayOrderAsc(testUser)).thenReturn(Collections.emptyList());
@@ -956,7 +961,7 @@ class ProfileViewTest {
     void slackPublishSection_hiddenWhenGroupMasterOff() {
         groupSettings.setSlackPublishPostData(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         assertFalse(profileView.slackPublishSection.isVisible(),
             "Slack section must be hidden when group master toggle is off");
@@ -968,7 +973,7 @@ class ProfileViewTest {
         groupSettings.setSlackPublishStats(false);
         groupSettings.setSlackPublishPostBody(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         assertTrue(profileView.slackPublishSection.isVisible());
         // Verify the "no override applied" state via the absence of override badges.
@@ -987,7 +992,7 @@ class ProfileViewTest {
         groupSettings.setSlackPublishPostBody(false);
         testUser.setSlackPublishStats(false); // user opted out but group overrides
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         assertTrue(profileView.slackPublishStatsCheckbox.getValue(), "Stats checkbox must be force-checked");
         assertFalse(profileView.slackPublishStatsCheckbox.isEnabled(),
@@ -1006,7 +1011,7 @@ class ProfileViewTest {
         groupSettings.setSlackPublishPostBody(true);
         testUser.setSlackPublishPostBody(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         assertTrue(profileView.slackPublishPostBodyCheckbox.getValue());
         assertFalse(profileView.slackPublishPostBodyCheckbox.isEnabled());
@@ -1021,7 +1026,7 @@ class ProfileViewTest {
         groupSettings.setSlackPublishStats(false);
         groupSettings.setSlackPublishPostBody(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         setTextField(profileView, "phoneNumberField", "");
         setCheckboxValue(profileView, "slackPublishStatsCheckbox", true);
@@ -1041,7 +1046,7 @@ class ProfileViewTest {
         groupSettings.setSlackPublishStats(true);
         testUser.setSlackPublishStats(false);
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         setTextField(profileView, "phoneNumberField", "");
         profileView.saveProfile();
@@ -1054,7 +1059,7 @@ class ProfileViewTest {
 
     @Test
     void dataExport_sectionRenders() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         assertNotNull(profileView.exportFromDatePicker, "From date picker should exist");
         assertNotNull(profileView.exportToDatePicker, "To date picker should exist");
@@ -1064,7 +1069,7 @@ class ProfileViewTest {
 
     @Test
     void dataExport_allDataCheckboxDisablesDatePickers() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Toggling "All my data" on disables both date pickers — the listener wires both.
         profileView.exportAllDataCheckbox.setValue(true);
@@ -1074,7 +1079,7 @@ class ProfileViewTest {
 
     @Test
     void dataExport_buildCsvCallsServiceWithDateRangeWhenAllDataOff() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         java.time.LocalDate from = java.time.LocalDate.of(2026, 1, 1);
         java.time.LocalDate to = java.time.LocalDate.of(2026, 5, 1);
@@ -1091,7 +1096,7 @@ class ProfileViewTest {
 
     @Test
     void dataExport_buildCsvIgnoresDateRangeWhenAllDataChecked() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         profileView.exportAllDataCheckbox.setValue(true);
         profileView.exportFromDatePicker.setValue(java.time.LocalDate.of(2026, 1, 1));
@@ -1109,7 +1114,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(Collections.emptyList());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         com.vaadin.flow.component.tabs.TabSheet tabs = findAllDescendants(profileView)
             .filter(c -> c instanceof com.vaadin.flow.component.tabs.TabSheet)
@@ -1146,7 +1151,7 @@ class ProfileViewTest {
 
     @Test
     void dataExport_downloadDisabledOnInitialState() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Construction state: no date range, all-data unchecked → button disabled
         // AND the Anchor has no href. A disabled button alone wouldn't block the
@@ -1158,7 +1163,7 @@ class ProfileViewTest {
 
     @Test
     void dataExport_hrefAttachedAfterSelection() {
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Pre-condition: empty
         assertTrue(profileView.exportDownloadLink.getHref().isEmpty());
@@ -1189,7 +1194,7 @@ class ProfileViewTest {
     void slackPublishSection_overrideBadgeTextIsParenthesized() {
         groupSettings.setSlackPublishPostData(true);
         groupSettings.setSlackPublishStats(true);
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         assertEquals("(Required by group settings)", profileView.slackPublishStatsOverrideBadge.getText());
     }
@@ -1199,7 +1204,7 @@ class ProfileViewTest {
         when(personalStatDefinitionRepository.findByUserOrderByDisplayOrderAsc(any()))
             .thenReturn(Collections.emptyList());
 
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         // Basic Info tab has its own Save Changes button
         assertNotNull(profileView, "view created");
@@ -1211,11 +1216,228 @@ class ProfileViewTest {
     @Test
     void dataExport_buildCsvReturnsEmptyWhenNoCurrentUser() {
         when(userService.getCurrentUser()).thenReturn(null);
-        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
 
         byte[] result = profileView.buildExportCsv();
 
         assertEquals(0, result.length);
         verify(postDataExportService, never()).exportToCsv(any(), any(), any());
+    }
+
+    // ---- Billing tab (membership + gift + covering) ----
+
+    private ProfileView profileWithBilling(BillingClient client) {
+        return new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService, Optional.of(client), "http://localhost:8080");
+    }
+
+    /** Construct, then simulate the user opening the Billing tab (which lazily loads its data). */
+    private ProfileView openBillingTab(BillingClient client) {
+        ProfileView v = profileWithBilling(client);
+        v.applyBillingTabState();
+        return v;
+    }
+
+    private void entitled(BillingClient client, String email, boolean entitled, String status) {
+        when(client.entitlement(email)).thenReturn(new BillingClient.Entitlement(entitled, status, null));
+    }
+
+    private void entitledGiftedBy(BillingClient client, String email, String status, String payer) {
+        when(client.entitlement(email)).thenReturn(new BillingClient.Entitlement(true, status, payer));
+    }
+
+    @Test
+    void billingTab_absentWhenBillingDisabled() {
+        // billingClient field defaults to Optional.empty()
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
+        assertNull(profileView.giftRecipientCombo, "no Billing tab when billing is off");
+        assertNull(profileView.billingPayButtons);
+    }
+
+    @Test
+    void billingTab_presentButNotLoadedUntilOpened() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+
+        // Components exist after construction; no billing call happens until the tab is opened.
+        profileView = profileWithBilling(client);
+
+        assertNotNull(profileView.billingMonthlyButton);
+        assertNotNull(profileView.billingUpdatePaymentButton);
+        assertNotNull(profileView.giftRecipientCombo);
+        assertNotNull(profileView.giftContinueButton);
+        verify(client, never()).entitlement(anyString()); // lazy: not loaded until the tab opens
+        verify(client, never()).covering(anyString());
+    }
+
+    @Test
+    void billingTab_showsPayOptions_whenNoActiveSubscription() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", false, "PENDING_PAYMENT");
+
+        profileView = openBillingTab(client);
+
+        assertTrue(profileView.billingPayButtons.isVisible());
+        assertTrue(profileView.billingUpdatePaymentButton.isVisible()); // always shown
+    }
+
+    @Test
+    void billingTab_hidesPayOptions_whenActiveSubscription() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", true, "ACTIVE");
+
+        profileView = openBillingTab(client);
+
+        assertFalse(profileView.billingPayButtons.isVisible());
+        assertTrue(profileView.billingUpdatePaymentButton.isVisible()); // still shown
+    }
+
+    @Test
+    void billingTab_hidesPayOptions_whenInGracePeriod() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", true, "ON_GRACE_PERIOD");
+
+        profileView = openBillingTab(client);
+
+        // Dunning still counts as having a subscription — fix the card via the portal, don't re-buy.
+        assertFalse(profileView.billingPayButtons.isVisible());
+    }
+
+    @Test
+    void billingTab_blurbSaysActive_whenSubscription() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", true, "ACTIVE");
+
+        profileView = openBillingTab(client);
+
+        String blurb = profileView.billingBlurb.getText();
+        assertTrue(blurb.contains("active"), blurb);
+        assertFalse(blurb.contains("Activate your membership"), blurb);
+    }
+
+    @Test
+    void billingTab_blurbSaysActivate_whenNoSubscription() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", false, "PENDING_PAYMENT");
+
+        profileView = openBillingTab(client);
+
+        assertTrue(profileView.billingBlurb.getText().contains("Activate your membership"));
+    }
+
+    @Test
+    void billingTab_blurbSaysGiftedBy_whenMembershipIsAGift() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitledGiftedBy(client, "me@x.com", "ACTIVE", "alice@x.com");
+        User alice = new User();
+        alice.setEmail("alice@x.com");
+        alice.setFirstName("Alice");
+        alice.setLastName("A");
+        when(userService.getUserByEmail("alice@x.com")).thenReturn(alice);
+
+        profileView = openBillingTab(client);
+
+        String blurb = profileView.billingBlurb.getText();
+        assertTrue(blurb.contains("gifted by"), blurb);
+        assertTrue(blurb.contains("Alice A (alice@x.com)"), blurb);
+        assertFalse(profileView.billingPayButtons.isVisible()); // gifted = active sub → no pay options
+    }
+
+    @Test
+    void billingTab_showsCoveringList_whenPayingForOthers() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", true, "ACTIVE");
+        when(client.covering("me@x.com")).thenReturn(List.of(
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+
+        profileView = openBillingTab(client);
+
+        assertTrue(profileView.coveringSection.isVisible());
+    }
+
+    @Test
+    void billingTab_hidesCoveringList_whenNotCoveringAnyone() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", true, "ACTIVE");
+        when(client.covering("me@x.com")).thenReturn(List.of());
+
+        profileView = openBillingTab(client);
+
+        assertFalse(profileView.coveringSection.isVisible());
+    }
+
+    @Test
+    void giftSection_entitled_hidesDisabledNotice() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        User other = new User();
+        other.setEmail("ben@x.com");
+        when(userService.getAllActiveUsers()).thenReturn(List.of(other));
+        entitled(client, "me@x.com", true, "ACTIVE");
+
+        profileView = openBillingTab(client);
+
+        assertFalse(profileView.giftDisabledNotice.isVisible());
+    }
+
+    @Test
+    void giftSection_notEntitled_showsDisabledNotice() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", false, "PENDING_PAYMENT");
+
+        profileView = openBillingTab(client);
+
+        assertTrue(profileView.giftDisabledNotice.isVisible());
+    }
+
+    @Test
+    void giftSection_excludesSelfFromRecipients() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        User self = new User();
+        self.setEmail("me@x.com");
+        User other = new User();
+        other.setEmail("ben@x.com");
+        when(userService.getAllActiveUsers()).thenReturn(List.of(self, other));
+        entitled(client, "me@x.com", true, "ACTIVE");
+
+        profileView = openBillingTab(client);
+
+        List<User> items = profileView.giftRecipientCombo.getListDataView().getItems().toList();
+        assertEquals(1, items.size());
+        assertEquals("ben@x.com", items.get(0).getEmail());
+    }
+
+    @Test
+    void continueToGiftCheckout_noSelection_isNoOp() {
+        BillingClient client = mock(BillingClient.class);
+        testUser.setEmail("me@x.com");
+        entitled(client, "me@x.com", true, "ACTIVE");
+        profileView = openBillingTab(client);
+
+        // No recipient selected → must not throw or navigate.
+        assertDoesNotThrow(() -> profileView.continueToGiftCheckout());
+    }
+
+    @Test
+    void recipientLabel_formatsNameWithEmail_orEmailOnly() {
+        User named = new User();
+        named.setEmail("ben@x.com");
+        named.setFirstName("Ben");
+        named.setLastName("Z");
+        assertEquals("Ben Z (ben@x.com)", ProfileView.recipientLabel(named));
+
+        User noName = new User();
+        noName.setEmail("anon@x.com");
+        assertEquals("anon@x.com", ProfileView.recipientLabel(noName));
     }
 }

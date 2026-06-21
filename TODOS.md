@@ -54,6 +54,98 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 - **Depends on:** Slack Part 1 shipped, landing page shipped, at least one group providing feedback on Part 1.
 - **Context:** Tier selection stored in `group_settings`. Full-post tier decrypts content in-memory before sending to Slack — clear security warning in the admin UI that post content will leave the encrypted DB. Stats-only tier sends stat names + values only (no narrative). Slack message layout adapts per tier.
 
+### Slack integration guide in the admin panel
+In-app guidance (an Admin panel tab/section) that walks an admin through setting up the Slack incoming
+webhook: where to create it in Slack, what URL to paste, and how the per-group publish toggles behave.
+- **Why:** The webhook is created in Slack's own UI, not ours — without guidance admins get stuck or
+  paste the wrong value. A guide cuts setup friction and support questions.
+- **Effort:** S (human: ~half day / CC: ~15 min)
+- **Depends on:** Slack Integration Part 1 shipped (the webhook config UI this documents).
+- **Context:** Lives next to the Slack/Integrations config in `AdminView`. Step-by-step for Slack's
+  "Incoming Webhooks" flow (create app → enable incoming webhooks → add to channel → copy URL), a note
+  that the URL is stored encrypted, and what each publish toggle (activity / stats / full-post) sends.
+  Could be a collapsible help section or a dialog. Read DESIGN.md before styling.
+
+### Billing — "comp_until expiring soon" reminder
+Scheduled job in `tnra-billing-app` that emails a member ~7 days before their local `comp_until`
+waiver (e.g. "first 3 months free" promo) expires, so they're nudged to add a card before access flips.
+- **Why:** With local time-boxed waivers (not Lemon Squeezy trials), there's no card on file, so at
+  expiry the member must actively come pay. A reminder reduces conversion drop-off at the cliff.
+- **Effort:** XS (human: ~2h / CC: ~10 min)
+- **Depends on:** Billing feature shipped (`tnra-billing-app`). Deferred out of v1 — v1 enforcement is
+  lazy-at-gate (member hits PENDING_PAYMENT on next login after expiry), which needs no scheduler.
+- **Context:** See `BILLING_PLAN.md`. Add a `@Scheduled` sweep over `billing_account.comp_until`
+  within 7 days and not yet reminded; send via the existing mail path. Mark reminded to avoid repeats.
+
+### Billing — bulk "cover all uncovered members" gift
+One-click admin action to gift-cover every not-yet-covered member at once (vs gifting one at a time).
+- **Why:** Convenience for a founder/ministry leader sponsoring a whole group; reduces N clicks to 1.
+- **Effort:** S (human: ~half day / CC: ~10 min)
+- **Depends on:** Billing gift subscriptions shipped (v1 supports single-beneficiary gifting already).
+- **Context:** See `BILLING_PLAN.md` gift section. Iterate uncovered members → create a gift checkout per
+  member under the payer's card. Deferred from v1 because one-at-a-time gifting already delivers the
+  capability; this is pure convenience.
+
+### Billing — Lemon Squeezy-side "already subscribed" check at checkout
+Before creating a checkout, query the Lemon Squeezy API for an existing active subscription for the
+member's email and warn/short-circuit if found — a second layer on top of the local duplicate-charge
+guard already in `CheckoutService`.
+- **Why:** The local guard reads our own DB, which is authoritative in steady state. It can't catch a
+  case where our DB diverged from LS (e.g. webhooks were down so the account still shows PENDING while
+  LS already has a paid subscription) — exactly the situation that let a member double-charge during
+  local testing. An LS-side lookup closes that gap.
+- **Effort:** S (human: ~half day / CC: ~20 min)
+- **Depends on:** Billing shipped. Deferred post-launch — the local guard covers normal operation, and
+  this adds an LS API call (+ latency, + failure handling) on every checkout.
+- **Context:** `LemonSqueezyClient` — add a lookup (e.g. `GET /v1/subscriptions?filter[user_email]=…&
+  filter[store_id]=…`, status active/on_trial). `CheckoutService.createCheckout` calls it for self-pay
+  and returns 409 (same shape the local guard uses) if a live subscription exists. Fail OPEN if LS is
+  unreachable so a central LS outage can't block legitimate new signups.
+
+### Self-serve onboarding — leader signup → pay → auto-provision
+Turn group creation from a CLI operation into a self-serve flow: a leader signs up on the landing site,
+pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain), no CLI step.
+- **Why:** This is the confirmed product goal (self-serve growth). The billing app is its foundation;
+  this is the next platform bet that makes groups onboard without the founder touching the CLI.
+- **Effort:** L (human: ~1-2 weeks / CC: ~hours)
+- **Depends on:** `tnra-billing-app` shipped; provisioning logic (currently in tnra-cli-app) made callable
+  as a service. Likely needs a runtime group registry (the central app already introduces one).
+- **Context:** See CEO plan `~/.gstack/projects/dogeared-tnra/ceo-plans/2026-06-14-billing-monetization.md`.
+  The hard part is automating what `ProvisionCommand` does today (templating + DB/realm/nginx creation)
+  triggered by a successful first payment, safely and idempotently.
+
+### Demo site — seeded, self-resetting public sandbox
+A normal TNRA group set up as a public demo: seeded with realistic dummy data and reset on a schedule
+(e.g. hourly) so anyone can log in with published credentials and explore a populated app.
+- **Why:** Lets prospects experience the real product before committing — supports go-to-market /
+  self-serve growth. A populated, always-fresh demo converts far better than screenshots or an empty group.
+- **Effort:** M (human: ~2-3 days / CC: ~30 min)
+- **Depends on:** Nothing hard — reuses normal provisioning (one regular group). Billing must be OFF or
+  the group set billing-exempt so the entitlement gate never blocks the demo login.
+- **Context:** Two pieces. (a) A seed dataset — users, posts (intro/kryptonite/commitments/best&worst/
+  stats), call chain, a few weeks of history — loadable via SQL or a seed routine. (b) A scheduled reset
+  (`@Scheduled` or system cron) that truncates and re-seeds on the chosen interval, so a visitor's edits
+  don't persist past the window. Decide cadence (hourly?), publish the login(s), and either disable
+  destructive/admin actions for the demo account or accept that the reset cleans them up. Keep the demo
+  group's DB/realm/subdomain isolated like any other group.
+
+## Tech debt / DevEx
+
+### Revisit `.gitignore` rule for `application.properties`
+`.gitignore` ignores `application.properties` (to protect runtime secrets), but every module's
+TEST config lives in `src/test/resources/application.properties` and must be `git add -f`'d to commit
+(tnra-app and tnra-billing-app both do this). Easy to forget; `git add .` silently skips it.
+- **Why:** A required, non-secret, committed file that the default ignore rule fights is a footgun —
+  a new test config can be silently left untracked and CI/other devs run without it.
+- **Effort:** XS (human: ~30 min / CC: ~10 min)
+- **Options:** (a) scope the ignore to main only (`**/src/main/resources/application.properties`) so test
+  configs are tracked normally; or (b) rename test config to the Spring-profile form
+  `application-test.properties` (hyphen — NOTE: `application.test.properties` with a dot is NOT a Spring
+  auto-loaded name) and activate the `test` profile in tests, keeping `application.properties` ignored for
+  runtime secrets. Recommend (a) — smallest change, no profile wiring, and test config is genuinely safe to
+  commit. Apply consistently across tnra-app + tnra-billing-app (+ any future module).
+- **Context:** Touches `.gitignore` and the two committed test `application.properties` files.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast

@@ -71,6 +71,45 @@ services:
       mysql:
         condition: service_healthy
 
+  # Central billing service (Lemon Squeezy). Opt-in via the `billing` profile — it does NOT start on a
+  # bare `up` (self-host / billing-off deploys skip it). Bring it up with `--profile billing`, or target
+  # it directly (`up -d tnra-billing`), so billing and landing can run individually or all at once and,
+  # in future, move to their own VM (point BILLING_DATASOURCE_URL at that VM's database).
+  tnra-billing:
+    container_name: tnra-billing
+    image: tnra-billing:latest
+    profiles: [billing]
+    restart: unless-stopped
+    environment:
+      # Listen on 8082 (no application.yml ships in the jar, so override Spring's 8080 default) — keeps
+      # the internal route, host port, and docs all on 8082.
+      SERVER_PORT: "8082"
+      # Defaults to the shared MySQL container; override BILLING_DATASOURCE_URL to point at a remote DB
+      # when billing runs on its own VM. Auto-creates the schema on first connect.
+      SPRING_DATASOURCE_URL: "${BILLING_DATASOURCE_URL:-jdbc:mysql://mysql:3306/tnra_billing?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}"
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      # Flyway owns the schema; validate catches entity/column drift at startup.
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      # Lemon Squeezy (Merchant of Record) + provisioning — see .env / PRODUCTION.*.md.
+      LS_API_KEY: ${LS_API_KEY}
+      LS_STORE_ID: ${LS_STORE_ID}
+      LS_WEBHOOK_SECRET: ${LS_WEBHOOK_SECRET}
+      LS_VARIANT_MONTHLY: ${LS_VARIANT_MONTHLY}
+      LS_VARIANT_YEARLY: ${LS_VARIANT_YEARLY}
+      BILLING_ADMIN_TOKEN: ${BILLING_ADMIN_TOKEN}
+      TNRA_TRIAL_DAYS: "${TNRA_TRIAL_DAYS:-60}"
+    ports:
+      # Host port for local/debug only — nginx/Cloudflare reach the container via the tnra-shared
+      # network (http://tnra-billing:8082). Override the host port with BILLING_PORT in .env.
+      - '127.0.0.1:${BILLING_PORT:-8082}:8082'
+    networks:
+      - tnra-shared
+    depends_on:
+      mysql:
+        condition: service_healthy
+
   cloudflared:
     profiles: [cloudflare]
     image: cloudflare/cloudflared:latest

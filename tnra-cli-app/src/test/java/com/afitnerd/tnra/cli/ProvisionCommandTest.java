@@ -155,6 +155,58 @@ class ProvisionCommandTest {
     }
 
     @Test
+    void billingDisabledByDefault() throws Exception {
+        Path registry = tempDir.resolve("groups.json");
+        Path output = tempDir.resolve("output");
+
+        int code = run(provisionArgs("no-billing", "example.com", registry, output));
+        assertEquals(0, code);
+
+        Path groupDir = output.resolve("no-billing");
+        String env = Files.readString(groupDir.resolve(".env"));
+        assertTrue(env.contains("TNRA_BILLING_ENABLED=false"), "billing off when no --billing-api-url");
+        String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
+        assertTrue(compose.contains("TNRA_BILLING_ENABLED: \"false\""));
+    }
+
+    @Test
+    void billingEnabled_registersAndWritesToken() throws Exception {
+        com.sun.net.httpserver.HttpServer server =
+            com.sun.net.httpserver.HttpServer.create(new java.net.InetSocketAddress("localhost", 0), 0);
+        server.createContext("/api/admin/groups", exchange -> {
+            byte[] body = "{\"groupSlug\":\"paid-group\",\"apiToken\":\"tok-abc\"}"
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        String url = "http://localhost:" + server.getAddress().getPort();
+        try {
+            Path registry = tempDir.resolve("groups.json");
+            Path output = tempDir.resolve("output");
+            int code = run(
+                "provision", "paid-group",
+                "--domain", "example.com",
+                "--registry", registry.toString(),
+                "--output", output.toString(),
+                "--admin-email", "admin@example.com",
+                "--admin-first-name", "Test",
+                "--admin-last-name", "Admin",
+                "--billing-api-url", url,
+                "--billing-admin-token", "admin-secret");
+            assertEquals(0, code);
+
+            String env = Files.readString(output.resolve("paid-group").resolve(".env"));
+            assertTrue(env.contains("TNRA_BILLING_ENABLED=true"));
+            assertTrue(env.contains("TNRA_BILLING_API_TOKEN=tok-abc"), "should write the minted token");
+            assertTrue(env.contains("TNRA_BILLING_API_URL=" + url));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void invalidNameFails() {
         Path registry = tempDir.resolve("groups.json");
         int code = run("provision", "BAD NAME!",
