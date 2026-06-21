@@ -249,6 +249,16 @@ To start only the data plane (no landing, no tunnel), scope it:
 docker compose -f docker-compose.production.yml up -d mysql keycloak
 ```
 
+The **central billing service** (`tnra-billing`) is opt-in behind the `billing` profile, so even this
+one-liner doesn't start it unless you add `--profile billing`. To run everything including billing:
+
+```bash
+docker compose -f docker-compose.production.yml --profile billing --profile cloudflare up -d
+```
+
+See [Central Billing Service](#central-billing-service-lemon-squeezy) for setup and for running it
+individually.
+
 ### All provisioned sites in `provision/`
 
 Build the app JAR once — the group containers bake `tnra-app/target/*.jar` via their `./tnra-app`
@@ -443,56 +453,46 @@ BILLING_ADMIN_TOKEN=
 TNRA_TRIAL_DAYS=60
 ```
 
-### Step 3: Create the billing database
+### Step 3: Build and start the service
 
-The service owns its own schema. Flyway builds the tables on first boot; create the empty
-database once:
+The `tnra-billing` service is **already defined** in `docker-compose.production.yml`, behind the
+`billing` profile (so it's opt-in — a bare `up` never starts it). It joins the `tnra-shared` network
+as `tnra-billing` on port 8082; the tunnel publishes it externally. Its datasource defaults to the
+shared MySQL container and **auto-creates** the `tnra_billing` schema on first connect
+(`createDatabaseIfNotExist=true`), so there's no manual `CREATE DATABASE` step. Flyway builds the
+tables on first boot.
+
+`tnra-billing-app/Dockerfile` builds the jar image. Build and start it (from `~/tnra/`, after pulling
+latest):
 
 ```bash
 cd ~/tnra
-docker compose -f docker-compose.production.yml exec -T mysql \
-  mysql -uroot -p"$MYSQL_ROOT_PASSWORD" \
-  -e "CREATE DATABASE IF NOT EXISTS tnra_billing;"
-```
-
-### Step 4: Add the service to `docker-compose.production.yml`
-
-`tnra-billing-app/Dockerfile` builds the jar image. Add this service (it joins the shared
-network as `tnra-billing`; the tunnel publishes it externally):
-
-```yaml
-  tnra-billing:
-    container_name: tnra-billing
-    image: tnra-billing:latest
-    restart: unless-stopped
-    environment:
-      SPRING_DATASOURCE_URL: "jdbc:mysql://mysql:3306/tnra_billing?useSSL=false&allowPublicKeyRetrieval=true"
-      SPRING_DATASOURCE_USERNAME: root
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      LS_API_KEY: ${LS_API_KEY}
-      LS_STORE_ID: ${LS_STORE_ID}
-      LS_WEBHOOK_SECRET: ${LS_WEBHOOK_SECRET}
-      LS_VARIANT_MONTHLY: ${LS_VARIANT_MONTHLY}
-      LS_VARIANT_YEARLY: ${LS_VARIANT_YEARLY}
-      BILLING_ADMIN_TOKEN: ${BILLING_ADMIN_TOKEN}
-      TNRA_TRIAL_DAYS: ${TNRA_TRIAL_DAYS:-60}
-    networks:
-      - tnra-shared
-    depends_on:
-      mysql:
-        condition: service_healthy
-```
-
-Build and start it (from `~/tnra/`, after pulling latest):
-
-```bash
-cd tnra-billing-app && ../mvnw -pl tnra-billing-app -am package -DskipTests && cd ..
+./mvnw -pl tnra-billing-app -am package -DskipTests
 docker build -t tnra-billing:latest tnra-billing-app
-docker compose -f docker-compose.production.yml up -d tnra-billing
+docker compose -f docker-compose.production.yml --profile billing up -d tnra-billing
 docker logs tnra-billing -f   # look for "Started TnraBillingApplication" + Flyway migrations
 ```
 
-### Step 5: Add a Cloudflare tunnel route for `billing`
+> **Running individually or all at once.** Because billing is its own profiled service, you can run it
+> on its own, alongside the landing site, or as part of the whole stack:
+>
+> ```bash
+> # Everything (shared infra + landing + billing + the tunnel):
+> docker compose -f docker-compose.production.yml --profile billing --profile cloudflare up -d
+> # Just billing (+ its MySQL dependency):
+> docker compose -f docker-compose.production.yml up -d tnra-billing
+> # Just the landing site:
+> docker compose -f docker-compose.production.yml up -d tnra-landing
+> # Update only billing, leaving everything else running:
+> docker compose -f docker-compose.production.yml up -d --no-deps tnra-billing
+> ```
+>
+> **Future: separate VM/container.** When billing moves to its own host, run the same
+> `--profile billing` service there and set `BILLING_DATASOURCE_URL` in that host's `.env` to its
+> database. It needs its own `cloudflared` tunnel (or route) on that host; nothing else couples it to
+> the landing host.
+
+### Step 4: Add a Cloudflare tunnel route for `billing`
 
 In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** → your tunnel →
 **Public Hostnames**, add:
@@ -504,7 +504,7 @@ In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** 
 Cloudflare creates the CNAME automatically. The per-group API and the webhook are both
 token/HMAC authenticated, so routing the whole host is safe.
 
-### Step 6: Verify
+### Step 5: Verify
 
 ```bash
 curl https://billing.tnra.app/actuator/health   # {"status":"UP"}
