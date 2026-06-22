@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.2.0] - 2026-06-21
+
+### Added
+- **Legal pages on the public landing site.** New **Privacy Policy** (`/privacy-policy`), **Terms of Service** (`/terms-of-service`), and **Refund Policy** (`/refund-policy`) pages, each rendered from a Markdown content file. A new top-level nav item **"The Fine Print"** (right of "Request Access") opens `/fine-print`, which embeds all three policies as stacked, anchor-linkable sections. Individual links to the three standalone policy pages appear in the footer of every landing page. Contact email is support@dogeared.dev.
+
+> Maintenance release on the 9.1.x line: the landing-page legal pages **without** the 10.x billing features, so the public site can ship immediately. The same pages also ship in 10.1.0.
+
 ## [9.1.3] - 2026-06-13
 
 ### Changed
