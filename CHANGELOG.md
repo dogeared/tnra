@@ -2,6 +2,14 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.0.2] - 2026-06-30
+
+### Changed
+- **Pricing page now states the trial and tax terms.** Each hosted plan spells out the **60-day free trial** and the **full recurring price that applies after it** ($7/month or $60/year per member), and the page notes that **prices exclude tax — applicable taxes are calculated at checkout**. This aligns the public pricing with what a Merchant-of-Record checkout shows the buyer, which the MoR domain review requires. (Forward-ported from 9.2.2 on the maintenance line.)
+
+### Added
+- **Crawler-visible pricing (`PricingSeoListener`).** The pricing page is a Vaadin view, so its prices only render after the client-side bootstrap — a non-JS automated checker fetching the raw HTML saw an empty shell with no prices. A Vaadin `IndexHtmlRequestListener` now injects schema.org `Product`/`Offer` **JSON-LD** and a `<noscript>` summary into the `/pricing` server HTML, so the prices, trial, and tax note are present without executing JavaScript.
+
 ## [10.0.0] - 2026-06-21
 
 ### Added
