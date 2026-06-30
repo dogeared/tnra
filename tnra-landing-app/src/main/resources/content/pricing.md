@@ -3,8 +3,14 @@
 
 Anyone who wants to self-host can use the TNRA app for free. It's open-source and you can access the code
 [here](https://github.com/dogeared/tnra)
+
+Hosted plans are priced **per member**. Every hosted plan starts with a **60-day free trial** — you won't be
+charged until the trial ends, after which your card is billed at the plan price you chose. Prices shown are
+exclusive of tax; **applicable taxes are calculated at checkout**.
 :: Hosted per Month
 **$7** / month / member
+
+_60-day free trial, then **$7 / month / member** (plus tax). Cancel anytime._
 
 - All data is encrypted at rest
 - Optional Slack integration
@@ -15,6 +21,8 @@ Anyone who wants to self-host can use the TNRA app for free. It's open-source an
 [Request Access](/?to=request-access)
 :: Hosted per Year {featured}
 **$60** / year / member
+
+_60-day free trial, then **$60 / year / member** (plus tax). Cancel anytime._
 
 - All data is encrypted at rest
 - Optional Slack integration
