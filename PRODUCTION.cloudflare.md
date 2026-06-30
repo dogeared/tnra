@@ -126,6 +126,26 @@ The apex and `www` routes point to the `tnra-landing` container (public landing 
 
 Cloudflare automatically creates CNAME DNS records for each route. No manual DNS setup required.
 
+### 3. Force HTTPS (Cloudflare setting, not app code)
+
+TLS is terminated at the Cloudflare edge, so a plain `http://` request reaching the tunnel is
+served as-is — the origin can't see the scheme and won't redirect. Turn on the edge 301 in the
+Cloudflare dashboard:
+
+**SSL/TLS → Edge Certificates → Always Use HTTPS** → on.
+
+This redirects `http://www.tnra.app` → `https://www.tnra.app` at the edge. There is nothing to
+change in the app for this.
+
+### Security response headers
+
+`tnra-landing` sends a full set of security headers (HSTS, CSP, Referrer-Policy,
+Permissions-Policy, plus the X-Content-Type-Options / X-Frame-Options Spring defaults), which
+scores an **A** on [securityheaders.com](https://securityheaders.com). HSTS is forced on every
+response in `SecurityConfig` because the tunnel hides the HTTPS scheme from the origin — browsers
+ignore HSTS arriving over plain HTTP, so forcing it is safe. The per-group `tnra-app` containers
+do not send these headers yet.
+
 ## Encryption at Rest
 
 All sensitive post content (text fields, stat values, stat names, and emoji) is encrypted

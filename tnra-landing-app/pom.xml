@@ -5,7 +5,7 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-landing</artifactId>
-    <version>9.2.0</version>
+    <version>9.2.1</version>
     <packaging>jar</packaging>
 
     <name>tnra-landing</name>

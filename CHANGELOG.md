@@ -2,6 +2,16 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.2.1] - 2026-06-30
+
+### Security
+- **Landing site security headers → A on securityheaders.com.** `tnra-landing`'s `SecurityConfig` now sends **HSTS**, **Content-Security-Policy**, **Referrer-Policy**, and **Permissions-Policy** (X-Content-Type-Options and X-Frame-Options were already present from Spring Security defaults). HSTS is forced on every response because the Cloudflare tunnel hides the HTTPS scheme from the origin, so Spring's secure-only default never fired. The CSP is `'self'`-based (system fonts, no CDNs) but keeps `'unsafe-inline'`/`'unsafe-eval'` for Vaadin's bootstrap (an A, not A+).
+
+### Docs
+- `PRODUCTION.cloudflare.md`: enable **SSL/TLS → Edge Certificates → Always Use HTTPS** to 301-redirect `http://` → `https://` at the Cloudflare edge — the redirect is a Cloudflare setting, not app code.
+
+> Maintenance release on the 9.2.x line. The same hardening ships on the 10.x line as 10.0.1.
+
 ## [9.2.0] - 2026-06-21
 
 ### Added
