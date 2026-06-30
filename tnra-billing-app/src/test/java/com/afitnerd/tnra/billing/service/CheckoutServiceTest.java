@@ -26,16 +26,16 @@ import static org.mockito.Mockito.when;
 class CheckoutServiceTest {
 
     private BillingAccountRepository accountRepo;
-    private LemonSqueezyClient lsClient;
+    private PaymentProviderClient provider;
     private EntitlementService entitlementService;
     private CheckoutService service;
 
     @BeforeEach
     void setUp() {
         accountRepo = mock(BillingAccountRepository.class);
-        lsClient = mock(LemonSqueezyClient.class);
+        provider = mock(PaymentProviderClient.class);
         entitlementService = mock(EntitlementService.class);
-        service = new CheckoutService(accountRepo, lsClient, entitlementService);
+        service = new CheckoutService(accountRepo, provider, entitlementService);
         when(accountRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
@@ -47,7 +47,7 @@ class CheckoutServiceTest {
     @Test
     void selfPay_createsPendingAccountWithNullPayer_andReturnsUrl() {
         when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.empty());
-        when(lsClient.createCheckout("rome", "m@x.com", "m@x.com", "monthly", null)).thenReturn("https://pay/1");
+        when(provider.createCheckout("rome", "m@x.com", "m@x.com", "monthly", null)).thenReturn("https://pay/1");
 
         String url = service.createCheckout("rome", new CheckoutRequest("M@X.com", "monthly", null, null));
 
@@ -63,15 +63,15 @@ class CheckoutServiceTest {
     void gift_setsPayerEmail_andChargesPayer() {
         when(accountRepo.findByGroupSlugAndEmail("rome", "ben@x.com")).thenReturn(Optional.empty());
         beneficiaryNotEntitled("rome", "ben@x.com");
-        when(lsClient.createCheckout("rome", "ben@x.com", "admin@x.com", "yearly", "https://app/back"))
+        when(provider.createCheckout("rome", "ben@x.com", "admin@x.com", "yearly", "https://app/back"))
             .thenReturn("https://pay/2");
 
         String url = service.createCheckout("rome",
             new CheckoutRequest("ben@x.com", "yearly", "admin@x.com", "https://app/back"));
 
         assertEquals("https://pay/2", url);
-        // redirect URL is forwarded verbatim to Lemon Squeezy
-        verify(lsClient).createCheckout("rome", "ben@x.com", "admin@x.com", "yearly", "https://app/back");
+        // redirect URL is forwarded verbatim to the provider
+        verify(provider).createCheckout("rome", "ben@x.com", "admin@x.com", "yearly", "https://app/back");
         ArgumentCaptor<BillingAccount> saved = ArgumentCaptor.forClass(BillingAccount.class);
         verify(accountRepo).save(saved.capture());
         assertEquals("admin@x.com", saved.getValue().getPayerEmail());
@@ -84,7 +84,7 @@ class CheckoutServiceTest {
         existing.setEmail("m@x.com");
         existing.setStatus(BillingStatus.SUSPENDED);
         when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(existing));
-        when(lsClient.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/3");
+        when(provider.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/3");
 
         service.createCheckout("rome", new CheckoutRequest("m@x.com", "monthly", null, null));
 
@@ -105,7 +105,7 @@ class CheckoutServiceTest {
             () -> service.createCheckout("rome", new CheckoutRequest("m@x.com", "monthly", null, null)));
 
         assertEquals(409, ex.getStatusCode().value());
-        verify(lsClient, never()).createCheckout(any(), any(), any(), any(), any());
+        verify(provider, never()).createCheckout(any(), any(), any(), any(), any());
         verify(accountRepo, never()).save(any());
     }
 
@@ -133,7 +133,7 @@ class CheckoutServiceTest {
                 new CheckoutRequest("ben@x.com", "yearly", "admin@x.com", null)));
 
         assertEquals(409, ex.getStatusCode().value());
-        verify(lsClient, never()).createCheckout(any(), any(), any(), any(), any());
+        verify(provider, never()).createCheckout(any(), any(), any(), any(), any());
         verify(accountRepo, never()).save(any());
     }
 
@@ -143,7 +143,7 @@ class CheckoutServiceTest {
         when(entitlementService.isEntitled("rome", "ben@x.com"))
             .thenReturn(EntitlementResult.entitled(BillingStatus.ON_GRACE_PERIOD, "SUBSCRIPTION"));
         when(accountRepo.findByGroupSlugAndEmail("rome", "ben@x.com")).thenReturn(Optional.empty());
-        when(lsClient.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/rescue");
+        when(provider.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/rescue");
 
         String url = service.createCheckout("rome",
             new CheckoutRequest("ben@x.com", "monthly", "admin@x.com", null));
@@ -155,7 +155,7 @@ class CheckoutServiceTest {
     void gift_allowedWhenBeneficiaryNotEntitled() {
         beneficiaryNotEntitled("rome", "ben@x.com");
         when(accountRepo.findByGroupSlugAndEmail("rome", "ben@x.com")).thenReturn(Optional.empty());
-        when(lsClient.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/g");
+        when(provider.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/g");
 
         String url = service.createCheckout("rome",
             new CheckoutRequest("ben@x.com", "yearly", "admin@x.com", null));
@@ -170,7 +170,7 @@ class CheckoutServiceTest {
         suspended.setLsSubscriptionId("sub_old");
         suspended.setStatus(BillingStatus.SUSPENDED);
         when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(suspended));
-        when(lsClient.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/r");
+        when(provider.createCheckout(any(), any(), any(), any(), any())).thenReturn("https://pay/r");
 
         assertEquals("https://pay/r",
             service.createCheckout("rome", new CheckoutRequest("m@x.com", "monthly", null, null)));
@@ -181,7 +181,7 @@ class CheckoutServiceTest {
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
             () -> service.createCheckout("rome", new CheckoutRequest("  ", "monthly", null, null)));
         assertEquals(400, ex.getStatusCode().value());
-        verify(lsClient, never()).createCheckout(any(), any(), any(), any(), any());
+        verify(provider, never()).createCheckout(any(), any(), any(), any(), any());
     }
 
     @Test
@@ -205,11 +205,11 @@ class CheckoutServiceTest {
     }
 
     @Test
-    void portal_returnsUrlWhenSubscriptionExists() {
+    void portal_returnsUrlWhenCustomerExists() {
         BillingAccount a = new BillingAccount();
-        a.setLsSubscriptionId("sub_1");
+        a.setLsCustomerId("ctm_1");
         when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(a));
-        when(lsClient.getCustomerPortalUrl("sub_1")).thenReturn("https://portal/1");
+        when(provider.getCustomerPortalUrl("ctm_1")).thenReturn("https://portal/1");
 
         assertEquals("https://portal/1", service.portalUrl("rome", "m@x.com"));
     }
@@ -234,20 +234,20 @@ class CheckoutServiceTest {
         BillingAccount gift = new BillingAccount();
         gift.setEmail("ben@x.com");
         gift.setPayerEmail("gifter@x.com");
-        gift.setLsSubscriptionId("sub_gift");
+        gift.setLsCustomerId("ctm_gift");
         when(accountRepo.findByGroupSlugAndPayerEmail("rome", "gifter@x.com")).thenReturn(List.of(gift));
-        when(lsClient.getCustomerPortalUrl("sub_gift")).thenReturn("https://portal/gift");
+        when(provider.getCustomerPortalUrl("ctm_gift")).thenReturn("https://portal/gift");
 
         assertEquals("https://portal/gift", service.portalUrl("rome", "gifter@x.com"));
     }
 
     @Test
-    void portal_prefersOwnSubscriptionOverGift() {
+    void portal_prefersOwnCustomerOverGift() {
         BillingAccount own = new BillingAccount();
         own.setEmail("gifter@x.com");
-        own.setLsSubscriptionId("sub_own");
+        own.setLsCustomerId("ctm_own");
         when(accountRepo.findByGroupSlugAndEmail("rome", "gifter@x.com")).thenReturn(Optional.of(own));
-        when(lsClient.getCustomerPortalUrl("sub_own")).thenReturn("https://portal/own");
+        when(provider.getCustomerPortalUrl("ctm_own")).thenReturn("https://portal/own");
 
         assertEquals("https://portal/own", service.portalUrl("rome", "gifter@x.com"));
         verify(accountRepo, never()).findByGroupSlugAndPayerEmail(any(), any());

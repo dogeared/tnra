@@ -5,7 +5,7 @@
 #      tnra-billing-app/src/main/resources/application.yml
 #
 # This service is a CENTRAL single instance (not run per-group, not run by self-hosters). Production
-# overrides the datasource and the LS_* / billing secrets via env in docker-compose.production.yml.
+# overrides the datasource and the PADDLE_* / billing secrets via env in docker-compose.production.yml.
 spring:
   jpa:
     hibernate:
@@ -23,14 +23,16 @@ server:
   port: 8082
   forward-headers-strategy: framework
 
-# Lemon Squeezy (Merchant of Record). All blank by default; required in production.
-lemonsqueezy:
-  api-key: ${LS_API_KEY:}
-  store-id: ${LS_STORE_ID:}
-  webhook-secret: ${LS_WEBHOOK_SECRET:}
-  variant:
-    monthly: ${LS_VARIANT_MONTHLY:}   # $7 / month / member
-    yearly: ${LS_VARIANT_YEARLY:}     # $60 / year / member
+# Paddle (Merchant of Record). All blank by default; required in production.
+paddle:
+  api-key: ${PADDLE_API_KEY:}
+  # Defaults to Paddle sandbox; set https://api.paddle.com for live.
+  api-base: ${PADDLE_API_BASE:https://sandbox-api.paddle.com}
+  # Notification destination secret key (pdl_ntfset_...).
+  webhook-secret: ${PADDLE_WEBHOOK_SECRET:}
+  price:
+    monthly: ${PADDLE_PRICE_MONTHLY:}   # $7 / month / member  (Paddle Price id)
+    yearly: ${PADDLE_PRICE_YEARLY:}     # $60 / year / member  (Paddle Price id)
 
 billing:
   # Default free-trial window applied to a new group at provisioning (group_billing.comp_until).

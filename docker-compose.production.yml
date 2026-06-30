@@ -92,12 +92,12 @@ services:
       # Flyway owns the schema; validate catches entity/column drift at startup.
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      # Lemon Squeezy (Merchant of Record) + provisioning — see .env / PRODUCTION.*.md.
-      LS_API_KEY: ${LS_API_KEY}
-      LS_STORE_ID: ${LS_STORE_ID}
-      LS_WEBHOOK_SECRET: ${LS_WEBHOOK_SECRET}
-      LS_VARIANT_MONTHLY: ${LS_VARIANT_MONTHLY}
-      LS_VARIANT_YEARLY: ${LS_VARIANT_YEARLY}
+      # Paddle (Merchant of Record) + provisioning — see .env / PRODUCTION.*.md.
+      PADDLE_API_KEY: ${PADDLE_API_KEY}
+      PADDLE_API_BASE: "${PADDLE_API_BASE:-https://sandbox-api.paddle.com}"
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET}
+      PADDLE_PRICE_MONTHLY: ${PADDLE_PRICE_MONTHLY}
+      PADDLE_PRICE_YEARLY: ${PADDLE_PRICE_YEARLY}
       BILLING_ADMIN_TOKEN: ${BILLING_ADMIN_TOKEN}
       TNRA_TRIAL_DAYS: "${TNRA_TRIAL_DAYS:-60}"
     ports:

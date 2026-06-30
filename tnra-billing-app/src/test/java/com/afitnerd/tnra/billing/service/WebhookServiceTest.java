@@ -1,6 +1,6 @@
 package com.afitnerd.tnra.billing.service;
 
-import com.afitnerd.tnra.billing.config.LemonSqueezyProperties;
+import com.afitnerd.tnra.billing.config.PaddleProperties;
 import com.afitnerd.tnra.billing.model.BillingAccount;
 import com.afitnerd.tnra.billing.model.BillingStatus;
 import com.afitnerd.tnra.billing.model.BillingWebhookEvent;
@@ -32,46 +32,51 @@ class WebhookServiceTest {
 
     private BillingWebhookEventRepository eventRepo;
     private BillingAccountRepository accountRepo;
-    private LemonSqueezyClient lsClient;
-    private LemonSqueezyProperties props;
+    private PaymentProviderClient providerClient;
+    private PaddleProperties props;
     private WebhookService service;
 
     @BeforeEach
     void setUp() {
         eventRepo = mock(BillingWebhookEventRepository.class);
         accountRepo = mock(BillingAccountRepository.class);
-        lsClient = mock(LemonSqueezyClient.class);
-        props = new LemonSqueezyProperties();
+        providerClient = mock(PaymentProviderClient.class);
+        props = new PaddleProperties();
         props.setWebhookSecret(SECRET);
-        service = new WebhookService(eventRepo, accountRepo, lsClient, props, new ObjectMapper());
+        service = new WebhookService(eventRepo, accountRepo, providerClient, props, new ObjectMapper());
         when(accountRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
     }
 
-    /** Subscription event with a chosen event name, subscription id, and payer (for gift/self-pay). */
-    private String body(String eventName, String subId, String payerEmail) {
-        return "{\"meta\":{\"event_name\":\"" + eventName + "\","
+    /** Paddle subscription event with a chosen event type, subscription id, and payer (gift/self-pay). */
+    private String body(String eventType, String subId, String payerEmail) {
+        return "{\"event_type\":\"" + eventType + "\","
+            + "\"data\":{\"id\":\"" + subId + "\",\"status\":\"active\",\"customer_id\":\"ctm_42\","
             + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"m@x.com\","
-            + "\"payer_email\":\"" + payerEmail + "\"}},"
-            + "\"data\":{\"id\":\"" + subId + "\",\"attributes\":{\"status\":\"active\",\"customer_id\":42}}}";
+            + "\"payer_email\":\"" + payerEmail + "\"}}}";
     }
 
+    /** Build a valid Paddle-Signature header (ts=<unix>;h1=HMAC-SHA256(ts:body, secret)). */
     private String sign(String body) {
-        return HashUtil.hmacSha256Hex(body, SECRET);
+        String ts = "1700000000";
+        return "ts=" + ts + ";h1=" + HashUtil.hmacSha256Hex(ts + ":" + body, SECRET);
     }
 
     private String createdBody() {
-        return "{\"meta\":{\"event_name\":\"subscription_created\","
-            + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"m@x.com\",\"payer_email\":\"m@x.com\"}},"
-            + "\"data\":{\"id\":\"sub_1\",\"attributes\":{\"status\":\"active\",\"customer_id\":42}}}";
+        return body("subscription.created", "sub_1", "m@x.com");
     }
 
     @Test
     void invalidSignature_unauthorized_andNothingPersisted() {
         String body = createdBody();
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-            () -> service.process(body, "deadbeef"));
+            () -> service.process(body, "ts=1700000000;h1=deadbeef"));
         assertEquals(401, ex.getStatusCode().value());
         verify(eventRepo, never()).save(any());
+    }
+
+    @Test
+    void malformedSignatureHeader_unauthorized() {
+        assertThrows(ResponseStatusException.class, () -> service.process(createdBody(), "garbage"));
     }
 
     @Test
@@ -107,7 +112,7 @@ class WebhookServiceTest {
 
         assertEquals(BillingStatus.ACTIVE, account.getStatus());
         assertEquals("sub_1", account.getLsSubscriptionId());
-        assertEquals("42", account.getLsCustomerId());
+        assertEquals("ctm_42", account.getLsCustomerId());
 
         ArgumentCaptor<BillingWebhookEvent> ev = ArgumentCaptor.forClass(BillingWebhookEvent.class);
         verify(eventRepo).save(ev.capture());
@@ -156,14 +161,14 @@ class WebhookServiceTest {
         account.setLsSubscriptionId("old_sub");
         account.setPayerEmail("admin@x.com");
         // New self-pay subscription created (payer == beneficiary).
-        String body = body("subscription_created", "new_sub", "m@x.com");
+        String body = body("subscription.created", "new_sub", "m@x.com");
         when(eventRepo.existsByLsEventId(any())).thenReturn(false);
         when(accountRepo.findByLsSubscriptionId("new_sub")).thenReturn(Optional.empty());
         when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(account));
 
         service.process(body, sign(body));
 
-        verify(lsClient).cancelSubscription("old_sub");
+        verify(providerClient).cancelSubscription("old_sub");
         assertEquals("new_sub", account.getLsSubscriptionId());
         assertNull(account.getPayerEmail());
         assertEquals(BillingStatus.ACTIVE, account.getStatus());
@@ -178,7 +183,7 @@ class WebhookServiceTest {
         account.setEmail("m@x.com");
         account.setStatus(BillingStatus.ACTIVE);
         account.setLsSubscriptionId("new_sub");
-        String body = body("subscription_cancelled", "old_sub", "m@x.com");
+        String body = body("subscription.canceled", "old_sub", "m@x.com");
         when(eventRepo.existsByLsEventId(any())).thenReturn(false);
         when(accountRepo.findByLsSubscriptionId("old_sub")).thenReturn(Optional.empty());
         when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(account));
@@ -199,7 +204,7 @@ class WebhookServiceTest {
         account.setId(9L);
         account.setLsSubscriptionId("sub_1");
         account.setStatus(BillingStatus.ACTIVE);
-        String body = body("subscription_payment_failed", "sub_1", "m@x.com");
+        String body = body("subscription.past_due", "sub_1", "m@x.com");
         when(eventRepo.existsByLsEventId(any())).thenReturn(false);
         when(accountRepo.findByLsSubscriptionId("sub_1")).thenReturn(Optional.of(account));
 
@@ -210,16 +215,19 @@ class WebhookServiceTest {
     }
 
     @Test
-    void mapStatus_eventNameOverridesAndLsStatusMapping() {
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription_payment_failed", "active"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription_expired", "active"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription_cancelled", "active"));
-        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription_updated", "active"));
-        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription_updated", "on_trial"));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription_updated", "past_due"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription_updated", "unpaid"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription_updated", "paused"));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription_updated", null));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription_updated", "weird"));
+    void mapStatus_eventTypeOverridesAndPaddleStatusMapping() {
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("transaction.payment_failed", "active"));
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.past_due", "active"));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.canceled", "active"));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.paused", "active"));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("transaction.completed", "past_due"));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.activated", "x"));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.updated", "active"));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.updated", "trialing"));
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", "past_due"));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.updated", "canceled"));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.updated", "paused"));
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", null));
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", "weird"));
     }
 }

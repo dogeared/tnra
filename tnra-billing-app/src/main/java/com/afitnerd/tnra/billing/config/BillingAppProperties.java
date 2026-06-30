@@ -3,7 +3,7 @@ package com.afitnerd.tnra.billing.config;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * Central billing app settings (distinct from {@link LemonSqueezyProperties}).
+ * Central billing app settings (distinct from {@link PaddleProperties}).
  * {@code admin-token} guards the provisioning/admin API; blank = admin API disabled (fail closed).
  * {@code trial-days} is the default group free-trial window applied at registration.
  */

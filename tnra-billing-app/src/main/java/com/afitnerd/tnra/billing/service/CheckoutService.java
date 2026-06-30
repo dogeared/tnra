@@ -21,7 +21,7 @@ import java.util.Objects;
  *     normalize emails ─► payer = payerEmail or beneficiary (self-pay)
  *     find-or-create beneficiary account (dedup on group+email; PENDING if new)
  *     set payer_email (null for self-pay, the gifter for a gift) + variant
- *     ─► Lemon Squeezy hosted checkout URL (payer is charged)
+ *     ─► Paddle hosted checkout URL (payer is charged)
  * </pre>
  *
  * The redirect/webhook race is benign: the account row exists (PENDING) before the URL is returned,
@@ -32,14 +32,14 @@ import java.util.Objects;
 public class CheckoutService {
 
     private final BillingAccountRepository accountRepository;
-    private final LemonSqueezyClient lemonSqueezyClient;
+    private final PaymentProviderClient paymentProviderClient;
     private final EntitlementService entitlementService;
 
     public CheckoutService(BillingAccountRepository accountRepository,
-                           LemonSqueezyClient lemonSqueezyClient,
+                           PaymentProviderClient paymentProviderClient,
                            EntitlementService entitlementService) {
         this.accountRepository = accountRepository;
-        this.lemonSqueezyClient = lemonSqueezyClient;
+        this.paymentProviderClient = paymentProviderClient;
         this.entitlementService = entitlementService;
     }
 
@@ -87,7 +87,7 @@ public class CheckoutService {
         account.setLsVariant(variant);
         accountRepository.save(account);
 
-        return lemonSqueezyClient.createCheckout(groupSlug, beneficiary, payer, variant,
+        return paymentProviderClient.createCheckout(groupSlug, beneficiary, payer, variant,
             request.redirectUrl());
     }
 
@@ -99,27 +99,27 @@ public class CheckoutService {
     }
 
     /**
-     * Hosted Customer Portal link. Prefers the member's OWN subscription; if they have none (e.g. a
-     * trial/comp member who has only gifted memberships to others), falls back to any subscription they
-     * PAY for. All of a payer's subscriptions — their own and any gifts — share one Lemon Squeezy
-     * customer (the payer's email), so any of them opens the same portal listing every one of them.
+     * Hosted Customer Portal link. Prefers the member's OWN provider customer; if they have none (e.g. a
+     * trial/comp member who has only gifted memberships to others), falls back to any account they PAY
+     * for. All of a payer's subscriptions — their own and any gifts — share one Paddle customer (the
+     * payer), so that customer's portal lists every subscription they pay for.
      */
     public String portalUrl(String groupSlug, String email) {
         String normalized = normalize(email);
-        String subscriptionId = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
-            .map(BillingAccount::getLsSubscriptionId)
+        String customerId = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .map(BillingAccount::getLsCustomerId)
             .filter(Objects::nonNull)
-            .orElseGet(() -> firstPaidSubscriptionId(groupSlug, normalized));
-        if (subscriptionId == null) {
+            .orElseGet(() -> firstPaidCustomerId(groupSlug, normalized));
+        if (customerId == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription to manage");
         }
-        return lemonSqueezyClient.getCustomerPortalUrl(subscriptionId);
+        return paymentProviderClient.getCustomerPortalUrl(customerId);
     }
 
-    /** Any subscription this member pays for (a gift) — used to reach the portal when they have no own sub. */
-    private String firstPaidSubscriptionId(String groupSlug, String payer) {
+    /** The provider customer of any subscription this member pays for — to reach the portal with no own sub. */
+    private String firstPaidCustomerId(String groupSlug, String payer) {
         return accountRepository.findByGroupSlugAndPayerEmail(groupSlug, payer).stream()
-            .map(BillingAccount::getLsSubscriptionId)
+            .map(BillingAccount::getLsCustomerId)
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
