@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.2.4] - 2026-06-30
+
+### Added
+- **Pricing on the home page (apex).** A Merchant-of-Record registers the bare domain (`tnra.app`) and its automated checker fetches the **apex**, which previously carried no price — all pricing lived one click away on `/pricing`, so the review kept failing. The home page now shows a compact "Simple, per-member pricing" band (same card system as `/pricing`: $7/mo or $60/yr per member, 60-day free trial, taxes-at-checkout, link to full pricing), and `LandingSeoListener` now also injects the pricing JSON-LD + `<noscript>` summary on `/` so a non-JS checker sees the price in the apex's raw HTML.
+
 ## [9.2.3] - 2026-06-30
 
 ### Added

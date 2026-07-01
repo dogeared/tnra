@@ -90,12 +90,20 @@ class LandingSeoListenerTest {
     }
 
     @Test
-    void nullPathInfo_getsNavButNoPricingData() {
-        IndexHtmlResponse response = responseForPath(null);
+    void homePage_getsPricingDataSoTheApexCarriesThePrice() {
+        // The apex is the URL a payment provider registers and checks; Vaadin reports it as
+        // null, "" or "/". All three must surface the pricing.
+        for (String home : new String[] {null, "", "/"}) {
+            IndexHtmlResponse response = responseForPath(home);
 
-        listener.injectSeo(response);
+            listener.injectSeo(response);
 
-        assertTrue(response.getDocument().body().html().contains("<noscript>"), "nav still injected");
-        assertFalse(response.getDocument().head().html().contains("application/ld+json"));
+            String head = response.getDocument().head().html();
+            String body = response.getDocument().body().html();
+            assertTrue(head.contains("application/ld+json"), "JSON-LD on home path [" + home + "]");
+            assertTrue(head.contains("\"7.00\""), "monthly price on home path [" + home + "]");
+            assertTrue(body.contains("pricing-fallback"), "pricing summary on home path [" + home + "]");
+            assertTrue(body.contains("href=\"/pricing\""), "nav on home path [" + home + "]");
+        }
     }
 }

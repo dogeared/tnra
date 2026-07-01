@@ -20,9 +20,11 @@ import org.springframework.stereotype.Component;
  * <ul>
  *   <li><b>Every page</b> gets a {@code <noscript>} navigation block linking to the public pages,
  *       so a crawler that only follows links can reach {@code /pricing} from any entry point.</li>
- *   <li><b>The pricing page</b> additionally gets schema.org {@code Product}/{@code Offer} JSON-LD
- *       and a human-readable pricing summary, so the prices, the 60-day trial, and the tax note are
- *       present without executing JavaScript.</li>
+ *   <li><b>The home page and the pricing page</b> additionally get schema.org {@code Product}/
+ *       {@code Offer} JSON-LD and a human-readable pricing summary, so the prices, the 60-day trial,
+ *       and the tax note are present without executing JavaScript. The home page is included because
+ *       a payment provider registers the bare domain ({@code tnra.app}) and its automated checker
+ *       fetches the apex — which otherwise carries no price at all.</li>
  * </ul>
  *
  * <p>Keep the pricing figures here in sync with {@code content/pricing.md}: an MoR (Paddle)
@@ -81,8 +83,9 @@ public class LandingSeoListener implements VaadinServiceInitListener {
         Element noscript = response.getDocument().body().appendElement("noscript");
         noscript.append(NAV);
 
-        // Pricing page only: structured pricing data + a human-readable summary.
-        if (isPricingPath(response)) {
+        // Home page and pricing page: structured pricing data + a human-readable summary, so the
+        // apex (the URL a payment provider actually checks) and /pricing both carry the price.
+        if (wantsPricingData(response)) {
             Element script = response.getDocument().head().appendElement("script");
             script.attr("type", "application/ld+json");
             script.appendChild(new DataNode(JSON_LD));
@@ -90,9 +93,18 @@ public class LandingSeoListener implements VaadinServiceInitListener {
         }
     }
 
-    private boolean isPricingPath(IndexHtmlResponse response) {
+    private boolean wantsPricingData(IndexHtmlResponse response) {
         VaadinRequest request = response.getVaadinRequest();
         String path = request == null ? null : request.getPathInfo();
+        return isHomePath(path) || isPricingPath(path);
+    }
+
+    private boolean isHomePath(String path) {
+        // The Vaadin bootstrap for the "" route reports the apex as null, "", or "/".
+        return path == null || path.isEmpty() || "/".equals(path);
+    }
+
+    private boolean isPricingPath(String path) {
         return PRICING_PATH.equals(path) || (PRICING_PATH + "/").equals(path);
     }
 }
