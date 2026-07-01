@@ -126,6 +126,27 @@ The apex and `www` routes point to the `tnra-landing` container (public landing 
 
 Cloudflare automatically creates CNAME DNS records for each route. No manual DNS setup required.
 
+### 3. Force HTTPS (Cloudflare setting, not app code)
+
+With a tunnel, Cloudflare terminates TLS at the edge and forwards to the origin over the tunnel, so a
+plain `http://` request is served as-is unless you tell Cloudflare to redirect. Enable it in the
+dashboard: **SSL/TLS → Edge Certificates → Always Use HTTPS = On**. Cloudflare then 301-redirects
+`http://` → `https://` at the edge before it reaches the tunnel. (Optionally also turn on **Automatic
+HTTPS Rewrites**.) This is a Cloudflare toggle — there is nothing to change in the app.
+
+The app additionally sends an **HSTS** header (set in `tnra-landing`'s `SecurityConfig`), so after the
+first HTTPS visit browsers auto-upgrade `http://` to `https://` on their own.
+
+### Security response headers
+
+`tnra-landing` sets a full set of security headers (HSTS, Content-Security-Policy, Referrer-Policy,
+Permissions-Policy, plus Spring's default X-Content-Type-Options and X-Frame-Options) in
+`SecurityConfig`, for an A on securityheaders.com. They pass through the tunnel unchanged. After a
+deploy, re-scan at `https://securityheaders.com/?q=https://www.tnra.app`. The CSP keeps
+`'unsafe-inline'`/`'unsafe-eval'` because Vaadin's bootstrap needs them (that caps the grade at A, not
+A+). The per-group `tnra-app` does not set these yet — a careful follow-up (its CSP must also allow the
+Keycloak OIDC redirect and Vaadin push).
+
 ## Encryption at Rest
 
 All sensitive post content (text fields, stat values, stat names, and emoji) is encrypted

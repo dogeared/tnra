@@ -131,6 +131,19 @@ A normal TNRA group set up as a public demo: seeded with realistic dummy data an
 
 ## Tech debt / DevEx
 
+### Security headers on `tnra-app` (per-group apps)
+Apply the same security response headers to `tnra-app` that `tnra-landing` got in 10.0.1 (HSTS, CSP,
+Referrer-Policy, Permissions-Policy) so the per-group subdomains (`<group>.tnra.app`) also score an A
+on securityheaders.com.
+- **Why:** Only the public landing site is hardened so far; the member-facing per-group apps send no
+  HSTS/CSP/Referrer-Policy/Permissions-Policy.
+- **Effort:** S (human: ~half day / CC: ~20 min) — but needs care, not a copy-paste.
+- **Context:** `tnra-app`'s `SecurityConfig` is OIDC-based, so the CSP must also allow the **Keycloak
+  redirect** (`form-action`/`connect-src` for `auth.<domain>`) and **Vaadin push** (websocket via
+  `connect-src 'self'`), and the post-payment redirect to the billing/MoR checkout domain. Force HSTS
+  the same way (the Cloudflare tunnel hides the HTTPS scheme from the origin). Test the login flow and a
+  member session after, then re-scan a group subdomain.
+
 ### Revisit `.gitignore` rule for `application.properties`
 `.gitignore` ignores `application.properties` (to protect runtime secrets), but every module's
 TEST config lives in `src/test/resources/application.properties` and must be `git add -f`'d to commit
