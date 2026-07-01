@@ -1,11 +1,15 @@
-# Billing — Local Testing Guide
+# Billing — Local Testing Guide (Paddle)
 
 How to run the **central billing service** (`tnra-billing-app`) and a **group app**
-(`tnra-app`) together on your machine and exercise the full Lemon Squeezy paywall:
+(`tnra-app`) together on your machine and exercise the full Paddle paywall:
 checkout → webhook → entitlement → app access.
 
-> Production setup lives in `PRODUCTION.vps.md` and `PRODUCTION.cloudflare.md`
-> (section **Central Billing Service**). This file is local dev only.
+> **Provider:** this branch uses **Paddle** (Merchant of Record). Production setup lives in
+> `PRODUCTION.vps.md` / `PRODUCTION.cloudflare.md` (section **Central Billing Service**).
+> This file is local dev only.
+>
+> The DB columns are still named `ls_*` (`ls_subscription_id`, `ls_customer_id`) — they are
+> opaque provider ids and hold Paddle ids on this branch; the name wasn't churned.
 
 ## How the pieces fit
 
@@ -13,20 +17,20 @@ checkout → webhook → entitlement → app access.
   member ── browser ──► tnra-app (:8080)  ── EntitlementGate ──┐
                                                                │  Bearer <per-group token>
                                                                ▼
-                                          tnra-billing-app (:8082)  ── REST/JSON ──► Lemon Squeezy
+                                          tnra-billing-app (:8082)  ── REST/JSON ──► Paddle
                                                │  group_billing / billing_account
                                                ▼
                                           tnra_billing DB (mysql :3307)
                                                ▲
-                            Lemon Squeezy ── webhook (HMAC) ──► /api/billing/webhook
+                                  Paddle ── webhook (Paddle-Signature) ──► /api/billing/webhook
 ```
 
 - `tnra-app` never sees a card. It asks the billing service "is this email entitled?"
-  and, on the membership screen, asks it for a **hosted Lemon Squeezy checkout URL**.
+  and, on the membership screen, asks it for a **hosted Paddle checkout URL**.
 - The billing service is the **single source of truth** for entitlement. It is one
   central instance shared by all groups; each group authenticates with its own
   per-group bearer token, which fixes its `group_slug` server-side.
-- Payment confirmation arrives **out of band** via the Lemon Squeezy webhook. Until the
+- Payment confirmation arrives **out of band** via the Paddle webhook. Until the
   webhook flips the account to `ACTIVE`, the member sits at `PENDING_PAYMENT`. **This is
   why you need a public tunnel to the webhook (step 2.5) to see the full flow locally.**
 
@@ -45,7 +49,7 @@ Key behaviors to keep in mind while testing:
   disabled so the checkout actually shows.
 
 > **Order matters.** The billing service can't even start until its database exists, so
-> set it up first (Section 1). Lemon Squeezy (Section 2) and `tnra-app` (Section 3) come
+> set it up first (Section 1). Paddle (Section 2) and `tnra-app` (Section 3) come
 > after, then the end-to-end test (Section 4).
 
 ---
@@ -69,13 +73,10 @@ Create it once. Make sure the dev MySQL container is up first:
 ```bash
 # from the repo root — start (or confirm) the shared dev infra incl. MySQL
 docker compose up -d mysql
-
-# confirm it's running and healthy (you want to see container "mysql")
 docker compose ps mysql
 ```
 
-Then create the database. The dev root password lives in the repo `.env`
-(`MYSQL_ROOT_PASSWORD`); this reads it from there so you don't have to type it:
+Then create the database (reads the dev root password from the repo `.env`):
 
 ```bash
 docker compose exec -T mysql \
@@ -84,11 +85,6 @@ docker compose exec -T mysql \
       GRANT ALL PRIVILEGES ON tnra_billing.* TO 'tnra'@'%';
       FLUSH PRIVILEGES;"
 ```
-
-> The `GRANT` lets the `tnra` user (the credentials the billing `application.yml` connects
-> with) read/write the new schema. If your `.env` password has shell-special characters and
-> the one-liner misbehaves, run `docker compose exec -it mysql mysql -uroot -p` and paste
-> the three SQL statements interactively instead.
 
 Verify it exists:
 
@@ -104,11 +100,6 @@ this empty database and creates `group_billing`, `billing_account`, and
 `billing_webhook_event`. You only do this once; the tables persist in the `mysql-db`
 Docker volume across restarts.
 
-> Alternative (skip the manual `CREATE DATABASE`): append `&createDatabaseIfNotExist=true`
-> to the datasource URL in `tnra-billing-app/src/main/resources/application.yml` so the
-> JDBC driver creates the schema on connect. The explicit step above is preferred because
-> it also sets up the `tnra` user grant and matches how the other services are seeded.
-
 ### 1.2 Settings overview
 
 Create the local config from the sample (it is gitignored):
@@ -120,37 +111,37 @@ cp tnra-billing-app/src/main/resources/application.yml.sample \
 
 The sample already points the datasource at `localhost:3307/tnra_billing`, sets
 `server.port: 8082`, and pulls every secret from env (blank by default so a
-misconfigured deploy fails loudly):
+misconfigured deploy fails loudly). The Paddle settings live under the `paddle:` key:
 
-| Property                     | Env var             | Local value                          | Notes |
-|------------------------------|---------------------|--------------------------------------|-------|
-| `lemonsqueezy.api-key`       | `LS_API_KEY`        | test-mode API key                    | required for checkout (Section 2) |
-| `lemonsqueezy.store-id`      | `LS_STORE_ID`       | test store id                        | required for checkout (Section 2) |
-| `lemonsqueezy.webhook-secret`| `LS_WEBHOOK_SECRET` | the signing secret from step 2.4     | required for webhooks |
-| `lemonsqueezy.variant.monthly` | `LS_VARIANT_MONTHLY` | monthly variant id                | required for checkout (Section 2) |
-| `lemonsqueezy.variant.yearly`  | `LS_VARIANT_YEARLY`  | yearly variant id                 | required for checkout (Section 2) |
-| `billing.admin-token`        | `BILLING_ADMIN_TOKEN` | any strong string                  | guards `/api/admin/**`; **blank ⇒ admin API disabled (fail closed)** |
-| `billing.trial-days`         | `TNRA_TRIAL_DAYS`   | `60` (default)                       | default trial applied at registration |
+| Property                 | Env var               | Local value                                   | Notes |
+|--------------------------|-----------------------|-----------------------------------------------|-------|
+| `paddle.api-key`         | `PADDLE_API_KEY`      | sandbox API key                               | required for checkout (Section 2) |
+| `paddle.api-base`        | `PADDLE_API_BASE`     | `https://sandbox-api.paddle.com` (default)    | leave unset for sandbox; set `https://api.paddle.com` for live |
+| `paddle.webhook-secret`  | `PADDLE_WEBHOOK_SECRET` | the destination secret from step 2.4 (`pdl_ntfset_…`) | required for webhooks |
+| `paddle.price.monthly`   | `PADDLE_PRICE_MONTHLY` | monthly Paddle **Price** id (`pri_…`)        | required for checkout (Section 2) |
+| `paddle.price.yearly`    | `PADDLE_PRICE_YEARLY`  | yearly Paddle **Price** id (`pri_…`)         | required for checkout (Section 2) |
+| `billing.admin-token`    | `BILLING_ADMIN_TOKEN` | any strong string                             | guards `/api/admin/**`; **blank ⇒ admin API disabled (fail closed)** |
+| `billing.trial-days`     | `TNRA_TRIAL_DAYS`     | `60` (default)                                | default trial applied at registration |
 
 ### 1.3 Run it
 
-The app **boots fine with the `LS_*` values still blank** — they're only exercised once you
-start a checkout, so you can bring the service up now (which also confirms the schema fix
-and the database from step 1.1), then come back and fill in the real Lemon Squeezy values
-from Section 2 and restart before the end-to-end test.
+The app **boots fine with the `PADDLE_*` values still blank** — they're only exercised once
+you start a checkout, so you can bring the service up now (which also confirms the schema
+fix and the database from step 1.1), then come back and fill in the real Paddle values from
+Section 2 and restart before the end-to-end test.
 
 Generate the admin token now (you'll reuse it when registering the group in step 3.3), and
-export whatever `LS_*` values you already have (blank is OK for a first boot):
+export whatever `PADDLE_*` values you already have (blank is OK for a first boot):
 
 ```bash
 export BILLING_ADMIN_TOKEN=$(openssl rand -hex 24)   # remember this for step 3.3
 
 # Fill these from Section 2 before running an actual checkout (blank is fine to just boot):
-export LS_API_KEY=...           # test mode
-export LS_STORE_ID=...
-export LS_WEBHOOK_SECRET=...    # same string you set in the LS webhook (step 2.4)
-export LS_VARIANT_MONTHLY=...
-export LS_VARIANT_YEARLY=...
+export PADDLE_API_KEY=...            # sandbox
+export PADDLE_WEBHOOK_SECRET=...     # pdl_ntfset_... from the notification destination (step 2.4)
+export PADDLE_PRICE_MONTHLY=pri_...  # $7 / month
+export PADDLE_PRICE_YEARLY=pri_...   # $60 / year
+# PADDLE_API_BASE defaults to https://sandbox-api.paddle.com — leave unset for sandbox.
 
 ./mvnw -pl tnra-billing-app spring-boot:run
 ```
@@ -166,66 +157,75 @@ curl http://localhost:8082/actuator/health      # {"status":"UP"}
 
 ---
 
-## 2. Set up Lemon Squeezy (test mode)
+## 2. Set up Paddle (sandbox)
 
-Lemon Squeezy is the Merchant of Record. You need a (free) account; no real money moves
-in **Test mode**. Collect the five `LS_*` values here, then put them into the billing
-service's environment (step 1.3) and restart it.
+Paddle is the Merchant of Record. You need a **sandbox** account; no real money moves.
+The sandbox is a **separate login** from live and has its **own** API key, Price ids, and
+webhook secret — keep them separate from live values. Collect the values here, then put
+them into the billing service's environment (step 1.3) and restart it.
 
-### 2.1 Account, store, test mode
+> Paddle sandbox: <https://sandbox-vendors.paddle.com>. The API base is
+> `https://sandbox-api.paddle.com` (already the default in `application.yml.sample`).
 
-1. Sign up at <https://lemonsqueezy.com> and create a **Store**.
-2. Toggle **Test mode** ON (top of the dashboard). Everything below is done in test mode.
-   Test mode has its **own** API keys, store id, variant ids, and webhook secret — keep
-   them separate from live values.
+### 2.1 Product + two prices
 
-### 2.2 Product + two variants
+**Catalog → Products** → create one product (e.g. "TNRA Membership"), then add two
+recurring **Prices**:
 
-Create one subscription **Product** (e.g. "TNRA Membership") with two **variants**:
+| Price   | Billing period | Amount | Maps to env           |
+|---------|----------------|--------|-----------------------|
+| monthly | Monthly        | $7     | `PADDLE_PRICE_MONTHLY` |
+| yearly  | Yearly         | $60    | `PADDLE_PRICE_YEARLY`  |
 
-| Variant | Billing  | Price | Maps to env       |
-|---------|----------|-------|-------------------|
-| monthly | Monthly  | $7    | `LS_VARIANT_MONTHLY` |
-| yearly  | Yearly   | $60   | `LS_VARIANT_YEARLY`  |
+Copy each **Price id** (`pri_…`) from the price detail. Both must be recurring
+(subscription) prices — the app drives the subscription lifecycle
+(active / grace / cancelled) off subscription webhooks.
 
-Both must be **subscription** variants (not one-time), because the app drives the
-subscription lifecycle (active / grace / cancelled) off subscription webhooks.
+### 2.2 API key
 
-### 2.3 Collect the four IDs / secrets
+**Developer Tools → Authentication** → create a sandbox **API key** → `PADDLE_API_KEY`.
+(The client sends it as `Authorization: Bearer <PADDLE_API_KEY>` against
+`https://sandbox-api.paddle.com`.)
 
-| Value                | Where to find it                                                                 | Env var              |
-|----------------------|----------------------------------------------------------------------------------|----------------------|
-| **API key**          | Settings → API → create an API key                                               | `LS_API_KEY`         |
-| **Store ID**         | Settings → Stores (numeric id), or the `store_id` in any API response            | `LS_STORE_ID`        |
-| **Monthly variant ID** | Product → Monthly variant → the numeric id in the URL / variant detail         | `LS_VARIANT_MONTHLY` |
-| **Yearly variant ID**  | Product → Yearly variant → the numeric id in the URL / variant detail          | `LS_VARIANT_YEARLY`  |
+### 2.3 Default payment link (required for hosted checkout)
 
-> Tip: variant ids are also returned from `GET https://api.lemonsqueezy.com/v1/variants`
-> with your API key (`Authorization: Bearer <LS_API_KEY>`, `Accept: application/vnd.api+json`).
+The app creates a checkout via `POST /transactions` and reads `data.checkout.url` back.
+**Paddle only returns that URL if a default payment link is configured.** Set it under
+**Checkout → Settings → Default payment link** (any URL on a domain approved for your
+sandbox seller — the hosted overlay/inline checkout is served from there). Without it,
+`createCheckout` gets a transaction with no `checkout.url` and the membership screen fails
+to start checkout.
 
-### 2.4 Webhook
+### 2.4 Webhook (notification destination)
 
-1. Settings → **Webhooks** → **Add endpoint**.
-2. **Signing secret**: pick any strong string → this is `LS_WEBHOOK_SECRET`.
-   The service verifies `HMAC-SHA256(rawBody, secret) == X-Signature` and rejects
+**Developer Tools → Notifications → New destination**:
+
+1. **URL** — see step 2.5 (must be publicly reachable; `localhost` won't work). It ends in
+   `/api/billing/webhook`.
+2. **Secret key** — Paddle generates a `pdl_ntfset_…` secret for the destination → this is
+   `PADDLE_WEBHOOK_SECRET`. The service verifies the `Paddle-Signature` header
+   (`ts=<unix>;h1=<hex>`, where `h1 == HMAC-SHA256("<ts>:<rawBody>", secret)`) and rejects
    anything else with 401, so this must match exactly.
 3. **Events** — subscribe to at least:
-   - `subscription_created`
-   - `subscription_updated`
-   - `subscription_payment_success`
-   - `subscription_payment_failed`
-   - `subscription_cancelled`
-   - `subscription_expired`
-4. **URL** — see step 2.5 (must be publicly reachable; `localhost` won't work).
+   - `subscription.created`
+   - `subscription.activated`
+   - `subscription.updated`
+   - `subscription.canceled`
+   - `subscription.past_due`
+   - `subscription.paused`
+   - `subscription.resumed`
+   - `transaction.completed`
+   - `transaction.payment_failed`
 
 The checkout the app creates attaches `custom_data` (`group_slug`, `beneficiary_email`,
-`payer_email`); Lemon Squeezy echoes it back in `meta.custom_data` on every webhook, which
-is how the service routes a payment to the right account even before a subscription id exists.
+`payer_email`); Paddle echoes it back as `data.custom_data` on every webhook, which is how
+the service routes a payment to the right account even before a subscription id exists.
+(`subscription.*` events carry the subscription id as `data.id`; `transaction.*` events
+carry it as `data.subscription_id`.)
 
 ### 2.5 Expose the local webhook with a tunnel
 
-Lemon Squeezy must reach `tnra-billing-app` on your laptop. Run a quick tunnel to
-`localhost:8082`:
+Paddle must reach `tnra-billing-app` on your laptop. Run a quick tunnel to `localhost:8082`:
 
 ```bash
 # Option A — cloudflared quick tunnel (no account needed)
@@ -235,26 +235,25 @@ cloudflared tunnel --url http://localhost:8082
 ngrok http 8082
 ```
 
-Take the public URL it prints and set the webhook **URL** to:
+Set the destination **URL** (step 2.4) to:
 
 ```
 https://<your-tunnel-host>/api/billing/webhook
 ```
 
 > Without the tunnel you can still load the checkout page and pay, but the account stays
-> `PENDING_PAYMENT` forever because the confirmation webhook never arrives — entitlement
-> will not flip to ACTIVE. (Advanced alternative: replay a captured webhook body locally
-> with a hand-computed `X-Signature` HMAC; the tunnel is far easier.)
+> `PENDING_PAYMENT` forever because the confirmation webhook never arrives. Use the
+> **simulate** step in Section 4 instead if you don't want a tunnel.
 
 ### 2.6 Test card
 
-In the hosted checkout (test mode) use Stripe's test card:
+In the hosted sandbox checkout use Paddle's test card:
 
 ```
-4242 4242 4242 4242   any future expiry   any CVC   any ZIP
+4242 4242 4242 4242   any future expiry   any CVC   any postal code
 ```
 
-> With these values collected, set the `LS_*` env vars in the billing service (step 1.3)
+> With these values collected, set the `PADDLE_*` env vars in the billing service (step 1.3)
 > and **restart it** so checkout and webhook verification work.
 
 ---
@@ -263,12 +262,10 @@ In the hosted checkout (test mode) use Stripe's test card:
 
 `tnra-app` runs locally exactly as it does today (Keycloak + MySQL via the dev
 `docker-compose.yml`, the app itself from your IDE / `./mvnw`). Billing adds three
-settings and they are **off by default**.
+settings and they are **off by default**. These settings are **provider-agnostic** — they
+don't change between Lemon Squeezy and Paddle.
 
 ### 3.1 Settings overview
-
-`tnra-app` reads these (`application.yml.sample` documents them; the live
-`application.yml` does **not** include the block yet — add it, or pass the env vars):
 
 | Property               | Env var                 | Local value                  | Meaning                                   |
 |------------------------|-------------------------|------------------------------|-------------------------------------------|
@@ -296,8 +293,8 @@ export TNRA_BILLING_ENABLED=true
 export TNRA_BILLING_API_URL=http://localhost:8082
 export TNRA_BILLING_API_TOKEN=<paste the token from step 3.3>
 
-# Where Lemon Squeezy returns the buyer after a successful checkout (tnra.app.base-url).
-# Locally this defaults to the dev URL, so set it to your local app to be returned here:
+# Where Paddle returns the buyer after a successful checkout (tnra.app.base-url). Set it to
+# your local app so you're returned to /billing/activating here:
 export APP_BASE_URL=http://localhost:8080
 ```
 
@@ -305,9 +302,6 @@ export APP_BASE_URL=http://localhost:8080
 > when `tnra.billing.enabled=true`, and `@Value("${tnra.billing.api-token}")` will fail
 > fast on startup if it is missing — so register the group (step 3.3) **before** you
 > start `tnra-app` with billing on.
->
-> The app passes its base URL to the checkout as `product_options.redirect_url`, so after
-> paying the member is returned to `tnra-app` (no Lemon Squeezy dashboard config needed).
 
 ### 3.3 Make the test group ready to test billing
 
@@ -358,17 +352,17 @@ curl -X PATCH http://localhost:8082/api/admin/groups/local \
 ## 4. End-to-end smoke test
 
 Start order: **MySQL + Keycloak (docker)** → **tnra-billing-app (:8082)** with the real
-`LS_*` values (steps 1.3 + Section 2) → register the group (step 3.3) → **tnra-app (:8080)**
-with the token → **tunnel (step 2.5)**.
+`PADDLE_*` values (steps 1.3 + Section 2) → register the group (step 3.3) → **tnra-app
+(:8080)** with the token → **tunnel (step 2.5)**.
 
 1. Log into `tnra-app` as a member (e.g. `http://localhost:8080`, OG `tnra` realm user).
 2. Because the group has no trial/exempt and the member has no subscription, the
    `EntitlementGate` forwards any protected route to **`/billing`** ("Your membership").
-3. Click **Pay $7 / month** → you're sent to the hosted Lemon Squeezy checkout. Pay with
-   the test card (step 2.6).
-4. On success, Lemon Squeezy returns you to **`/billing/activating`** ("Activating your
-   membership…"). Meanwhile it fires `subscription_created` / `subscription_payment_success`
-   to your tunnel → `/api/billing/webhook` → the account flips to `ACTIVE`.
+3. Click **Pay $7 / month** → you're sent to the hosted Paddle checkout. Pay with the test
+   card (step 2.6).
+4. On success, Paddle returns you to **`/billing/activating`** ("Activating your
+   membership…"). Meanwhile it fires `subscription.created` / `transaction.completed` to
+   your tunnel → `/api/billing/webhook` → the account flips to `ACTIVE`.
 5. The activating page polls entitlement (cache-bypassing) every ~2s and forwards you into
    the app the moment the webhook lands — usually a few seconds, no manual refresh. If the
    webhook is slow (>~60s) it shows a **Continue to TNRA** button instead.
@@ -384,78 +378,75 @@ curl -s "http://localhost:8082/api/v1/entitlement?email=member@example.com" \
   -H "Authorization: Bearer $TNRA_BILLING_API_TOKEN"
 # {"entitled":true,"status":"ACTIVE","reason":"SUBSCRIPTION"}
 
-# inspect rows
+# inspect rows (columns are ls_* but hold Paddle ids)
 docker compose exec mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" tnra_billing \
   -e "SELECT email,status,payer_email,ls_subscription_id FROM billing_account;
       SELECT event_name,processed,error FROM billing_webhook_event ORDER BY id DESC LIMIT 5;"
 ```
 
 8. **Manage subscriptions.** "Update payment method" on `/billing` opens the hosted Customer
-   Portal (`/api/v1/portal` → LS `customer_portal` URL), which lists **every** subscription you
-   pay for — your own *and* any gifts — so you can update a card or **cancel a specific gift**
-   there. If you're covering anyone, `/billing` also shows a **"Members you're covering"** list
-   (status per beneficiary). The portal link works even for a **pure gifter** (a trial/comp member
-   with no subscription of their own) — it falls back to a subscription they pay for.
+   Portal (`/api/v1/portal` → Paddle `POST /customers/{id}/portal-sessions` →
+   `data.urls.general.overview`), where you can update a card or cancel. If you're covering
+   anyone, `/billing` also shows a **"Members you're covering"** list. The portal link works
+   even for a **pure gifter** (a trial/comp member with no subscription of their own).
 
 > If after paying the member is still sent to the membership page, the webhook didn't
 > arrive — check `SELECT status FROM billing_account` (still `PENDING_PAYMENT`) and
 > `SELECT * FROM billing_webhook_event` (empty). The redirect back to the app and the
 > webhook are independent; only the webhook flips entitlement. Either fix delivery
-> (tunnel + LS webhook URL, step 2.5) or simulate it locally (below).
+> (tunnel + destination URL, step 2.5) or simulate it locally (below).
 
 ### Simulate the webhook locally (no tunnel)
 
-If you don't want to run a public tunnel, POST a synthetic `subscription_created` event
+If you don't want to run a public tunnel, POST a synthetic `subscription.created` event
 straight to the billing app. The account row already exists (`PENDING_PAYMENT`) from the
-checkout, so this flips it to `ACTIVE` exactly as a real Lemon Squeezy webhook would.
+checkout, so this flips it to `ACTIVE` exactly as a real Paddle webhook would.
 
-The body must be signed with HMAC-SHA256 using your `LS_WEBHOOK_SECRET` (the service
-verifies it and returns 401 otherwise). Run this in the **same shell where
-`LS_WEBHOOK_SECRET` is exported**, and set the `custom_data` values to match the account
-you created (group slug + beneficiary email):
+Paddle signs with `Paddle-Signature: ts=<unix>;h1=<hex>` where
+**`h1 = HMAC-SHA256("<ts>:<rawBody>", PADDLE_WEBHOOK_SECRET)`** (note: `ts:` is prefixed to
+the body before hashing — different from Lemon Squeezy, which signed the body alone). Run
+this in the **same shell where `PADDLE_WEBHOOK_SECRET` is exported**, and set `custom_data`
+to match the account you created (group slug + beneficiary email):
 
 ```bash
-BODY='{"meta":{"event_name":"subscription_created","custom_data":{"group_slug":"local","beneficiary_email":"member@example.com","payer_email":"member@example.com"}},"data":{"id":"sim-sub-1","attributes":{"customer_id":"sim-cust-1","status":"active"}}}'
-SIG=$(printf '%s' "$BODY" | openssl dgst -sha256 -hmac "$LS_WEBHOOK_SECRET" | awk '{print $NF}')
+TS=$(date +%s)
+BODY='{"event_type":"subscription.created","data":{"id":"sub_sim1","status":"active","customer_id":"ctm_sim1","custom_data":{"group_slug":"local","beneficiary_email":"member@example.com","payer_email":"member@example.com"}}}'
+H1=$(printf '%s' "$TS:$BODY" | openssl dgst -sha256 -hmac "$PADDLE_WEBHOOK_SECRET" | awk '{print $NF}')
 curl -s -o /dev/null -w "%{http_code}\n" -X POST http://localhost:8082/api/billing/webhook \
-  -H "Content-Type: application/json" -H "X-Signature: $SIG" --data-binary "$BODY"
-# → 200   (401 = LS_WEBHOOK_SECRET mismatch)
+  -H "Content-Type: application/json" \
+  -H "Paddle-Signature: ts=$TS;h1=$H1" \
+  --data-binary "$BODY"
+# → 200   (401 = PADDLE_WEBHOOK_SECRET mismatch or malformed Paddle-Signature)
 ```
 
 Re-check entitlement (`status` should now be `ACTIVE`) and reload `tnra-app` (allow the 60s
-cache or restart). Vary the event to exercise the rest of the matrix: `data.attributes.status`
-`past_due` → `ON_GRACE_PERIOD`, `cancelled`/`expired` → `SUSPENDED`; or set
-`meta.event_name` to `subscription_payment_failed` (→ grace) or `subscription_cancelled`
-(→ suspended).
+cache or restart). Vary the event to exercise the rest of the matrix:
+
+- `data.status` `past_due` → `ON_GRACE_PERIOD`; `paused`/`canceled` → `SUSPENDED`.
+- `event_type` `transaction.payment_failed` or `subscription.past_due` → `ON_GRACE_PERIOD`.
+- `event_type` `subscription.canceled` or `subscription.paused` → `SUSPENDED`.
+- `event_type` `transaction.completed` / `subscription.activated` / `subscription.resumed` → `ACTIVE`.
 
 ### Things to try
 
-- **Profile → Billing tab**: everything in one place — membership status (**pay options shown only
-  when you have no active subscription**, **"Update payment method"** always shown), a **"Gift a
-  membership"** section, and a **"Members you're covering"** list (the gifts you pay for). The status
-  blurb reflects your actual state: **"Your membership is active"** when you have a subscription,
-  **"…gifted by <name>"** when someone else pays for you, or the **"Activate your membership…"** prompt
-  when you have none. The tab's billing-service calls are **lazy** — they only fire when you actually
-  open the Billing tab, not on every profile visit.
+- **Profile → Billing tab**: everything in one place — membership status (**pay options shown
+  only when you have no active subscription**, **"Update payment method"** always shown), a
+  **"Gift a membership"** section, and a **"Members you're covering"** list. The tab's
+  billing-service calls are **lazy** — they only fire when you open the Billing tab.
 - **Gift a membership (UI)**: as an **active** member, open **Profile → Billing → Gift a
-  membership**, pick another member, and click **Continue to checkout** → you land on `/billing` in
-  gift mode ("Gift a membership"). Choosing a plan sends you to Lemon Squeezy with the **beneficiary's**
-  email; you (the payer) are charged, and the webhook activates *their* account. The gift section
-  is greyed out (with a notice) for members who aren't active themselves. The payer is always
-  your authenticated identity — only the beneficiary comes from the selection, and it's
-  validated to be a real group member. If the beneficiary is **already settled** (active sub,
-  trial, exempt, or an existing gift) the gift is blocked — the UI shows "already has an active
-  membership — no gift needed" and the billing API returns **409** (enforced even if the UI is
-  bypassed). A beneficiary in **`ON_GRACE_PERIOD`** (dunning — their own payment is failing) is
-  intentionally still **giftable**: the gift is a rescue that supersedes the failing subscription.
+  membership**, pick another member, and click **Continue to checkout** → you land on
+  `/billing` in gift mode. Choosing a plan sends you to Paddle with the **beneficiary's**
+  email in `custom_data`; you (the payer) are charged, and the webhook activates *their*
+  account. A beneficiary who is **already settled** (active sub, trial, exempt, or an
+  existing gift) is blocked with **409**; a beneficiary in **`ON_GRACE_PERIOD`** is
+  intentionally still **giftable** (a rescue that supersedes the failing subscription).
+- **Gift supersede**: a beneficiary who self-pays to replace a gift creates a NEW
+  subscription; its `subscription.created` routes by `custom_data`, and the old gift
+  subscription is cancelled via `POST /subscriptions/{id}/cancel`.
 - **Gift / covering (API)**: a gift is `payerEmail` ≠ `beneficiaryEmail`.
   `GET /api/v1/covering?payerEmail=...` lists who a payer covers. A `billing_webhook_event`
   with a non-null `error` and `processed=false` is an **unmatched** event kept for
   reconciliation — check the `custom_data` routing.
-- **Dunning**: send a `subscription_payment_failed` (from the LS dashboard's webhook
-  "send test" or by letting a renewal fail) → status `ON_GRACE_PERIOD`, still entitled.
-- **Cancellation**: `subscription_cancelled`/`subscription_expired` → `SUSPENDED`, gate
-  forwards to `/billing` again.
 
 ### Troubleshooting
 
@@ -464,9 +455,13 @@ cache or restart). Vary the event to exercise the rest of the matrix: `data.attr
 | `tnra-billing-app` won't start; `Unknown database 'tnra_billing'` | Database not created — do step 1.1 before first boot. |
 | Paywall never shows; member always gets in | Group is exempt or in trial (`GROUP_EXEMPT`/`GROUP_TRIAL`), or billing service is down and the gate is failing open. Re-register with `trialDays:0, exempt:false`; confirm `:8082` is UP. |
 | `tnra-app` won't start with billing on | `TNRA_BILLING_API_TOKEN` missing/blank while `enabled=true`. Register the group first, paste the token. |
-| Checkout 500 / "couldn't start checkout" | Bad `LS_API_KEY` / `LS_STORE_ID` / variant id, or live-mode keys used in test mode. |
-| Account stuck `PENDING_PAYMENT` after paying | Webhook never reached the service — tunnel down, wrong webhook URL, or `LS_WEBHOOK_SECRET` mismatch (401, nothing persisted). |
-| Lemon Squeezy shows the webhook failing with **401/403** | Signature rejected. The webhook's **Signing secret** in Lemon Squeezy must be the **exact same string** as the billing app's `LS_WEBHOOK_SECRET` — and it must be **non-blank** (a blank secret rejects every webhook). Set both, restart the billing app. (A 403 here is really the 401 surfacing through the `/error` dispatch.) |
+| Checkout 500 / "couldn't start checkout" | Bad `PADDLE_API_KEY` / Price id, live-mode key used against the sandbox base (or vice-versa), or **no default payment link configured** (step 2.3) so `data.checkout.url` is absent. |
+| Account stuck `PENDING_PAYMENT` after paying | Webhook never reached the service — tunnel down, wrong destination URL, or `PADDLE_WEBHOOK_SECRET` mismatch (401, nothing persisted). |
+| Paddle shows the webhook failing with **401** | Signature rejected. The destination's **secret key** in Paddle must equal the billing app's `PADDLE_WEBHOOK_SECRET`, and it must be **non-blank** (a blank secret rejects every webhook). The signed string is `"<ts>:<body>"`, not the body alone. Set both, restart the billing app. |
 | `401 Admin API not configured` on register | `BILLING_ADMIN_TOKEN` blank in the billing app, or the `X-Admin-Token` header doesn't match. |
 | Entitlement slow to change | 60s client cache in `tnra-app`; wait or restart. |
-```
+
+> **Note on approval:** Paddle won't let you fully complete a **live** checkout until the
+> seller account **and its domain** are approved. Sandbox works without approval. For the
+> live domain-review requirement (pricing must be visible on the **apex** homepage, not just
+> `/pricing`), see the pricing changes shipped on the 9.2.x / 10.x landing site.
