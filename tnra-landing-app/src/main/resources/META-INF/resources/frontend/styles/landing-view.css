@@ -254,6 +254,30 @@ html {
     color: var(--tnra-text-muted);
 }
 
+/* Privacy / Terms / Refund links above the copyright line. */
+.footer-links {
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.75rem;
+}
+
+.footer-link {
+    color: var(--tnra-text-secondary);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: color var(--tnra-transition);
+}
+
+.footer-link:hover {
+    color: var(--tnra-primary);
+}
+
+/* The Fine Print: a divider between the stacked policy sections. */
+.fine-print-section + .fine-print-section {
+    border-top: 1px solid var(--tnra-border-subtle);
+}
+
 
 /* =========================================
    CARD GRIDS (squares / features / pricing)
@@ -654,7 +678,10 @@ html {
         grid-template-columns: 1fr;
     }
 
+    /* Four nav items now — let them wrap rather than overflow on narrow screens. */
     .nav-links {
         gap: 1.1rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
     }
 }

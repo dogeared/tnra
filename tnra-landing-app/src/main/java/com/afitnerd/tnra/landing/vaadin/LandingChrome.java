@@ -69,7 +69,11 @@ final class LandingChrome {
         requestLink.setQueryParameters(QueryParameters.of(SCROLL_PARAM, SCROLL_FORM));
         requestLink.addClassName("nav-link");
 
-        HorizontalLayout links = new HorizontalLayout(aboutLink, pricingLink, requestLink);
+        // Sits to the right of Request Access; the page embeds all three policies as sections.
+        RouterLink finePrintLink = new RouterLink("The Fine Print", FinePrintView.class);
+        finePrintLink.addClassName("nav-link");
+
+        HorizontalLayout links = new HorizontalLayout(aboutLink, pricingLink, requestLink, finePrintLink);
         links.addClassName("nav-links");
         links.setAlignItems(Alignment.CENTER);
         links.setSpacing(false);
@@ -81,7 +85,24 @@ final class LandingChrome {
     static Component footer() {
         Footer footer = new Footer();
         footer.addClassName("landing-footer");
-        footer.add(new Paragraph("© 2026 TNRA. Built for groups that take commitment seriously."));
+
+        // Individual links to the three standalone policy pages, on every landing page.
+        HorizontalLayout legalLinks = new HorizontalLayout(
+            footerLink("Privacy Policy", PrivacyPolicyView.class),
+            footerLink("Terms of Service", TermsOfServiceView.class),
+            footerLink("Refund Policy", RefundPolicyView.class));
+        legalLinks.addClassName("footer-links");
+        legalLinks.setSpacing(false);
+        legalLinks.setJustifyContentMode(JustifyContentMode.CENTER);
+
+        footer.add(legalLinks,
+            new Paragraph("© 2026 TNRA. Built for groups that take commitment seriously."));
         return footer;
+    }
+
+    private static RouterLink footerLink(String text, Class<? extends Component> target) {
+        RouterLink link = new RouterLink(text, target);
+        link.addClassName("footer-link");
+        return link;
     }
 }
