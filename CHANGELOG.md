@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [9.2.3] - 2026-06-30
+
+### Added
+- **Crawlable navigation for non-JS clients (`LandingSeoListener`).** The landing nav is rendered by Vaadin's client bootstrap, so the server HTML had **no links at all** — a non-JS crawler (e.g. a Merchant-of-Record's automated domain checker) landed on an empty shell and could never discover `/pricing`. Every page's server HTML now carries a `<noscript>` navigation block linking to all public pages, so the pricing page is reachable by following links without executing JavaScript. (Generalizes the former `PricingSeoListener`, which now also injects site navigation.)
+
 ## [9.2.2] - 2026-06-30
 
 ### Changed

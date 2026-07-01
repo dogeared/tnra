@@ -14,9 +14,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class PricingSeoListenerTest {
+class LandingSeoListenerTest {
 
-    private final PricingSeoListener listener = new PricingSeoListener();
+    private final LandingSeoListener listener = new LandingSeoListener();
 
     private IndexHtmlResponse responseForPath(String pathInfo) {
         Document doc = Jsoup.parse("<html><head></head><body><div id=\"outlet\"></div></body></html>");
@@ -36,10 +36,35 @@ class PricingSeoListenerTest {
     }
 
     @Test
-    void pricingPath_injectsJsonLdAndNoscriptWithPricesTrialAndTax() {
+    void everyPage_getsCrawlableNavLinkingToPricing() {
+        IndexHtmlResponse response = responseForPath("/about-us");
+
+        listener.injectSeo(response);
+
+        String body = response.getDocument().body().html();
+        assertTrue(body.contains("<noscript>"), "noscript nav should be present");
+        assertTrue(body.contains("href=\"/pricing\""), "nav must link to /pricing");
+        assertTrue(body.contains("href=\"/fine-print\""), "nav must link to the legal pages");
+    }
+
+    @Test
+    void nonPricingPage_getsNavButNoPricingData() {
+        IndexHtmlResponse response = responseForPath("/about-us");
+
+        listener.injectSeo(response);
+
+        assertTrue(response.getDocument().body().html().contains("href=\"/pricing\""), "nav present");
+        assertFalse(response.getDocument().head().html().contains("application/ld+json"),
+            "no pricing JSON-LD off the pricing page");
+        assertFalse(response.getDocument().body().html().contains("pricing-fallback"),
+            "no pricing summary off the pricing page");
+    }
+
+    @Test
+    void pricingPage_getsNavAndJsonLdAndSummaryWithPricesTrialAndTax() {
         IndexHtmlResponse response = responseForPath("/pricing");
 
-        listener.injectPricingSeo(response);
+        listener.injectSeo(response);
 
         String head = response.getDocument().head().html();
         assertTrue(head.contains("application/ld+json"), "JSON-LD script should be present");
@@ -49,36 +74,28 @@ class PricingSeoListenerTest {
         assertTrue(head.contains("Taxes calculated at checkout"), "tax note");
 
         String body = response.getDocument().body().html();
-        assertTrue(body.contains("<noscript>"), "noscript fallback should be present");
-        assertTrue(body.contains("$7 / month / member"), "human-readable monthly price");
-        assertTrue(body.contains("$60 / year / member"), "human-readable yearly price");
+        assertTrue(body.contains("href=\"/pricing\""), "nav present on the pricing page too");
+        assertTrue(body.contains("pricing-fallback"), "human-readable pricing summary");
+        assertTrue(body.contains("$7 / month / member"), "monthly price in summary");
+        assertTrue(body.contains("$60 / year / member"), "yearly price in summary");
     }
 
     @Test
-    void pricingPathWithTrailingSlash_alsoInjects() {
+    void pricingPathWithTrailingSlash_alsoGetsPricingData() {
         IndexHtmlResponse response = responseForPath("/pricing/");
 
-        listener.injectPricingSeo(response);
+        listener.injectSeo(response);
 
         assertTrue(response.getDocument().head().html().contains("application/ld+json"));
     }
 
     @Test
-    void nonPricingPath_injectsNothing() {
-        IndexHtmlResponse response = responseForPath("/about-us");
-
-        listener.injectPricingSeo(response);
-
-        assertFalse(response.getDocument().head().html().contains("application/ld+json"));
-        assertFalse(response.getDocument().body().html().contains("<noscript>"));
-    }
-
-    @Test
-    void nullPathInfo_injectsNothing() {
+    void nullPathInfo_getsNavButNoPricingData() {
         IndexHtmlResponse response = responseForPath(null);
 
-        listener.injectPricingSeo(response);
+        listener.injectSeo(response);
 
+        assertTrue(response.getDocument().body().html().contains("<noscript>"), "nav still injected");
         assertFalse(response.getDocument().head().html().contains("application/ld+json"));
     }
 }
