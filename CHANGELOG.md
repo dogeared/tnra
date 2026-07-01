@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.0.3] - 2026-06-30
+
+### Added
+- **Crawlable navigation + apex pricing for non-JS clients (`LandingSeoListener`).** Forward-ports the 9.2.3 + 9.2.4 landing fixes to the 10.x line (supersedes `PricingSeoListener`). The landing nav and prices are Vaadin-rendered, so the server HTML had no links and the apex (`tnra.app` — the domain a Merchant-of-Record registers and checks) had no price. Now every page's server HTML carries a `<noscript>` nav to all public pages, and the **home page** shows a compact "Simple, per-member pricing" band ($7/mo, $60/yr per member, 60-day free trial, taxes-at-checkout) plus injected `Product`/`Offer` JSON-LD + `<noscript>` summary on `/` and `/pricing`, so a non-JS checker sees the price on the apex it actually fetches.
+
 ## [10.0.2] - 2026-06-30
 
 ### Changed

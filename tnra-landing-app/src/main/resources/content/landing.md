@@ -77,6 +77,35 @@ Your group can decide on the stats every member will track. Additionally, each m
 stats.
 :::
 
+:::cards pricing
+## Simple, per-member pricing
+
+Every hosted plan starts with a **60-day free trial** — you won't be charged until it ends, after which your card is
+billed at the plan price. Prices are per member and exclude tax; **applicable taxes are calculated at checkout**.
+:: Hosted per Month
+**$7** / month / member
+
+_60-day free trial, then **$7 / month / member** (plus tax)._
+
+- Encrypted, hosted, and fully managed
+
+[See full pricing](/pricing)
+:: Hosted per Year {featured}
+**$60** / year / member
+
+_60-day free trial, then **$60 / year / member** (plus tax)._
+
+- Two months free vs. paying monthly
+
+[See full pricing](/pricing)
+:: Self Hosted
+**$0**
+
+- Open source — run it yourself for free
+
+[TNRA on GitHub](https://github.com/dogeared/tnra)
+:::
+
 :::form
 title: Request access
 intro: TNRA is invite-only. Tell us about your group and we'll be in touch.
