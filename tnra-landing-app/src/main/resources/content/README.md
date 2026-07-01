@@ -2,11 +2,18 @@
 
 The public pages render from the Markdown files in this directory:
 
-| File           | Page        | Route       |
-|----------------|-------------|-------------|
-| `landing.md`   | Home        | `/`         |
-| `pricing.md`   | Pricing     | `/pricing`  |
-| `about-us.md`  | About Us    | `/about-us` |
+| File                  | Page             | Route               |
+|-----------------------|------------------|---------------------|
+| `landing.md`          | Home             | `/`                 |
+| `pricing.md`          | Pricing          | `/pricing`          |
+| `about-us.md`         | About Us         | `/about-us`         |
+| `privacy-policy.md`   | Privacy Policy   | `/privacy-policy`   |
+| `terms-of-service.md` | Terms of Service | `/terms-of-service` |
+| `refund-policy.md`    | Refund Policy    | `/refund-policy`    |
+
+The three policy files above are each rendered as a standalone page **and** embedded as a
+section on **The Fine Print** (`/fine-print`), which stacks all three. Footer links on every
+page point to the standalone policy pages.
 
 Most of a page is plain Markdown (headings, paragraphs, lists, links, blockquotes,
 `code`, `---` rules — rendered with the site theme). Structured or interactive
