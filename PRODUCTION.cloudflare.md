@@ -437,6 +437,11 @@ runs the full app with no payment surface. Run it only for the paid SaaS deploy.
   Paddle ── webhook (Paddle-Signature) ──► https://billing.tnra.app/api/billing/webhook
 ```
 
+The checkout itself opens on the **landing site**: the group app redirects the member to
+`https://tnra.app/pay?_ptxn=…`, Paddle.js there shows the overlay, and on completion the page
+sends them back to the group's `/billing/activating`. So the landing container needs the
+`PADDLE_CLIENT_TOKEN` / `PADDLE_ENVIRONMENT` env too (already wired in the compose file).
+
 Each group app reaches billing over its **public** HTTPS URL (`https://billing.tnra.app`),
 authenticated by a per-group bearer token minted at provisioning. The Paddle
 webhook must also be publicly reachable. The tunnel routes a `billing` subdomain to the
@@ -451,10 +456,13 @@ API key, Price ids, and webhook secret):
 - **Catalog → Products**: one product with two recurring **Prices** — **Monthly ($7)** and
   **Yearly ($60)**. Copy each Price id (`pri_…`) → `PADDLE_PRICE_MONTHLY` /
   `PADDLE_PRICE_YEARLY`.
-- **Developer Tools → Authentication**: create a live API key → `PADDLE_API_KEY`.
-- **Checkout → Settings → Default payment link**: required. The service creates a checkout
-  via `POST /transactions` and reads `data.checkout.url` back; Paddle only returns that URL
-  when a default payment link is configured on an approved domain.
+- **Developer Tools → Authentication**: create a live API key → `PADDLE_API_KEY`, and a
+  live **client-side token** → `PADDLE_CLIENT_TOKEN` (set `PADDLE_ENVIRONMENT=production`).
+- **Checkout → Checkout settings → Default payment link**: `https://tnra.app/pay`. Paddle's
+  "hosted" checkout is not a Paddle-hosted page — the `checkout.url` the billing service
+  gets back is this URL with `?_ptxn=txn_…` appended, and the landing app's `/pay` page
+  (Paddle.js) opens the overlay for that transaction. Paddle only returns `checkout.url`
+  when this is set, and in live it must be on the approved domain.
 - **Developer Tools → Notifications**: a destination with URL
   `https://billing.tnra.app/api/billing/webhook`. Copy its secret key (`pdl_ntfset_…`) →
   `PADDLE_WEBHOOK_SECRET`. Subscribe it to `subscription.created`,
@@ -482,6 +490,9 @@ PADDLE_WEBHOOK_SECRET=
 # Paddle Price ids (pri_...) for the $7/mo and $60/yr plans
 PADDLE_PRICE_MONTHLY=
 PADDLE_PRICE_YEARLY=
+# Paddle.js client-side token (live_...) for the landing app's /pay page + matching environment
+PADDLE_CLIENT_TOKEN=
+PADDLE_ENVIRONMENT=production
 # Guards the provisioning/admin API (X-Admin-Token). Blank ⇒ admin API disabled (fail closed).
 # Generate with: openssl rand -hex 24
 BILLING_ADMIN_TOKEN=

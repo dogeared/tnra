@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.2.0] - 2026-10-12
+
+### Added
+- **Paddle checkout page on the landing site (`/pay`).** Paddle's hosted checkout needs a page on the seller's own domain that includes Paddle.js: the `checkout.url` returned for a transaction is the dashboard's *default payment link* with `?_ptxn=…` appended, and Paddle.js on that page opens the overlay. Without such a page the membership screen's "Pay" buttons went nowhere. The new `PayView` (`https://tnra.app/pay`, anonymous) loads Paddle.js, initializes it with a **client-side token** (`PADDLE_CLIENT_TOKEN` → `tnra.paddle.client-token`) in the configured environment (`PADDLE_ENVIRONMENT`, `sandbox`|`production`), and on `checkout.completed` forwards the member to the group app's `/billing/activating` via the transaction's `custom_data.redirect_url` (https-only). Blank token ⇒ the page explains checkout isn't configured; self-host deploys need nothing.
+- **Path-scoped security headers.** `/pay` gets a CSP that admits `cdn.paddle.com` (script), `buy.paddle.com` / `sandbox-buy.paddle.com` (frame) and `*.paddle.com` (connect/img), plus a Permissions-Policy that allows the Payment Request API for the Paddle frames. Every other path keeps the existing A-grade policy unchanged.
+- Production compose passes `PADDLE_CLIENT_TOKEN` / `PADDLE_ENVIRONMENT` to the landing container; `PRODUCTION.*.md` and `BILLING_PLAN_LOCAL_TESTING.md` describe the default-payment-link setup.
+
 ## [10.1.1] - 2026-10-12
 
 ### Changed
