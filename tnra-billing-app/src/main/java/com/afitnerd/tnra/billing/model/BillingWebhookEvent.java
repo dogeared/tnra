@@ -14,7 +14,7 @@ import org.hibernate.type.SqlTypes;
 import java.time.LocalDateTime;
 
 /**
- * Durable record of every Lemon Squeezy webhook received. {@code lsEventId} is unique for
+ * Durable record of every Paddle webhook received. {@code lsEventId} is unique for
  * idempotency (a duplicate delivery is a no-op). The full {@code rawPayload} is stored so an
  * event that can't be matched to an account (or fails processing) is never lost — it can be
  * reconciled or replayed rather than silently dropped.

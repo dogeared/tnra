@@ -10,7 +10,7 @@ package com.afitnerd.tnra.billing.model;
  *                              └──────────────────────────────────────────────────────── (pay again)
  * </pre>
  *
- * ACTIVE and ON_GRACE_PERIOD are entitled (access kept while Lemon Squeezy retries a failed charge).
+ * ACTIVE and ON_GRACE_PERIOD are entitled (access kept while Paddle retries a failed charge).
  * PENDING_PAYMENT and SUSPENDED are not entitled (restricted to profile + pay).
  */
 public enum BillingStatus {

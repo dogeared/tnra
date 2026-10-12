@@ -17,7 +17,7 @@ import jakarta.annotation.security.PermitAll;
 import java.util.Optional;
 
 /**
- * Post-checkout landing page. Lemon Squeezy returns the buyer here (the checkout's redirect_url) right
+ * Post-checkout landing page. Paddle returns the buyer here (the checkout's redirect_url) right
  * after a successful payment, but entitlement only flips to ACTIVE when the webhook lands a moment later.
  * Rather than bounce the member back to the membership page in that gap, this page polls the billing
  * service (cache-bypassing) and forwards them into the app the instant the webhook is processed.

@@ -16,14 +16,14 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * <pre>
  *   request flow
  *   ────────────
- *   POST /api/billing/webhook   ── permitAll ──► controller verifies Lemon Squeezy HMAC itself
+ *   POST /api/billing/webhook   ── permitAll ──► controller verifies the Paddle-Signature HMAC itself
  *   GET  /actuator/health       ── permitAll
  *   /api/v1/**                  ── authenticated ──► per-group bearer-token filter (T7) scopes
  *                                                    each caller to its own group_slug
  *   anyRequest                  ── denied
  * </pre>
  *
- * The webhook is intentionally anonymous at the Spring layer because Lemon Squeezy cannot send a
+ * The webhook is intentionally anonymous at the Spring layer because Paddle cannot send a
  * bearer token; authenticity is established by HMAC-SHA256 over the raw body inside the controller.
  */
 @Configuration

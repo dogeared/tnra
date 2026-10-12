@@ -266,7 +266,7 @@ public class ProfileView extends VerticalLayout {
         }
     }
 
-    /** Open the hosted Lemon Squeezy customer portal for the current member. */
+    /** Open the hosted Paddle customer portal for the current member. */
     void openMembershipPortal() {
         if (currentUser == null || billingClient.isEmpty()) {
             return;
@@ -335,7 +335,7 @@ public class ProfileView extends VerticalLayout {
     /**
      * Renders the "Members you're covering" list (gifts this member pays for), hidden when they cover
      * no one. Rebuilt from scratch each refresh — cheap (a handful of rows), and keeps state simple.
-     * Managing/cancelling a specific gift happens in the Lemon Squeezy portal via "Update payment method".
+     * Managing/cancelling a specific gift happens in the Paddle portal via "Update payment method".
      */
     private void populateCoveringSection(String email) {
         coveringSection.removeAll();

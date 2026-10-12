@@ -11,7 +11,7 @@ public interface BillingAccountRepository extends JpaRepository<BillingAccount, 
     /** Entitlement lookup and checkout dedup — the beneficiary key. */
     Optional<BillingAccount> findByGroupSlugAndEmail(String groupSlug, String email);
 
-    /** Webhook routing — map a Lemon Squeezy subscription event back to the beneficiary account. */
+    /** Webhook routing — map a Paddle subscription event back to the beneficiary account. */
     Optional<BillingAccount> findByLsSubscriptionId(String lsSubscriptionId);
 
     Optional<BillingAccount> findByLsCustomerId(String lsCustomerId);
