@@ -7,7 +7,7 @@ We want TNRA to be worth it. This policy explains how cancellations and refunds 
 ## Subscriptions
 
 TNRA memberships are billed monthly ($7) or yearly ($60) per member and renew automatically until
-cancelled. Purchases are processed by **Lemon Squeezy**, our Merchant of Record.
+cancelled. Purchases are processed by **Paddle**, our Merchant of Record.
 
 ## Cancelling
 
@@ -24,8 +24,8 @@ billing portal and cancel. When you cancel:
 - **Renewals.** Because cancelling stops future billing and you keep access through the paid period, we
   generally don't refund partial or unused time on a renewal — but reach out if something went wrong
   (for example, you were charged after intending to cancel) and we'll make it right.
-- **How refunds are issued.** Refunds are processed by Lemon Squeezy back to your original payment
-  method. Your purchase is also subject to Lemon Squeezy's refund terms.
+- **How refunds are issued.** Refunds are processed by Paddle back to your original payment
+  method. Your purchase is also subject to Paddle's refund terms.
 
 ## Gifted memberships
 

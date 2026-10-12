@@ -2,11 +2,14 @@
 
 All notable changes to TNRA are documented in this file.
 
-## [10.1.0] - 2026-06-30
+## [10.1.1] - 2026-10-12
 
 ### Changed
 - **Billing provider is now Paddle (Merchant of Record), replacing Lemon Squeezy.** `tnra-billing-app` creates hosted checkouts via the Paddle Billing API (`POST /transactions`), opens the Paddle customer portal, and consumes Paddle webhooks verified by the `Paddle-Signature` HMAC. Configuration moves from `LS_*` to `PADDLE_API_KEY`, `PADDLE_API_BASE` (defaults to **sandbox**; set `https://api.paddle.com` for live), `PADDLE_WEBHOOK_SECRET`, `PADDLE_PRICE_MONTHLY`, and `PADDLE_PRICE_YEARLY`. Entitlement rules, the per-group token API, the admin/provisioning API, and the CLI flags are unchanged. `PRODUCTION.*.md` and `BILLING_PLAN_LOCAL_TESTING.md` describe the Paddle setup.
 - **CI tag step checks the remote for an existing tag.** The checkout is shallow and has no tags, so the old local check tried to re-push an existing tag and failed the run.
+- **Public legal pages name Paddle as the Merchant of Record.** The Privacy Policy, Terms of Service, and Refund Policy on the landing site (and the combined "The Fine Print" page) now reference Paddle for hosted checkout, receipts, taxes, and refunds, matching the billing service.
+
+## [10.1.0] - 2026-06-30
 
 ### Added
 - **Legal pages on the public landing site.** New **Privacy Policy** (`/privacy-policy`), **Terms of Service** (`/terms-of-service`), and **Refund Policy** (`/refund-policy`) pages, each rendered from a Markdown content file. A new top-level nav item **"The Fine Print"** (right of "Request Access") opens `/fine-print`, which embeds all three policies as stacked, anchor-linkable sections. Individual links to the three standalone policy pages appear in the footer of every landing page. Contact email is support@dogeared.dev. (Forward-ported from 9.2.0 on the maintenance line; completes 9.2.x → 10.x parity.)
