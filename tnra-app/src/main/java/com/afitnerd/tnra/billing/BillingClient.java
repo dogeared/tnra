@@ -40,7 +40,7 @@ public interface BillingClient {
 
     /**
      * Create a hosted checkout (self-pay when payerEmail == beneficiaryEmail, else a gift).
-     * {@code redirectUrl} is where Lemon Squeezy returns the buyer after payment (this app's URL).
+     * {@code redirectUrl} is where Paddle returns the buyer after payment (this app's URL).
      */
     String createCheckout(String beneficiaryEmail, String variant, String payerEmail, String redirectUrl);
 

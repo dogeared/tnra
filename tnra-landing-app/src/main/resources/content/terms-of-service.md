@@ -25,8 +25,8 @@ You agree not to misuse the service. In particular, you will not:
 
 Access to a group's app may require a paid membership ($7 / month or $60 / year per member).
 
-- **Merchant of Record.** Subscriptions are sold and billed through **Lemon Squeezy**, our Merchant of
-  Record. Lemon Squeezy handles payment processing, receipts, and applicable taxes, and your purchase
+- **Merchant of Record.** Subscriptions are sold and billed through **Paddle**, our Merchant of
+  Record. Paddle handles payment processing, receipts, and applicable taxes, and your purchase
   is also subject to their terms.
 - **Auto-renewal.** Subscriptions renew automatically each billing period until cancelled.
 - **Cancellation.** You can cancel anytime from the membership screen ("Update payment method" opens

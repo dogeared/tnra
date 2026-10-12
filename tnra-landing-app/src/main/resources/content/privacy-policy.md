@@ -18,11 +18,11 @@ public website at tnra.app.
 
 ## Payment information
 
-Payments are processed by **Lemon Squeezy**, our Merchant of Record. When you subscribe or gift a
-membership, your card details are entered on Lemon Squeezy's hosted checkout and are handled by them —
+Payments are processed by **Paddle**, our Merchant of Record. When you subscribe or gift a
+membership, your card details are entered on Paddle's hosted checkout and are handled by them —
 **TNRA never receives or stores your full card number.** We retain only a billing record (such as your
-membership status and the email associated with a subscription) needed to grant access. See Lemon
-Squeezy's privacy policy for how they handle payment data.
+membership status and the email associated with a subscription) needed to grant access. See Paddle's
+privacy policy for how they handle payment data.
 
 ## How we use your information
 
@@ -48,7 +48,7 @@ We do **not** sell your personal information, and we do not use your post conten
 We share information only with the providers needed to run TNRA, and only as required to deliver the
 service:
 
-- **Lemon Squeezy** — payments and subscription billing (Merchant of Record).
+- **Paddle** — payments and subscription billing (Merchant of Record).
 - **Mailgun** — transactional email delivery.
 - **Our hosting provider** — to run the application and database.
 

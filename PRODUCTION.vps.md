@@ -267,7 +267,7 @@ docker compose -f docker-compose.production.yml up -d mysql keycloak
 
 The **central billing service** (`tnra-billing`) is opt-in behind the `billing` profile, so a bare
 `up` never starts it. To include it, add `--profile billing` (or target it directly). See
-[Central Billing Service](#central-billing-service-lemon-squeezy) for setup; in short:
+[Central Billing Service](#central-billing-service-paddle) for setup; in short:
 
 ```bash
 # Shared infra + landing + billing, all at once:
@@ -420,10 +420,10 @@ For each existing realm:
 5. Click **Save**. Existing logged-in sessions retain their original expiry; new logins
    get the 30-day window.
 
-## Central Billing Service (Lemon Squeezy)
+## Central Billing Service (Paddle)
 
 `tnra-billing-app` is a **single central instance** shared by every group — it is the
-source of truth for entitlement and the only component that talks to Lemon Squeezy
+source of truth for entitlement and the only component that talks to Paddle
 (Merchant of Record). It is optional: a self-host deploy can leave it off and every group
 runs the full app with no payment surface. Run it only for the paid SaaS deploy.
 
@@ -436,40 +436,55 @@ runs the full app with no payment surface. Run it only for the paid SaaS deploy.
   group-a.tnra.app ─► tnra-a:8080 ──┐  Bearer <per-group token>
   group-b.tnra.app ─► tnra-b:8080 ──┤
                                     ▼
-                          tnra-billing:8082  ──► Lemon Squeezy API
+                          tnra-billing:8082  ──► Paddle Billing API
                               │  tnra_billing DB (shared MySQL)
-  Lemon Squeezy ── webhook ──► https://billing.tnra.app/api/billing/webhook
+  Paddle ── webhook (Paddle-Signature) ──► https://billing.tnra.app/api/billing/webhook
 ```
 
 Each group app reaches billing over its **public** HTTPS URL (`https://billing.tnra.app`),
-authenticated by a per-group bearer token minted at provisioning. The Lemon Squeezy
+authenticated by a per-group bearer token minted at provisioning. The Paddle
 webhook must also be publicly reachable. So the billing service gets its own subdomain.
 
-### Step 1: Lemon Squeezy (live mode)
+### Step 1: Paddle (live)
 
-Mirror the test-mode setup in `BILLING_PLAN_LOCAL_TESTING.md` §1, but in **live mode**:
+Mirror the sandbox setup in `BILLING_PLAN_LOCAL_TESTING.md` §2, but in the **live** Paddle
+dashboard (<https://vendors.paddle.com> — a separate login from the sandbox, with its own
+API key, Price ids, and webhook secret):
 
-- One subscription Product with **Monthly ($7)** and **Yearly ($60)** variants.
-- Collect live `LS_API_KEY`, `LS_STORE_ID`, `LS_VARIANT_MONTHLY`, `LS_VARIANT_YEARLY`.
-- Webhook endpoint `https://billing.tnra.app/api/billing/webhook` with a strong signing
-  secret (`LS_WEBHOOK_SECRET`), subscribed to `subscription_created`,
-  `subscription_updated`, `subscription_payment_success`, `subscription_payment_failed`,
-  `subscription_cancelled`, `subscription_expired`.
+- **Catalog → Products**: one product with two recurring **Prices** — **Monthly ($7)** and
+  **Yearly ($60)**. Copy each Price id (`pri_…`) → `PADDLE_PRICE_MONTHLY` /
+  `PADDLE_PRICE_YEARLY`.
+- **Developer Tools → Authentication**: create a live API key → `PADDLE_API_KEY`.
+- **Checkout → Settings → Default payment link**: required. The service creates a checkout
+  via `POST /transactions` and reads `data.checkout.url` back; Paddle only returns that URL
+  when a default payment link is configured on an approved domain.
+- **Developer Tools → Notifications**: a destination with URL
+  `https://billing.tnra.app/api/billing/webhook`. Copy its secret key (`pdl_ntfset_…`) →
+  `PADDLE_WEBHOOK_SECRET`. Subscribe it to `subscription.created`,
+  `subscription.activated`, `subscription.updated`, `subscription.canceled`,
+  `subscription.past_due`, `subscription.paused`, `subscription.resumed`,
+  `transaction.completed`, and `transaction.payment_failed`.
 
-> Live keys are distinct from test keys. Never put test variant ids in production — a
-> misconfigured deploy charges the wrong store or fails to verify webhooks.
+> Live hosted checkout requires a verified Paddle seller account and an approved checkout
+> domain. Live keys are distinct from sandbox keys. Never put sandbox Price ids in
+> production — a misconfigured deploy charges the wrong account or fails to verify
+> webhooks.
 
 ### Step 2: Environment
 
 Add to `~/tnra/.env` (read by `docker-compose.production.yml` via `env_file`):
 
 ```bash
-# --- Central billing (Lemon Squeezy) ---
-LS_API_KEY=
-LS_STORE_ID=
-LS_WEBHOOK_SECRET=
-LS_VARIANT_MONTHLY=
-LS_VARIANT_YEARLY=
+# --- Central billing (Paddle, Merchant of Record) ---
+PADDLE_API_KEY=
+# Must be the LIVE base in production. The template and compose default to the SANDBOX
+# (https://sandbox-api.paddle.com), so this line is easy to miss.
+PADDLE_API_BASE=https://api.paddle.com
+# Notification destination secret key (pdl_ntfset_...)
+PADDLE_WEBHOOK_SECRET=
+# Paddle Price ids (pri_...) for the $7/mo and $60/yr plans
+PADDLE_PRICE_MONTHLY=
+PADDLE_PRICE_YEARLY=
 # Guards the provisioning/admin API (X-Admin-Token). Blank ⇒ admin API disabled (fail closed).
 # Generate with: openssl rand -hex 24
 BILLING_ADMIN_TOKEN=
@@ -541,6 +556,17 @@ curl -s -X POST https://billing.tnra.app/api/admin/groups \
   -d '{"groupSlug":"smoketest","trialDays":0,"exempt":true}'
 ```
 
+Then confirm the webhook path end to end: in the Paddle dashboard open the notification
+destination and send a **test event**. The billing service must answer 2xx — a 401 means
+`PADDLE_WEBHOOK_SECRET` does not match the destination's secret key.
+
+> **Existing live group (do this before enabling billing on it).** Members of a group that
+> is already running compute as `PENDING_PAYMENT` the moment billing is switched on, unless
+> the group is covered. Either leave `TNRA_BILLING_ENABLED` unset in that group's compose
+> file (no gate, no payment surface), or register it as a forever-free pilot first — the
+> same `POST /api/admin/groups` call above with the group's real slug and `"exempt":true`
+> — and only then add the `TNRA_BILLING_*` env to its compose file.
+
 New groups are wired to billing during provisioning — see **Provisioning New Groups →
 Step 2** below (`--billing-api-url` / `--billing-admin-token`).
 
@@ -601,8 +627,8 @@ java -jar tnra-cli-app/target/tnra-cli.jar provision <group-name> --domain tnra.
   [--trial-days 60] [--billing-exempt]
 ```
 
-- Use the **public** billing URL — the group container reaches it the same way Lemon
-  Squeezy does, and the same value is embedded as the group app's `api-url`.
+- Use the **public** billing URL — the group container reaches it the same way Paddle
+  does, and the same value is embedded as the group app's `api-url`.
 - `--billing-exempt` registers a forever-free pilot group; `--trial-days` overrides the
   default trial window. Omit both for a standard "trial then pay" group.
 - Omit the billing flags entirely for a self-host / non-paid group (billing stays off).

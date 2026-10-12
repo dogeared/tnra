@@ -71,7 +71,7 @@ services:
       mysql:
         condition: service_healthy
 
-  # Central billing service (Lemon Squeezy). Opt-in via the `billing` profile — it does NOT start on a
+  # Central billing service (Paddle, Merchant of Record). Opt-in via the `billing` profile — it does NOT start on a
   # bare `up` (self-host / billing-off deploys skip it). Bring it up with `--profile billing`, or target
   # it directly (`up -d tnra-billing`), so billing and landing can run individually or all at once and,
   # in future, move to their own VM (point BILLING_DATASOURCE_URL at that VM's database).

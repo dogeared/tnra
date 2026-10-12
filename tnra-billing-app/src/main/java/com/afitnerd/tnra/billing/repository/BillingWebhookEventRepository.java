@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface BillingWebhookEventRepository extends JpaRepository<BillingWebhookEvent, Long> {
 
-    /** Idempotency guard — a redelivered Lemon Squeezy event is a no-op. */
+    /** Idempotency guard — a redelivered Paddle event is a no-op. */
     boolean existsByLsEventId(String lsEventId);
 }

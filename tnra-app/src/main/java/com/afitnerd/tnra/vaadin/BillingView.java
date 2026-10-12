@@ -27,7 +27,7 @@ import java.util.Optional;
 
 /**
  * Membership / payment screen. The entitlement gate forwards non-entitled members here (it's one of
- * the few routes a suspended member may reach). Members self-pay via the hosted Lemon Squeezy
+ * the few routes a suspended member may reach). Members self-pay via the hosted Paddle
  * checkout, or update their card via the hosted Customer Portal. No card data ever touches this app.
  *
  * <p><b>Gift mode.</b> A {@code ?gift=<email>} query param (set by the Profile "Gift" tab) makes this a
@@ -101,7 +101,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
 
     /**
      * Lists the members the current member is paying for (gifts), with status. Hidden when they're not
-     * covering anyone. Cancelling/managing a specific gift happens in the hosted Lemon Squeezy portal
+     * covering anyone. Cancelling/managing a specific gift happens in the hosted Paddle portal
      * (reached via "Update payment method"), which lists every subscription this payer pays for.
      */
     private VerticalLayout buildCoveringSection() {

@@ -130,8 +130,9 @@ jobs:
           if [ -f VERSION ]; then
             VERSION=$(cat VERSION | tr -d '[:space:]')
             if [ -n "$VERSION" ]; then
-              # Skip if tag already exists
-              if ! git rev-parse "$VERSION" >/dev/null 2>&1; then
+              # Skip if tag already exists. Check the REMOTE: actions/checkout is shallow and
+              # does not fetch tags, so a local rev-parse never sees existing tags.
+              if [ -z "$(git ls-remote --tags origin "refs/tags/$VERSION")" ]; then
                 git tag "$VERSION"
                 git push origin "$VERSION"
                 echo "Tagged $VERSION"

@@ -5,11 +5,11 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-billing</artifactId>
-    <version>10.1.0</version>
+    <version>10.1.1</version>
     <packaging>jar</packaging>
 
     <name>tnra-billing</name>
-    <description>TNRA central billing service — Lemon Squeezy (MoR), per-member subscriptions, entitlement API</description>
+    <description>TNRA central billing service — Paddle (MoR), per-member subscriptions, entitlement API</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
