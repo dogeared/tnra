@@ -142,7 +142,7 @@ sed -e 's/YOUR_DB_USERNAME/tnra/' -e 's/YOUR_DB_PASSWORD/123456aA$/' \
     tnra-app/src/main/resources/application.yml.sample > tnra-app/src/main/resources/application.yml
 ```
 
-Two env vars are needed, and do **not** `source .env` to get them — it also exports blank
+Three env vars are needed, and do **not** `source .env` to get them — it also exports blank
 `SPRING_DATASOURCE_*` values that override the yml and silently switch both apps to H2:
 
 ```bash
@@ -152,6 +152,9 @@ export TNRA_ENCRYPTION_MASTER_KEY="$(grep '^TNRA_ENCRYPTION_MASTER_KEY=' .env | 
 # browser must be sent there, so point the app at it — the localhost issuer in .env.template is for
 # full-stack Docker. The JVM must trust the mkcert CA for this (see below).
 export KEYCLOAK_ISSUER_URI=https://auth.dev.dogeared.dev/realms/tnra
+# spring-boot:run forks the app with cwd = tnra-app/, so the relative `upload-dir: uploads` misses the
+# repo-root uploads/ and every profile image (and the placeholder) 404s. Use the absolute path.
+export APP_FILE_STORAGE_UPLOAD_DIR="$PWD/uploads"
 ```
 
 The main app fetches Keycloak's discovery document over HTTPS at startup, and the JDK ships its own
@@ -174,7 +177,8 @@ Then run both apps:
 ```
 
 In an IDE, run the `TnraApplication` and `TnraLandingApplication` main classes directly with the
-same two env vars in the run configuration. Both apps apply their Flyway migrations on first start
+same three env vars in the run configuration (an IDE run config usually uses the
+repo root as working directory, in which case the upload-dir override is unnecessary). Both apps apply their Flyway migrations on first start
 (`tnra`: V1–V12, `tnra_landing`: V1).
 
 ### 6. Create a test user in Keycloak
