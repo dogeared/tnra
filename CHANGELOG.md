@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.4.1] - 2026-10-13
+
+### Fixed
+- **Lumo theme was not applied under Vaadin 25.** Vaadin 25 loads no theme unless the app shell declares one; the upgrade only added Lumo's *utility* stylesheet, so components rendered with their base styles — most visibly the stat reorder arrows and archive buttons on the admin Stats Config tab (black instead of the primary green / error red), and the same controls on the Profile "My Stats" tab. Both app shells now declare `@StyleSheet(Lumo.STYLESHEET)` ahead of the utility stylesheet and the app's own CSS.
+
 ## [10.4.0] - 2026-10-13
 
 Platform upgrade: **Spring Boot 3.5.11 → 4.1.1** (Spring Framework 7, Spring Security 7, Hibernate 7, Jackson 3) and **Vaadin 24.9 → 25.3.2**. No functional changes intended; all 1005 tests pass and the dev site was re-verified end to end (OIDC login, uploads, Paddle checkout page + CSP, billing JSON, signed webhooks).

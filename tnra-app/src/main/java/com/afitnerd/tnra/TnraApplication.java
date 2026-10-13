@@ -22,7 +22,10 @@ import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableAsync
-// Vaadin 25 no longer loads the Lumo utility classes (LumoUtility.*) automatically.
+// Vaadin 25 applies NO theme unless the app shell asks for one: without Lumo.STYLESHEET components render
+// with their base styles (tertiary buttons black instead of the primary colour, error buttons not red, …).
+// Lumo first, then its utility classes (LumoUtility.*), then our own @CssImport overrides on top.
+@StyleSheet(Lumo.STYLESHEET)
 @StyleSheet(Lumo.UTILITY_STYLESHEET)
 public class TnraApplication implements AppShellConfigurator {
 
