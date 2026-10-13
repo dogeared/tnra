@@ -95,9 +95,9 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         HorizontalLayout payButtons = new HorizontalLayout(monthlyButton, yearlyButton);
 
         updatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
-        manageButton = new Button("Manage subscription", e -> openPortal());
-        manageBlurb = new Paragraph("Already subscribed? Update your card right here, or manage invoices "
-            + "and cancellation in Paddle's customer portal:");
+        manageButton = new Button("Invoices & receipts", e -> openPortal());
+        manageBlurb = new Paragraph("Already subscribed? Update your card right here; invoices and receipts "
+            + "are in Paddle's portal. Cancel anytime from your Profile → Billing tab.");
         HorizontalLayout manageButtons = new HorizontalLayout(updatePaymentButton, manageButton);
 
         coveringSection = buildCoveringSection();

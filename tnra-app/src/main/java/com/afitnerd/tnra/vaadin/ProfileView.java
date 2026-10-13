@@ -10,6 +10,8 @@ import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -28,6 +30,7 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
@@ -106,6 +109,8 @@ public class ProfileView extends VerticalLayout {
     Button billingYearlyButton;
     Button billingUpdatePaymentButton;
     Button billingManageButton;
+    Button billingCancelButton;   // self-pay, live, no cancel scheduled
+    Button billingKeepButton;     // self-pay, cancel scheduled → undo
     MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
     // Gift a membership section:
     ComboBox<User> giftRecipientCombo;
@@ -225,8 +230,16 @@ public class ProfileView extends VerticalLayout {
         billingPayButtons.setVisible(false); // shown by applyBillingTabState() only if no active sub
 
         billingUpdatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
-        billingManageButton = new Button("Manage subscription", e -> openMembershipPortal());
-        HorizontalLayout manageButtons = new HorizontalLayout(billingUpdatePaymentButton, billingManageButton);
+        billingManageButton = new Button("Invoices & receipts", e -> openMembershipPortal());
+        billingCancelButton = new Button("Cancel membership", e -> confirmCancelOwnMembership());
+        billingCancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        billingCancelButton.setVisible(false);
+        billingKeepButton = new Button("Keep my membership", e -> keepMembership());
+        billingKeepButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        billingKeepButton.setVisible(false);
+        HorizontalLayout manageButtons = new HorizontalLayout(
+            billingUpdatePaymentButton, billingManageButton, billingKeepButton, billingCancelButton);
+        manageButtons.getStyle().set("flex-wrap", "wrap");
 
         VerticalLayout section = new VerticalLayout(
             billingTitle, billingBlurb, billingPayButtons, manageButtons);
@@ -362,6 +375,14 @@ public class ProfileView extends VerticalLayout {
         }
         billingBlurb.setText(membershipBlurb(ent, sub, gifted ? gifterLabel(ent.payerEmail()) : null,
             LocalDate.now()));
+        // Cancel / keep: in-app, self-pay only (a gift is the gifter's to end). Card + invoices: the
+        // gifter's, too — a gifted member has nothing of their own in Paddle.
+        boolean selfPayLive = hasLiveSubscription && !gifted;
+        boolean cancelScheduled = sub.map(BillingClient.Subscription::cancelScheduled).orElse(false);
+        billingCancelButton.setVisible(selfPayLive && !cancelScheduled);
+        billingKeepButton.setVisible(selfPayLive && cancelScheduled);
+        billingUpdatePaymentButton.setVisible(!gifted);
+        billingManageButton.setVisible(!gifted);
 
         // Gift section: list every other active member; enabled only when the member is entitled.
         List<User> others = userService.getAllActiveUsers().stream()
@@ -393,14 +414,96 @@ public class ProfileView extends VerticalLayout {
             }
             coveringSection.add(new H3("Members you're covering"));
             for (BillingClient.CoveredMember m : covered) {
-                coveringSection.add(new Paragraph(m.email() + " — " + friendlyStatus(m.status())));
+                coveringSection.add(coveringRow(m));
             }
             coveringSection.add(new Paragraph(
-                "To change a card or stop covering someone, use \"Update payment method\" above — "
-                + "the payment portal lists every subscription you pay for."));
+                "Stopping a gift ends it at the close of the period you've already paid for — "
+                + "the member keeps access until then."));
             coveringSection.setVisible(true);
         } catch (Exception e) {
             // Non-critical: if the covering list can't load, just leave it hidden.
+        }
+    }
+
+    /** One covered member: "email — status[, ends <date>]" plus a Stop covering button while it's running. */
+    HorizontalLayout coveringRow(BillingClient.CoveredMember m) {
+        String text = m.email() + " — " + friendlyStatus(m.status());
+        if (m.cancelAt() != null) {
+            text += ", ends " + LONG_DATE.format(m.cancelAt());
+        }
+        HorizontalLayout row = new HorizontalLayout(new Paragraph(text));
+        row.setAlignItems(FlexComponent.Alignment.CENTER);
+        if (m.cancelAt() == null && ("ACTIVE".equals(m.status()) || "ON_GRACE_PERIOD".equals(m.status()))) {
+            Button stop = new Button("Stop covering", e -> confirmStopCovering(m.email()));
+            stop.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+            row.add(stop);
+        }
+        return row;
+    }
+
+    void confirmCancelOwnMembership() {
+        ConfirmDialog dialog = new ConfirmDialog("Cancel your membership?",
+            "You'll keep access through the end of the period you've already paid for, and you can "
+            + "change your mind any time before then.",
+            "Cancel membership", e -> cancelOwnMembership(), "Keep it", e -> { });
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.open();
+    }
+
+    /** In-app cancellation of the member's own subscription (period end). */
+    void cancelOwnMembership() {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            LocalDate ends = billingClient.get().cancelOwn(currentUser.getEmail());
+            Notification.show(ends == null ? "Your membership has been cancelled."
+                : "Your membership is cancelled and stays active through " + LONG_DATE.format(ends) + ".");
+            applyBillingTabState();
+        } catch (HttpClientErrorException.Conflict ex) {
+            AppNotification.error("Your membership is a gift — the person paying for it manages it.");
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't cancel right now. Please try again.");
+        }
+    }
+
+    /** Undo a scheduled cancellation. */
+    void keepMembership() {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            billingClient.get().resumeOwn(currentUser.getEmail());
+            Notification.show("Welcome back — your membership will continue.");
+            applyBillingTabState();
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't resume your membership right now. Please try again.");
+        }
+    }
+
+    void confirmStopCovering(String beneficiaryEmail) {
+        ConfirmDialog dialog = new ConfirmDialog("Stop covering " + beneficiaryEmail + "?",
+            "Their membership stays active through the end of the period you've already paid for, "
+            + "then ends. They can pay for it themselves after that.",
+            "Stop covering", e -> stopCovering(beneficiaryEmail), "Keep covering", e -> { });
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.open();
+    }
+
+    /** The payer ends one specific gift — the app knows which subscription; no guessing in a portal. */
+    void stopCovering(String beneficiaryEmail) {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            LocalDate ends = billingClient.get().stopCovering(currentUser.getEmail(), beneficiaryEmail);
+            Notification.show(ends == null ? "You've stopped covering " + beneficiaryEmail + "."
+                : beneficiaryEmail + "'s membership stays active through " + LONG_DATE.format(ends) + ", then ends.");
+            populateCoveringSection(currentUser.getEmail());
+        } catch (HttpClientErrorException.Forbidden ex) {
+            AppNotification.error("You're not the one paying for that membership.");
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't make that change right now. Please try again.");
         }
     }
 
@@ -432,7 +535,7 @@ public class ProfileView extends VerticalLayout {
                 text.append(" It has been cancelled and stays active through ")
                     .append(LONG_DATE.format(s.cancelAt())).append('.');
                 if (gifter == null) {
-                    text.append(" Changed your mind? Use \"Manage subscription\" to resume it.");
+                    text.append(" Changed your mind? \"Keep my membership\" undoes that.");
                 }
                 return text.toString();
             }
@@ -458,7 +561,7 @@ public class ProfileView extends VerticalLayout {
             }
         }
         if (gifter == null) {
-            text.append(" You can update your card here, or change or cancel anytime via \"Manage subscription\".");
+            text.append(" You can update your card or cancel right here, anytime.");
         }
         return text.toString();
     }

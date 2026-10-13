@@ -150,7 +150,7 @@ class BillingViewTest {
     void coveringSection_shownWhenPayingForOthers() {
         BillingClient client = mock(BillingClient.class);
         when(client.covering("payer@x.com")).thenReturn(List.of(
-            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
         BillingView view = view(client, mock(UserService.class), "payer@x.com");
 
         assertTrue(view.coveringSection.isVisible());
@@ -169,7 +169,7 @@ class BillingViewTest {
     void coveringSection_hiddenInGiftMode() {
         BillingClient client = mock(BillingClient.class);
         when(client.covering("payer@x.com")).thenReturn(List.of(
-            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
         when(client.isEntitled("payer@x.com")).thenReturn(true);
         when(client.entitlement("dana@x.com")).thenReturn(new BillingClient.Entitlement(false, "", null));
         UserService users = mock(UserService.class);

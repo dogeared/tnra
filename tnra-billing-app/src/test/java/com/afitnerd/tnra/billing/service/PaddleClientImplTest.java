@@ -11,6 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
@@ -164,5 +165,34 @@ class PaddleClientImplTest {
         assertNull(d.scheduledAction());
         assertNull(d.trialEndsAt());
         assertEquals("year", d.interval());
+    }
+
+    @Test
+    void scheduleCancellation_atNextBillingPeriod_returnsEffectiveDate() {
+        server.expect(requestTo(BASE + "/subscriptions/sub_1/cancel"))
+            .andExpect(method(POST))
+            .andExpect(jsonPath("$.effective_from").value("next_billing_period"))
+            .andRespond(withSuccess("{\"data\":{\"status\":\"active\",\"scheduled_change\":{\"action\":\"cancel\",\"effective_at\":\"2026-12-12T20:03:10Z\"}}}", JSON));
+
+        assertEquals(java.time.Instant.parse("2026-12-12T20:03:10Z"), client.scheduleCancellation("sub_1"));
+        server.verify();
+    }
+
+    @Test
+    void scheduleCancellation_failsLoudlyWithoutDate() {
+        server.expect(requestTo(BASE + "/subscriptions/sub_1/cancel"))
+            .andRespond(withSuccess("{\"data\":{\"status\":\"active\",\"scheduled_change\":null}}", JSON));
+        assertThrows(IllegalStateException.class, () -> client.scheduleCancellation("sub_1"));
+    }
+
+    @Test
+    void removeScheduledCancellation_patchesScheduledChangeToNull() {
+        server.expect(requestTo(BASE + "/subscriptions/sub_1"))
+            .andExpect(method(org.springframework.http.HttpMethod.PATCH))
+            .andExpect(content().json("{\"scheduled_change\":null}"))
+            .andRespond(withSuccess("{\"data\":{\"status\":\"active\"}}", JSON));
+
+        client.removeScheduledCancellation("sub_1");
+        server.verify();
     }
 }

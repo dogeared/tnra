@@ -48,8 +48,17 @@ public interface PaymentProviderClient {
                                String interval) {}
 
     /**
-     * Cancel a subscription with the provider. Used when a beneficiary self-pays to replace a gift —
-     * the prior gift subscription MUST be cancelled or the gifter keeps being charged.
+     * Cancel a subscription with the provider IMMEDIATELY. Used when a beneficiary self-pays to replace a
+     * gift — the prior gift subscription MUST be cancelled or the gifter keeps being charged.
      */
     void cancelSubscription(String subscriptionId);
+
+    /**
+     * Schedule a cancellation at the end of the current billing period — the member keeps what they've
+     * paid for. @return when it takes effect.
+     */
+    java.time.Instant scheduleCancellation(String subscriptionId);
+
+    /** Undo a scheduled cancellation (member changed their mind before the period ended). */
+    void removeScheduledCancellation(String subscriptionId);
 }

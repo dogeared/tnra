@@ -171,9 +171,38 @@ public class BillingClientImpl implements BillingClient {
         }
         List<CoveredMember> members = new ArrayList<>();
         for (JsonNode n : resp) {
-            members.add(new CoveredMember(n.path("email").asText(), n.path("status").asText()));
+            members.add(new CoveredMember(n.path("email").asText(), n.path("status").asText(), date(n, "cancelAt")));
         }
         return members;
+    }
+
+    @Override
+    public LocalDate cancelOwn(String email) {
+        JsonNode resp = restClient.post()
+            .uri("/api/v1/cancel")
+            .body(Map.of("email", email))
+            .retrieve()
+            .body(JsonNode.class);
+        return resp == null ? null : date(resp, "endsAt");
+    }
+
+    @Override
+    public void resumeOwn(String email) {
+        restClient.post()
+            .uri("/api/v1/resume")
+            .body(Map.of("email", email))
+            .retrieve()
+            .toBodilessEntity();
+    }
+
+    @Override
+    public LocalDate stopCovering(String payerEmail, String beneficiaryEmail) {
+        JsonNode resp = restClient.post()
+            .uri("/api/v1/covering/cancel")
+            .body(Map.of("payerEmail", payerEmail, "beneficiaryEmail", beneficiaryEmail))
+            .retrieve()
+            .body(JsonNode.class);
+        return resp == null ? null : date(resp, "endsAt");
     }
 
     private String text(JsonNode node, String field) {

@@ -1357,7 +1357,7 @@ class ProfileViewTest {
         testUser.setEmail("me@x.com");
         entitled(client, "me@x.com", true, "ACTIVE");
         when(client.covering("me@x.com")).thenReturn(List.of(
-            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
 
         profileView = openBillingTab(client);
 
@@ -1536,14 +1536,14 @@ class ProfileViewTest {
         String cancelled = ProfileView.membershipBlurb(active,
             Optional.of(subscription("trialing", "monthly", dec12, null, dec12, dec12)), null, today);
         assertTrue(cancelled.contains("cancelled and stays active through December 12, 2026"), cancelled);
-        assertTrue(cancelled.contains("resume"), cancelled);
+        assertTrue(cancelled.contains("Keep my membership"), cancelled);
 
         // cancelled gift: no "resume" nudge (the gifter manages it)
         String cancelledGift = ProfileView.membershipBlurb(active,
             Optional.of(subscription("active", "monthly", dec12, null, dec12, null)), "Jerry Seinfeld", today);
         assertTrue(cancelledGift.contains("gifted by Jerry Seinfeld"), cancelledGift);
         assertTrue(cancelledGift.contains("through December 12, 2026"), cancelledGift);
-        assertFalse(cancelledGift.contains("resume"), cancelledGift);
+        assertFalse(cancelledGift.contains("Keep my membership"), cancelledGift);
 
         // on trial: trial end + first payment date
         String trial = ProfileView.membershipBlurb(active,
@@ -1555,7 +1555,7 @@ class ProfileViewTest {
         String plain = ProfileView.membershipBlurb(active,
             Optional.of(subscription("active", "monthly", nov13, nov13, null, null)), null, today);
         assertTrue(plain.contains("Next monthly payment: November 13, 2026"), plain);
-        assertTrue(plain.contains("Manage subscription"), plain);
+        assertTrue(plain.contains("cancel right here"), plain);
 
         // paid through only (no next charge known)
         String paid = ProfileView.membershipBlurb(active,
@@ -1570,6 +1570,96 @@ class ProfileViewTest {
 
         // live but details unavailable: still a sensible sentence
         String noDetails = ProfileView.membershipBlurb(active, Optional.empty(), null, today);
-        assertEquals("Your membership is active. You can update your card here, or change or cancel anytime via \"Manage subscription\".", noDetails);
+        assertEquals("Your membership is active. You can update your card or cancel right here, anytime.", noDetails);
+    }
+
+    @Test
+    void billingTab_selfPay_showsCancel_thenKeepOnceScheduled_andGiftedHidesAll() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.of(
+            new BillingClient.Subscription("active", "monthly", null, java.time.LocalDate.of(2026, 11, 13), null, null)));
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        profileView.applyBillingTabState();
+        assertTrue(profileView.billingCancelButton.isVisible());
+        assertFalse(profileView.billingKeepButton.isVisible());
+        assertTrue(profileView.billingUpdatePaymentButton.isVisible());
+
+        // cancel scheduled → Keep instead of Cancel
+        when(billing.subscription("me@x.com")).thenReturn(Optional.of(
+            new BillingClient.Subscription("active", "monthly", null, null, java.time.LocalDate.of(2026, 12, 12), null)));
+        profileView.applyBillingTabState();
+        assertFalse(profileView.billingCancelButton.isVisible());
+        assertTrue(profileView.billingKeepButton.isVisible());
+
+        // gifted → nothing of their own to manage here
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", "jerry@x.com"));
+        when(userService.getUserByEmail("jerry@x.com")).thenReturn(null);
+        profileView.applyBillingTabState();
+        assertFalse(profileView.billingCancelButton.isVisible());
+        assertFalse(profileView.billingKeepButton.isVisible());
+        assertFalse(profileView.billingUpdatePaymentButton.isVisible());
+        assertFalse(profileView.billingManageButton.isVisible());
+    }
+
+    @Test
+    void cancelOwnMembership_andKeep_callTheClient_andRefresh() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.empty());
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        when(billing.cancelOwn("me@x.com")).thenReturn(java.time.LocalDate.of(2026, 12, 12));
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        profileView.cancelOwnMembership();
+        verify(billing).cancelOwn("me@x.com");
+
+        profileView.keepMembership();
+        verify(billing).resumeOwn("me@x.com");
+
+        // failures are notifications, not exceptions
+        when(billing.cancelOwn("me@x.com")).thenThrow(new RuntimeException("x"));
+        profileView.cancelOwnMembership();
+        org.mockito.Mockito.doThrow(new RuntimeException("x")).when(billing).resumeOwn("me@x.com");
+        profileView.keepMembership();
+    }
+
+    @Test
+    void coveringRow_offersStopCovering_onlyWhileRunning_andShowsEndDate() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.stopCovering("me@x.com", "ben@x.com")).thenReturn(java.time.LocalDate.of(2026, 12, 12));
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        HorizontalLayout running = profileView.coveringRow(new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null));
+        assertEquals(2, running.getComponentCount(), "text + Stop covering button");
+
+        HorizontalLayout ending = profileView.coveringRow(
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", java.time.LocalDate.of(2026, 12, 12)));
+        assertEquals(1, ending.getComponentCount(), "no button once a cancellation is scheduled");
+        assertTrue(((Paragraph) ending.getComponentAt(0)).getText().contains("ends December 12, 2026"));
+
+        HorizontalLayout pending = profileView.coveringRow(new BillingClient.CoveredMember("c@x.com", "PENDING_PAYMENT", null));
+        assertEquals(1, pending.getComponentCount(), "nothing to stop before it has started");
+
+        profileView.stopCovering("ben@x.com");
+        verify(billing).stopCovering("me@x.com", "ben@x.com");
     }
 }

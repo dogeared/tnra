@@ -130,6 +130,39 @@ public class PaddleClientImpl implements PaymentProviderClient {
     }
 
     @Override
+    public java.time.Instant scheduleCancellation(String subscriptionId) {
+        JsonNode resp = restClient.post()
+            .uri("/subscriptions/{id}/cancel", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of("effective_from", "next_billing_period"))
+            .retrieve()
+            .body(JsonNode.class);
+        JsonNode d = resp == null ? null : resp.path("data");
+        java.time.Instant at = d == null ? null : instant(d.path("scheduled_change"), "effective_at");
+        if (at == null && d != null) {
+            at = instant(d.path("current_billing_period"), "ends_at"); // defensive: same moment
+        }
+        if (at == null) {
+            throw new IllegalStateException("Paddle response missing scheduled cancellation date");
+        }
+        return at;
+    }
+
+    @Override
+    public void removeScheduledCancellation(String subscriptionId) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("scheduled_change", null); // Map.of() rejects null values
+        restClient.patch()
+            .uri("/subscriptions/{id}", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
+            .retrieve()
+            .toBodilessEntity();
+    }
+
+    @Override
     public void cancelSubscription(String subscriptionId) {
         restClient.post()
             .uri("/subscriptions/{id}/cancel", subscriptionId)

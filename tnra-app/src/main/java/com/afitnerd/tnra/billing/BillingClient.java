@@ -83,5 +83,15 @@ public interface BillingClient {
         }
     }
 
-    record CoveredMember(String email, String status) {}
+    /** @param cancelAt when a scheduled cancellation of that gift takes effect, or null */
+    record CoveredMember(String email, String status, LocalDate cancelAt) {}
+
+    /** Cancel the member's own membership at period end. @return when access ends. */
+    LocalDate cancelOwn(String email);
+
+    /** Undo a scheduled cancellation of the member's own membership. */
+    void resumeOwn(String email);
+
+    /** The payer stops covering one member at period end. @return when that member's access ends. */
+    LocalDate stopCovering(String payerEmail, String beneficiaryEmail);
 }

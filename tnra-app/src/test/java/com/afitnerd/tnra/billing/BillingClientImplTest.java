@@ -224,4 +224,34 @@ class BillingClientImplTest {
         assertTrue(client.subscription("m@x.com").isEmpty());    // 5xx → fail soft, no details
         server.verify();
     }
+
+    @Test
+    void cancelOwn_resumeOwn_stopCovering_postAndParseEndsAt() {
+        server.expect(requestTo("https://billing.local/api/v1/cancel")).andExpect(method(org.springframework.http.HttpMethod.POST))
+            .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath("$.email").value("m@x.com"))
+            .andRespond(withSuccess("{\"endsAt\":\"2026-12-12T20:03:10.560Z\"}", APPLICATION_JSON));
+        server.expect(requestTo("https://billing.local/api/v1/resume")).andExpect(method(org.springframework.http.HttpMethod.POST))
+            .andRespond(withSuccess());
+        server.expect(requestTo("https://billing.local/api/v1/covering/cancel")).andExpect(method(org.springframework.http.HttpMethod.POST))
+            .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath("$.payerEmail").value("m@x.com"))
+            .andExpect(org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath("$.beneficiaryEmail").value("ben@x.com"))
+            .andRespond(withSuccess("{\"endsAt\":\"2026-12-12T20:03:10.560Z\"}", APPLICATION_JSON));
+        java.time.LocalDate dec12 = java.time.Instant.parse("2026-12-12T20:03:10.560Z").atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+
+        assertEquals(dec12, client.cancelOwn("m@x.com"));
+        client.resumeOwn("m@x.com");
+        assertEquals(dec12, client.stopCovering("m@x.com", "ben@x.com"));
+        server.verify();
+    }
+
+    @Test
+    void covering_parsesCancelAt() {
+        server.expect(requestTo(startsWith("https://billing.local/api/v1/covering")))
+            .andRespond(withSuccess("[{\"email\":\"a@x.com\",\"status\":\"ACTIVE\",\"cancelAt\":\"2026-12-12T20:03:10.560Z\"},"
+                + "{\"email\":\"b@x.com\",\"status\":\"ACTIVE\",\"cancelAt\":null}]", APPLICATION_JSON));
+
+        List<BillingClient.CoveredMember> list = client.covering("m@x.com");
+        assertEquals(java.time.Instant.parse("2026-12-12T20:03:10.560Z").atZone(java.time.ZoneId.systemDefault()).toLocalDate(), list.get(0).cancelAt());
+        assertEquals(null, list.get(1).cancelAt());
+    }
 }
