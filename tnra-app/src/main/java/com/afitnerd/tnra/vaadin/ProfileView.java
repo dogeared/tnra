@@ -49,6 +49,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -348,20 +350,18 @@ public class ProfileView extends VerticalLayout {
         boolean hasLiveSubscription = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
         billingPayButtons.setVisible(!hasLiveSubscription);
 
-        // Reflect the member's actual state in the blurb: active (and, if so, gifted by whom) vs. the
-        // call-to-action to activate.
+        // Reflect the member's actual state in the blurb: active (and, if so, gifted by whom, through when,
+        // next charge / scheduled cancellation — live from the provider, only when the tab is open) vs.
+        // the call-to-action to activate.
         boolean gifted = ent.payerEmail() != null && !ent.payerEmail().isBlank()
             && !ent.payerEmail().equalsIgnoreCase(currentUser.getEmail());
-        if (hasLiveSubscription && gifted) {
-            billingBlurb.setText("Your membership is active — gifted by " + gifterLabel(ent.payerEmail())
-                + ", who manages the payment.");
-        } else if (hasLiveSubscription) {
-            billingBlurb.setText("Your membership is active. You can change or cancel it anytime "
-                + "via \"Update payment method\".");
-        } else {
-            billingBlurb.setText("Activate your membership to access posts, stats, and the call chain. "
-                + "Choose monthly or yearly — you can change or cancel anytime.");
+        Optional<BillingClient.Subscription> sub = Optional.empty();
+        if (hasLiveSubscription) {
+            Optional<BillingClient.Subscription> fetched = billingClient.get().subscription(currentUser.getEmail());
+            sub = fetched == null ? Optional.empty() : fetched;
         }
+        billingBlurb.setText(membershipBlurb(ent, sub, gifted ? gifterLabel(ent.payerEmail()) : null,
+            LocalDate.now()));
 
         // Gift section: list every other active member; enabled only when the member is entitled.
         List<User> others = userService.getAllActiveUsers().stream()
@@ -409,6 +409,60 @@ public class ProfileView extends VerticalLayout {
     }
 
     /** Resolve the gifter's email to a friendly "Name (email)" label, falling back to the email. */
+    static final DateTimeFormatter LONG_DATE = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.US);
+
+    /**
+     * The membership status sentence(s). {@code gifter} is the display label of the payer for a gifted
+     * membership, or null for self-pay. Pure function so every state is unit-testable.
+     */
+    static String membershipBlurb(BillingClient.Entitlement ent, Optional<BillingClient.Subscription> sub,
+                                  String gifter, LocalDate today) {
+        boolean live = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
+        if (!live) {
+            return "Activate your membership to access posts, stats, and the call chain. "
+                + "Choose monthly or yearly — you can change or cancel anytime.";
+        }
+        StringBuilder text = new StringBuilder(gifter != null
+            ? "Your membership is active — gifted by " + gifter + ", who manages the payment."
+            : "Your membership is active.");
+        if (sub.isPresent()) {
+            BillingClient.Subscription s = sub.get();
+            String plan = "yearly".equalsIgnoreCase(s.variant()) ? "yearly" : "monthly";
+            if (s.cancelScheduled()) {
+                text.append(" It has been cancelled and stays active through ")
+                    .append(LONG_DATE.format(s.cancelAt())).append('.');
+                if (gifter == null) {
+                    text.append(" Changed your mind? Use \"Manage subscription\" to resume it.");
+                }
+                return text.toString();
+            }
+            if ("ON_GRACE_PERIOD".equals(ent.status())) {
+                text.append(" Your last payment didn't go through");
+                if (s.paidThrough() != null) {
+                    text.append(" — access continues through ").append(LONG_DATE.format(s.paidThrough()))
+                        .append(" while Paddle retries");
+                }
+                text.append(". Update your payment method to keep your membership.");
+                return text.toString();
+            }
+            if (s.onTrial(today)) {
+                text.append(" Your free trial runs through ").append(LONG_DATE.format(s.trialEndsAt()))
+                    .append("; the first ").append(plan).append(" payment is due ")
+                    .append(LONG_DATE.format(s.nextBilledAt() != null ? s.nextBilledAt() : s.trialEndsAt()))
+                    .append('.');
+            } else if (s.nextBilledAt() != null) {
+                text.append(" Next ").append(plan).append(" payment: ")
+                    .append(LONG_DATE.format(s.nextBilledAt())).append('.');
+            } else if (s.paidThrough() != null) {
+                text.append(" Paid through ").append(LONG_DATE.format(s.paidThrough())).append('.');
+            }
+        }
+        if (gifter == null) {
+            text.append(" You can update your card here, or change or cancel anytime via \"Manage subscription\".");
+        }
+        return text.toString();
+    }
+
     private String gifterLabel(String payerEmail) {
         User payer = userService.getUserByEmail(payerEmail);
         return payer == null ? payerEmail : recipientLabel(payer);

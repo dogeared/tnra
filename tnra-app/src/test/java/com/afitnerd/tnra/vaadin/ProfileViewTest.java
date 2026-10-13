@@ -1515,4 +1515,61 @@ class ProfileViewTest {
         profileView.openMembershipPortal();
         verify(billing, never()).portalUrl(anyString());
     }
+
+    private static BillingClient.Subscription subscription(String providerStatus, String variant,
+            java.time.LocalDate paidThrough, java.time.LocalDate next, java.time.LocalDate cancelAt, java.time.LocalDate trialEnd) {
+        return new BillingClient.Subscription(providerStatus, variant, paidThrough, next, cancelAt, trialEnd);
+    }
+
+    @Test
+    void membershipBlurb_coversEveryState() {
+        java.time.LocalDate today = java.time.LocalDate.of(2026, 10, 14);
+        java.time.LocalDate dec12 = java.time.LocalDate.of(2026, 12, 12);
+        java.time.LocalDate nov13 = java.time.LocalDate.of(2026, 11, 13);
+        BillingClient.Entitlement active = new BillingClient.Entitlement(true, "ACTIVE", null);
+
+        // not live → call to action
+        assertTrue(ProfileView.membershipBlurb(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null),
+            Optional.empty(), null, today).startsWith("Activate your membership"));
+
+        // cancelled but paid through (Jerry's case): says through when, offers resume
+        String cancelled = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("trialing", "monthly", dec12, null, dec12, dec12)), null, today);
+        assertTrue(cancelled.contains("cancelled and stays active through December 12, 2026"), cancelled);
+        assertTrue(cancelled.contains("resume"), cancelled);
+
+        // cancelled gift: no "resume" nudge (the gifter manages it)
+        String cancelledGift = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("active", "monthly", dec12, null, dec12, null)), "Jerry Seinfeld", today);
+        assertTrue(cancelledGift.contains("gifted by Jerry Seinfeld"), cancelledGift);
+        assertTrue(cancelledGift.contains("through December 12, 2026"), cancelledGift);
+        assertFalse(cancelledGift.contains("resume"), cancelledGift);
+
+        // on trial: trial end + first payment date
+        String trial = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("trialing", "yearly", dec12, null, null, dec12)), null, today);
+        assertTrue(trial.contains("free trial runs through December 12, 2026"), trial);
+        assertTrue(trial.contains("first yearly payment is due December 12, 2026"), trial);
+
+        // plain active: next payment
+        String plain = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("active", "monthly", nov13, nov13, null, null)), null, today);
+        assertTrue(plain.contains("Next monthly payment: November 13, 2026"), plain);
+        assertTrue(plain.contains("Manage subscription"), plain);
+
+        // paid through only (no next charge known)
+        String paid = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("active", "monthly", nov13, null, null, null)), null, today);
+        assertTrue(paid.contains("Paid through November 13, 2026"), paid);
+
+        // grace: access continues through paid-through while retrying
+        String grace = ProfileView.membershipBlurb(new BillingClient.Entitlement(true, "ON_GRACE_PERIOD", null),
+            Optional.of(subscription("past_due", "monthly", nov13, nov13, null, null)), null, today);
+        assertTrue(grace.contains("didn't go through"), grace);
+        assertTrue(grace.contains("access continues through November 13, 2026"), grace);
+
+        // live but details unavailable: still a sensible sentence
+        String noDetails = ProfileView.membershipBlurb(active, Optional.empty(), null, today);
+        assertEquals("Your membership is active. You can update your card here, or change or cancel anytime via \"Manage subscription\".", noDetails);
+    }
 }

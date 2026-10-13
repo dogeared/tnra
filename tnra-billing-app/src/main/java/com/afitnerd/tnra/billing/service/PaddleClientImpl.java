@@ -96,6 +96,40 @@ public class PaddleClientImpl implements PaymentProviderClient {
     }
 
     @Override
+    public SubscriptionDetails getSubscription(String subscriptionId) {
+        JsonNode resp = restClient.get()
+            .uri("/subscriptions/{id}", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .retrieve()
+            .body(JsonNode.class);
+        JsonNode d = resp == null ? null : resp.path("data");
+        if (d == null || d.isMissingNode()) {
+            throw new IllegalStateException("Paddle response missing subscription");
+        }
+        JsonNode change = d.path("scheduled_change");
+        JsonNode trial = d.path("items").isArray() && d.path("items").size() > 0
+            ? d.path("items").get(0).path("trial_dates") : null;
+        return new SubscriptionDetails(
+            optText(d, "status"),
+            instant(d.path("current_billing_period"), "ends_at"),
+            instant(d, "next_billed_at"),
+            change.isObject() ? optText(change, "action") : null,
+            change.isObject() ? instant(change, "effective_at") : null,
+            trial != null && trial.isObject() ? instant(trial, "ends_at") : null,
+            optText(d.path("billing_cycle"), "interval"));
+    }
+
+    private static String optText(JsonNode node, String field) {
+        JsonNode v = node == null ? null : node.get(field);
+        return v == null || !v.isTextual() || v.asText().isBlank() ? null : v.asText();
+    }
+
+    private static java.time.Instant instant(JsonNode node, String field) {
+        String s = optText(node, field);
+        return s == null ? null : java.time.OffsetDateTime.parse(s).toInstant();
+    }
+
+    @Override
     public void cancelSubscription(String subscriptionId) {
         restClient.post()
             .uri("/subscriptions/{id}/cancel", subscriptionId)

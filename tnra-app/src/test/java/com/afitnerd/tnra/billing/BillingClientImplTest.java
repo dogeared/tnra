@@ -20,6 +20,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -189,6 +190,38 @@ class BillingClientImplTest {
             .andRespond(withSuccess("{\"url\":\"https://tnra.app/pay?_ptxn=txn_u\"}", APPLICATION_JSON));
 
         assertEquals("https://tnra.app/pay?_ptxn=txn_u", client.paymentMethodUpdateUrl("m@x.com"));
+        server.verify();
+    }
+
+    @Test
+    void subscription_parsesDates() {
+        server.expect(requestTo(startsWith("https://billing.local/api/v1/subscription")))
+            .andExpect(queryParam("email", "m@x.com"))
+            .andRespond(withSuccess("{\"status\":\"ACTIVE\",\"providerStatus\":\"trialing\",\"variant\":\"monthly\","
+                + "\"payerEmail\":null,\"paidThrough\":\"2026-12-12T20:03:10.560Z\",\"nextBilledAt\":null,"
+                + "\"cancelAt\":\"2026-12-12T20:03:10.560Z\",\"trialEndsAt\":\"2026-12-12T20:03:10.560Z\"}", APPLICATION_JSON));
+
+        BillingClient.Subscription s = client.subscription("m@x.com").orElseThrow();
+
+        assertEquals("trialing", s.providerStatus());
+        assertEquals("monthly", s.variant());
+        assertEquals(java.time.Instant.parse("2026-12-12T20:03:10.560Z").atZone(java.time.ZoneId.systemDefault()).toLocalDate(), s.paidThrough());
+        assertTrue(s.cancelScheduled());
+        assertEquals(s.paidThrough(), s.cancelAt());
+        assertTrue(s.onTrial(java.time.LocalDate.of(2026, 10, 14)));
+        assertFalse(s.onTrial(java.time.LocalDate.of(2027, 1, 1)));
+        assertEquals(null, s.nextBilledAt());
+    }
+
+    @Test
+    void subscription_notFound_orError_isEmpty() {
+        server.expect(requestTo(startsWith("https://billing.local/api/v1/subscription")))
+            .andRespond(withStatus(org.springframework.http.HttpStatus.NOT_FOUND));
+        server.expect(requestTo(startsWith("https://billing.local/api/v1/subscription")))
+            .andRespond(withServerError());
+
+        assertTrue(client.subscription("none@x.com").isEmpty()); // 404 → no subscription
+        assertTrue(client.subscription("m@x.com").isEmpty());    // 5xx → fail soft, no details
         server.verify();
     }
 }

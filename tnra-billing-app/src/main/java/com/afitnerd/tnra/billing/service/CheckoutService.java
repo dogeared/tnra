@@ -4,6 +4,7 @@ import com.afitnerd.tnra.billing.model.BillingAccount;
 import com.afitnerd.tnra.billing.model.BillingStatus;
 import com.afitnerd.tnra.billing.repository.BillingAccountRepository;
 import com.afitnerd.tnra.billing.web.dto.CheckoutRequest;
+import com.afitnerd.tnra.billing.web.dto.SubscriptionResponse;
 import com.afitnerd.tnra.billing.web.dto.CoveringEntry;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -132,6 +133,23 @@ public class CheckoutService {
                 "This membership is paid for by " + account.getPayerEmail() + ", who manages the payment method");
         }
         return paymentProviderClient.getUpdatePaymentMethodCheckoutUrl(account.getLsSubscriptionId());
+    }
+
+    /** Live dates for the member's subscription (own or gifted); 404 when they have none. */
+    public SubscriptionResponse subscriptionDetails(String groupSlug, String email) {
+        String normalized = normalize(email);
+        BillingAccount account = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .filter(a -> a.getLsSubscriptionId() != null)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription"));
+        PaymentProviderClient.SubscriptionDetails d = paymentProviderClient.getSubscription(account.getLsSubscriptionId());
+        boolean cancelScheduled = "cancel".equalsIgnoreCase(d.scheduledAction()) && d.scheduledEffectiveAt() != null;
+        return new SubscriptionResponse(
+            account.getStatus() == null ? null : account.getStatus().name(),
+            d.status(), account.getLsVariant(), account.getPayerEmail(),
+            d.currentPeriodEndsAt(),
+            cancelScheduled ? null : d.nextBilledAt(),
+            cancelScheduled ? d.scheduledEffectiveAt() : null,
+            d.trialEndsAt());
     }
 
     /** The provider customer of any subscription this member pays for — to reach the portal with no own sub. */

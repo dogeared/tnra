@@ -30,6 +30,23 @@ public interface PaymentProviderClient {
      */
     String getUpdatePaymentMethodCheckoutUrl(String subscriptionId);
 
+    /** Live subscription dates from the provider — paid-through, next charge, scheduled cancel, trial. */
+    SubscriptionDetails getSubscription(String subscriptionId);
+
+    /**
+     * @param status            provider status (active / trialing / past_due / paused / canceled)
+     * @param currentPeriodEndsAt end of the period already paid (or trial) for — "paid through"
+     * @param nextBilledAt      next charge; null while trialing or when a cancel is scheduled
+     * @param scheduledAction   "cancel" / "pause" / "resume" when a change is scheduled, else null
+     * @param scheduledEffectiveAt when that change takes effect
+     * @param trialEndsAt       trial end, when the subscription is (or was) on a trial
+     * @param interval          "month" / "year"
+     */
+    record SubscriptionDetails(String status, java.time.Instant currentPeriodEndsAt,
+                               java.time.Instant nextBilledAt, String scheduledAction,
+                               java.time.Instant scheduledEffectiveAt, java.time.Instant trialEndsAt,
+                               String interval) {}
+
     /**
      * Cancel a subscription with the provider. Used when a beneficiary self-pays to replace a gift —
      * the prior gift subscription MUST be cancelled or the gifter keeps being charged.

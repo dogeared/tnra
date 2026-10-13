@@ -79,4 +79,13 @@ class BillingApiControllerTest {
 
         assertEquals("https://tnra.app/pay?_ptxn=u", controller.paymentMethod(rome, "m@x.com").url());
     }
+
+    @Test
+    void subscription_delegates() {
+        com.afitnerd.tnra.billing.web.dto.SubscriptionResponse r = new com.afitnerd.tnra.billing.web.dto.SubscriptionResponse(
+            "ACTIVE", "active", "monthly", null, null, null, null, null);
+        when(checkoutService.subscriptionDetails("rome", "m@x.com")).thenReturn(r);
+
+        assertEquals(r, controller.subscription(rome, "m@x.com"));
+    }
 }

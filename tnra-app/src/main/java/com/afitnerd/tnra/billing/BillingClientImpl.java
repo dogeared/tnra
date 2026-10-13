@@ -7,10 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -127,6 +130,34 @@ public class BillingClientImpl implements BillingClient {
             .retrieve()
             .body(JsonNode.class);
         return text(resp, "url");
+    }
+
+    @Override
+    public Optional<Subscription> subscription(String email) {
+        try {
+            JsonNode resp = restClient.get()
+                .uri(b -> b.path("/api/v1/subscription").queryParam("email", email).build())
+                .retrieve()
+                .body(JsonNode.class);
+            if (resp == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new Subscription(
+                emptyToNull(resp.path("providerStatus").asText("")),
+                emptyToNull(resp.path("variant").asText("")),
+                date(resp, "paidThrough"), date(resp, "nextBilledAt"),
+                date(resp, "cancelAt"), date(resp, "trialEndsAt")));
+        } catch (HttpClientErrorException.NotFound e) {
+            return Optional.empty();
+        } catch (Exception e) {
+            log.warn("Subscription details unreachable for {}: {}", email, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static LocalDate date(JsonNode node, String field) {
+        String s = emptyToNull(node.path(field).asText(""));
+        return s == null ? null : java.time.Instant.parse(s).atZone(java.time.ZoneId.systemDefault()).toLocalDate();
     }
 
     @Override

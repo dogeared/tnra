@@ -5,6 +5,7 @@ import com.afitnerd.tnra.billing.service.EntitlementResult;
 import com.afitnerd.tnra.billing.service.EntitlementService;
 import com.afitnerd.tnra.billing.web.dto.CheckoutRequest;
 import com.afitnerd.tnra.billing.web.dto.CheckoutResponse;
+import com.afitnerd.tnra.billing.web.dto.SubscriptionResponse;
 import com.afitnerd.tnra.billing.web.dto.CoveringEntry;
 import com.afitnerd.tnra.billing.web.dto.EntitlementResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,6 +58,12 @@ public class BillingApiController {
     @GetMapping("/portal")
     public CheckoutResponse portal(Principal principal, @RequestParam String email) {
         return new CheckoutResponse(checkoutService.portalUrl(principal.getName(), email));
+    }
+
+    /** Live subscription dates for the member's billing screen (provider call — fetch lazily). */
+    @GetMapping("/subscription")
+    public SubscriptionResponse subscription(Principal principal, @RequestParam String email) {
+        return checkoutService.subscriptionDetails(principal.getName(), email);
     }
 
     /** Overlay checkout URL to update the card on the member's own subscription (see CheckoutService). */

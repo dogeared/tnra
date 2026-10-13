@@ -4,6 +4,7 @@ import com.afitnerd.tnra.billing.model.BillingAccount;
 import com.afitnerd.tnra.billing.model.BillingStatus;
 import com.afitnerd.tnra.billing.repository.BillingAccountRepository;
 import com.afitnerd.tnra.billing.web.dto.CheckoutRequest;
+import com.afitnerd.tnra.billing.web.dto.SubscriptionResponse;
 import com.afitnerd.tnra.billing.web.dto.CoveringEntry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -298,5 +299,54 @@ class CheckoutServiceTest {
         ResponseStatusException noSub = assertThrows(ResponseStatusException.class,
             () -> service.paymentMethodUpdateUrl("rome", "pending@x.com"));
         assertEquals(HttpStatus.NOT_FOUND, noSub.getStatusCode());
+    }
+
+    @Test
+    void subscriptionDetails_mapsProviderDates_andScheduledCancelHidesNextCharge() {
+        BillingAccount a = accountWithSub("m@x.com", null, "sub_1");
+        a.setLsVariant("monthly");
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(a));
+        java.time.Instant end = java.time.Instant.parse("2026-12-12T20:03:10Z");
+        when(provider.getSubscription("sub_1")).thenReturn(new PaymentProviderClient.SubscriptionDetails(
+            "trialing", end, java.time.Instant.parse("2026-12-13T00:00:00Z"), "cancel", end, end, "month"));
+
+        SubscriptionResponse r = service.subscriptionDetails("rome", "M@x.com");
+
+        assertEquals("ACTIVE", r.status());
+        assertEquals("trialing", r.providerStatus());
+        assertEquals("monthly", r.variant());
+        assertNull(r.payerEmail());
+        assertEquals(end, r.paidThrough());
+        assertNull(r.nextBilledAt(), "a scheduled cancel means no further charge");
+        assertEquals(end, r.cancelAt());
+        assertEquals(end, r.trialEndsAt());
+    }
+
+    @Test
+    void subscriptionDetails_noScheduledChange_keepsNextCharge_andPayer() {
+        BillingAccount a = accountWithSub("ben@x.com", "admin@x.com", "sub_2");
+        when(accountRepo.findByGroupSlugAndEmail("rome", "ben@x.com")).thenReturn(Optional.of(a));
+        java.time.Instant next = java.time.Instant.parse("2026-11-13T00:00:00Z");
+        when(provider.getSubscription("sub_2")).thenReturn(new PaymentProviderClient.SubscriptionDetails(
+            "active", next, next, null, null, null, "month"));
+
+        SubscriptionResponse r = service.subscriptionDetails("rome", "ben@x.com");
+
+        assertEquals("admin@x.com", r.payerEmail());
+        assertEquals(next, r.nextBilledAt());
+        assertNull(r.cancelAt());
+    }
+
+    @Test
+    void subscriptionDetails_noSubscription_isNotFound() {
+        when(accountRepo.findByGroupSlugAndEmail("rome", "none@x.com")).thenReturn(Optional.empty());
+        when(accountRepo.findByGroupSlugAndEmail("rome", "pending@x.com"))
+            .thenReturn(Optional.of(accountWithSub("pending@x.com", null, null)));
+
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException.class,
+            () -> service.subscriptionDetails("rome", "none@x.com")).getStatusCode());
+        assertEquals(HttpStatus.NOT_FOUND, assertThrows(ResponseStatusException.class,
+            () -> service.subscriptionDetails("rome", "pending@x.com")).getStatusCode());
+        verify(provider, never()).getSubscription(any());
     }
 }

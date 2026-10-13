@@ -1,6 +1,8 @@
 package com.afitnerd.tnra.billing;
 
 import java.util.List;
+import java.util.Optional;
+import java.time.LocalDate;
 
 /**
  * Client the per-group app uses to talk to the central {@code tnra-billing-app}. Implemented only
@@ -56,6 +58,30 @@ public interface BillingClient {
 
     /** The accounts a payer is covering (their gift list). */
     List<CoveredMember> covering(String payerEmail);
+
+    /**
+     * Live dates for the member's subscription, fetched from the provider on demand (so call it from a
+     * billing screen, not a navigation gate). Empty when they have no subscription or the lookup fails.
+     */
+    Optional<Subscription> subscription(String email);
+
+    /**
+     * @param providerStatus Paddle's status (active / trialing / past_due / paused / canceled)
+     * @param variant        "monthly" / "yearly"
+     * @param paidThrough    end of the period already paid (or trial) for
+     * @param nextBilledAt   next charge; null while trialing or when a cancel is scheduled
+     * @param cancelAt       when a scheduled cancellation takes effect; null if none
+     * @param trialEndsAt    trial end if on a trial
+     */
+    record Subscription(String providerStatus, String variant, LocalDate paidThrough, LocalDate nextBilledAt,
+                        LocalDate cancelAt, LocalDate trialEndsAt) {
+        public boolean cancelScheduled() {
+            return cancelAt != null;
+        }
+        public boolean onTrial(LocalDate today) {
+            return trialEndsAt != null && !trialEndsAt.isBefore(today);
+        }
+    }
 
     record CoveredMember(String email, String status) {}
 }
