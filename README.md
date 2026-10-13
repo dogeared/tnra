@@ -127,14 +127,40 @@ mkcert -cert-file nginx/.cert/cert.pem -key-file nginx/.cert/key.pem \
 
 ### 5. Run the apps from your IDE
 
-The landing app's `application.yml` is gitignored (the repo ignores `*.yml`), so copy its tracked
-sample once. The dev defaults connect to the dockerized MySQL as the `tnra` user and set the
-landing port to **8081** (the main app uses its tracked `application.properties`, so it needs no
-copy):
+Each app's `application.yml` is gitignored (the repo ignores `*.yml`), so copy the tracked samples
+once. The landing sample runs as-is against the dockerized MySQL (`tnra` user, port **8081**). The
+main app's sample has placeholders for the DB credentials and the Vaadin dev-mode host allow-list,
+so fill those in — without an `application.yml` the main app has no datasource at all, falls back
+to in-memory H2, and fails on its MySQL-only Flyway migrations:
 
 ```bash
 cp tnra-landing-app/src/main/resources/application.yml.sample \
    tnra-landing-app/src/main/resources/application.yml
+
+sed -e 's/YOUR_DB_USERNAME/tnra/' -e 's/YOUR_DB_PASSWORD/123456aA$/' \
+    -e 's/hostsAllowed: tnra.afitnerd.local/hostsAllowed: tnra.dev.dogeared.dev,localhost/' \
+    tnra-app/src/main/resources/application.yml.sample > tnra-app/src/main/resources/application.yml
+```
+
+Two env vars are needed, and do **not** `source .env` to get them — it also exports blank
+`SPRING_DATASOURCE_*` values that override the yml and silently switch both apps to H2:
+
+```bash
+# Post encryption key (set once in .env; the app refuses to start without it)
+export TNRA_ENCRYPTION_MASTER_KEY="$(grep '^TNRA_ENCRYPTION_MASTER_KEY=' .env | cut -d= -f2-)"
+# Keycloak advertises the proxy hostname as its issuer (KC_HOSTNAME in docker-compose.yml), and a
+# browser must be sent there, so point the app at it — the localhost issuer in .env.template is for
+# full-stack Docker. The JVM must trust the mkcert CA for this (see below).
+export KEYCLOAK_ISSUER_URI=https://auth.dev.dogeared.dev/realms/tnra
+```
+
+The main app fetches Keycloak's discovery document over HTTPS at startup, and the JDK ships its own
+trust store that knows nothing about mkcert. Import the CA once per JDK (the `keytool` on your
+`PATH` must be the one `./mvnw -v` reports):
+
+```bash
+keytool -importcert -cacerts -storepass changeit -noprompt -alias mkcert-dev-ca \
+  -file "$(mkcert -CAROOT)/rootCA.pem"
 ```
 
 Then run both apps:
@@ -147,11 +173,9 @@ Then run both apps:
 ./mvnw -pl tnra-landing-app spring-boot:run
 ```
 
-In an IDE, run the `TnraApplication` and `TnraLandingApplication` main classes directly.
-
-> **Quick start without MySQL:** the main app also runs on H2 (data resets on restart) — just
-> start Keycloak (`docker compose up keycloak -d`) and run `./mvnw -pl tnra-app spring-boot:run`.
-> H2 uses `ddl-auto: create-drop` with Flyway disabled.
+In an IDE, run the `TnraApplication` and `TnraLandingApplication` main classes directly with the
+same two env vars in the run configuration. Both apps apply their Flyway migrations on first start
+(`tnra`: V1–V12, `tnra_landing`: V1).
 
 ### 6. Create a test user in Keycloak
 

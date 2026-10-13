@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.2.1] - 2026-10-13
+
+### Fixed
+- **Missing Flyway migrations for the billing and landing services.** Both run `ddl-auto=validate` with Flyway, but neither `V1__billing_schema.sql` nor `V1__request_access.sql` had ever been committed: the repo-wide `*.sql` ignore rule's exception (`!src/main/resources/db/migration/*.sql`) is anchored to the repo root and never matched the per-module paths, so `git add .` silently dropped them. Against a fresh MySQL both services failed at startup with `Schema-validation: missing table`. The migrations are now in the repo (landing's is `IF NOT EXISTS`, so a deploy whose table was created by hand is unaffected), the ignore exception is `!**/src/main/resources/db/migration/*.sql`, and each module has a classpath-presence regression test.
+- **README local-dev steps corrected.** The main app does need an `application.yml` (its tracked `application.properties` carries no datasource, so it silently fell back to H2 and failed on MySQL-only migrations); `source .env` must not be used to load the encryption key (it also exports blank `SPRING_DATASOURCE_*`); the app must use the https proxy issuer for Keycloak and the JDK must trust the mkcert CA.
+
 ## [10.2.0] - 2026-10-12
 
 ### Added
