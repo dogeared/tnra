@@ -211,10 +211,10 @@ class BillingViewTest {
         assertTrue(view.giftMode);
         assertFalse(view.updatePaymentButton.isVisible()); // manage-your-own-sub hidden in gift mode
 
-        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE)).thenReturn("https://pay/9");
+        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing")).thenReturn("https://pay/9");
         view.startCheckout("monthly");
-        // payer is charged for the beneficiary; gift returns to the app home, not the activating page
-        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE);
+        // payer is charged for the beneficiary; gift returns to the Profile Billing tab, not the activating page
+        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing");
     }
 
     @Test
@@ -252,9 +252,9 @@ class BillingViewTest {
         view.beforeEnter(giftEvent("ben@x.com"));
 
         assertTrue(view.giftMode);
-        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE)).thenReturn("https://pay/r");
+        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing")).thenReturn("https://pay/r");
         view.startCheckout("monthly");
-        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE);
+        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing");
     }
 
     @Test

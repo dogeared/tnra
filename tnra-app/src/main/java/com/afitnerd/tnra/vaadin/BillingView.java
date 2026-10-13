@@ -220,8 +220,11 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         }
         try {
             // After a COMPLETED checkout: self-pay goes to the "activating" page (the payer's own entitlement
-            // is what flips); a gift goes to the app home — the gifter is already active.
-            String redirectUrl = giftMode ? baseUrl : baseUrl + "/billing/activating";
+            // is what flips); a gift returns to the Profile's Billing tab, where the gift was started and
+            // where "Members you're covering" shows the result (home would bounce to Stats).
+            String redirectUrl = giftMode
+                ? baseUrl + "/profile?" + ProfileView.TAB_PARAM + "=" + ProfileView.BILLING_TAB
+                : baseUrl + "/billing/activating";
             // If the member CLOSES the overlay without paying: back to where they started (this page, in
             // the same mode) — never to the activating page, which would sit waiting for a payment that
             // never happened.
