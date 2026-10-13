@@ -19,6 +19,8 @@ import com.vaadin.flow.component.page.Page;
 import com.vaadin.flow.router.BeforeEvent;
 import com.vaadin.flow.server.VaadinSession;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import com.vaadin.flow.server.VaadinService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -90,8 +92,23 @@ class PostViewTest {
 
     private PostView postView;
 
+    @AfterEach
+    void clearUi() {
+        UI.setCurrent(null);
+    }
+
     @BeforeEach
     void setUp() {
+        // Vaadin 25: an opened overlay (Notification, Dialog) attaches itself to UI.getCurrent(), so give
+        // the tests a minimal real UI. Tests that mockStatic(UI) override this inside their scope.
+        UI currentUi = new UI();
+        VaadinSession currentSession = mock(VaadinSession.class, org.mockito.Mockito.RETURNS_DEEP_STUBS);
+        lenient().when(currentSession.hasLock()).thenReturn(true);
+        VaadinService currentService = mock(VaadinService.class);
+        lenient().when(currentSession.getService()).thenReturn(currentService);
+        currentUi.getInternals().setSession(currentSession);
+        UI.setCurrent(currentUi);
+
         // Create test data
         testUser = new User();
         testUser.setId(1L);
@@ -135,6 +152,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -160,6 +178,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -181,6 +200,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -204,6 +224,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -231,6 +252,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -272,6 +294,7 @@ class PostViewTest {
         
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             // Act: Test the DateTimeUtils.formatDateTime method directly
             String formattedTime = DateTimeUtils.formatDateTime(knownUtcTime);
@@ -294,6 +317,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -317,6 +341,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -338,6 +363,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -356,6 +382,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -403,6 +430,7 @@ class PostViewTest {
              MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -433,6 +461,7 @@ class PostViewTest {
              MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -460,6 +489,7 @@ class PostViewTest {
              MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -495,6 +525,7 @@ class PostViewTest {
              MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -531,6 +562,7 @@ class PostViewTest {
              MockedConstruction<ConfirmDialog> mockedDialog = mockConstruction(ConfirmDialog.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -565,6 +597,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -608,6 +641,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -625,6 +659,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -645,6 +680,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -679,6 +715,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -697,6 +734,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
             
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -717,6 +755,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-2");
@@ -738,6 +777,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-1");
@@ -758,6 +798,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-999");
@@ -777,6 +818,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), null);
@@ -805,6 +847,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-20");
@@ -835,6 +878,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-10");
@@ -867,6 +911,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -900,6 +945,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -937,6 +983,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -972,6 +1019,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1003,6 +1051,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1030,6 +1079,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1076,6 +1126,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1102,6 +1153,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1126,6 +1178,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1151,6 +1204,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1175,6 +1229,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1203,6 +1258,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1221,6 +1277,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1238,6 +1295,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1265,6 +1323,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1288,6 +1347,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1314,6 +1374,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1338,6 +1399,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1362,6 +1424,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1378,6 +1441,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1396,6 +1460,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1419,6 +1484,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1442,6 +1508,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1468,6 +1535,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-2");
@@ -1488,6 +1556,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1505,6 +1574,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1523,6 +1593,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1544,6 +1615,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1566,6 +1638,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1589,6 +1662,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.afterNavigation(mockAfterNavigationEvent());
@@ -1879,6 +1953,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "INVALID");
@@ -1901,6 +1976,7 @@ class PostViewTest {
         try (MockedStatic<UI> mockedUI = mockStatic(UI.class)) {
             setupUIMocks("America/New_York");
             mockedUI.when(UI::getCurrent).thenReturn(mockUI);
+            mockedUI.when(UI::getCurrentOrThrow).thenReturn(mockUI); // Vaadin 25 overlays use this
 
             postView = new PostView(vaadinPostPresenter, postTokenService, "https://tnra.example.com");
             postView.setParameter(mock(BeforeEvent.class), "token-77");

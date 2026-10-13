@@ -6,7 +6,7 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-cli</artifactId>
-    <version>10.3.0</version>
+    <version>10.4.0</version>
     <packaging>jar</packaging>
 
     <name>tnra-cli</name>
@@ -16,7 +16,7 @@
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <picocli.version>4.7.6</picocli.version>
+        <picocli.version>4.7.7</picocli.version>
     </properties>
 
     <dependencies>

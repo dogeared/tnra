@@ -852,6 +852,11 @@ class MainLayoutUtilityTest {
         lenient().when(session.hasLock()).thenReturn(true);
         VaadinService vaadinService = mock(VaadinService.class);
         lenient().when(session.getService()).thenReturn(vaadinService);
+        // Vaadin 25: Page.setLocation validates the URL scheme against the deployment configuration.
+        com.vaadin.flow.function.DeploymentConfiguration deployment =
+            mock(com.vaadin.flow.function.DeploymentConfiguration.class);
+        lenient().when(deployment.getUrlSafeSchemes()).thenReturn(java.util.Set.of("http", "https"));
+        lenient().when(vaadinService.getDeploymentConfiguration()).thenReturn(deployment);
         ui.getInternals().setSession(session);
         UI.setCurrent(ui);
 

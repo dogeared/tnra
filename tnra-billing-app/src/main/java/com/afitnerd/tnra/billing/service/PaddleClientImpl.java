@@ -1,7 +1,7 @@
 package com.afitnerd.tnra.billing.service;
 
 import com.afitnerd.tnra.billing.config.PaddleProperties;
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;

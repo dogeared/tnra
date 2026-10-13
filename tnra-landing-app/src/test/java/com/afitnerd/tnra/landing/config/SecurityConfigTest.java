@@ -7,6 +7,7 @@ import org.springframework.security.web.header.HeaderWriter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -83,5 +84,16 @@ class SecurityConfigTest {
         request.setContextPath(contextPath);
         request.setServletPath(servletPath);
         return request;
+    }
+
+    @Test
+    void headersAreWrittenEagerly_soVaadinPageResponsesCarryThem() {
+        org.springframework.security.web.header.HeaderWriterFilter filter =
+            new org.springframework.security.web.header.HeaderWriterFilter(java.util.List.of(writer));
+        // default is lazy (on commit) — Vaadin 25 commits page responses outside Spring's wrapper
+        org.springframework.security.web.header.HeaderWriterFilter processed =
+            SecurityConfig.eagerHeaderWriting().postProcess(filter);
+        assertSame(filter, processed);
+        assertTrue((boolean) org.springframework.test.util.ReflectionTestUtils.getField(filter, "shouldWriteHeadersEagerly"));
     }
 }

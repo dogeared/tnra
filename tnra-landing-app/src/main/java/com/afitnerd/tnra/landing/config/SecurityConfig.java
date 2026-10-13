@@ -9,6 +9,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.header.HeaderWriter;
+import org.springframework.security.web.header.HeaderWriterFilter;
+import org.springframework.security.config.ObjectPostProcessor;
 import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter.ReferrerPolicy;
 import org.springframework.security.web.util.matcher.AnyRequestMatcher;
 
@@ -80,7 +82,12 @@ public class SecurityConfig {
             .referrerPolicy(ref -> ref.policy(ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN))
             // CSP + Permissions-Policy depend on the path (/pay needs Paddle), so they're one writer
             // rather than the fixed-string .contentSecurityPolicy()/.permissionsPolicyHeader() helpers.
-            .addHeaderWriter(pathAwareHeaders()));
+            .addHeaderWriter(pathAwareHeaders())
+            // Spring Security writes headers lazily, when the response commits. Vaadin 25's page handler
+            // commits the response in a way the lazy writer never observes, so Vaadin routes shipped with
+            // NO security headers (verified on the production jar: /api/* had them, /pricing did not).
+            // Writing eagerly — at filter entry — makes them unconditional.
+            .withObjectPostProcessor(eagerHeaderWriting()));
 
         // VaadinSecurityConfigurer reads @AnonymousAllowed on each view to grant
         // anonymous access. LandingView is annotated, so nothing extra is needed.
@@ -89,6 +96,17 @@ public class SecurityConfig {
         // requestMatchers after anyRequest" assertion in Vaadin 24.9.11+.
         http.with(VaadinSecurityConfigurer.vaadin(), cfg -> {});
         return http.build();
+    }
+
+    /** See the note in {@link #filterChain}: headers must be written before Vaadin commits the response. */
+    static ObjectPostProcessor<HeaderWriterFilter> eagerHeaderWriting() {
+        return new ObjectPostProcessor<>() {
+            @Override
+            public <O extends HeaderWriterFilter> O postProcess(O filter) {
+                filter.setShouldWriteHeadersEagerly(true);
+                return filter;
+            }
+        };
     }
 
     /**

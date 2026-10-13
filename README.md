@@ -11,8 +11,8 @@ best & worst, stats), monthly meetings, and yearly retreats.
 
 | Layer          | Technology                          |
 |----------------|-------------------------------------|
-| Backend        | Spring Boot 3.5, Java 21           |
-| Frontend       | Vaadin Flow 24.9 (server-side Java UI) |
+| Backend        | Spring Boot 4.1, Java 21           |
+| Frontend       | Vaadin Flow 25.3 (server-side Java UI) — frontend builds need Node 24 |
 | Database       | MySQL 8 with Flyway migrations     |
 | Authentication | Keycloak 26 via OIDC/OAuth2 (PKCE) |
 | Proxy          | Nginx (SSL termination, WebSocket)  |
@@ -46,6 +46,9 @@ database). Files are UUID-named and served via `/uploads/{filename}`. Max size: 
 - Docker and Docker Compose
 - Java 21 (for running outside Docker)
 - Maven (or use the included `./mvnw` wrapper)
+- Node 24 for Vaadin frontend builds (the Vaadin plugin downloads one into `~/.vaadin` if none is on
+  the PATH). Vaadin's dev tooling lives in each web module's default-on Maven profile; `-Pproduction`
+  builds leave it out.
 
 ## Local Development Setup
 

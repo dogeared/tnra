@@ -179,8 +179,9 @@ public class StatCard extends Div {
         // Using pure Java DOM event listeners to capture +/- keys
         valueField.getElement().addEventListener("keydown", event -> {
             if (!readOnly) {
-                String key = event.getEventData().getString("event.key");
-                boolean shiftKey = event.getEventData().getBoolean("event.shiftKey");
+                // Vaadin 25: event data is a Jackson JsonNode (Elemental JSON was removed)
+                String key = event.getEventData().path("event.key").asText("");
+                boolean shiftKey = event.getEventData().path("event.shiftKey").asBoolean(false);
 
                 // Trigger the appropriate button based on key
                 if ("+".equals(key) || ("=".equals(key) && shiftKey)) {
