@@ -5,7 +5,7 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-billing</artifactId>
-    <version>10.2.2</version>
+    <version>10.3.0</version>
     <packaging>jar</packaging>
 
     <name>tnra-billing</name>

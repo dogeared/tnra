@@ -2,11 +2,26 @@
 
 All notable changes to TNRA are documented in this file.
 
-## [10.2.2] - 2026-10-13
+## [10.3.0] - 2026-10-13
 
-### Fixed
-- **Opening the Paddle checkout no longer grants access.** Paddle emits `transaction.created` / `transaction.updated` (status `draft`, nothing paid) the moment the overlay is opened. The webhook handler routed them by custom data to the member's PENDING account and mapped the unknown status to `ON_GRACE_PERIOD`, which is entitled — so closing the overlay without paying unlocked the whole app. The handler now only acts on the nine entitlement events (`subscription.created/activated/updated/resumed/past_due/paused/canceled`, `transaction.completed/payment_failed`) and records everything else (opened-checkout transaction events, `product.*`, `price.*`) as ignored. Dunning (`past_due` / `payment_failed`) now keeps access only for a member who already has it; an unknown or missing status never changes it. Regression tests cover each case.
-- **Pay page always knows the way back.** The group app now appends `&return=<its URL>` to the checkout URL, so `/pay` shows "Return to your group" from the first paint — including after the overlay is closed without paying — instead of depending on Paddle echoing `custom_data` on checkout events (kept as a fallback).
+Paddle billing, end to end, as exercised on the dev site: the paid flow, gifts, dunning and cancellation now all happen in the app.
+
+### Security
+- **Opening the Paddle checkout no longer grants access.** Paddle emits `transaction.created` / `transaction.updated` (status `draft`, nothing paid) the moment the overlay is opened. The webhook handler routed them by custom data to the member's PENDING account and mapped the unknown status to `ON_GRACE_PERIOD`, which is entitled — closing the overlay without paying unlocked the app. Only the nine entitlement events (`subscription.created/activated/updated/resumed/past_due/paused/canceled`, `transaction.completed/payment_failed`) are acted on now; everything else is recorded as ignored. Dunning keeps access only for a member who already has it; an unknown status never changes anything.
+- **A gifted member no longer gets the gifter's Paddle portal.** The customer id on a gifted account is the gifter's (the gift was bought under their email), and the portal endpoint issued a session for it — the recipient could see and cancel every subscription the gifter pays for. Only a self-paid account's customer counts as the member's own now.
+
+### Added
+- **In-app cancellation.** *Cancel membership* (confirmation dialog) on the Profile → Billing tab schedules the cancellation at the end of the paid period; *Keep my membership* undoes it. *Stop covering* on each row of "Members you're covering" ends one specific gift the same way and shows "ends <date>" afterwards — no more guessing which of N identical "TNRA Membership" rows to cancel in Paddle. Only the recorded payer may end a gift. Billing API: `POST /api/v1/cancel`, `/resume`, `/covering/cancel`.
+- **Card updates in the checkout overlay.** *Update payment method* uses Paddle's update-payment-method transaction (`GET /subscriptions/{id}/update-payment-method-transaction`), which opens in the same `/pay` overlay as a purchase and returns to the app; for a past-due subscription it also settles the outstanding charge. Billing API: `GET /api/v1/payment-method` (404 no subscription, 409 gifted).
+- **Live subscription status on the Billing tab.** Reads the subscription from Paddle when the tab opens (never on the navigation gate): "cancelled and stays active through <date>", "free trial runs through <date>; first <plan> payment due <date>", "Next <plan> payment: <date>", "Paid through <date>", and the grace-period wording. Billing API: `GET /api/v1/subscription`.
+- **Membership prompt and dunning banner.** A member who hasn't activated (or is suspended) sees the pay options under the home welcome and below every Profile tab. A member whose last payment failed sees a one-line warning bar above every page with *Update payment method* — they're still entitled and roam the whole app, so no single page would reach them.
+- **Interstitial before the Paddle portal.** Invoices and receipts live only in Paddle's customer portal, which has no custom domain. *Invoices & receipts* now opens an in-app page that explains Paddle is the payment partner, counts down six seconds, and offers *Go to Paddle now* / *Stay here* (back to Profile → Billing).
+
+### Changed
+- **Pay page (`/pay`) has its own header and an explicit way back.** No landing-site nav; the TNRA link goes to the origin of the member's own group app (dynamic per group subdomain). The group app appends `done` (after a completed checkout) and `return` (closed without paying → the membership page, same mode) to the checkout URL; both are validated https-only. Closing the overlay unpaid never leads to the activating page.
+- **Activating page** gives up after ~30s with an honest "no confirmation received yet" and both *Continue to TNRA* and *Back to membership* — never an indefinite spinner.
+- **Navigation.** The header wordmark is a home link (it was a bare heading). The paywall page forwards an already-entitled member to Profile → Billing instead of showing pay buttons; it always offers *Back to profile*; a completed gift checkout returns to Profile → Billing (home bounced to Stats); `/profile?tab=billing` opens that tab directly.
+- A gifted member sees no card / invoices / cancel controls — nothing in Paddle is theirs — and the status line names who is paying.
 
 ## [10.2.1] - 2026-10-13
 
