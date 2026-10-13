@@ -45,7 +45,7 @@ class MembershipBannerTest {
 
     @Test
     void shownOnlyInGracePeriod() {
-        MembershipBanner banner = new MembershipBanner();
+        MembershipBanner banner = new MembershipBanner("https://g.tnra.app/");
         assertFalse(banner.isVisible(), "hidden until refreshed");
 
         assertTrue(banner.refresh(clientWith(true, "ON_GRACE_PERIOD"), "m@x.com"));
@@ -59,7 +59,7 @@ class MembershipBannerTest {
 
     @Test
     void failsClosedToHidden() {
-        MembershipBanner banner = new MembershipBanner();
+        MembershipBanner banner = new MembershipBanner("https://g.tnra.app/");
         BillingClient broken = mock(BillingClient.class);
         when(broken.entitlement(anyString())).thenThrow(new RuntimeException("down"));
         assertFalse(banner.refresh(broken, "m@x.com"));
@@ -74,17 +74,19 @@ class MembershipBannerTest {
     }
 
     @Test
-    void openPortal_usesClient_andSurvivesFailure_andNoopsWithoutMember() {
+    void startCardUpdate_usesOverlayUrl_andSurvivesFailure_andNoopsWithoutMember() {
         BillingClient client = clientWith(true, "ON_GRACE_PERIOD");
-        when(client.portalUrl("m@x.com")).thenReturn("https://portal/1").thenThrow(new RuntimeException("x"));
-        MembershipBanner banner = new MembershipBanner();
+        when(client.paymentMethodUpdateUrl("m@x.com"))
+            .thenReturn("https://tnra.app/pay?_ptxn=txn_u").thenThrow(new RuntimeException("x"));
+        MembershipBanner banner = new MembershipBanner("https://g.tnra.app/");
 
-        banner.openPortal(); // before refresh: no member yet
-        verify(client, never()).portalUrl(anyString());
+        banner.startCardUpdate(); // before refresh: no member yet
+        verify(client, never()).paymentMethodUpdateUrl(anyString());
 
         banner.refresh(client, "m@x.com");
-        banner.openPortal();
-        banner.openPortal(); // throws inside → notification, no exception out
-        verify(client, times(2)).portalUrl("m@x.com");
+        banner.startCardUpdate();
+        banner.startCardUpdate(); // throws inside → notification, no exception out
+        verify(client, times(2)).paymentMethodUpdateUrl("m@x.com");
+        verify(client, never()).portalUrl(anyString()); // the full-page portal is NOT the card-update path
     }
 }

@@ -24,11 +24,14 @@ public class MembershipBanner extends HorizontalLayout {
 
     private transient BillingClient billingClient;
     private String email;
+    private final String baseUrl;
 
     final Span text = new Span(GRACE_TEXT);
-    final Button updatePaymentButton = new Button("Update payment method", e -> openPortal());
+    final Button updatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
 
-    public MembershipBanner() {
+    public MembershipBanner(String baseUrl) {
+        this.baseUrl = baseUrl != null && baseUrl.endsWith("/")
+            ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
         addClassName("membership-banner");
         setWidthFull();
         setPadding(true);
@@ -68,16 +71,18 @@ public class MembershipBanner extends HorizontalLayout {
         }
     }
 
-    void openPortal() {
+    /** Same overlay as a purchase: completing it stores the new card and settles the failed charge. */
+    void startCardUpdate() {
         if (billingClient == null || email == null) {
             return;
         }
         try {
-            String url = billingClient.portalUrl(email);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String url = billingClient.paymentMethodUpdateUrl(email);
+            String done = baseUrl + "/billing/activating";
+            getUI().ifPresent(ui -> ui.getPage().setLocation(BillingView.withReturnUrls(url, done, baseUrl)));
         } catch (Exception ex) {
-            log.warn("Portal link failed for {}: {}", email, ex.getMessage());
-            AppNotification.error("Sorry, we couldn't open the payment portal. Please try again.");
+            log.warn("Card update link failed for {}: {}", email, ex.getMessage());
+            AppNotification.error("Sorry, we couldn't start the card update. Please try again.");
         }
     }
 }

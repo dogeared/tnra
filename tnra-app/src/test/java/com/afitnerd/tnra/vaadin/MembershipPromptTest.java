@@ -66,7 +66,7 @@ class MembershipPromptTest {
         assertTrue(prompt.isVisible());
         assertEquals(MembershipPrompt.PENDING_TEXT, prompt.blurb.getText());
         assertTrue(prompt.payButtons.isVisible());
-        assertFalse(prompt.updatePaymentButton.isVisible(), "nothing to update before a first subscription");
+        assertFalse(prompt.manageButton.isVisible(), "nothing to manage before a first subscription");
     }
 
     @Test
@@ -76,7 +76,7 @@ class MembershipPromptTest {
         assertTrue(prompt.refresh());
         assertEquals(MembershipPrompt.SUSPENDED_TEXT, prompt.blurb.getText());
         assertTrue(prompt.payButtons.isVisible());
-        assertTrue(prompt.updatePaymentButton.isVisible());
+        assertTrue(prompt.manageButton.isVisible());
     }
 
     @Test
@@ -135,16 +135,11 @@ class MembershipPromptTest {
     }
 
     @Test
-    void openPortal_callsClient_andSurvivesFailure() {
+    void openPortal_goesViaTheInterstitial_notStraightToPaddle() {
         BillingClient client = clientWith(false, "SUSPENDED");
-        when(client.portalUrl("m@x.com")).thenReturn("https://portal/1").thenThrow(new RuntimeException("x"));
         MembershipPrompt prompt = new MembershipPrompt(client, "m@x.com", BASE);
 
-        prompt.openPortal();
-        prompt.openPortal();
-        verify(client, Mockito.times(2)).portalUrl("m@x.com");
-
-        new MembershipPrompt(client, null, BASE).openPortal();
-        verify(client, never()).portalUrl((String) null);
+        prompt.openPortal(); // no UI in tests → navigation is a no-op, but no portal URL is fetched
+        verify(client, never()).portalUrl(anyString());
     }
 }

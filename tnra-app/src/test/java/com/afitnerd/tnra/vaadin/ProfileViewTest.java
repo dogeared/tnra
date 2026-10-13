@@ -1494,4 +1494,25 @@ class ProfileViewTest {
         assertNotNull(profileView.membershipPrompt);
         assertFalse(profileView.membershipPrompt.isVisible());
     }
+
+    @Test
+    void billingTab_cardUpdate_usesOverlay_andManageGoesViaInterstitial() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.paymentMethodUpdateUrl("me@x.com")).thenReturn("https://tnra.app/pay?_ptxn=txn_u");
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        assertNotNull(profileView.billingManageButton);
+        profileView.startCardUpdate();
+        verify(billing).paymentMethodUpdateUrl("me@x.com");
+
+        profileView.openMembershipPortal();
+        verify(billing, never()).portalUrl(anyString());
+    }
 }

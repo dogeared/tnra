@@ -14,6 +14,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -107,14 +110,40 @@ class BillingViewTest {
     }
 
     @Test
-    void openPortal_callsClient() {
+    void startCardUpdate_usesOverlayUrl_notThePortal() {
         BillingClient client = mock(BillingClient.class);
-        when(client.portalUrl("m@x.com")).thenReturn("https://portal/1");
+        when(client.paymentMethodUpdateUrl("m@x.com")).thenReturn("https://tnra.app/pay?_ptxn=txn_u");
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+
+        view.startCardUpdate();
+
+        verify(client).paymentMethodUpdateUrl("m@x.com");
+        verify(client, never()).portalUrl(any());
+    }
+
+    @Test
+    void startCardUpdate_notFound_conflict_andFailure_notifyWithoutThrowing() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.paymentMethodUpdateUrl("m@x.com"))
+            .thenThrow(HttpClientErrorException.create(org.springframework.http.HttpStatus.NOT_FOUND, "x", null, null, null))
+            .thenThrow(HttpClientErrorException.create(org.springframework.http.HttpStatus.CONFLICT, "x", null, null, null))
+            .thenThrow(new RuntimeException("boom"));
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+
+        view.startCardUpdate();
+        view.startCardUpdate();
+        view.startCardUpdate();
+        verify(client, org.mockito.Mockito.times(3)).paymentMethodUpdateUrl("m@x.com");
+    }
+
+    @Test
+    void openPortal_navigatesToInterstitial_withoutFetchingPortalUrl() {
+        BillingClient client = mock(BillingClient.class);
         BillingView view = view(client, mock(UserService.class), "m@x.com");
 
         view.openPortal();
 
-        verify(client).portalUrl("m@x.com");
+        verify(client, never()).portalUrl(any());
     }
 
     @Test

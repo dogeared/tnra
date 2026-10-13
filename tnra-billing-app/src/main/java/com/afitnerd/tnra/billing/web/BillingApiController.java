@@ -58,4 +58,10 @@ public class BillingApiController {
     public CheckoutResponse portal(Principal principal, @RequestParam String email) {
         return new CheckoutResponse(checkoutService.portalUrl(principal.getName(), email));
     }
+
+    /** Overlay checkout URL to update the card on the member's own subscription (see CheckoutService). */
+    @GetMapping("/payment-method")
+    public CheckoutResponse paymentMethod(Principal principal, @RequestParam String email) {
+        return new CheckoutResponse(checkoutService.paymentMethodUpdateUrl(principal.getName(), email));
+    }
 }

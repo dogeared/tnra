@@ -33,6 +33,7 @@ import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -51,18 +52,20 @@ public class MainLayout extends AppLayout {
     private boolean darkMode;
 
     /** Dunning warning, re-evaluated on every navigation; package-private for testing. */
-    final MembershipBanner membershipBanner = new MembershipBanner();
+    final MembershipBanner membershipBanner;
 
     public MainLayout(
         OidcUserService oidcUserService,
         UserService userService,
         AuthNavigationService authNavigationService,
-        Optional<BillingClient> billingClient
+        Optional<BillingClient> billingClient,
+        @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.authNavigationService = authNavigationService;
         this.billingClient = billingClient;
+        this.membershipBanner = new MembershipBanner(baseUrl);
         createHeader();
         createDrawer();
 

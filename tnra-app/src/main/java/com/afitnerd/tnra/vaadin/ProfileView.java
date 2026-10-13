@@ -103,6 +103,7 @@ public class ProfileView extends VerticalLayout {
     Button billingMonthlyButton;
     Button billingYearlyButton;
     Button billingUpdatePaymentButton;
+    Button billingManageButton;
     MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
     // Gift a membership section:
     ComboBox<User> giftRecipientCombo;
@@ -221,10 +222,12 @@ public class ProfileView extends VerticalLayout {
         billingPayButtons = new HorizontalLayout(billingMonthlyButton, billingYearlyButton);
         billingPayButtons.setVisible(false); // shown by applyBillingTabState() only if no active sub
 
-        billingUpdatePaymentButton = new Button("Update payment method", e -> openMembershipPortal());
+        billingUpdatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
+        billingManageButton = new Button("Manage subscription", e -> openMembershipPortal());
+        HorizontalLayout manageButtons = new HorizontalLayout(billingUpdatePaymentButton, billingManageButton);
 
         VerticalLayout section = new VerticalLayout(
-            billingTitle, billingBlurb, billingPayButtons, billingUpdatePaymentButton);
+            billingTitle, billingBlurb, billingPayButtons, manageButtons);
         section.setPadding(false);
         section.setSpacing(true);
         return section;
@@ -282,8 +285,10 @@ public class ProfileView extends VerticalLayout {
         }
         String me = currentUser.getEmail();
         try {
-            String url = billingClient.get().createCheckout(me, variant, me, baseUrl + "/billing/activating");
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String done = baseUrl + "/billing/activating";
+            String url = billingClient.get().createCheckout(me, variant, me, done);
+            getUI().ifPresent(ui -> ui.getPage().setLocation(
+                BillingView.withReturnUrls(url, done, baseUrl + "/profile")));
         } catch (HttpClientErrorException.Conflict ex) {
             AppNotification.error(
                 "You're already a member. Use \"Update payment method\" to manage your subscription.");
@@ -292,17 +297,29 @@ public class ProfileView extends VerticalLayout {
         }
     }
 
-    /** Open the hosted Paddle customer portal for the current member. */
-    void openMembershipPortal() {
+    /** Card update in the same /pay overlay as a purchase; returns here afterwards. */
+    void startCardUpdate() {
         if (currentUser == null || billingClient.isEmpty()) {
             return;
         }
+        String me = currentUser.getEmail();
         try {
-            String url = billingClient.get().portalUrl(currentUser.getEmail());
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String url = billingClient.get().paymentMethodUpdateUrl(me);
+            String done = baseUrl + "/billing/activating";
+            getUI().ifPresent(ui -> ui.getPage().setLocation(
+                BillingView.withReturnUrls(url, done, baseUrl + "/profile")));
+        } catch (HttpClientErrorException.NotFound ex) {
+            AppNotification.error("You don't have a subscription to update yet — choose a plan above.");
+        } catch (HttpClientErrorException.Conflict ex) {
+            AppNotification.error("Your membership is a gift — the person paying for it manages the card.");
         } catch (Exception ex) {
-            AppNotification.error("Sorry, we couldn't open the payment portal. Please try again.");
+            AppNotification.error("Sorry, we couldn't start the card update. Please try again.");
         }
+    }
+
+    /** Invoices / cancel / pause live in Paddle's full-page portal — go via the interstitial. */
+    void openMembershipPortal() {
+        getUI().ifPresent(ui -> ui.navigate(BillingPortalView.class));
     }
 
     /** Navigate to the billing view in gift mode for the selected member. */

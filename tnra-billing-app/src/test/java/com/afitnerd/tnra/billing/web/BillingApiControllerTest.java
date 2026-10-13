@@ -72,4 +72,11 @@ class BillingApiControllerTest {
 
         assertEquals("https://portal/1", controller.portal(rome, "m@x.com").url());
     }
+
+    @Test
+    void paymentMethod_delegates() {
+        when(checkoutService.paymentMethodUpdateUrl("rome", "m@x.com")).thenReturn("https://tnra.app/pay?_ptxn=u");
+
+        assertEquals("https://tnra.app/pay?_ptxn=u", controller.paymentMethod(rome, "m@x.com").url());
+    }
 }

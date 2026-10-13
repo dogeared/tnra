@@ -70,7 +70,7 @@ class MainLayoutTest {
             routeConfig.when(RouteConfiguration::forSessionScope).thenReturn(mockConfig);
             routeConfig.when(RouteConfiguration::forApplicationScope).thenReturn(mockConfig);
             routeConfig.when(() -> RouteConfiguration.forRegistry(any())).thenReturn(mockConfig);
-            return new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty());
+            return new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
         }
     }
 
@@ -79,7 +79,7 @@ class MainLayoutTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         // Expect either success or routing exception — just verify the service was used
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty());
+            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
         } catch (Exception e) {
             // Routing context not available in pure unit test — expected
         }
@@ -88,7 +88,7 @@ class MainLayoutTest {
 
     @Test
     void testMainLayoutConstructorWithNullService() {
-        assertThrows(Exception.class, () -> new MainLayout(null, null, null, null));
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null, null, null));
     }
 
     @Test
@@ -159,14 +159,14 @@ class MainLayoutTest {
 
     @Test
     void testServiceNotNull() {
-        assertThrows(Exception.class, () -> new MainLayout(null, null, null, null));
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null, null, null));
     }
 
     @Test
     void testOidcUserServiceDependency() {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty());
+            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
         } catch (Exception e) {
             // expected if routing not set up
         }
@@ -177,7 +177,7 @@ class MainLayoutTest {
     void testAuthenticatedUserServiceCall() {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty());
+            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
         } catch (Exception e) {
             // expected
         }
@@ -188,7 +188,7 @@ class MainLayoutTest {
     void testUnauthenticatedUserServiceCall() {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty());
+            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
         } catch (Exception e) {
             // expected
         }
@@ -210,7 +210,7 @@ class MainLayoutTest {
             routeConfig.when(RouteConfiguration::forSessionScope).thenReturn(mockConfig);
             routeConfig.when(RouteConfiguration::forApplicationScope).thenReturn(mockConfig);
             routeConfig.when(() -> RouteConfiguration.forRegistry(any())).thenReturn(mockConfig);
-            return new MainLayout(oidcUserService, userService, authNavigationService, billing);
+            return new MainLayout(oidcUserService, userService, authNavigationService, billing, "http://localhost:8080");
         }
     }
 

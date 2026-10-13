@@ -22,6 +22,8 @@ import java.util.Map;
  *       resp: data.checkout.url  (hosted checkout — requires a default payment link configured in the
  *             Paddle dashboard so Paddle can build the URL)
  *   getCustomerPortalUrl ─► POST /customers/{id}/portal-sessions
+ *   getUpdatePaymentMethodCheckoutUrl ─► GET /subscriptions/{id}/update-payment-method-transaction
+ *       resp: data.checkout.url  (same /pay overlay as a purchase; past_due ⇒ the outstanding txn)
  *       resp: data.urls.general.overview
  *   cancelSubscription ─► POST /subscriptions/{id}/cancel  { effective_from: "immediately" }
  * </pre>
@@ -81,6 +83,16 @@ public class PaddleClientImpl implements PaymentProviderClient {
             .body(JsonNode.class);
 
         return requireText(resp, "customer portal url", "data", "urls", "general", "overview");
+    }
+
+    @Override
+    public String getUpdatePaymentMethodCheckoutUrl(String subscriptionId) {
+        JsonNode resp = restClient.get()
+            .uri("/subscriptions/{id}/update-payment-method-transaction", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .retrieve()
+            .body(JsonNode.class);
+        return requireText(resp, "payment-method update checkout url", "data", "checkout", "url");
     }
 
     @Override

@@ -64,6 +64,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
     Button yearlyButton;
     Paragraph manageBlurb;
     Button updatePaymentButton;
+    Button manageButton;
     VerticalLayout coveringSection; // "Members you're covering"; visible only when paying for others
 
     public BillingView(Optional<BillingClient> billingClient, OidcUserService oidcUserService,
@@ -93,12 +94,15 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         yearlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         HorizontalLayout payButtons = new HorizontalLayout(monthlyButton, yearlyButton);
 
-        updatePaymentButton = new Button("Update payment method", e -> openPortal());
-        manageBlurb = new Paragraph("Already subscribed? Update your card or manage your subscription:");
+        updatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
+        manageButton = new Button("Manage subscription", e -> openPortal());
+        manageBlurb = new Paragraph("Already subscribed? Update your card right here, or manage invoices "
+            + "and cancellation in Paddle's customer portal:");
+        HorizontalLayout manageButtons = new HorizontalLayout(updatePaymentButton, manageButton);
 
         coveringSection = buildCoveringSection();
 
-        add(title, blurb, payButtons, manageBlurb, updatePaymentButton, coveringSection);
+        add(title, blurb, payButtons, manageBlurb, manageButtons, coveringSection);
     }
 
     /**
@@ -177,6 +181,8 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             yearlyButton.setEnabled(false);
             manageBlurb.setVisible(false);
             updatePaymentButton.setVisible(false);
+        manageButton.setVisible(false);
+            manageButton.setVisible(false);
             coveringSection.setVisible(false);
             return;
         }
@@ -188,6 +194,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         // The manage/portal and "you're covering" sections are about the payer's own state, not this gift.
         manageBlurb.setVisible(false);
         updatePaymentButton.setVisible(false);
+        manageButton.setVisible(false);
         coveringSection.setVisible(false);
     }
 
@@ -241,17 +248,28 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
            .append(name).append('=').append(URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
-    void openPortal() {
+    /** Card update in the same /pay overlay as a purchase; returns to the app. */
+    void startCardUpdate() {
         if (email == null || billingClient.isEmpty()) {
             return;
         }
         try {
-            String url = billingClient.get().portalUrl(email);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String url = billingClient.get().paymentMethodUpdateUrl(email);
+            String done = baseUrl + "/billing/activating";
+            getUI().ifPresent(ui -> ui.getPage().setLocation(withReturnUrls(url, done, baseUrl + "/billing")));
+        } catch (HttpClientErrorException.NotFound ex) {
+            Notification.show("You don't have a subscription to update yet — choose a plan above.");
+        } catch (HttpClientErrorException.Conflict ex) {
+            Notification.show("Your membership is a gift — the person paying for it manages the card.");
         } catch (Exception ex) {
-            log.warn("Portal link failed for {}: {}", email, ex.getMessage());
-            Notification.show("Sorry, we couldn't open the payment portal. Please try again.");
+            log.warn("Card update link failed for {}: {}", email, ex.getMessage());
+            Notification.show("Sorry, we couldn't start the card update. Please try again.");
         }
+    }
+
+    /** Invoices / cancel / pause live in Paddle's full-page portal — go via the interstitial. */
+    void openPortal() {
+        getUI().ifPresent(ui -> ui.navigate(BillingPortalView.class));
     }
 
     private static String displayName(User user) {

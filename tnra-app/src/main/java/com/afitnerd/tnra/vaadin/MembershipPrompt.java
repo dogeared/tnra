@@ -41,7 +41,7 @@ public class MembershipPrompt extends VerticalLayout {
     final Button monthlyButton = new Button("Pay $7 / month", e -> startCheckout("monthly"));
     final Button yearlyButton = new Button("Pay $60 / year", e -> startCheckout("yearly"));
     final HorizontalLayout payButtons = new HorizontalLayout(monthlyButton, yearlyButton);
-    final Button updatePaymentButton = new Button("Update payment method", e -> openPortal());
+    final Button manageButton = new Button("Manage subscription", e -> openPortal());
 
     public MembershipPrompt(BillingClient billingClient, String email, String baseUrl) {
         this.billingClient = billingClient;
@@ -53,7 +53,7 @@ public class MembershipPrompt extends VerticalLayout {
         setSpacing(true);
         monthlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         yearlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        add(new Hr(), title, blurb, payButtons, updatePaymentButton);
+        add(new Hr(), title, blurb, payButtons, manageButton);
         setVisible(false); // until refresh() says there's something to do
     }
 
@@ -96,8 +96,8 @@ public class MembershipPrompt extends VerticalLayout {
         boolean suspended = "SUSPENDED".equals(status);
         blurb.setText(suspended ? SUSPENDED_TEXT : PENDING_TEXT);
         payButtons.setVisible(true);
-        // No subscription yet ⇒ nothing to update; suspended ⇒ the portal can reactivate.
-        updatePaymentButton.setVisible(suspended);
+        // No subscription yet ⇒ nothing to manage; suspended (paused/cancelled) ⇒ the portal can resume it.
+        manageButton.setVisible(suspended);
         setVisible(true);
         return true;
     }
@@ -120,16 +120,8 @@ public class MembershipPrompt extends VerticalLayout {
         }
     }
 
+    /** The portal is a full-page Paddle site — go via the interstitial that explains that. */
     void openPortal() {
-        if (email == null) {
-            return;
-        }
-        try {
-            String url = billingClient.portalUrl(email);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
-        } catch (Exception ex) {
-            log.warn("Portal link failed for {}: {}", email, ex.getMessage());
-            AppNotification.error("Sorry, we couldn't open the payment portal. Please try again.");
-        }
+        getUI().ifPresent(ui -> ui.navigate(BillingPortalView.class));
     }
 }

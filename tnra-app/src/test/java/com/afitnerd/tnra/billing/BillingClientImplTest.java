@@ -179,4 +179,16 @@ class BillingClientImplTest {
         assertEquals("a@x.com", covering.get(0).email());
         assertEquals("ACTIVE", covering.get(0).status());
     }
+
+    @Test
+    void paymentMethodUpdateUrl_returnsUrl() {
+        server.expect(requestTo(startsWith("https://billing.local/api/v1/payment-method")))
+            .andExpect(method(GET))
+            .andExpect(queryParam("email", "m@x.com"))
+            .andExpect(header("Authorization", "Bearer group-token"))
+            .andRespond(withSuccess("{\"url\":\"https://tnra.app/pay?_ptxn=txn_u\"}", APPLICATION_JSON));
+
+        assertEquals("https://tnra.app/pay?_ptxn=txn_u", client.paymentMethodUpdateUrl("m@x.com"));
+        server.verify();
+    }
 }

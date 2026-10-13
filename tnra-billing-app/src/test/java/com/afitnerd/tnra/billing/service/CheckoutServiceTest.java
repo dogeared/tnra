@@ -13,6 +13,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -251,5 +253,50 @@ class CheckoutServiceTest {
 
         assertEquals("https://portal/own", service.portalUrl("rome", "gifter@x.com"));
         verify(accountRepo, never()).findByGroupSlugAndPayerEmail(any(), any());
+    }
+
+    private BillingAccount accountWithSub(String email, String payer, String sub) {
+        BillingAccount a = new BillingAccount();
+        a.setGroupSlug("rome");
+        a.setEmail(email);
+        a.setPayerEmail(payer);
+        a.setLsSubscriptionId(sub);
+        a.setStatus(BillingStatus.ACTIVE);
+        return a;
+    }
+
+    @Test
+    void paymentMethodUpdateUrl_selfPay_returnsOverlayCheckoutUrl() {
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com"))
+            .thenReturn(Optional.of(accountWithSub("m@x.com", null, "sub_1")));
+        when(provider.getUpdatePaymentMethodCheckoutUrl("sub_1")).thenReturn("https://tnra.app/pay?_ptxn=txn_u");
+
+        assertEquals("https://tnra.app/pay?_ptxn=txn_u", service.paymentMethodUpdateUrl("rome", " M@X.com "));
+    }
+
+    @Test
+    void paymentMethodUpdateUrl_giftedMember_isConflict_namingThePayer() {
+        when(accountRepo.findByGroupSlugAndEmail("rome", "ben@x.com"))
+            .thenReturn(Optional.of(accountWithSub("ben@x.com", "admin@x.com", "sub_2")));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+            () -> service.paymentMethodUpdateUrl("rome", "ben@x.com"));
+        assertEquals(HttpStatus.CONFLICT, ex.getStatusCode());
+        assertTrue(ex.getReason().contains("admin@x.com"));
+        verify(provider, never()).getUpdatePaymentMethodCheckoutUrl(any());
+    }
+
+    @Test
+    void paymentMethodUpdateUrl_noAccountOrNoSubscription_isNotFound() {
+        when(accountRepo.findByGroupSlugAndEmail("rome", "none@x.com")).thenReturn(Optional.empty());
+        ResponseStatusException none = assertThrows(ResponseStatusException.class,
+            () -> service.paymentMethodUpdateUrl("rome", "none@x.com"));
+        assertEquals(HttpStatus.NOT_FOUND, none.getStatusCode());
+
+        when(accountRepo.findByGroupSlugAndEmail("rome", "pending@x.com"))
+            .thenReturn(Optional.of(accountWithSub("pending@x.com", null, null)));
+        ResponseStatusException noSub = assertThrows(ResponseStatusException.class,
+            () -> service.paymentMethodUpdateUrl("rome", "pending@x.com"));
+        assertEquals(HttpStatus.NOT_FOUND, noSub.getStatusCode());
     }
 }

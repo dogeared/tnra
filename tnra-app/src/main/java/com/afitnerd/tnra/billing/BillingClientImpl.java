@@ -121,6 +121,15 @@ public class BillingClientImpl implements BillingClient {
     }
 
     @Override
+    public String paymentMethodUpdateUrl(String email) {
+        JsonNode resp = restClient.get()
+            .uri(b -> b.path("/api/v1/payment-method").queryParam("email", email).build())
+            .retrieve()
+            .body(JsonNode.class);
+        return text(resp, "url");
+    }
+
+    @Override
     public List<CoveredMember> covering(String payerEmail) {
         JsonNode resp = restClient.get()
             .uri(b -> b.path("/api/v1/covering").queryParam("payerEmail", payerEmail).build())

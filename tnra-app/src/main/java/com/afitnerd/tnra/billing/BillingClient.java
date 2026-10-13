@@ -44,8 +44,15 @@ public interface BillingClient {
      */
     String createCheckout(String beneficiaryEmail, String variant, String payerEmail, String redirectUrl);
 
-    /** Hosted Customer Portal URL for a member to update their card / manage the subscription. */
+    /** Hosted Customer Portal URL (full-page, on paddle.com): invoices, cancel, pause. */
     String portalUrl(String email);
+
+    /**
+     * Overlay checkout URL to update the card on the member's own subscription — same {@code /pay} flow
+     * as a purchase, returns to the app. 404 when they have no subscription; 409 when it's a gift (the
+     * payer manages the card).
+     */
+    String paymentMethodUpdateUrl(String email);
 
     /** The accounts a payer is covering (their gift list). */
     List<CoveredMember> covering(String payerEmail);

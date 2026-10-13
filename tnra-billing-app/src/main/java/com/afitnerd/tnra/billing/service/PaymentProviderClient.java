@@ -19,8 +19,16 @@ public interface PaymentProviderClient {
     String createCheckout(String groupSlug, String beneficiaryEmail, String payerEmail, String variant,
                           String redirectUrl);
 
-    /** Hosted Customer Portal URL for the given provider customer (update card / cancel). */
+    /** Hosted Customer Portal URL for the given provider customer (invoices / cancel / pause). */
     String getCustomerPortalUrl(String customerId);
+
+    /**
+     * Checkout URL for a payment-method update on an existing subscription — opens in the same overlay
+     * as a purchase (our {@code /pay} page) and returns to the app, unlike the full-page portal. For an
+     * active subscription the provider issues a zero-amount transaction; for a past_due one it returns the
+     * outstanding transaction, so completing it both stores the new card and settles the failed charge.
+     */
+    String getUpdatePaymentMethodCheckoutUrl(String subscriptionId);
 
     /**
      * Cancel a subscription with the provider. Used when a beneficiary self-pays to replace a gift —

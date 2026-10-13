@@ -116,6 +116,24 @@ public class CheckoutService {
         return paymentProviderClient.getCustomerPortalUrl(customerId);
     }
 
+    /**
+     * Checkout URL to update the card on the member's OWN subscription (overlay flow). A gifted member has
+     * no card of their own on file — the gifter manages it — so that is a 409 with a message the UI can show.
+     */
+    public String paymentMethodUpdateUrl(String groupSlug, String email) {
+        String normalized = normalize(email);
+        BillingAccount account = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription to update"));
+        if (account.getLsSubscriptionId() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription to update");
+        }
+        if (account.getPayerEmail() != null && !account.getPayerEmail().equalsIgnoreCase(normalized)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This membership is paid for by " + account.getPayerEmail() + ", who manages the payment method");
+        }
+        return paymentProviderClient.getUpdatePaymentMethodCheckoutUrl(account.getLsSubscriptionId());
+    }
+
     /** The provider customer of any subscription this member pays for — to reach the portal with no own sub. */
     private String firstPaidCustomerId(String groupSlug, String payer) {
         return accountRepository.findByGroupSlugAndPayerEmail(groupSlug, payer).stream()

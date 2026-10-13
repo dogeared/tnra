@@ -106,4 +106,23 @@ class PaddleClientImplTest {
         assertEquals("https://portal.paddle/9", client.getCustomerPortalUrl("ctm_9"));
         server.verify();
     }
+
+    @Test
+    void getUpdatePaymentMethodCheckoutUrl_readsCheckoutUrl() {
+        server.expect(requestTo(BASE + "/subscriptions/sub_7/update-payment-method-transaction"))
+            .andExpect(method(org.springframework.http.HttpMethod.GET))
+            .andExpect(header("Authorization", "Bearer test-key"))
+            .andRespond(withSuccess("{\"data\":{\"status\":\"ready\",\"checkout\":{\"url\":\"https://tnra.app/pay?_ptxn=txn_u\"}}}", JSON));
+
+        assertEquals("https://tnra.app/pay?_ptxn=txn_u", client.getUpdatePaymentMethodCheckoutUrl("sub_7"));
+        server.verify();
+    }
+
+    @Test
+    void getUpdatePaymentMethodCheckoutUrl_failsLoudlyWithoutUrl() {
+        server.expect(requestTo(BASE + "/subscriptions/sub_7/update-payment-method-transaction"))
+            .andRespond(withSuccess("{\"data\":{\"status\":\"draft\",\"checkout\":{\"url\":null}}}", JSON));
+
+        assertThrows(IllegalStateException.class, () -> client.getUpdatePaymentMethodCheckoutUrl("sub_7"));
+    }
 }
