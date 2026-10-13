@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -89,6 +90,17 @@ class BillingViewTest {
 
         // self-pay, with the post-checkout "activating" page as the LS redirect target
         verify(client).createCheckout("m@x.com", "monthly", "m@x.com", BASE + "/billing/activating");
+    }
+
+    @Test
+    void withReturn_appendsEncodedReturnUrl_toPaddleCheckoutUrl() {
+        assertEquals("https://tnra.app/pay?_ptxn=txn_1&return=https%3A%2F%2Fg.tnra.app%2Fbilling%2Factivating",
+            BillingView.withReturn("https://tnra.app/pay?_ptxn=txn_1", "https://g.tnra.app/billing/activating"));
+        assertEquals("https://tnra.app/pay?return=https%3A%2F%2Fg.tnra.app",
+            BillingView.withReturn("https://tnra.app/pay", "https://g.tnra.app"));
+        assertEquals("https://tnra.app/pay?_ptxn=1", BillingView.withReturn("https://tnra.app/pay?_ptxn=1", null));
+        assertEquals("https://tnra.app/pay?_ptxn=1", BillingView.withReturn("https://tnra.app/pay?_ptxn=1", " "));
+        assertNull(BillingView.withReturn(null, "https://g.tnra.app"));
     }
 
     @Test

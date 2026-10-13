@@ -25,9 +25,11 @@ import org.slf4j.LoggerFactory;
  * live on the domain Paddle approved for the seller (the landing site's). The group apps never embed
  * Paddle.js themselves — they redirect the member here and Paddle sends them back.
  *
- * <p>Return trip: the billing service stores the group app's return URL in the transaction's
- * {@code custom_data.redirect_url}. Paddle.js echoes {@code custom_data} on every checkout event, so on
- * {@code checkout.completed} the page forwards the member there (normally the group's
+ * <p>Return trip: the group app appends {@code &return=<its URL>} to the checkout URL before sending
+ * the browser here, so the page knows where "back" is from the first paint (the link is shown at once,
+ * including when the member closes the overlay without paying). The same URL also rides in the
+ * transaction's {@code custom_data.redirect_url}, which Paddle.js echoes on checkout events, as a
+ * fallback. On {@code checkout.completed} the page forwards there (normally the group's
  * {@code /billing/activating} page, which waits for the webhook). Only {@code https://} targets are
  * followed — this is a public page, so the redirect must not become an open redirect.
  *
@@ -58,25 +60,27 @@ public class PayView extends VerticalLayout {
      */
     static final String SCRIPT = String.join("\n",
         "const token = $0, env = $1, src = $2, status = $3, link = $4;",
-        "const txn = new URLSearchParams(window.location.search).get('_ptxn');",
-        "if (!txn) {",
-        "  status.textContent = 'There is nothing to pay for here. Start checkout from the membership page in your group app.';",
-        "  return;",
-        "}",
+        "const params = new URLSearchParams(window.location.search);",
+        "const txn = params.get('_ptxn');",
         "let redirect = null, completed = false;",
-        "function remember(data) {",
-        "  const url = data && data.custom_data && data.custom_data.redirect_url;",
+        "function remember(url) {",
         "  if (typeof url === 'string' && url.startsWith('https://')) {",
         "    redirect = url; link.href = url; link.removeAttribute('hidden');",
         "  }",
         "}",
+        "remember(params.get('return'));",
+        "if (!txn) {",
+        "  status.textContent = 'There is nothing to pay for here. Start checkout from the membership page in your group app.';",
+        "  return;",
+        "}",
         "function onEvent(ev) {",
         "  if (!ev || !ev.name) { return; }",
         "  if (ev.name === 'checkout.loaded') {",
-        "    remember(ev.data);",
+        "    if (!redirect) { remember(ev.data && ev.data.custom_data && ev.data.custom_data.redirect_url); }",
         "    status.textContent = 'Complete your payment in the secure checkout window.';",
         "  } else if (ev.name === 'checkout.completed') {",
-        "    completed = true; remember(ev.data);",
+        "    completed = true;",
+        "    if (!redirect) { remember(ev.data && ev.data.custom_data && ev.data.custom_data.redirect_url); }",
         "    if (redirect) {",
         "      status.textContent = 'Payment received — taking you back to your group…';",
         "      setTimeout(function () { window.location.replace(redirect); }, 1500);",

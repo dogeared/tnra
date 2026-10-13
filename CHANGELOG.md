@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.2.2] - 2026-10-13
+
+### Fixed
+- **Opening the Paddle checkout no longer grants access.** Paddle emits `transaction.created` / `transaction.updated` (status `draft`, nothing paid) the moment the overlay is opened. The webhook handler routed them by custom data to the member's PENDING account and mapped the unknown status to `ON_GRACE_PERIOD`, which is entitled — so closing the overlay without paying unlocked the whole app. The handler now only acts on the nine entitlement events (`subscription.created/activated/updated/resumed/past_due/paused/canceled`, `transaction.completed/payment_failed`) and records everything else (opened-checkout transaction events, `product.*`, `price.*`) as ignored. Dunning (`past_due` / `payment_failed`) now keeps access only for a member who already has it; an unknown or missing status never changes it. Regression tests cover each case.
+- **Pay page always knows the way back.** The group app now appends `&return=<its URL>` to the checkout URL, so `/pay` shows "Return to your group" from the first paint — including after the overlay is closed without paying — instead of depending on Paddle echoing `custom_data` on checkout events (kept as a fallback).
+
 ## [10.2.1] - 2026-10-13
 
 ### Fixed

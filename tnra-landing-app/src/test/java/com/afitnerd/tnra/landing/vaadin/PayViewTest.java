@@ -80,8 +80,9 @@ class PayViewTest {
         // Sandbox must be selected before Initialize, and only for sandbox.
         assertTrue(js.contains("if (env === 'sandbox') { Paddle.Environment.set('sandbox'); }"));
         assertTrue(js.contains("Paddle.Initialize({ token: token, eventCallback: onEvent })"));
-        // Return trip comes from the transaction's custom_data and is https-only (no open redirect).
-        assertTrue(js.contains("data.custom_data.redirect_url"));
+        // Return trip: explicit ?return= from the group app first, custom_data fallback; https-only.
+        assertTrue(js.contains("remember(params.get('return'))"));
+        assertTrue(js.contains("ev.data.custom_data.redirect_url"));
         assertTrue(js.contains("url.startsWith('https://')"));
         assertTrue(js.contains("checkout.completed"));
         assertTrue(js.contains("window.location.replace(redirect)"));

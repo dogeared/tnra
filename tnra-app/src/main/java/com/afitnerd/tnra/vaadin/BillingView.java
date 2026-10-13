@@ -22,6 +22,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 
@@ -198,7 +200,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             // A gift returns to the app home — the gifter is already active, only the beneficiary changes.
             String redirectUrl = giftMode ? baseUrl : baseUrl + "/billing/activating";
             String url = billingClient.get().createCheckout(beneficiaryEmail, variant, email, redirectUrl);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            getUI().ifPresent(ui -> ui.getPage().setLocation(withReturn(url, redirectUrl)));
         } catch (HttpClientErrorException.Conflict ex) {
             Notification.show(giftMode
                 ? "That member already has an active subscription."
@@ -207,6 +209,19 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             log.warn("Checkout failed (beneficiary={}, variant={}): {}", beneficiaryEmail, variant, ex.getMessage());
             Notification.show("Sorry, we couldn't start checkout. Please try again.");
         }
+    }
+
+    /**
+     * The checkout URL Paddle hands back is the landing site's {@code /pay} page plus {@code _ptxn}. Append
+     * where to send the member afterwards so that page knows "back" from the first paint (also when the
+     * overlay is closed without paying) instead of depending on Paddle echoing custom data.
+     */
+    static String withReturn(String checkoutUrl, String redirectUrl) {
+        if (checkoutUrl == null || redirectUrl == null || redirectUrl.isBlank()) {
+            return checkoutUrl;
+        }
+        String sep = checkoutUrl.contains("?") ? "&" : "?";
+        return checkoutUrl + sep + "return=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
     }
 
     void openPortal() {
