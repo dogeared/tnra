@@ -32,7 +32,10 @@ application.properties
 node_modules
 node
 *.sql
-!src/main/resources/db/migration/*.sql
+# Flyway migrations are source, in EVERY module. (A pattern with a slash is anchored to this
+# directory, so the old `!src/main/resources/...` form only un-ignored the repo root and silently
+# dropped tnra-billing-app's V1 from `git add .`.)
+!**/src/main/resources/db/migration/*.sql
 !mysql/*.sql
 
 src/main/resources/public
@@ -54,3 +57,7 @@ emails
 .gstack/
 tnra-cli-app/dependency-reduced-pom.xml
 .claude/skills/gstack/
+
+# Vaadin dev-mode generated files (regenerated on every dev-server start)
+**/types.d.ts
+tnra-landing-app/src/main/frontend/index.html
