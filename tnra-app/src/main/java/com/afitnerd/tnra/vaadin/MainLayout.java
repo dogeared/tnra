@@ -51,6 +51,8 @@ public class MainLayout extends AppLayout {
     private Button themeToggleButton;
     private boolean darkMode;
 
+    RouterLink homeLink; // package-private for testing
+
     /** Dunning warning, re-evaluated on every navigation; package-private for testing. */
     final MembershipBanner membershipBanner;
 
@@ -150,6 +152,13 @@ public class MainLayout extends AppLayout {
         DrawerToggle drawerToggle = new DrawerToggle();
 
         H1 logo = new H1("TNRA");
+        // The wordmark is a home link, as on every site — a member deep in a billing flow needs a way out.
+        RouterLink home = new RouterLink();
+        home.setRoute(MainView.class);
+        home.add(logo);
+        home.getStyle().set("text-decoration", "none").set("color", "inherit");
+        home.getElement().setAttribute("title", "Home");
+        homeLink = home;
 
         // Theme toggle button — icon swaps between sun and moon
         themeToggleButton = new Button();
@@ -176,7 +185,7 @@ public class MainLayout extends AppLayout {
         rightSection.setSpacing(true);
 
         // Left side: hamburger + logo grouped together
-        HorizontalLayout leftSection = new HorizontalLayout(drawerToggle, logo);
+        HorizontalLayout leftSection = new HorizontalLayout(drawerToggle, home);
         leftSection.setAlignItems(FlexComponent.Alignment.CENTER);
         leftSection.setSpacing(false);
 

@@ -79,7 +79,7 @@ class MainLayoutTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         // Expect either success or routing exception — just verify the service was used
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // Routing context not available in pure unit test — expected
         }
@@ -166,7 +166,7 @@ class MainLayoutTest {
     void testOidcUserServiceDependency() {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // expected if routing not set up
         }
@@ -177,7 +177,7 @@ class MainLayoutTest {
     void testAuthenticatedUserServiceCall() {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // expected
         }
@@ -188,7 +188,7 @@ class MainLayoutTest {
     void testUnauthenticatedUserServiceCall() {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // expected
         }
@@ -247,5 +247,15 @@ class MainLayoutTest {
         off.refreshMembershipBanner();
         assertFalse(off.membershipBanner.isVisible());
         verify(billing, times(1)).entitlement("m@x.com");
+    }
+
+    @Test
+    void headerWordmark_isAHomeLink() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        MainLayout layout = layoutWith(Optional.empty());
+
+        assertNotNull(layout.homeLink);
+        assertTrue(layout.homeLink.getChildren().anyMatch(c -> c instanceof com.vaadin.flow.component.html.H1));
+        assertEquals("Home", layout.homeLink.getElement().getAttribute("title"));
     }
 }

@@ -6,6 +6,7 @@ import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -67,6 +68,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
     Paragraph manageBlurb;
     Button updatePaymentButton;
     Button manageButton;
+    Button backToProfileButton; // always present: this page must never be a dead end
     VerticalLayout coveringSection; // "Members you're covering"; visible only when paying for others
 
     public BillingView(Optional<BillingClient> billingClient, OidcUserService oidcUserService,
@@ -104,7 +106,10 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
 
         coveringSection = buildCoveringSection();
 
-        add(title, blurb, payButtons, manageBlurb, manageButtons, coveringSection);
+        backToProfileButton = new Button("Back to profile", VaadinIcon.ARROW_LEFT.create(), e -> backToProfile());
+        backToProfileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        add(title, blurb, payButtons, manageBlurb, manageButtons, coveringSection, backToProfileButton);
     }
 
     /**
@@ -276,6 +281,12 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             log.warn("Card update link failed for {}: {}", email, ex.getMessage());
             Notification.show("Sorry, we couldn't start the card update. Please try again.");
         }
+    }
+
+    /** Leave this page the way the member came: the Profile's Billing tab (gifting lives there). */
+    void backToProfile() {
+        getUI().ifPresent(ui -> ui.navigate("profile",
+            QueryParameters.simple(Map.of(ProfileView.TAB_PARAM, ProfileView.BILLING_TAB))));
     }
 
     /** Invoices / cancel / pause live in Paddle's full-page portal — go via the interstitial. */

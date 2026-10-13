@@ -337,4 +337,14 @@ class BillingViewTest {
 
         assertTrue(view.giftMode);
     }
+
+    @Test
+    void alwaysOffersAWayBack_toTheProfileBillingTab() {
+        BillingView view = view(mock(BillingClient.class), mock(UserService.class), "m@x.com");
+
+        assertNotNull(view.backToProfileButton);
+        assertTrue(view.backToProfileButton.isVisible());
+        assertTrue(view.getChildren().anyMatch(c -> c == view.backToProfileButton));
+        view.backToProfile(); // no UI in tests → no-op, no exception
+    }
 }
