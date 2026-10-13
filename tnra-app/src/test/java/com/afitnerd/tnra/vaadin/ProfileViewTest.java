@@ -1662,4 +1662,41 @@ class ProfileViewTest {
         profileView.stopCovering("ben@x.com");
         verify(billing).stopCovering("me@x.com", "ben@x.com");
     }
+
+    @Test
+    void beforeEnter_tabParam_opensBillingTab_andIsIgnoredWithoutBilling() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.empty());
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+        com.vaadin.flow.router.BeforeEnterEvent event = mock(com.vaadin.flow.router.BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(new com.vaadin.flow.router.Location("profile",
+            com.vaadin.flow.router.QueryParameters.simple(java.util.Map.of("tab", "billing"))));
+
+        profileView.beforeEnter(event);
+
+        assertEquals(profileView.billingTab, profileView.tabs.getSelectedTab());
+
+        // no param → first tab stays
+        ProfileView plain = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+        com.vaadin.flow.router.BeforeEnterEvent noParam = mock(com.vaadin.flow.router.BeforeEnterEvent.class);
+        when(noParam.getLocation()).thenReturn(new com.vaadin.flow.router.Location("profile"));
+        plain.beforeEnter(noParam);
+        assertEquals(0, plain.tabs.getSelectedIndex());
+
+        // billing off → no billing tab, param ignored, no exception
+        ProfileView off = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.empty(), "http://localhost:8080");
+        off.beforeEnter(event);
+        assertNull(off.billingTab);
+    }
 }

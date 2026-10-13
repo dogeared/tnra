@@ -12,11 +12,13 @@ import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -120,7 +122,9 @@ public class BillingPortalView extends VerticalLayout {
         }
     }
 
+    /** Back to where billing lives in the app: the Profile's Billing tab. */
     void stay() {
-        getUI().ifPresent(ui -> ui.navigate(BillingView.class));
+        getUI().ifPresent(ui -> ui.navigate("profile",
+            QueryParameters.simple(Map.of(ProfileView.TAB_PARAM, ProfileView.BILLING_TAB))));
     }
 }

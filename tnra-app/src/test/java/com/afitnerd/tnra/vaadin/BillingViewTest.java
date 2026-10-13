@@ -294,4 +294,47 @@ class BillingViewTest {
 
         assertFalse(view.giftMode);
     }
+
+    @Test
+    void beforeEnter_entitledMember_withoutGift_isForwardedToProfileBillingTab() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("m@x.com")).thenReturn(true);
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(new Location("billing"));
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("profile", QueryParameters.simple(Map.of("tab", "billing")));
+    }
+
+    @Test
+    void beforeEnter_notEntitledMember_staysOnThePaywall() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("m@x.com")).thenReturn(false);
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(new Location("billing"));
+
+        view.beforeEnter(event);
+
+        verify(event, never()).forwardTo(any(String.class), any(QueryParameters.class));
+        assertFalse(view.giftMode);
+    }
+
+    @Test
+    void beforeEnter_giftRequest_isNeverForwarded_evenWhenEntitled() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("payer@x.com")).thenReturn(true);
+        when(client.entitlement("ben@x.com")).thenReturn(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null));
+        UserService users = mock(UserService.class);
+        User ben = new User();
+        ben.setEmail("ben@x.com");
+        when(users.getUserByEmail("ben@x.com")).thenReturn(ben);
+        BillingView view = view(client, users, "payer@x.com");
+
+        view.beforeEnter(giftEvent("ben@x.com"));
+
+        assertTrue(view.giftMode);
+    }
 }

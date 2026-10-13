@@ -41,6 +41,8 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
@@ -63,7 +65,7 @@ import java.util.regex.Pattern;
 @PermitAll
 @CssImport("./styles/profile-view.css")
 @PageTitle("Profile | TNRA")
-public class ProfileView extends VerticalLayout {
+public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
 
     private final UserService userService;
     private final FileStorageService fileStorageService;
@@ -109,6 +111,8 @@ public class ProfileView extends VerticalLayout {
     Button billingYearlyButton;
     Button billingUpdatePaymentButton;
     Button billingManageButton;
+    TabSheet tabs;                // package-private for testing
+    Tab billingTab;               // null when billing is off
     Button billingCancelButton;   // self-pay, live, no cancel scheduled
     Button billingKeepButton;     // self-pay, cancel scheduled → undo
     MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
@@ -163,7 +167,7 @@ public class ProfileView extends VerticalLayout {
         buildBasicInfoFields();
         buildNotificationFields();
 
-        TabSheet tabs = new TabSheet();
+        tabs = new TabSheet();
         // Width only: a full-height TabSheet would stretch to the bottom of the view and push the
         // membership prompt below the fold with a wall of whitespace above it.
         tabs.setWidthFull();
@@ -175,7 +179,7 @@ public class ProfileView extends VerticalLayout {
         tabs.add("Export", createDataExportSection());
         // Billing tab only when billing is enabled (the central service is wired in).
         if (billingClient.isPresent()) {
-            Tab billingTab = tabs.add("Billing", createBillingTabContent());
+            billingTab = tabs.add("Billing", createBillingTabContent());
             // Lazy-load: hit the billing service only when the Billing tab is actually opened (not on
             // every profile visit), and refresh on each open so the covering list stays current.
             tabs.addSelectedChangeListener(e -> {
@@ -276,6 +280,19 @@ public class ProfileView extends VerticalLayout {
         section.setPadding(false);
         section.setSpacing(true);
         return section;
+    }
+
+    static final String TAB_PARAM = "tab";
+    static final String BILLING_TAB = "billing";
+
+    /** {@code /profile?tab=billing} lands on the Billing tab (deep links from billing flows). */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        List<String> tab = event.getLocation().getQueryParameters().getParameters()
+            .getOrDefault(TAB_PARAM, List.of());
+        if (billingTab != null && tabs != null && !tab.isEmpty() && BILLING_TAB.equalsIgnoreCase(tab.get(0))) {
+            tabs.setSelectedTab(billingTab); // fires the selected-change listener → applyBillingTabState()
+        }
     }
 
     /** The below-the-tabs prompt needs the member's email, which is only known after loadUserData(). */

@@ -15,6 +15,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -114,6 +116,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         VerticalLayout section = new VerticalLayout();
         section.setPadding(false);
         section.setSpacing(false);
+        section.setAlignItems(Alignment.CENTER);
         section.setVisible(false);
         if (email == null) {
             return section;
@@ -150,8 +153,16 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         }
         List<String> gift = event.getLocation().getQueryParameters()
             .getParameters().getOrDefault("gift", List.of());
-        if (!gift.isEmpty() && !gift.get(0).isBlank()) {
+        boolean giftRequested = !gift.isEmpty() && !gift.get(0).isBlank();
+        if (giftRequested) {
             applyGiftMode(gift.get(0).trim().toLowerCase());
+            return;
+        }
+        // This page is the paywall: "pay to get in". A member who IS in has nothing to buy here — their
+        // membership (status, card, cancel, gifts) lives on the Profile's Billing tab. Showing them pay
+        // buttons was wrong and confusing.
+        if (billingClient.get().isEntitled(email)) {
+            event.forwardTo("profile", QueryParameters.simple(Map.of(ProfileView.TAB_PARAM, ProfileView.BILLING_TAB)));
         }
     }
 
