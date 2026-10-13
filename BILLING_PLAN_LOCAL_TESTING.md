@@ -187,14 +187,35 @@ Copy each **Price id** (`pri_…`) from the price detail. Both must be recurring
 (The client sends it as `Authorization: Bearer <PADDLE_API_KEY>` against
 `https://sandbox-api.paddle.com`.)
 
-### 2.3 Default payment link (required for hosted checkout)
+### 2.3 Default payment link + client-side token (required for hosted checkout)
 
-The app creates a checkout via `POST /transactions` and reads `data.checkout.url` back.
-**Paddle only returns that URL if a default payment link is configured.** Set it under
-**Checkout → Settings → Default payment link** (any URL on a domain approved for your
-sandbox seller — the hosted overlay/inline checkout is served from there). Without it,
-`createCheckout` gets a transaction with no `checkout.url` and the membership screen fails
-to start checkout.
+Paddle's "hosted" checkout is **not a Paddle-hosted page**. The billing service creates a
+checkout via `POST /transactions` and reads `data.checkout.url` back — and that URL is just
+your **default payment link with `?_ptxn=txn_…` appended**. The page at that link must include
+Paddle.js, which reads the parameter and opens the checkout overlay. In this repo that page is
+the **landing app's `/pay` route** (`PayView`).
+
+1. **Checkout → Checkout settings → Default payment link** → the landing app's `/pay` URL.
+   Sandbox needs no domain approval, so use whatever you browse the landing app at:
+   `https://landing.dev.dogeared.dev/pay` (nginx dev proxy) or `http://localhost:8081/pay`.
+   Paddle never fetches it — only your browser does. Without it, `createCheckout` gets a
+   transaction with no `checkout.url` and the membership screen fails to start checkout.
+2. **Developer Tools → Authentication → Client-side tokens** → create one → give it to the
+   **landing app** (not the billing service):
+
+   ```bash
+   export PADDLE_CLIENT_TOKEN=test_…     # tnra.paddle.client-token
+   export PADDLE_ENVIRONMENT=sandbox     # tnra.paddle.environment (default)
+   ```
+
+   Restart the landing app. With the token blank, `/pay` renders "Checkout isn't set up on
+   this site yet" instead of loading Paddle.js.
+
+The return trip is automatic: the group app's return URL rides along in the transaction's
+`custom_data.redirect_url`, Paddle.js echoes `custom_data` on `checkout.completed`, and `/pay`
+forwards you there (`/billing/activating`). Only `https://` targets are followed — with the
+plain-`http://localhost:8080` group app, `/pay` shows "Payment received" and you navigate back
+by hand; use the nginx dev proxy (`https://tnra.dev.dogeared.dev`) to see the full redirect.
 
 ### 2.4 Webhook (notification destination)
 

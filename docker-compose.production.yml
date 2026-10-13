@@ -59,6 +59,10 @@ services:
       TNRA_BASIC_AUTH_ENABLED: "${TNRA_BASIC_AUTH_ENABLED:-false}"
       TNRA_BASIC_AUTH_USERNAME: "${TNRA_BASIC_AUTH_USERNAME:-}"
       TNRA_BASIC_AUTH_PASSWORD: "${TNRA_BASIC_AUTH_PASSWORD:-}"
+      # Paddle.js for /pay (the default payment link). Blank token ⇒ /pay says "not configured".
+      # Binds to tnra.paddle.client-token / tnra.paddle.environment via Spring relaxed binding.
+      TNRA_PADDLE_CLIENT_TOKEN: "${PADDLE_CLIENT_TOKEN:-}"
+      TNRA_PADDLE_ENVIRONMENT: "${PADDLE_ENVIRONMENT:-sandbox}"
       VAADIN_PRODUCTIONMODE: "true"
     ports:
       # Host port is for local/debug only — nginx/Cloudflare reach the container
