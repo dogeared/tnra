@@ -1259,15 +1259,17 @@ class ProfileViewTest {
         BillingClient client = mock(BillingClient.class);
         testUser.setEmail("me@x.com");
 
-        // Components exist after construction; no billing call happens until the tab is opened.
+        // Components exist after construction. The below-the-tabs membership prompt needs ONE entitlement
+        // read on load (to know whether to show itself); the tab's gift/covering data stays lazy.
         profileView = profileWithBilling(client);
 
         assertNotNull(profileView.billingMonthlyButton);
         assertNotNull(profileView.billingUpdatePaymentButton);
         assertNotNull(profileView.giftRecipientCombo);
         assertNotNull(profileView.giftContinueButton);
-        verify(client, never()).entitlement(anyString()); // lazy: not loaded until the tab opens
-        verify(client, never()).covering(anyString());
+        verify(client, times(1)).entitlement("me@x.com"); // the prompt, not the tab
+        verify(client, never()).covering(anyString());     // lazy: not loaded until the tab opens
+        verify(userService, never()).getAllActiveUsers();  // gift recipients: lazy too
     }
 
     @Test
@@ -1439,5 +1441,57 @@ class ProfileViewTest {
         User noName = new User();
         noName.setEmail("anon@x.com");
         assertEquals("anon@x.com", ProfileView.recipientLabel(noName));
+    }
+
+    @Test
+    void membershipPrompt_belowTabs_shownForNotEntitledMember() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        assertNotNull(profileView.membershipPrompt);
+        assertTrue(profileView.membershipPrompt.isVisible());
+        // last child: under whichever tab is open
+        assertSame(profileView.membershipPrompt,
+            profileView.getChildren().reduce((a, b) -> b).orElse(null));
+    }
+
+    @Test
+    void membershipPrompt_hiddenForEntitledMember_andAbsentWhenBillingOff() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+        assertNotNull(profileView.membershipPrompt);
+        assertFalse(profileView.membershipPrompt.isVisible());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.empty(), "http://localhost:8080");
+        assertNull(profileView.membershipPrompt);
+    }
+
+    @Test
+    void membershipPrompt_hiddenWhenNoCurrentUser() {
+        when(userService.getCurrentUser()).thenReturn(null);
+        BillingClient billing = mock(BillingClient.class);
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        assertNotNull(profileView.membershipPrompt);
+        assertFalse(profileView.membershipPrompt.isVisible());
     }
 }

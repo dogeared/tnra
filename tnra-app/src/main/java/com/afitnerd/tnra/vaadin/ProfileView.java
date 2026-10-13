@@ -103,6 +103,7 @@ public class ProfileView extends VerticalLayout {
     Button billingMonthlyButton;
     Button billingYearlyButton;
     Button billingUpdatePaymentButton;
+    MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
     // Gift a membership section:
     ComboBox<User> giftRecipientCombo;
     Button giftContinueButton;
@@ -175,6 +176,14 @@ public class ProfileView extends VerticalLayout {
         }
 
         add(tabs);
+
+        // Below the tabs — so it sits under WHICHEVER tab is open: a not-yet-paying member can edit their
+        // profile but is met with the membership options everywhere on it. refresh() runs from
+        // loadUserData() once the member is known; hidden for an entitled member.
+        if (billingClient.isPresent()) {
+            membershipPrompt = new MembershipPrompt(billingClient.get(), null, baseUrl);
+            add(membershipPrompt);
+        }
     }
 
     /**
@@ -247,6 +256,21 @@ public class ProfileView extends VerticalLayout {
         section.setPadding(false);
         section.setSpacing(true);
         return section;
+    }
+
+    /** The below-the-tabs prompt needs the member's email, which is only known after loadUserData(). */
+    void refreshMembershipPrompt() {
+        if (membershipPrompt == null || billingClient.isEmpty()) {
+            return;
+        }
+        if (currentUser == null || currentUser.getEmail() == null) {
+            membershipPrompt.setVisible(false);
+            return;
+        }
+        MembershipPrompt fresh = new MembershipPrompt(billingClient.get(), currentUser.getEmail(), baseUrl);
+        replace(membershipPrompt, fresh);
+        membershipPrompt = fresh;
+        membershipPrompt.refresh();
     }
 
     /** Self-pay checkout from the Billing tab — mirrors {@code BillingView}. */
@@ -917,6 +941,7 @@ public class ProfileView extends VerticalLayout {
 
     private void loadUserData() {
         currentUser = userService.getCurrentUser();
+        refreshMembershipPrompt();
         if (currentUser != null) {
             firstNameField.setValue(currentUser.getFirstName() != null ? currentUser.getFirstName() : "");
             lastNameField.setValue(currentUser.getLastName() != null ? currentUser.getLastName() : "");
