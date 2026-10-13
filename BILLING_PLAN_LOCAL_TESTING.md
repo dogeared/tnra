@@ -249,11 +249,37 @@ carry it as `data.subscription_id`.)
 Paddle must reach `tnra-billing-app` on your laptop. Run a quick tunnel to `localhost:8082`:
 
 ```bash
-# Option A — cloudflared quick tunnel (no account needed)
+# Option A — cloudflared quick tunnel (no account needed; NEW hostname every run)
 cloudflared tunnel --url http://localhost:8082
 
 # Option B — ngrok
 ngrok http 8082
+```
+
+**Option C — named Cloudflare tunnel (stable hostname, webhook path only).** Worth it if you test
+more than once: the quick tunnel's hostname changes every run, so you re-edit the Paddle
+notification destination each session. One-time setup; independent of any other tunnel in the
+same Cloudflare account as long as the hostname is unique:
+
+```bash
+cloudflared tunnel login
+cloudflared tunnel create tnra-dev
+cloudflared tunnel route dns tnra-dev billing-dev.dogeared.dev
+```
+
+```yaml
+# ~/.cloudflared/config.yml — only /api/billing/webhook is routed; everything else is a 404
+tunnel: tnra-dev
+credentials-file: /Users/<you>/.cloudflared/<tunnel-id>.json
+ingress:
+  - hostname: billing-dev.dogeared.dev
+    path: ^/api/billing/webhook$
+    service: http://localhost:8082
+  - service: http_status:404
+```
+
+```bash
+cloudflared tunnel run tnra-dev
 ```
 
 Set the destination **URL** (step 2.4) to:

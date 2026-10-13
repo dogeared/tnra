@@ -204,6 +204,184 @@ Pre-configured demo accounts (imported with realm):
 | Landing app | `http://localhost:8081` | `https://landing.dev.dogeared.dev` |
 | Keycloak admin | `http://localhost:8180/admin` | `https://auth.dev.dogeared.dev/admin` |
 
+## Dev Site for Billing Testing (Paddle sandbox)
+
+A private dev site for exercising the paid flow end to end — paywall, hosted checkout, test cards,
+webhooks — without touching production or the public internet. It is the
+[Local Development Setup](#local-development-setup) above plus the billing service, the landing
+app's `/pay` page, and a tunnel for the one thing Paddle must reach: the webhook. The deep-dive
+(entitlement matrix, simulated webhooks, troubleshooting) is `BILLING_PLAN_LOCAL_TESTING.md`;
+this section is the checklist.
+
+**Shape:** infra in Docker (MySQL, Keycloak, Nginx proxy with an mkcert cert), the three apps on
+the host from the IDE/`./mvnw`, `/etc/hosts` for DNS. Nothing is reachable from the internet except
+the webhook path, over a Cloudflare tunnel.
+
+```
+  browser (any LAN Mac) ─► https://tnra.dev.dogeared.dev     ─► proxy ─► tnra-app        :8080
+                           https://landing.dev.dogeared.dev  ─► proxy ─► tnra-landing    :8081  (/pay)
+                           https://auth.dev.dogeared.dev     ─► proxy ─► keycloak
+  tnra-app ──────────────► http://localhost:8082 (tnra-billing) ──► Paddle sandbox API
+  Paddle sandbox ── webhook ─► https://<tunnel-host>/api/billing/webhook ─► tnra-billing :8082
+```
+
+### 1. Base stack
+
+Complete steps 2–5 of [Local Development Setup](#local-development-setup) (`.env`, Docker infra,
+`/etc/hosts`, mkcert, **both** apps' `application.yml`, the mkcert CA imported into the JDK). Then
+add the billing pieces:
+
+```bash
+cp tnra-billing-app/src/main/resources/application.yml.sample \
+   tnra-billing-app/src/main/resources/application.yml
+
+# The billing service owns its own schema; the MySQL init script only creates tnra + tnra_landing.
+set -a && source .env && set +a
+docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e \
+  "CREATE DATABASE IF NOT EXISTS tnra_billing; GRANT ALL PRIVILEGES ON tnra_billing.* TO 'tnra'@'%'; FLUSH PRIVILEGES;"
+```
+
+> **Proxy "Started" but not running?** `docker compose up -d` reports the proxy as started even
+> when nginx exits a second later. `docker logs proxy` saying `cannot load certificate
+> /etc/nginx/certs/cert.pem` means the mkcert step hasn't produced `nginx/.cert/cert.pem` yet.
+> Generate the cert, then `docker compose up -d proxy`.
+
+### 2. Testing from another machine on the LAN
+
+The dev site is private by construction — only machines that resolve the hostnames can reach it.
+To browse from a second Mac:
+
+1. **Hosts** — point all three names at the dev machine's LAN IP (the landing hostname matters:
+   the Paddle checkout page lives there):
+   ```
+   <dev-machine-ip> auth.dev.dogeared.dev tnra.dev.dogeared.dev landing.dev.dogeared.dev
+   ```
+2. **Trust the dev machine's mkcert CA** — do *not* generate a new CA; copy the public root
+   (`rootCA.pem` from `mkcert -CAROOT` on the dev machine — never `rootCA-key.pem`) and trust it:
+   ```bash
+   sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain rootCA.pem
+   # or, with mkcert installed:  CAROOT=<dir containing rootCA.pem> mkcert -install
+   ```
+   Firefox keeps its own store: import the same file under Privacy & Security → Certificates.
+3. macOS may prompt to allow Docker incoming connections the first time; allow it. Keycloak
+   itself stays bound to `127.0.0.1:8180` on the dev machine — browsers only ever use the proxy.
+
+### 3. Webhook tunnel
+
+Payment confirmation arrives **only** by webhook; without one every purchase sits at
+`PENDING_PAYMENT`. Paddle must reach `tnra-billing` (`:8082`) from the internet, so expose exactly
+that — nothing else on the dev site is tunnelled. `brew install cloudflared`, then either:
+
+- **Quick tunnel** (no account; new hostname **every run**, so you re-edit the Paddle notification
+  destination each session):
+  ```bash
+  cloudflared tunnel --url http://localhost:8082
+  ```
+- **Named tunnel** (recommended — stable hostname, and only the webhook path is routed; everything
+  else on that hostname is a 404). One-time setup; it is independent of any tunnel on other
+  machines in the same Cloudflare account as long as the hostname is unique:
+  ```bash
+  cloudflared tunnel login
+  cloudflared tunnel create tnra-dev
+  cloudflared tunnel route dns tnra-dev billing-dev.dogeared.dev
+  ```
+  ```yaml
+  # ~/.cloudflared/config.yml
+  tunnel: tnra-dev
+  credentials-file: /Users/<you>/.cloudflared/<tunnel-id>.json
+  ingress:
+    - hostname: billing-dev.dogeared.dev
+      path: ^/api/billing/webhook$
+      service: http://localhost:8082
+    - service: http_status:404
+  ```
+  ```bash
+  cloudflared tunnel run tnra-dev      # keep this terminal open while testing
+  ```
+
+### 4. Paddle sandbox
+
+The sandbox is a **separate account and login** from live (<https://sandbox-vendors.paddle.com>),
+with its own API key, Price ids, client-side token, and webhook secret. Nothing you do there
+touches the live seller account. Collect:
+
+| Where in the sandbox dashboard | Value | Goes to |
+|---|---|---|
+| Catalog → Products → one product, two recurring Prices ($7 monthly, $60 yearly) | `pri_…` ×2 | billing service: `PADDLE_PRICE_MONTHLY`, `PADDLE_PRICE_YEARLY` |
+| Developer Tools → Authentication → API key | key | billing service: `PADDLE_API_KEY` |
+| Developer Tools → Authentication → Client-side token | `test_…` | **landing app**: `PADDLE_CLIENT_TOKEN` |
+| Checkout → Checkout settings → Default payment link | `https://landing.dev.dogeared.dev/pay` | (dashboard only — this is the page Paddle.js opens the overlay on; sandbox needs no domain approval and Paddle never fetches it) |
+| Developer Tools → Notifications → new destination, URL `https://<tunnel-host>/api/billing/webhook` | `pdl_ntfset_…` secret | billing service: `PADDLE_WEBHOOK_SECRET` |
+
+Subscribe the destination to: `subscription.created`, `.activated`, `.updated`, `.canceled`,
+`.past_due`, `.paused`, `.resumed`, `transaction.completed`, `transaction.payment_failed`.
+
+### 5. Run the three apps
+
+Three terminals, in this order (the group app refuses to start with billing on until it has a
+per-group token, which registration mints).
+
+```bash
+# ── 1. Billing service (:8082) ──────────────────────────────────────────────
+export BILLING_ADMIN_TOKEN=$(openssl rand -hex 24); echo "$BILLING_ADMIN_TOKEN"
+export PADDLE_API_KEY=...  PADDLE_WEBHOOK_SECRET=pdl_ntfset_...
+export PADDLE_PRICE_MONTHLY=pri_...  PADDLE_PRICE_YEARLY=pri_...
+# PADDLE_API_BASE defaults to the sandbox — leave it unset here.
+./mvnw -pl tnra-billing-app spring-boot:run
+
+# ── register the dev group with the trial OFF (else the 60-day trial hides the paywall) ──
+curl -s -X POST http://localhost:8082/api/admin/groups \
+  -H "X-Admin-Token: $BILLING_ADMIN_TOKEN" -H "Content-Type: application/json" \
+  -d '{"groupSlug":"local","trialDays":0,"exempt":false}'
+# → copy "apiToken" from the response; it is shown once
+
+# ── 2. Group app (:8080) ────────────────────────────────────────────────────
+# Encryption key from .env (do NOT `source .env` — it also exports blank SPRING_DATASOURCE_* that
+# silently switch the app to H2) and the https issuer the browser must be sent to.
+export TNRA_ENCRYPTION_MASTER_KEY="$(grep '^TNRA_ENCRYPTION_MASTER_KEY=' .env | cut -d= -f2-)"
+export KEYCLOAK_ISSUER_URI=https://auth.dev.dogeared.dev/realms/tnra
+# spring-boot:run forks the app with cwd = tnra-app/, so the relative upload-dir misses the repo-root
+# uploads/ (profile images + placeholder 404). Point it at the absolute path.
+export APP_FILE_STORAGE_UPLOAD_DIR="$PWD/uploads"
+export TNRA_BILLING_ENABLED=true
+export TNRA_BILLING_API_URL=http://localhost:8082
+export TNRA_BILLING_API_TOKEN=<apiToken from above>
+export TNRA_APP_BASE_URL=https://tnra.dev.dogeared.dev   # must be https — /pay only follows https return links
+./mvnw -pl tnra-app spring-boot:run
+
+# ── 3. Landing app (:8081) — serves /pay ────────────────────────────────────
+export PADDLE_CLIENT_TOKEN=test_...
+export PADDLE_ENVIRONMENT=sandbox
+./mvnw -pl tnra-landing-app spring-boot:run
+```
+
+### 6. Smoke test
+
+A fresh `tnra` database has no members — Keycloak authenticates the demo accounts, but the app then
+shows **"Not a Member"** until they exist in its `users` table (production groups get this from the
+CLI's `seed-admin.sql`). Seed the four demo members and their default profile images (the PNGs in
+`tnra-cli-app/src/main/resources/templates/`, copied into `uploads/`) once; it is safe to re-run:
+
+```bash
+./seed-dev.sh
+```
+
+1. Open `https://tnra.dev.dogeared.dev`, log in (e.g. `jerry@seinfeld.com`). The entitlement gate
+   sends you to the membership page.
+2. Click **Pay $7 / month**. You land on `https://landing.dev.dogeared.dev/pay?_ptxn=…` with the
+   Paddle overlay open. Pay with the test card `4242 4242 4242 4242`, any future expiry/CVC/postcode.
+3. After Paddle's success screen the page returns you to `/billing/activating`; the webhook flips
+   the account `ACTIVE` and you are forwarded into the app. Entitlement is cached ~60s.
+
+> Keeping all of these in one gitignored file (e.g. `~/.tnra-dev/billing.env`) and
+> `set -a && source ~/.tnra-dev/billing.env && set +a` in each terminal saves re-typing them.
+
+Checks when it doesn't: the browser console on `/pay` for **CSP** violations (the directive named
+is the one to extend in the landing `SecurityConfig`); the billing log for the webhook landing with
+a 2xx (**401** = `PADDLE_WEBHOOK_SECRET` mismatch); and if the account stays `PENDING_PAYMENT`, the
+tunnel/destination URL. `BILLING_PLAN_LOCAL_TESTING.md` §4 has a curl that simulates the webhook
+without a tunnel, and PATCH calls to flip the group between trial / exempt / must-pay.
+
 ## Running Multiple Groups Locally
 
 Each TNRA group runs as its own container with its own database and Keycloak realm. The
