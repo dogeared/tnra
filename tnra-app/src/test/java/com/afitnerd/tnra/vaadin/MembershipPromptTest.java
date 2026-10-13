@@ -80,14 +80,17 @@ class MembershipPromptTest {
     }
 
     @Test
-    void gracePeriod_stillEntitled_butWarnsAndLeadsWithUpdateCard() {
+    void gracePeriod_isEntitled_soPromptStaysHidden_bannerOwnsThatWarning() {
         MembershipPrompt prompt = new MembershipPrompt(clientWith(true, "ON_GRACE_PERIOD"), "m@x.com", BASE);
 
-        assertTrue(prompt.refresh());
-        assertTrue(prompt.isVisible());
-        assertEquals(MembershipPrompt.GRACE_TEXT, prompt.blurb.getText());
-        assertFalse(prompt.payButtons.isVisible(), "they have a subscription — fix the card, don't buy another");
-        assertTrue(prompt.updatePaymentButton.isVisible());
+        assertFalse(prompt.refresh());
+        assertFalse(prompt.isVisible());
+    }
+
+    @Test
+    void startsWithADivider_soItReadsAsASectionUnderTheTabs() {
+        MembershipPrompt prompt = new MembershipPrompt(clientWith(false, "PENDING_PAYMENT"), "m@x.com", BASE);
+        assertTrue(prompt.getChildren().findFirst().orElseThrow() instanceof com.vaadin.flow.component.html.Hr);
     }
 
     @Test
@@ -133,7 +136,7 @@ class MembershipPromptTest {
 
     @Test
     void openPortal_callsClient_andSurvivesFailure() {
-        BillingClient client = clientWith(true, "ON_GRACE_PERIOD");
+        BillingClient client = clientWith(false, "SUSPENDED");
         when(client.portalUrl("m@x.com")).thenReturn("https://portal/1").thenThrow(new RuntimeException("x"));
         MembershipPrompt prompt = new MembershipPrompt(client, "m@x.com", BASE);
 

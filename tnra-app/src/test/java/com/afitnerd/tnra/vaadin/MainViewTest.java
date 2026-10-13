@@ -426,6 +426,8 @@ class MainViewTest {
         assertNotNull(mainView.membershipPrompt);
         assertTrue(mainView.membershipPrompt.isVisible());
         assertTrue(mainView.getChildren().anyMatch(c -> c == mainView.membershipPrompt));
+        assertEquals(com.vaadin.flow.component.orderedlayout.FlexComponent.Alignment.CENTER,
+            mainView.membershipPrompt.getAlignItems(), "centred under the centred welcome");
     }
 
     @Test

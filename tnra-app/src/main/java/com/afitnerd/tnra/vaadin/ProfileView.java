@@ -156,7 +156,9 @@ public class ProfileView extends VerticalLayout {
         buildNotificationFields();
 
         TabSheet tabs = new TabSheet();
-        tabs.setSizeFull();
+        // Width only: a full-height TabSheet would stretch to the bottom of the view and push the
+        // membership prompt below the fold with a wall of whitespace above it.
+        tabs.setWidthFull();
         tabs.addClassName("profile-tabs");
         tabs.add("Basic Info", createBasicInfoTabContent());
         tabs.add("Notifications", createNotificationsTabContent());

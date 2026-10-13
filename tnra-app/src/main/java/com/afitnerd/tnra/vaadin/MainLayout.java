@@ -1,6 +1,10 @@
 package com.afitnerd.tnra.vaadin;
 
 import com.afitnerd.tnra.model.User;
+import java.util.Optional;
+import com.vaadin.flow.component.html.Div;
+import com.vaadin.flow.component.HasElement;
+import com.afitnerd.tnra.billing.BillingClient;
 import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
@@ -42,22 +46,57 @@ public class MainLayout extends AppLayout {
     private final OidcUserService oidcUserService;
     private final UserService userService;
     private final AuthNavigationService authNavigationService;
+    private final transient Optional<BillingClient> billingClient;
     private Button themeToggleButton;
     private boolean darkMode;
+
+    /** Dunning warning, re-evaluated on every navigation; package-private for testing. */
+    final MembershipBanner membershipBanner = new MembershipBanner();
 
     public MainLayout(
         OidcUserService oidcUserService,
         UserService userService,
-        AuthNavigationService authNavigationService
+        AuthNavigationService authNavigationService,
+        Optional<BillingClient> billingClient
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.authNavigationService = authNavigationService;
+        this.billingClient = billingClient;
         createHeader();
         createDrawer();
 
         setDrawerOpened(false);
         setPrimarySection(Section.DRAWER);
+    }
+
+    /**
+     * Every routed view is shown beneath the {@link MembershipBanner}, so a member whose card is failing
+     * sees the warning wherever they land (home forwards to Stats when a post is in progress, etc.).
+     */
+    @Override
+    public void showRouterLayoutContent(HasElement content) {
+        refreshMembershipBanner();
+        if (content == null) {
+            super.showRouterLayoutContent(null);
+            return;
+        }
+        Div wrapper = new Div();
+        wrapper.addClassName("content-with-banner");
+        wrapper.getStyle().set("display", "flex").set("flex-direction", "column").set("height", "100%");
+        wrapper.add(membershipBanner);
+        content.getElement().getStyle().set("flex", "1 1 auto").set("min-height", "0");
+        wrapper.getElement().appendChild(content.getElement());
+        super.showRouterLayoutContent(wrapper);
+    }
+
+    /** Billing off, or not signed in ⇒ hidden. Otherwise shown only for ON_GRACE_PERIOD. */
+    void refreshMembershipBanner() {
+        if (billingClient.isEmpty() || !oidcUserService.isAuthenticated()) {
+            membershipBanner.setVisible(false);
+            return;
+        }
+        membershipBanner.refresh(billingClient.get(), oidcUserService.getEmail());
     }
 
     @Override

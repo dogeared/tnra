@@ -4,6 +4,7 @@ import com.afitnerd.tnra.billing.BillingClient;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.Hr;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
@@ -16,10 +17,10 @@ import org.springframework.web.client.HttpClientErrorException;
  * welcome and the bottom of every Profile tab — see {@link EntitlementGate}'s allow-list). It is the same
  * surface as the {@code /billing} page, minus gifting: a status line and the pay / update-card actions.
  *
- * <p>Rendered only when there is something to do: hidden for an entitled member, shown as a
- * call-to-action for PENDING / SUSPENDED, and shown as a warning for ON_GRACE_PERIOD (still entitled,
- * but the last charge failed — "update your card" is the point). Fails closed to <i>hidden</i>: a billing
- * hiccup must never clutter a page with a bogus "pay now".
+ * <p>Rendered only when there is something to do: hidden for an entitled member (including one in
+ * ON_GRACE_PERIOD — that warning is {@link MembershipBanner}'s job, on every page), shown as a
+ * call-to-action for PENDING / SUSPENDED. Fails closed to <i>hidden</i>: a billing hiccup must never
+ * clutter a page with a bogus "pay now".
  */
 public class MembershipPrompt extends VerticalLayout {
 
@@ -28,9 +29,6 @@ public class MembershipPrompt extends VerticalLayout {
     static final String PENDING_TEXT =
         "Activate your membership to access posts, stats, and the call chain. "
         + "Choose monthly or yearly — you can change or cancel anytime.";
-    static final String GRACE_TEXT =
-        "Your last payment didn't go through. Update your payment method to keep your access — "
-        + "we'll retry automatically once it's fixed.";
     static final String SUSPENDED_TEXT =
         "Your membership is suspended. Choose monthly or yearly to reactivate it.";
 
@@ -55,8 +53,16 @@ public class MembershipPrompt extends VerticalLayout {
         setSpacing(true);
         monthlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         yearlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        add(title, blurb, payButtons, updatePaymentButton);
+        add(new Hr(), title, blurb, payButtons, updatePaymentButton);
         setVisible(false); // until refresh() says there's something to do
+    }
+
+    /** Centre everything — for the home page, where it sits under a centred welcome. */
+    public MembershipPrompt centered() {
+        setAlignItems(Alignment.CENTER);
+        blurb.getStyle().set("text-align", "center");
+        blurb.setMaxWidth("40rem");
+        return this;
     }
 
     /**
@@ -81,16 +87,9 @@ public class MembershipPrompt extends VerticalLayout {
             return false;
         }
         String status = ent.status();
-        if ("ON_GRACE_PERIOD".equals(status)) {
-            // Still entitled, but the last charge failed: the card is the problem, lead with that.
-            blurb.setText(GRACE_TEXT);
-            payButtons.setVisible(false);
-            updatePaymentButton.setVisible(true);
-            updatePaymentButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-            setVisible(true);
-            return true;
-        }
         if (ent.entitled()) {
+            // Includes ON_GRACE_PERIOD: still in, and the "card failing" warning is the banner's job.
+
             setVisible(false);
             return false;
         }
@@ -99,7 +98,6 @@ public class MembershipPrompt extends VerticalLayout {
         payButtons.setVisible(true);
         // No subscription yet ⇒ nothing to update; suspended ⇒ the portal can reactivate.
         updatePaymentButton.setVisible(suspended);
-        updatePaymentButton.removeThemeVariants(ButtonVariant.LUMO_PRIMARY);
         setVisible(true);
         return true;
     }

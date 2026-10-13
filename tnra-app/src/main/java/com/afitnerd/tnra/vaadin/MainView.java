@@ -180,7 +180,8 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
             // A member who hasn't activated (or whose card is failing) sees the membership options right
             // here, under the welcome — the gate lets them reach this page, so meet them on it.
             if (billingClient.isPresent() && currentUser.getEmail() != null) {
-                membershipPrompt = new MembershipPrompt(billingClient.get(), currentUser.getEmail(), baseUrl);
+                membershipPrompt = new MembershipPrompt(billingClient.get(), currentUser.getEmail(), baseUrl)
+                    .centered();
                 membershipPrompt.refresh();
                 add(membershipPrompt);
             }
