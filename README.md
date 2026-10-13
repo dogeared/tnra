@@ -200,7 +200,8 @@ the webhook path, over a Cloudflare tunnel.
 ### 1. Base stack
 
 Complete steps 2–5 of [Local Development Setup](#local-development-setup) (`.env`, Docker infra,
-`/etc/hosts`, mkcert, the landing `application.yml`). Then add the billing pieces:
+`/etc/hosts`, mkcert, **both** apps' `application.yml`, the mkcert CA imported into the JDK). Then
+add the billing pieces:
 
 ```bash
 cp tnra-billing-app/src/main/resources/application.yml.sample \
@@ -307,6 +308,10 @@ curl -s -X POST http://localhost:8082/api/admin/groups \
 # → copy "apiToken" from the response; it is shown once
 
 # ── 2. Group app (:8080) ────────────────────────────────────────────────────
+# Encryption key from .env (do NOT `source .env` — it also exports blank SPRING_DATASOURCE_* that
+# silently switch the app to H2) and the https issuer the browser must be sent to.
+export TNRA_ENCRYPTION_MASTER_KEY="$(grep '^TNRA_ENCRYPTION_MASTER_KEY=' .env | cut -d= -f2-)"
+export KEYCLOAK_ISSUER_URI=https://auth.dev.dogeared.dev/realms/tnra
 export TNRA_BILLING_ENABLED=true
 export TNRA_BILLING_API_URL=http://localhost:8082
 export TNRA_BILLING_API_TOKEN=<apiToken from above>
@@ -327,6 +332,9 @@ export PADDLE_ENVIRONMENT=sandbox
    Paddle overlay open. Pay with the test card `4242 4242 4242 4242`, any future expiry/CVC/postcode.
 3. After Paddle's success screen the page returns you to `/billing/activating`; the webhook flips
    the account `ACTIVE` and you are forwarded into the app. Entitlement is cached ~60s.
+
+> Keeping all of these in one gitignored file (e.g. `~/.tnra-dev/billing.env`) and
+> `set -a && source ~/.tnra-dev/billing.env && set +a` in each terminal saves re-typing them.
 
 Checks when it doesn't: the browser console on `/pay` for **CSP** violations (the directive named
 is the one to extend in the landing `SecurityConfig`); the billing log for the webhook landing with
