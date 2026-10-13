@@ -326,6 +326,18 @@ export PADDLE_ENVIRONMENT=sandbox
 
 ### 6. Smoke test
 
+A fresh `tnra` database has no members — Keycloak authenticates the demo accounts, but the app then
+shows **"Not a Member"** until they exist in its `users` table (production groups get this from the
+CLI's `seed-admin.sql`). Seed the demo accounts once:
+
+```bash
+docker compose exec -T mysql mysql -uroot -p"$MYSQL_ROOT_PASSWORD" -e "
+  INSERT INTO tnra.users (email, first_name, last_name, active) VALUES
+    ('jerry@seinfeld.com','Jerry','Seinfeld',1), ('kramer@seinfeld.com','Cosmo','Kramer',1),
+    ('elaine@seinfeld.com','Elaine','Benes',1),  ('george@seinfeld.com','George','Costanza',1)
+  ON DUPLICATE KEY UPDATE active = 1;"
+```
+
 1. Open `https://tnra.dev.dogeared.dev`, log in (e.g. `jerry@seinfeld.com`). The entitlement gate
    sends you to the membership page.
 2. Click **Pay $7 / month**. You land on `https://landing.dev.dogeared.dev/pay?_ptxn=…` with the
