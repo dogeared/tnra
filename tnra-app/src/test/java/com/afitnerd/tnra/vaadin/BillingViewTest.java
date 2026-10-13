@@ -93,14 +93,17 @@ class BillingViewTest {
     }
 
     @Test
-    void withReturn_appendsEncodedReturnUrl_toPaddleCheckoutUrl() {
-        assertEquals("https://tnra.app/pay?_ptxn=txn_1&return=https%3A%2F%2Fg.tnra.app%2Fbilling%2Factivating",
-            BillingView.withReturn("https://tnra.app/pay?_ptxn=txn_1", "https://g.tnra.app/billing/activating"));
+    void withReturnUrls_appendsEncodedDoneAndReturn_toPaddleCheckoutUrl() {
+        assertEquals("https://tnra.app/pay?_ptxn=txn_1"
+                + "&done=https%3A%2F%2Fg.tnra.app%2Fbilling%2Factivating"
+                + "&return=https%3A%2F%2Fg.tnra.app%2Fbilling",
+            BillingView.withReturnUrls("https://tnra.app/pay?_ptxn=txn_1",
+                "https://g.tnra.app/billing/activating", "https://g.tnra.app/billing"));
+        // first param gets '?', blanks are skipped, null checkout stays null
         assertEquals("https://tnra.app/pay?return=https%3A%2F%2Fg.tnra.app",
-            BillingView.withReturn("https://tnra.app/pay", "https://g.tnra.app"));
-        assertEquals("https://tnra.app/pay?_ptxn=1", BillingView.withReturn("https://tnra.app/pay?_ptxn=1", null));
-        assertEquals("https://tnra.app/pay?_ptxn=1", BillingView.withReturn("https://tnra.app/pay?_ptxn=1", " "));
-        assertNull(BillingView.withReturn(null, "https://g.tnra.app"));
+            BillingView.withReturnUrls("https://tnra.app/pay", " ", "https://g.tnra.app"));
+        assertEquals("https://tnra.app/pay?_ptxn=1", BillingView.withReturnUrls("https://tnra.app/pay?_ptxn=1", null, null));
+        assertNull(BillingView.withReturnUrls(null, "https://g.tnra.app", "https://g.tnra.app"));
     }
 
     @Test

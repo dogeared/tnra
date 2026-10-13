@@ -79,6 +79,9 @@ class BillingActivatingViewTest {
         view.polls = BillingActivatingView.MAX_POLLS - 1; // next tick reaches the cap
 
         assertTrue(view.tick());          // gave up waiting
-        assertNotNull(view.continueButton); // timeout UI offered
+        assertNotNull(view.continueButton); // timeout UI offered…
+        assertNotNull(view.backButton);     // …including a way back for someone who never paid
+        assertTrue(view.tick());            // a further tick must not add the buttons twice
+        assertEquals(2, view.getChildren().filter(c -> c instanceof com.vaadin.flow.component.orderedlayout.HorizontalLayout).count() == 1 ? 2 : 0);
     }
 }

@@ -8,6 +8,7 @@ import com.vaadin.flow.component.UI;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.Paragraph;
+import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.progressbar.ProgressBar;
 import com.vaadin.flow.router.PageTitle;
@@ -32,7 +33,7 @@ import java.util.Optional;
 public class BillingActivatingView extends VerticalLayout {
 
     static final int POLL_INTERVAL_MS = 2000;
-    static final int MAX_POLLS = 30; // ~60s; webhooks normally land in a few seconds
+    static final int MAX_POLLS = 15; // ~30s; webhooks normally land in a few seconds
 
     private final transient Optional<BillingClient> billingClient;
     private final String email;
@@ -41,6 +42,7 @@ public class BillingActivatingView extends VerticalLayout {
     private final Paragraph status = new Paragraph(
         "Hang tight — we're confirming your payment. This usually takes just a few seconds.");
     Button continueButton; // package-private for testing; shown only on timeout
+    Button backButton;     // package-private for testing; shown only on timeout
 
     public BillingActivatingView(Optional<BillingClient> billingClient, OidcUserService oidcUserService) {
         this.billingClient = billingClient;
@@ -102,11 +104,15 @@ public class BillingActivatingView extends VerticalLayout {
     }
 
     private void showTimeout() {
-        status.setText("This is taking a little longer than usual — your payment is still processing. "
-            + "Continue to TNRA and your membership should be active shortly.");
+        // Honest about both possibilities: a slow webhook, or no payment at all (someone who reached this
+        // page without completing checkout). Never leave a member staring at a spinner.
+        status.setText("We haven't received a payment confirmation yet. If you completed checkout, it can take "
+            + "a minute to arrive — continue into TNRA and your membership will activate on its own. If you "
+            + "closed the checkout without paying, head back to the membership page to try again.");
         if (continueButton == null) {
             continueButton = new Button("Continue to TNRA", e -> forwardToApp());
-            add(continueButton);
+            backButton = new Button("Back to membership", e -> getUI().ifPresent(ui -> ui.navigate(BillingView.class)));
+            add(new HorizontalLayout(continueButton, backButton));
         }
     }
 }

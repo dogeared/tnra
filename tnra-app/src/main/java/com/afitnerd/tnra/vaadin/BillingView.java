@@ -196,11 +196,17 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             return;
         }
         try {
-            // Self-pay returns to the "activating" page (the payer's own entitlement is what flips).
-            // A gift returns to the app home — the gifter is already active, only the beneficiary changes.
+            // After a COMPLETED checkout: self-pay goes to the "activating" page (the payer's own entitlement
+            // is what flips); a gift goes to the app home — the gifter is already active.
             String redirectUrl = giftMode ? baseUrl : baseUrl + "/billing/activating";
+            // If the member CLOSES the overlay without paying: back to where they started (this page, in
+            // the same mode) — never to the activating page, which would sit waiting for a payment that
+            // never happened.
+            String backUrl = giftMode
+                ? baseUrl + "/billing?gift=" + URLEncoder.encode(beneficiaryEmail, StandardCharsets.UTF_8)
+                : baseUrl + "/billing";
             String url = billingClient.get().createCheckout(beneficiaryEmail, variant, email, redirectUrl);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(withReturn(url, redirectUrl)));
+            getUI().ifPresent(ui -> ui.getPage().setLocation(withReturnUrls(url, redirectUrl, backUrl)));
         } catch (HttpClientErrorException.Conflict ex) {
             Notification.show(giftMode
                 ? "That member already has an active subscription."
@@ -213,15 +219,26 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
 
     /**
      * The checkout URL Paddle hands back is the landing site's {@code /pay} page plus {@code _ptxn}. Append
-     * where to send the member afterwards so that page knows "back" from the first paint (also when the
-     * overlay is closed without paying) instead of depending on Paddle echoing custom data.
+     * where to send the member afterwards — {@code done} after a completed checkout, {@code return} if they
+     * close the overlay unpaid — so that page knows the way back to THIS group (every group has its own
+     * subdomain) from the first paint, instead of depending on Paddle echoing custom data.
      */
-    static String withReturn(String checkoutUrl, String redirectUrl) {
-        if (checkoutUrl == null || redirectUrl == null || redirectUrl.isBlank()) {
-            return checkoutUrl;
+    static String withReturnUrls(String checkoutUrl, String doneUrl, String backUrl) {
+        if (checkoutUrl == null) {
+            return null;
         }
-        String sep = checkoutUrl.contains("?") ? "&" : "?";
-        return checkoutUrl + sep + "return=" + URLEncoder.encode(redirectUrl, StandardCharsets.UTF_8);
+        StringBuilder sb = new StringBuilder(checkoutUrl);
+        appendParam(sb, "done", doneUrl);
+        appendParam(sb, "return", backUrl);
+        return sb.toString();
+    }
+
+    private static void appendParam(StringBuilder url, String name, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        url.append(url.indexOf("?") >= 0 ? '&' : '?')
+           .append(name).append('=').append(URLEncoder.encode(value, StandardCharsets.UTF_8));
     }
 
     void openPortal() {
