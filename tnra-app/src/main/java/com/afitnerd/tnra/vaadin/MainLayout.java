@@ -26,6 +26,7 @@ import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.tabs.Tab;
 import com.vaadin.flow.component.tabs.Tabs;
 import com.vaadin.flow.router.RouterLink;
+import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
@@ -39,6 +40,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfToken;
 
 @CssImport("./styles/theme.css")
+// Vaadin 25 enforces that a parent layout allows at least the access its views allow. MainView, ErrorView and
+// NotFoundView are @AnonymousAllowed (the signed-out welcome + error pages), so the layout must be too; each
+// view still carries its own (stricter) rule.
+@AnonymousAllowed
 public class MainLayout extends AppLayout {
 
     static final String DARK_MODE_COOKIE = "tnra-dark-mode";

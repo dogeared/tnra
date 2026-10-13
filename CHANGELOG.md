@@ -2,6 +2,21 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.4.0] - 2026-10-13
+
+Platform upgrade: **Spring Boot 3.5.11 → 4.1.1** (Spring Framework 7, Spring Security 7, Hibernate 7, Jackson 3) and **Vaadin 24.9 → 25.3.2**. No functional changes intended; all 1005 tests pass and the dev site was re-verified end to end (OIDC login, uploads, Paddle checkout page + CSP, billing JSON, signed webhooks).
+
+### Changed
+- **Spring Boot 4.** Starters renamed/split per the 4.0 migration guide: `spring-boot-starter-web` → `-webmvc`, `-oauth2-client` → `-security-oauth2-client`, explicit `-flyway`, `-restclient` (the `RestClient.Builder` bean moved there), and test starters `-data-jpa-test` / `-restclient-test`. `@DataJpaTest` / `@AutoConfigureTestDatabase` moved to `org.springframework.boot.data.jpa.test.autoconfigure` / `org.springframework.boot.jdbc.test.autoconfigure`; `UserDetailsServiceAutoConfiguration` to `org.springframework.boot.security.autoconfigure`. The landing app now declares `spring-boot-starter-webmvc` explicitly (Boot 4 no longer registers the servlet security filter without it).
+- **Jackson 3.** All `com.fasterxml.jackson.*` imports are now `tools.jackson.*` in the three Spring modules (the CLI is plain Java and untouched).
+- **Vaadin 25.** Dev tooling (`vaadin-dev`: dev server, dev bundle, Copilot) is no longer part of `vaadin-core`; it is declared in each web module's default-on profile (`h2-local-development` in tnra-app, `development` in tnra-landing-app) so `-Pproduction` never includes it. The Lumo utility stylesheet is loaded explicitly (`@StyleSheet(Lumo.UTILITY_STYLESHEET)`). Stylesheets moved from the deprecated `META-INF/resources/frontend/` to `META-INF/frontend/`. `vaadin.pnpmEnable` → `vaadin.pnpm.enable`. A dedicated `VaadinTaskExecutor` bean (Vaadin refuses to pick between the email and Slack executors). Elemental JSON is gone: DOM event data is a Jackson `JsonNode` (`StatCard`). Node 24 is required for frontend builds.
+- **Security semantics that changed underneath us and were restored:** `VaadinSecurityConfigurer` now defaults unmatched requests to `denyAll` (24: `authenticated`) — tnra-app sets `anyRequest(authenticated)` so `/uploads/**` profile images keep working for signed-in members. Vaadin 25 requires a parent layout to allow at least what its views allow, so `MainLayout` is `@AnonymousAllowed` (its signed-out welcome and error views are); each view keeps its own stricter rule.
+- Tests adapted to Vaadin 25 internals: TabSheet panels attach lazily (test helpers walk `TabSheet#getComponent`), overlays require `UI.getCurrentOrThrow()`, `Page.setLocation` validates against the deployment configuration.
+- Dependency bumps: jacoco 0.8.15, httpclient5 5.6.5, commonmark 0.30.1, picocli 4.7.7; `hibernate-validator` version now managed by Boot.
+
+### Fixed (found during the upgrade)
+- **Security headers were missing on every Vaadin page under Vaadin 25.** Spring Security writes response headers lazily, when the response commits; Vaadin 25's page handler commits in a way Spring's wrapper never observes, so `/pricing`, `/pay` and every group-app view shipped with no CSP / HSTS / nosniff (only Vaadin's own `X-Frame-Options`), while non-Vaadin paths still had them. Verified on the packaged production jar. Both web apps now make `HeaderWriterFilter` write eagerly, and the landing test pins it.
+
 ## [10.3.0] - 2026-10-13
 
 Paddle billing, end to end, as exercised on the dev site: the paid flow, gifts, dunning and cancellation now all happen in the app.

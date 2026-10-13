@@ -1098,6 +1098,16 @@ class AdminViewTest {
                 matches.add(type.cast(current));
             }
             current.getChildren().forEach(stack::push);
+            // Vaadin 25 attaches a TabSheet's content only before the next client response, so in a unit
+            // test the tab panels are not reachable via getChildren(); walk them through the TabSheet API.
+            if (current instanceof com.vaadin.flow.component.tabs.TabSheet ts) {
+                for (int i = 0; i < ts.getTabCount(); i++) {
+                    com.vaadin.flow.component.Component panel = ts.getComponent(ts.getTabAt(i));
+                    if (panel != null) {
+                        stack.push(panel);
+                    }
+                }
+            }
         }
         assertNotNull(matches);
         return matches;

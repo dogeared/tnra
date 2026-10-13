@@ -3,7 +3,7 @@ package com.afitnerd.tnra.service;
 import com.afitnerd.tnra.model.GroupSettings;
 import com.afitnerd.tnra.model.Post;
 import com.afitnerd.tnra.model.User;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.apache.hc.client5.http.fluent.Request;
 import org.apache.hc.core5.http.ContentType;
 import org.apache.hc.core5.util.Timeout;

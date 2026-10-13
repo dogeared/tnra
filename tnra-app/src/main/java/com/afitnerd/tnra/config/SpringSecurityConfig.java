@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AuthorizeHttpRequestsConfigurer.AuthorizedUrl;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -37,9 +38,23 @@ public class SpringSecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.with(VaadinSecurityConfigurer.vaadin(), configurer -> {
             configurer.oauth2LoginPage("/oauth2/authorization/" + loginRegistrationId);
+            // Vaadin 25 defaults every non-Vaadin request to denyAll (24 used authenticated). Our own
+            // endpoints — /uploads/** (profile images) — must stay reachable to a signed-in member.
+            configurer.anyRequest(AuthorizedUrl::authenticated);
         });
 
         http
+            // Vaadin 25 commits page responses in a way Spring's lazy header writer never observes, so
+            // the default security headers (nosniff, HSTS, X-Frame-Options) were missing on every view.
+            // Write them eagerly, at filter entry.
+            .headers(headers -> headers.withObjectPostProcessor(
+                new org.springframework.security.config.ObjectPostProcessor<org.springframework.security.web.header.HeaderWriterFilter>() {
+                    @Override
+                    public <O extends org.springframework.security.web.header.HeaderWriterFilter> O postProcess(O filter) {
+                        filter.setShouldWriteHeadersEagerly(true);
+                        return filter;
+                    }
+                }))
             .oauth2Login(oauth2 -> oauth2
                 .userInfoEndpoint(
                     userInfo -> userInfo.userAuthoritiesMapper(grantedAuthoritiesMapper())

@@ -55,7 +55,8 @@ server:
   forward-headers-strategy: native
 vaadin:
   productionMode: false
-  pnpmEnable: false
+  pnpm:
+    enable: false
   devmode:
     hostsAllowed: tnra.afitnerd.local
 logging:

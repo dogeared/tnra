@@ -2,7 +2,9 @@ package com.afitnerd.tnra;
 
 import com.afitnerd.tnra.repository.PostRepository;
 import com.afitnerd.tnra.repository.UserRepository;
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.component.page.Inline;
 import com.vaadin.flow.server.AppShellSettings;
 import jakarta.annotation.PostConstruct;
@@ -20,6 +22,8 @@ import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableAsync
+// Vaadin 25 no longer loads the Lumo utility classes (LumoUtility.*) automatically.
+@StyleSheet(Lumo.UTILITY_STYLESHEET)
 public class TnraApplication implements AppShellConfigurator {
 
     @Value("${application.timezone:UTC}")
@@ -115,5 +119,21 @@ public class TnraApplication implements AppShellConfigurator {
         return (args) -> {
             // placeholder for testing
         };
+    }
+
+    /**
+     * Vaadin 25 runs its own async work (push, {@code UI.access} callbacks, dev-server tasks) on a
+     * {@link TaskExecutor}. With the dedicated email and Slack executors present it refuses to guess which
+     * one to use, so give it its own, named exactly as Vaadin looks for it.
+     */
+    @Bean("VaadinTaskExecutor")
+    public TaskExecutor vaadinTaskExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("vaadin-");
+        executor.initialize();
+        return executor;
     }
 }

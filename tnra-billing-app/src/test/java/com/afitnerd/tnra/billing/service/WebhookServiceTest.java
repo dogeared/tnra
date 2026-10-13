@@ -7,7 +7,7 @@ import com.afitnerd.tnra.billing.model.BillingWebhookEvent;
 import com.afitnerd.tnra.billing.repository.BillingAccountRepository;
 import com.afitnerd.tnra.billing.repository.BillingWebhookEventRepository;
 import com.afitnerd.tnra.billing.util.HashUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
