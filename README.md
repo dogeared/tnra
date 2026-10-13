@@ -312,6 +312,9 @@ curl -s -X POST http://localhost:8082/api/admin/groups \
 # silently switch the app to H2) and the https issuer the browser must be sent to.
 export TNRA_ENCRYPTION_MASTER_KEY="$(grep '^TNRA_ENCRYPTION_MASTER_KEY=' .env | cut -d= -f2-)"
 export KEYCLOAK_ISSUER_URI=https://auth.dev.dogeared.dev/realms/tnra
+# spring-boot:run forks the app with cwd = tnra-app/, so the relative upload-dir misses the repo-root
+# uploads/ (profile images + placeholder 404). Point it at the absolute path.
+export APP_FILE_STORAGE_UPLOAD_DIR="$PWD/uploads"
 export TNRA_BILLING_ENABLED=true
 export TNRA_BILLING_API_URL=http://localhost:8082
 export TNRA_BILLING_API_TOKEN=<apiToken from above>
