@@ -10,6 +10,8 @@ import com.afitnerd.tnra.service.FileStorageService;
 import com.afitnerd.tnra.service.GroupSettingsService;
 import com.afitnerd.tnra.service.PostDataExportService;
 import com.afitnerd.tnra.service.UserService;
+import com.vaadin.flow.component.confirmdialog.ConfirmDialog;
+import com.vaadin.flow.component.notification.Notification;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
 import com.vaadin.flow.component.checkbox.Checkbox;
@@ -28,6 +30,7 @@ import com.vaadin.flow.component.html.Image;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
+import com.vaadin.flow.component.orderedlayout.FlexComponent;
 import com.vaadin.flow.component.orderedlayout.HorizontalLayout;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.component.tabs.Tab;
@@ -38,6 +41,8 @@ import com.vaadin.flow.component.upload.Upload;
 import com.vaadin.flow.server.StreamResource;
 import com.vaadin.flow.server.streams.UploadHandler;
 import com.vaadin.flow.data.value.ValueChangeMode;
+import com.vaadin.flow.router.BeforeEnterEvent;
+import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
 import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
@@ -49,6 +54,8 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -58,7 +65,7 @@ import java.util.regex.Pattern;
 @PermitAll
 @CssImport("./styles/profile-view.css")
 @PageTitle("Profile | TNRA")
-public class ProfileView extends VerticalLayout {
+public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
 
     private final UserService userService;
     private final FileStorageService fileStorageService;
@@ -103,6 +110,12 @@ public class ProfileView extends VerticalLayout {
     Button billingMonthlyButton;
     Button billingYearlyButton;
     Button billingUpdatePaymentButton;
+    Button billingManageButton;
+    TabSheet tabs;                // package-private for testing
+    Tab billingTab;               // null when billing is off
+    Button billingCancelButton;   // self-pay, live, no cancel scheduled
+    Button billingKeepButton;     // self-pay, cancel scheduled → undo
+    MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
     // Gift a membership section:
     ComboBox<User> giftRecipientCombo;
     Button giftContinueButton;
@@ -154,8 +167,10 @@ public class ProfileView extends VerticalLayout {
         buildBasicInfoFields();
         buildNotificationFields();
 
-        TabSheet tabs = new TabSheet();
-        tabs.setSizeFull();
+        tabs = new TabSheet();
+        // Width only: a full-height TabSheet would stretch to the bottom of the view and push the
+        // membership prompt below the fold with a wall of whitespace above it.
+        tabs.setWidthFull();
         tabs.addClassName("profile-tabs");
         tabs.add("Basic Info", createBasicInfoTabContent());
         tabs.add("Notifications", createNotificationsTabContent());
@@ -164,7 +179,7 @@ public class ProfileView extends VerticalLayout {
         tabs.add("Export", createDataExportSection());
         // Billing tab only when billing is enabled (the central service is wired in).
         if (billingClient.isPresent()) {
-            Tab billingTab = tabs.add("Billing", createBillingTabContent());
+            billingTab = tabs.add("Billing", createBillingTabContent());
             // Lazy-load: hit the billing service only when the Billing tab is actually opened (not on
             // every profile visit), and refresh on each open so the covering list stays current.
             tabs.addSelectedChangeListener(e -> {
@@ -175,6 +190,14 @@ public class ProfileView extends VerticalLayout {
         }
 
         add(tabs);
+
+        // Below the tabs — so it sits under WHICHEVER tab is open: a not-yet-paying member can edit their
+        // profile but is met with the membership options everywhere on it. refresh() runs from
+        // loadUserData() once the member is known; hidden for an entitled member.
+        if (billingClient.isPresent()) {
+            membershipPrompt = new MembershipPrompt(billingClient.get(), null, baseUrl);
+            add(membershipPrompt);
+        }
     }
 
     /**
@@ -210,10 +233,20 @@ public class ProfileView extends VerticalLayout {
         billingPayButtons = new HorizontalLayout(billingMonthlyButton, billingYearlyButton);
         billingPayButtons.setVisible(false); // shown by applyBillingTabState() only if no active sub
 
-        billingUpdatePaymentButton = new Button("Update payment method", e -> openMembershipPortal());
+        billingUpdatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
+        billingManageButton = new Button("Invoices & receipts", e -> openMembershipPortal());
+        billingCancelButton = new Button("Cancel membership", e -> confirmCancelOwnMembership());
+        billingCancelButton.addThemeVariants(ButtonVariant.LUMO_ERROR, ButtonVariant.LUMO_TERTIARY);
+        billingCancelButton.setVisible(false);
+        billingKeepButton = new Button("Keep my membership", e -> keepMembership());
+        billingKeepButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
+        billingKeepButton.setVisible(false);
+        HorizontalLayout manageButtons = new HorizontalLayout(
+            billingUpdatePaymentButton, billingManageButton, billingKeepButton, billingCancelButton);
+        manageButtons.getStyle().set("flex-wrap", "wrap");
 
         VerticalLayout section = new VerticalLayout(
-            billingTitle, billingBlurb, billingPayButtons, billingUpdatePaymentButton);
+            billingTitle, billingBlurb, billingPayButtons, manageButtons);
         section.setPadding(false);
         section.setSpacing(true);
         return section;
@@ -249,6 +282,34 @@ public class ProfileView extends VerticalLayout {
         return section;
     }
 
+    static final String TAB_PARAM = "tab";
+    static final String BILLING_TAB = "billing";
+
+    /** {@code /profile?tab=billing} lands on the Billing tab (deep links from billing flows). */
+    @Override
+    public void beforeEnter(BeforeEnterEvent event) {
+        List<String> tab = event.getLocation().getQueryParameters().getParameters()
+            .getOrDefault(TAB_PARAM, List.of());
+        if (billingTab != null && tabs != null && !tab.isEmpty() && BILLING_TAB.equalsIgnoreCase(tab.get(0))) {
+            tabs.setSelectedTab(billingTab); // fires the selected-change listener → applyBillingTabState()
+        }
+    }
+
+    /** The below-the-tabs prompt needs the member's email, which is only known after loadUserData(). */
+    void refreshMembershipPrompt() {
+        if (membershipPrompt == null || billingClient.isEmpty()) {
+            return;
+        }
+        if (currentUser == null || currentUser.getEmail() == null) {
+            membershipPrompt.setVisible(false);
+            return;
+        }
+        MembershipPrompt fresh = new MembershipPrompt(billingClient.get(), currentUser.getEmail(), baseUrl);
+        replace(membershipPrompt, fresh);
+        membershipPrompt = fresh;
+        membershipPrompt.refresh();
+    }
+
     /** Self-pay checkout from the Billing tab — mirrors {@code BillingView}. */
     void startMembershipCheckout(String variant) {
         if (currentUser == null || billingClient.isEmpty()) {
@@ -256,8 +317,10 @@ public class ProfileView extends VerticalLayout {
         }
         String me = currentUser.getEmail();
         try {
-            String url = billingClient.get().createCheckout(me, variant, me, baseUrl + "/billing/activating");
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String done = baseUrl + "/billing/activating";
+            String url = billingClient.get().createCheckout(me, variant, me, done);
+            getUI().ifPresent(ui -> ui.getPage().setLocation(
+                BillingView.withReturnUrls(url, done, baseUrl + "/profile")));
         } catch (HttpClientErrorException.Conflict ex) {
             AppNotification.error(
                 "You're already a member. Use \"Update payment method\" to manage your subscription.");
@@ -266,17 +329,29 @@ public class ProfileView extends VerticalLayout {
         }
     }
 
-    /** Open the hosted Paddle customer portal for the current member. */
-    void openMembershipPortal() {
+    /** Card update in the same /pay overlay as a purchase; returns here afterwards. */
+    void startCardUpdate() {
         if (currentUser == null || billingClient.isEmpty()) {
             return;
         }
+        String me = currentUser.getEmail();
         try {
-            String url = billingClient.get().portalUrl(currentUser.getEmail());
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String url = billingClient.get().paymentMethodUpdateUrl(me);
+            String done = baseUrl + "/billing/activating";
+            getUI().ifPresent(ui -> ui.getPage().setLocation(
+                BillingView.withReturnUrls(url, done, baseUrl + "/profile")));
+        } catch (HttpClientErrorException.NotFound ex) {
+            AppNotification.error("You don't have a subscription to update yet — choose a plan above.");
+        } catch (HttpClientErrorException.Conflict ex) {
+            AppNotification.error("Your membership is a gift — the person paying for it manages the card.");
         } catch (Exception ex) {
-            AppNotification.error("Sorry, we couldn't open the payment portal. Please try again.");
+            AppNotification.error("Sorry, we couldn't start the card update. Please try again.");
         }
+    }
+
+    /** Invoices / cancel / pause live in Paddle's full-page portal — go via the interstitial. */
+    void openMembershipPortal() {
+        getUI().ifPresent(ui -> ui.navigate(BillingPortalView.class));
     }
 
     /** Navigate to the billing view in gift mode for the selected member. */
@@ -305,20 +380,26 @@ public class ProfileView extends VerticalLayout {
         boolean hasLiveSubscription = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
         billingPayButtons.setVisible(!hasLiveSubscription);
 
-        // Reflect the member's actual state in the blurb: active (and, if so, gifted by whom) vs. the
-        // call-to-action to activate.
+        // Reflect the member's actual state in the blurb: active (and, if so, gifted by whom, through when,
+        // next charge / scheduled cancellation — live from the provider, only when the tab is open) vs.
+        // the call-to-action to activate.
         boolean gifted = ent.payerEmail() != null && !ent.payerEmail().isBlank()
             && !ent.payerEmail().equalsIgnoreCase(currentUser.getEmail());
-        if (hasLiveSubscription && gifted) {
-            billingBlurb.setText("Your membership is active — gifted by " + gifterLabel(ent.payerEmail())
-                + ", who manages the payment.");
-        } else if (hasLiveSubscription) {
-            billingBlurb.setText("Your membership is active. You can change or cancel it anytime "
-                + "via \"Update payment method\".");
-        } else {
-            billingBlurb.setText("Activate your membership to access posts, stats, and the call chain. "
-                + "Choose monthly or yearly — you can change or cancel anytime.");
+        Optional<BillingClient.Subscription> sub = Optional.empty();
+        if (hasLiveSubscription) {
+            Optional<BillingClient.Subscription> fetched = billingClient.get().subscription(currentUser.getEmail());
+            sub = fetched == null ? Optional.empty() : fetched;
         }
+        billingBlurb.setText(membershipBlurb(ent, sub, gifted ? gifterLabel(ent.payerEmail()) : null,
+            LocalDate.now()));
+        // Cancel / keep: in-app, self-pay only (a gift is the gifter's to end). Card + invoices: the
+        // gifter's, too — a gifted member has nothing of their own in Paddle.
+        boolean selfPayLive = hasLiveSubscription && !gifted;
+        boolean cancelScheduled = sub.map(BillingClient.Subscription::cancelScheduled).orElse(false);
+        billingCancelButton.setVisible(selfPayLive && !cancelScheduled);
+        billingKeepButton.setVisible(selfPayLive && cancelScheduled);
+        billingUpdatePaymentButton.setVisible(!gifted);
+        billingManageButton.setVisible(!gifted);
 
         // Gift section: list every other active member; enabled only when the member is entitled.
         List<User> others = userService.getAllActiveUsers().stream()
@@ -350,14 +431,96 @@ public class ProfileView extends VerticalLayout {
             }
             coveringSection.add(new H3("Members you're covering"));
             for (BillingClient.CoveredMember m : covered) {
-                coveringSection.add(new Paragraph(m.email() + " — " + friendlyStatus(m.status())));
+                coveringSection.add(coveringRow(m));
             }
             coveringSection.add(new Paragraph(
-                "To change a card or stop covering someone, use \"Update payment method\" above — "
-                + "the payment portal lists every subscription you pay for."));
+                "Stopping a gift ends it at the close of the period you've already paid for — "
+                + "the member keeps access until then."));
             coveringSection.setVisible(true);
         } catch (Exception e) {
             // Non-critical: if the covering list can't load, just leave it hidden.
+        }
+    }
+
+    /** One covered member: "email — status[, ends <date>]" plus a Stop covering button while it's running. */
+    HorizontalLayout coveringRow(BillingClient.CoveredMember m) {
+        String text = m.email() + " — " + friendlyStatus(m.status());
+        if (m.cancelAt() != null) {
+            text += ", ends " + LONG_DATE.format(m.cancelAt());
+        }
+        HorizontalLayout row = new HorizontalLayout(new Paragraph(text));
+        row.setAlignItems(FlexComponent.Alignment.CENTER);
+        if (m.cancelAt() == null && ("ACTIVE".equals(m.status()) || "ON_GRACE_PERIOD".equals(m.status()))) {
+            Button stop = new Button("Stop covering", e -> confirmStopCovering(m.email()));
+            stop.addThemeVariants(ButtonVariant.LUMO_SMALL, ButtonVariant.LUMO_TERTIARY, ButtonVariant.LUMO_ERROR);
+            row.add(stop);
+        }
+        return row;
+    }
+
+    void confirmCancelOwnMembership() {
+        ConfirmDialog dialog = new ConfirmDialog("Cancel your membership?",
+            "You'll keep access through the end of the period you've already paid for, and you can "
+            + "change your mind any time before then.",
+            "Cancel membership", e -> cancelOwnMembership(), "Keep it", e -> { });
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.open();
+    }
+
+    /** In-app cancellation of the member's own subscription (period end). */
+    void cancelOwnMembership() {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            LocalDate ends = billingClient.get().cancelOwn(currentUser.getEmail());
+            Notification.show(ends == null ? "Your membership has been cancelled."
+                : "Your membership is cancelled and stays active through " + LONG_DATE.format(ends) + ".");
+            applyBillingTabState();
+        } catch (HttpClientErrorException.Conflict ex) {
+            AppNotification.error("Your membership is a gift — the person paying for it manages it.");
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't cancel right now. Please try again.");
+        }
+    }
+
+    /** Undo a scheduled cancellation. */
+    void keepMembership() {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            billingClient.get().resumeOwn(currentUser.getEmail());
+            Notification.show("Welcome back — your membership will continue.");
+            applyBillingTabState();
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't resume your membership right now. Please try again.");
+        }
+    }
+
+    void confirmStopCovering(String beneficiaryEmail) {
+        ConfirmDialog dialog = new ConfirmDialog("Stop covering " + beneficiaryEmail + "?",
+            "Their membership stays active through the end of the period you've already paid for, "
+            + "then ends. They can pay for it themselves after that.",
+            "Stop covering", e -> stopCovering(beneficiaryEmail), "Keep covering", e -> { });
+        dialog.setConfirmButtonTheme("error primary");
+        dialog.open();
+    }
+
+    /** The payer ends one specific gift — the app knows which subscription; no guessing in a portal. */
+    void stopCovering(String beneficiaryEmail) {
+        if (currentUser == null || billingClient.isEmpty()) {
+            return;
+        }
+        try {
+            LocalDate ends = billingClient.get().stopCovering(currentUser.getEmail(), beneficiaryEmail);
+            Notification.show(ends == null ? "You've stopped covering " + beneficiaryEmail + "."
+                : beneficiaryEmail + "'s membership stays active through " + LONG_DATE.format(ends) + ", then ends.");
+            populateCoveringSection(currentUser.getEmail());
+        } catch (HttpClientErrorException.Forbidden ex) {
+            AppNotification.error("You're not the one paying for that membership.");
+        } catch (Exception ex) {
+            AppNotification.error("Sorry, we couldn't make that change right now. Please try again.");
         }
     }
 
@@ -366,6 +529,60 @@ public class ProfileView extends VerticalLayout {
     }
 
     /** Resolve the gifter's email to a friendly "Name (email)" label, falling back to the email. */
+    static final DateTimeFormatter LONG_DATE = DateTimeFormatter.ofPattern("MMMM d, yyyy", Locale.US);
+
+    /**
+     * The membership status sentence(s). {@code gifter} is the display label of the payer for a gifted
+     * membership, or null for self-pay. Pure function so every state is unit-testable.
+     */
+    static String membershipBlurb(BillingClient.Entitlement ent, Optional<BillingClient.Subscription> sub,
+                                  String gifter, LocalDate today) {
+        boolean live = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
+        if (!live) {
+            return "Activate your membership to access posts, stats, and the call chain. "
+                + "Choose monthly or yearly — you can change or cancel anytime.";
+        }
+        StringBuilder text = new StringBuilder(gifter != null
+            ? "Your membership is active — gifted by " + gifter + ", who manages the payment."
+            : "Your membership is active.");
+        if (sub.isPresent()) {
+            BillingClient.Subscription s = sub.get();
+            String plan = "yearly".equalsIgnoreCase(s.variant()) ? "yearly" : "monthly";
+            if (s.cancelScheduled()) {
+                text.append(" It has been cancelled and stays active through ")
+                    .append(LONG_DATE.format(s.cancelAt())).append('.');
+                if (gifter == null) {
+                    text.append(" Changed your mind? \"Keep my membership\" undoes that.");
+                }
+                return text.toString();
+            }
+            if ("ON_GRACE_PERIOD".equals(ent.status())) {
+                text.append(" Your last payment didn't go through");
+                if (s.paidThrough() != null) {
+                    text.append(" — access continues through ").append(LONG_DATE.format(s.paidThrough()))
+                        .append(" while Paddle retries");
+                }
+                text.append(". Update your payment method to keep your membership.");
+                return text.toString();
+            }
+            if (s.onTrial(today)) {
+                text.append(" Your free trial runs through ").append(LONG_DATE.format(s.trialEndsAt()))
+                    .append("; the first ").append(plan).append(" payment is due ")
+                    .append(LONG_DATE.format(s.nextBilledAt() != null ? s.nextBilledAt() : s.trialEndsAt()))
+                    .append('.');
+            } else if (s.nextBilledAt() != null) {
+                text.append(" Next ").append(plan).append(" payment: ")
+                    .append(LONG_DATE.format(s.nextBilledAt())).append('.');
+            } else if (s.paidThrough() != null) {
+                text.append(" Paid through ").append(LONG_DATE.format(s.paidThrough())).append('.');
+            }
+        }
+        if (gifter == null) {
+            text.append(" You can update your card or cancel right here, anytime.");
+        }
+        return text.toString();
+    }
+
     private String gifterLabel(String payerEmail) {
         User payer = userService.getUserByEmail(payerEmail);
         return payer == null ? payerEmail : recipientLabel(payer);
@@ -917,6 +1134,7 @@ public class ProfileView extends VerticalLayout {
 
     private void loadUserData() {
         currentUser = userService.getCurrentUser();
+        refreshMembershipPrompt();
         if (currentUser != null) {
             firstNameField.setValue(currentUser.getFirstName() != null ? currentUser.getFirstName() : "");
             lastNameField.setValue(currentUser.getLastName() != null ? currentUser.getLastName() : "");

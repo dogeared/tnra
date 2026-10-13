@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Set;
+
 /**
  * Processes Paddle Billing webhooks. Fail-loud on auth, never-lose on data:
  *
@@ -36,11 +38,25 @@ import org.springframework.web.server.ResponseStatusException;
  * <p>Paddle sends both {@code subscription.*} events (where {@code data.id} is the subscription id) and
  * {@code transaction.*} events (where the subscription is {@code data.subscription_id}); both carry the
  * checkout's {@code data.custom_data}.
+ *
+ * <p><b>Only {@link #ENTITLEMENT_EVENTS} may change a member's status.</b> Paddle also emits
+ * {@code transaction.created} / {@code transaction.updated} / {@code transaction.ready} the moment a
+ * checkout is <i>opened</i> (status {@code draft}/{@code ready}, nothing paid), plus catalog events
+ * ({@code product.*}, {@code price.*}). Those are recorded for audit and otherwise ignored — routing them
+ * once granted access to anyone who merely opened the overlay and closed it. Likewise an unknown status
+ * never grants: dunning ({@code past_due} / {@code payment_failed}) only keeps access a member already
+ * had, it does not open the door for a PENDING account.
  */
 @Service
 public class WebhookService {
 
     private static final Logger log = LoggerFactory.getLogger(WebhookService.class);
+
+    /** The only event types that may change entitlement; everything else is persisted and ignored. */
+    static final Set<String> ENTITLEMENT_EVENTS = Set.of(
+        "subscription.created", "subscription.activated", "subscription.updated", "subscription.resumed",
+        "subscription.past_due", "subscription.paused", "subscription.canceled",
+        "transaction.completed", "transaction.payment_failed");
 
     private final BillingWebhookEventRepository eventRepository;
     private final BillingAccountRepository accountRepository;
@@ -82,6 +98,15 @@ public class WebhookService {
         event.setLsEventId(eventId);
         event.setEventName(eventType != null ? eventType : "unknown");
         event.setRawPayload(body);
+
+        if (eventType == null || !ENTITLEMENT_EVENTS.contains(eventType)) {
+            // Audit trail only. transaction.created/updated fire when a checkout is merely OPENED (draft,
+            // unpaid) — treating them as billing signals would entitle anyone who closed the overlay.
+            event.setProcessed(true);
+            event.setError("ignored: not an entitlement event");
+            eventRepository.save(event);
+            return;
+        }
 
         try {
             route(root, eventType, event);
@@ -181,7 +206,7 @@ public class WebhookService {
     }
 
     private void applyStatus(BillingAccount account, String eventType, String status) {
-        account.setStatus(mapStatus(eventType, status));
+        account.setStatus(mapStatus(eventType, status, account.getStatus()));
     }
 
     private void markMatched(BillingWebhookEvent event, BillingAccount account) {
@@ -189,10 +214,16 @@ public class WebhookService {
         event.setProcessed(true);
     }
 
-    /** Map a Paddle event type + subscription status to our entitlement status. */
-    BillingStatus mapStatus(String eventType, String status) {
+    /**
+     * Map a Paddle event type + subscription status to our entitlement status, given the account's
+     * {@code current} status. Rules: a terminal event type wins over the payload status; dunning
+     * ({@code past_due} / {@code payment_failed}) keeps access only for a member who already has it;
+     * an unknown or missing status changes nothing — it never grants and never revokes.
+     */
+    BillingStatus mapStatus(String eventType, String status, BillingStatus current) {
+        BillingStatus cur = current == null ? BillingStatus.PENDING_PAYMENT : current;
         if ("transaction.payment_failed".equals(eventType) || "subscription.past_due".equals(eventType)) {
-            return BillingStatus.ON_GRACE_PERIOD;
+            return dunning(cur);
         }
         if ("subscription.canceled".equals(eventType) || "subscription.paused".equals(eventType)) {
             return BillingStatus.SUSPENDED;
@@ -202,14 +233,20 @@ public class WebhookService {
             return BillingStatus.ACTIVE;
         }
         if (status == null) {
-            return BillingStatus.ON_GRACE_PERIOD; // unknown on a create/update: keep access, reconcile
+            return cur;
         }
         return switch (status) {
             case "active", "trialing" -> BillingStatus.ACTIVE;
-            case "past_due" -> BillingStatus.ON_GRACE_PERIOD;
+            case "past_due" -> dunning(cur);
             case "paused", "canceled" -> BillingStatus.SUSPENDED;
-            default -> BillingStatus.ON_GRACE_PERIOD;
+            default -> cur;
         };
+    }
+
+    /** Grace keeps a paying member in while Paddle retries; it never lets a non-paying one in. */
+    private static BillingStatus dunning(BillingStatus cur) {
+        return (cur == BillingStatus.ACTIVE || cur == BillingStatus.ON_GRACE_PERIOD)
+            ? BillingStatus.ON_GRACE_PERIOD : cur;
     }
 
     /**

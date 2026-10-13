@@ -22,6 +22,8 @@ import java.util.Map;
  *       resp: data.checkout.url  (hosted checkout — requires a default payment link configured in the
  *             Paddle dashboard so Paddle can build the URL)
  *   getCustomerPortalUrl ─► POST /customers/{id}/portal-sessions
+ *   getUpdatePaymentMethodCheckoutUrl ─► GET /subscriptions/{id}/update-payment-method-transaction
+ *       resp: data.checkout.url  (same /pay overlay as a purchase; past_due ⇒ the outstanding txn)
  *       resp: data.urls.general.overview
  *   cancelSubscription ─► POST /subscriptions/{id}/cancel  { effective_from: "immediately" }
  * </pre>
@@ -81,6 +83,83 @@ public class PaddleClientImpl implements PaymentProviderClient {
             .body(JsonNode.class);
 
         return requireText(resp, "customer portal url", "data", "urls", "general", "overview");
+    }
+
+    @Override
+    public String getUpdatePaymentMethodCheckoutUrl(String subscriptionId) {
+        JsonNode resp = restClient.get()
+            .uri("/subscriptions/{id}/update-payment-method-transaction", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .retrieve()
+            .body(JsonNode.class);
+        return requireText(resp, "payment-method update checkout url", "data", "checkout", "url");
+    }
+
+    @Override
+    public SubscriptionDetails getSubscription(String subscriptionId) {
+        JsonNode resp = restClient.get()
+            .uri("/subscriptions/{id}", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .retrieve()
+            .body(JsonNode.class);
+        JsonNode d = resp == null ? null : resp.path("data");
+        if (d == null || d.isMissingNode()) {
+            throw new IllegalStateException("Paddle response missing subscription");
+        }
+        JsonNode change = d.path("scheduled_change");
+        JsonNode trial = d.path("items").isArray() && d.path("items").size() > 0
+            ? d.path("items").get(0).path("trial_dates") : null;
+        return new SubscriptionDetails(
+            optText(d, "status"),
+            instant(d.path("current_billing_period"), "ends_at"),
+            instant(d, "next_billed_at"),
+            change.isObject() ? optText(change, "action") : null,
+            change.isObject() ? instant(change, "effective_at") : null,
+            trial != null && trial.isObject() ? instant(trial, "ends_at") : null,
+            optText(d.path("billing_cycle"), "interval"));
+    }
+
+    private static String optText(JsonNode node, String field) {
+        JsonNode v = node == null ? null : node.get(field);
+        return v == null || !v.isTextual() || v.asText().isBlank() ? null : v.asText();
+    }
+
+    private static java.time.Instant instant(JsonNode node, String field) {
+        String s = optText(node, field);
+        return s == null ? null : java.time.OffsetDateTime.parse(s).toInstant();
+    }
+
+    @Override
+    public java.time.Instant scheduleCancellation(String subscriptionId) {
+        JsonNode resp = restClient.post()
+            .uri("/subscriptions/{id}/cancel", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(Map.of("effective_from", "next_billing_period"))
+            .retrieve()
+            .body(JsonNode.class);
+        JsonNode d = resp == null ? null : resp.path("data");
+        java.time.Instant at = d == null ? null : instant(d.path("scheduled_change"), "effective_at");
+        if (at == null && d != null) {
+            at = instant(d.path("current_billing_period"), "ends_at"); // defensive: same moment
+        }
+        if (at == null) {
+            throw new IllegalStateException("Paddle response missing scheduled cancellation date");
+        }
+        return at;
+    }
+
+    @Override
+    public void removeScheduledCancellation(String subscriptionId) {
+        Map<String, Object> body = new java.util.HashMap<>();
+        body.put("scheduled_change", null); // Map.of() rejects null values
+        restClient.patch()
+            .uri("/subscriptions/{id}", subscriptionId)
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(body)
+            .retrieve()
+            .toBodilessEntity();
     }
 
     @Override

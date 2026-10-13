@@ -1,5 +1,8 @@
 package com.afitnerd.tnra.vaadin;
 
+import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
+import com.afitnerd.tnra.billing.BillingClient;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.FileStorageService;
@@ -39,19 +42,27 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
     private final FileStorageService fileStorageService;
     private final AuthNavigationService authNavigationService;
     private final VaadinPostPresenter vaadinPostPresenter;
+    private final transient Optional<BillingClient> billingClient;
+    private final String baseUrl;
+
+    MembershipPrompt membershipPrompt; // package-private for testing; present only when billing is on
 
     public MainView(
         OidcUserService oidcUserService,
         UserService userService,
         FileStorageService fileStorageService,
         AuthNavigationService authNavigationService,
-        VaadinPostPresenter vaadinPostPresenter
+        VaadinPostPresenter vaadinPostPresenter,
+        Optional<BillingClient> billingClient,
+        @Value("${tnra.app.base-url:http://localhost:8080}") String baseUrl
     ) {
         this.oidcUserService = oidcUserService;
         this.userService = userService;
         this.fileStorageService = fileStorageService;
         this.authNavigationService = authNavigationService;
         this.vaadinPostPresenter = vaadinPostPresenter;
+        this.billingClient = billingClient;
+        this.baseUrl = baseUrl;
         setSizeFull();
         setAlignItems(Alignment.CENTER);
         setJustifyContentMode(JustifyContentMode.CENTER);
@@ -165,6 +176,15 @@ public class MainView extends VerticalLayout implements BeforeEnterObserver {
             profileSection.add(profileImage, welcomeMessage);
             
             add(title, profileSection);
+
+            // A member who hasn't activated (or whose card is failing) sees the membership options right
+            // here, under the welcome — the gate lets them reach this page, so meet them on it.
+            if (billingClient.isPresent() && currentUser.getEmail() != null) {
+                membershipPrompt = new MembershipPrompt(billingClient.get(), currentUser.getEmail(), baseUrl)
+                    .centered();
+                membershipPrompt.refresh();
+                add(membershipPrompt);
+            }
         } catch (Exception e) {
             // Fallback to simple view if there's an error
             H1 title = new H1("Welcome back!");

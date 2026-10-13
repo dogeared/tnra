@@ -4,7 +4,11 @@ import com.afitnerd.tnra.billing.service.CheckoutService;
 import com.afitnerd.tnra.billing.service.EntitlementResult;
 import com.afitnerd.tnra.billing.service.EntitlementService;
 import com.afitnerd.tnra.billing.web.dto.CheckoutRequest;
+import com.afitnerd.tnra.billing.web.dto.CancelResponse;
+import com.afitnerd.tnra.billing.web.dto.MemberRequest;
+import com.afitnerd.tnra.billing.web.dto.StopCoveringRequest;
 import com.afitnerd.tnra.billing.web.dto.CheckoutResponse;
+import com.afitnerd.tnra.billing.web.dto.SubscriptionResponse;
 import com.afitnerd.tnra.billing.web.dto.CoveringEntry;
 import com.afitnerd.tnra.billing.web.dto.EntitlementResponse;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -57,5 +61,36 @@ public class BillingApiController {
     @GetMapping("/portal")
     public CheckoutResponse portal(Principal principal, @RequestParam String email) {
         return new CheckoutResponse(checkoutService.portalUrl(principal.getName(), email));
+    }
+
+    /** Member cancels their own membership at period end (in-app; never the provider portal). */
+    @PostMapping("/cancel")
+    public CancelResponse cancel(Principal principal, @RequestBody MemberRequest request) {
+        return new CancelResponse(checkoutService.cancelOwn(principal.getName(), request.email()));
+    }
+
+    /** Undo a scheduled cancellation before the period ends. */
+    @PostMapping("/resume")
+    public void resume(Principal principal, @RequestBody MemberRequest request) {
+        checkoutService.resumeOwn(principal.getName(), request.email());
+    }
+
+    /** A payer stops covering one member at period end. */
+    @PostMapping("/covering/cancel")
+    public CancelResponse stopCovering(Principal principal, @RequestBody StopCoveringRequest request) {
+        return new CancelResponse(checkoutService.stopCovering(principal.getName(),
+            request.payerEmail(), request.beneficiaryEmail()));
+    }
+
+    /** Live subscription dates for the member's billing screen (provider call — fetch lazily). */
+    @GetMapping("/subscription")
+    public SubscriptionResponse subscription(Principal principal, @RequestParam String email) {
+        return checkoutService.subscriptionDetails(principal.getName(), email);
+    }
+
+    /** Overlay checkout URL to update the card on the member's own subscription (see CheckoutService). */
+    @GetMapping("/payment-method")
+    public CheckoutResponse paymentMethod(Principal principal, @RequestParam String email) {
+        return new CheckoutResponse(checkoutService.paymentMethodUpdateUrl(principal.getName(), email));
     }
 }

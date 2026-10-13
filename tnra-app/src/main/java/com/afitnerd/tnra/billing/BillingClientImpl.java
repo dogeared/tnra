@@ -7,10 +7,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.time.LocalDate;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -121,6 +124,43 @@ public class BillingClientImpl implements BillingClient {
     }
 
     @Override
+    public String paymentMethodUpdateUrl(String email) {
+        JsonNode resp = restClient.get()
+            .uri(b -> b.path("/api/v1/payment-method").queryParam("email", email).build())
+            .retrieve()
+            .body(JsonNode.class);
+        return text(resp, "url");
+    }
+
+    @Override
+    public Optional<Subscription> subscription(String email) {
+        try {
+            JsonNode resp = restClient.get()
+                .uri(b -> b.path("/api/v1/subscription").queryParam("email", email).build())
+                .retrieve()
+                .body(JsonNode.class);
+            if (resp == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new Subscription(
+                emptyToNull(resp.path("providerStatus").asText("")),
+                emptyToNull(resp.path("variant").asText("")),
+                date(resp, "paidThrough"), date(resp, "nextBilledAt"),
+                date(resp, "cancelAt"), date(resp, "trialEndsAt")));
+        } catch (HttpClientErrorException.NotFound e) {
+            return Optional.empty();
+        } catch (Exception e) {
+            log.warn("Subscription details unreachable for {}: {}", email, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
+    private static LocalDate date(JsonNode node, String field) {
+        String s = emptyToNull(node.path(field).asText(""));
+        return s == null ? null : java.time.Instant.parse(s).atZone(java.time.ZoneId.systemDefault()).toLocalDate();
+    }
+
+    @Override
     public List<CoveredMember> covering(String payerEmail) {
         JsonNode resp = restClient.get()
             .uri(b -> b.path("/api/v1/covering").queryParam("payerEmail", payerEmail).build())
@@ -131,9 +171,38 @@ public class BillingClientImpl implements BillingClient {
         }
         List<CoveredMember> members = new ArrayList<>();
         for (JsonNode n : resp) {
-            members.add(new CoveredMember(n.path("email").asText(), n.path("status").asText()));
+            members.add(new CoveredMember(n.path("email").asText(), n.path("status").asText(), date(n, "cancelAt")));
         }
         return members;
+    }
+
+    @Override
+    public LocalDate cancelOwn(String email) {
+        JsonNode resp = restClient.post()
+            .uri("/api/v1/cancel")
+            .body(Map.of("email", email))
+            .retrieve()
+            .body(JsonNode.class);
+        return resp == null ? null : date(resp, "endsAt");
+    }
+
+    @Override
+    public void resumeOwn(String email) {
+        restClient.post()
+            .uri("/api/v1/resume")
+            .body(Map.of("email", email))
+            .retrieve()
+            .toBodilessEntity();
+    }
+
+    @Override
+    public LocalDate stopCovering(String payerEmail, String beneficiaryEmail) {
+        JsonNode resp = restClient.post()
+            .uri("/api/v1/covering/cancel")
+            .body(Map.of("payerEmail", payerEmail, "beneficiaryEmail", beneficiaryEmail))
+            .retrieve()
+            .body(JsonNode.class);
+        return resp == null ? null : date(resp, "endsAt");
     }
 
     private String text(JsonNode node, String field) {

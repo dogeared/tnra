@@ -1,5 +1,7 @@
 package com.afitnerd.tnra.vaadin;
 
+import com.afitnerd.tnra.billing.BillingClient;
+import java.util.Optional;
 import com.afitnerd.tnra.model.User;
 import com.afitnerd.tnra.service.AuthNavigationService;
 import com.afitnerd.tnra.service.OidcUserService;
@@ -68,7 +70,7 @@ class MainLayoutTest {
             routeConfig.when(RouteConfiguration::forSessionScope).thenReturn(mockConfig);
             routeConfig.when(RouteConfiguration::forApplicationScope).thenReturn(mockConfig);
             routeConfig.when(() -> RouteConfiguration.forRegistry(any())).thenReturn(mockConfig);
-            return new MainLayout(oidcUserService, userService, authNavigationService);
+            return new MainLayout(oidcUserService, userService, authNavigationService, Optional.empty(), "http://localhost:8080");
         }
     }
 
@@ -77,7 +79,7 @@ class MainLayoutTest {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         // Expect either success or routing exception — just verify the service was used
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService);
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // Routing context not available in pure unit test — expected
         }
@@ -86,7 +88,7 @@ class MainLayoutTest {
 
     @Test
     void testMainLayoutConstructorWithNullService() {
-        assertThrows(Exception.class, () -> new MainLayout(null, null, null));
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null, null, null));
     }
 
     @Test
@@ -157,14 +159,14 @@ class MainLayoutTest {
 
     @Test
     void testServiceNotNull() {
-        assertThrows(Exception.class, () -> new MainLayout(null, null, null));
+        assertThrows(Exception.class, () -> new MainLayout(null, null, null, null, null));
     }
 
     @Test
     void testOidcUserServiceDependency() {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService);
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // expected if routing not set up
         }
@@ -175,7 +177,7 @@ class MainLayoutTest {
     void testAuthenticatedUserServiceCall() {
         when(oidcUserService.isAuthenticated()).thenReturn(true);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService);
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // expected
         }
@@ -186,10 +188,74 @@ class MainLayoutTest {
     void testUnauthenticatedUserServiceCall() {
         when(oidcUserService.isAuthenticated()).thenReturn(false);
         try {
-            new MainLayout(oidcUserService, userService, authNavigationService);
+            layoutWith(Optional.empty());
         } catch (Exception e) {
             // expected
         }
         verify(oidcUserService, atLeastOnce()).isAuthenticated();
+    }
+
+    /** Same router/registry stubbing as buildLayout(), with a billing client. */
+    private MainLayout layoutWith(Optional<BillingClient> billing) {
+        VaadinService mockVaadinService = mock(VaadinService.class);
+        Router mockRouter = mock(Router.class);
+        lenient().when(mockVaadinService.getRouter()).thenReturn(mockRouter);
+        try (MockedStatic<RouteConfiguration> routeConfig = mockStatic(RouteConfiguration.class);
+             MockedStatic<VaadinService> vaadinServiceStatic = mockStatic(VaadinService.class)) {
+            vaadinServiceStatic.when(VaadinService::getCurrent).thenReturn(mockVaadinService);
+            RouteConfiguration mockConfig = mock(RouteConfiguration.class, invocation -> {
+                if ("getUrl".equals(invocation.getMethod().getName())) return "/";
+                return null;
+            });
+            routeConfig.when(RouteConfiguration::forSessionScope).thenReturn(mockConfig);
+            routeConfig.when(RouteConfiguration::forApplicationScope).thenReturn(mockConfig);
+            routeConfig.when(() -> RouteConfiguration.forRegistry(any())).thenReturn(mockConfig);
+            return new MainLayout(oidcUserService, userService, authNavigationService, billing, "http://localhost:8080");
+        }
+    }
+
+    @Test
+    void membershipBanner_shownForGracePeriodMember_onRefresh() {
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getEmail()).thenReturn("m@x.com");
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("m@x.com")).thenReturn(new BillingClient.Entitlement(true, "ON_GRACE_PERIOD", null));
+        MainLayout layout = layoutWith(Optional.of(billing));
+        assertFalse(layout.membershipBanner.isVisible());
+
+        layout.refreshMembershipBanner();
+
+        assertTrue(layout.membershipBanner.isVisible());
+    }
+
+    @Test
+    void membershipBanner_hidden_whenActive_orAnonymous_orBillingOff() {
+        BillingClient billing = mock(BillingClient.class);
+        lenient().when(billing.entitlement("m@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(oidcUserService.isAuthenticated()).thenReturn(true);
+        when(oidcUserService.getEmail()).thenReturn("m@x.com");
+        MainLayout active = layoutWith(Optional.of(billing));
+        active.refreshMembershipBanner();
+        assertFalse(active.membershipBanner.isVisible());
+
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        MainLayout anon = layoutWith(Optional.of(billing));
+        anon.refreshMembershipBanner();
+        assertFalse(anon.membershipBanner.isVisible());
+
+        MainLayout off = layoutWith(Optional.empty());
+        off.refreshMembershipBanner();
+        assertFalse(off.membershipBanner.isVisible());
+        verify(billing, times(1)).entitlement("m@x.com");
+    }
+
+    @Test
+    void headerWordmark_isAHomeLink() {
+        when(oidcUserService.isAuthenticated()).thenReturn(false);
+        MainLayout layout = layoutWith(Optional.empty());
+
+        assertNotNull(layout.homeLink);
+        assertTrue(layout.homeLink.getChildren().anyMatch(c -> c instanceof com.vaadin.flow.component.html.H1));
+        assertEquals("Home", layout.homeLink.getElement().getAttribute("title"));
     }
 }

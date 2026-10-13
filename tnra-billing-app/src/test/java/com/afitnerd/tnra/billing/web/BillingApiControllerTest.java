@@ -17,6 +17,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class BillingApiControllerTest {
@@ -59,7 +60,7 @@ class BillingApiControllerTest {
     @Test
     void covering_delegates() {
         when(checkoutService.covering("rome", "admin@x.com"))
-            .thenReturn(List.of(new CoveringEntry("ben@x.com", "ACTIVE")));
+            .thenReturn(List.of(new CoveringEntry("ben@x.com", "ACTIVE", null)));
 
         List<CoveringEntry> resp = controller.covering(rome, "admin@x.com");
 
@@ -71,5 +72,34 @@ class BillingApiControllerTest {
         when(checkoutService.portalUrl("rome", "m@x.com")).thenReturn("https://portal/1");
 
         assertEquals("https://portal/1", controller.portal(rome, "m@x.com").url());
+    }
+
+    @Test
+    void paymentMethod_delegates() {
+        when(checkoutService.paymentMethodUpdateUrl("rome", "m@x.com")).thenReturn("https://tnra.app/pay?_ptxn=u");
+
+        assertEquals("https://tnra.app/pay?_ptxn=u", controller.paymentMethod(rome, "m@x.com").url());
+    }
+
+    @Test
+    void subscription_delegates() {
+        com.afitnerd.tnra.billing.web.dto.SubscriptionResponse r = new com.afitnerd.tnra.billing.web.dto.SubscriptionResponse(
+            "ACTIVE", "active", "monthly", null, null, null, null, null);
+        when(checkoutService.subscriptionDetails("rome", "m@x.com")).thenReturn(r);
+
+        assertEquals(r, controller.subscription(rome, "m@x.com"));
+    }
+
+    @Test
+    void cancel_resume_stopCovering_delegate() {
+        java.time.Instant end = java.time.Instant.parse("2026-12-12T00:00:00Z");
+        when(checkoutService.cancelOwn("rome", "m@x.com")).thenReturn(end);
+        when(checkoutService.stopCovering("rome", "m@x.com", "ben@x.com")).thenReturn(end);
+
+        assertEquals(end, controller.cancel(rome, new com.afitnerd.tnra.billing.web.dto.MemberRequest("m@x.com")).endsAt());
+        controller.resume(rome, new com.afitnerd.tnra.billing.web.dto.MemberRequest("m@x.com"));
+        verify(checkoutService).resumeOwn("rome", "m@x.com");
+        assertEquals(end, controller.stopCovering(rome,
+            new com.afitnerd.tnra.billing.web.dto.StopCoveringRequest("m@x.com", "ben@x.com")).endsAt());
     }
 }

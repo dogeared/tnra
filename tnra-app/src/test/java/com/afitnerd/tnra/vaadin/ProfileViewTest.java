@@ -1259,15 +1259,17 @@ class ProfileViewTest {
         BillingClient client = mock(BillingClient.class);
         testUser.setEmail("me@x.com");
 
-        // Components exist after construction; no billing call happens until the tab is opened.
+        // Components exist after construction. The below-the-tabs membership prompt needs ONE entitlement
+        // read on load (to know whether to show itself); the tab's gift/covering data stays lazy.
         profileView = profileWithBilling(client);
 
         assertNotNull(profileView.billingMonthlyButton);
         assertNotNull(profileView.billingUpdatePaymentButton);
         assertNotNull(profileView.giftRecipientCombo);
         assertNotNull(profileView.giftContinueButton);
-        verify(client, never()).entitlement(anyString()); // lazy: not loaded until the tab opens
-        verify(client, never()).covering(anyString());
+        verify(client, times(1)).entitlement("me@x.com"); // the prompt, not the tab
+        verify(client, never()).covering(anyString());     // lazy: not loaded until the tab opens
+        verify(userService, never()).getAllActiveUsers();  // gift recipients: lazy too
     }
 
     @Test
@@ -1355,7 +1357,7 @@ class ProfileViewTest {
         testUser.setEmail("me@x.com");
         entitled(client, "me@x.com", true, "ACTIVE");
         when(client.covering("me@x.com")).thenReturn(List.of(
-            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
 
         profileView = openBillingTab(client);
 
@@ -1439,5 +1441,262 @@ class ProfileViewTest {
         User noName = new User();
         noName.setEmail("anon@x.com");
         assertEquals("anon@x.com", ProfileView.recipientLabel(noName));
+    }
+
+    @Test
+    void membershipPrompt_belowTabs_shownForNotEntitledMember() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        assertNotNull(profileView.membershipPrompt);
+        assertTrue(profileView.membershipPrompt.isVisible());
+        // last child: under whichever tab is open
+        assertSame(profileView.membershipPrompt,
+            profileView.getChildren().reduce((a, b) -> b).orElse(null));
+    }
+
+    @Test
+    void membershipPrompt_hiddenForEntitledMember_andAbsentWhenBillingOff() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+        assertNotNull(profileView.membershipPrompt);
+        assertFalse(profileView.membershipPrompt.isVisible());
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.empty(), "http://localhost:8080");
+        assertNull(profileView.membershipPrompt);
+    }
+
+    @Test
+    void membershipPrompt_hiddenWhenNoCurrentUser() {
+        when(userService.getCurrentUser()).thenReturn(null);
+        BillingClient billing = mock(BillingClient.class);
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        assertNotNull(profileView.membershipPrompt);
+        assertFalse(profileView.membershipPrompt.isVisible());
+    }
+
+    @Test
+    void billingTab_cardUpdate_usesOverlay_andManageGoesViaInterstitial() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.paymentMethodUpdateUrl("me@x.com")).thenReturn("https://tnra.app/pay?_ptxn=txn_u");
+
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        assertNotNull(profileView.billingManageButton);
+        profileView.startCardUpdate();
+        verify(billing).paymentMethodUpdateUrl("me@x.com");
+
+        profileView.openMembershipPortal();
+        verify(billing, never()).portalUrl(anyString());
+    }
+
+    private static BillingClient.Subscription subscription(String providerStatus, String variant,
+            java.time.LocalDate paidThrough, java.time.LocalDate next, java.time.LocalDate cancelAt, java.time.LocalDate trialEnd) {
+        return new BillingClient.Subscription(providerStatus, variant, paidThrough, next, cancelAt, trialEnd);
+    }
+
+    @Test
+    void membershipBlurb_coversEveryState() {
+        java.time.LocalDate today = java.time.LocalDate.of(2026, 10, 14);
+        java.time.LocalDate dec12 = java.time.LocalDate.of(2026, 12, 12);
+        java.time.LocalDate nov13 = java.time.LocalDate.of(2026, 11, 13);
+        BillingClient.Entitlement active = new BillingClient.Entitlement(true, "ACTIVE", null);
+
+        // not live → call to action
+        assertTrue(ProfileView.membershipBlurb(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null),
+            Optional.empty(), null, today).startsWith("Activate your membership"));
+
+        // cancelled but paid through (Jerry's case): says through when, offers resume
+        String cancelled = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("trialing", "monthly", dec12, null, dec12, dec12)), null, today);
+        assertTrue(cancelled.contains("cancelled and stays active through December 12, 2026"), cancelled);
+        assertTrue(cancelled.contains("Keep my membership"), cancelled);
+
+        // cancelled gift: no "resume" nudge (the gifter manages it)
+        String cancelledGift = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("active", "monthly", dec12, null, dec12, null)), "Jerry Seinfeld", today);
+        assertTrue(cancelledGift.contains("gifted by Jerry Seinfeld"), cancelledGift);
+        assertTrue(cancelledGift.contains("through December 12, 2026"), cancelledGift);
+        assertFalse(cancelledGift.contains("Keep my membership"), cancelledGift);
+
+        // on trial: trial end + first payment date
+        String trial = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("trialing", "yearly", dec12, null, null, dec12)), null, today);
+        assertTrue(trial.contains("free trial runs through December 12, 2026"), trial);
+        assertTrue(trial.contains("first yearly payment is due December 12, 2026"), trial);
+
+        // plain active: next payment
+        String plain = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("active", "monthly", nov13, nov13, null, null)), null, today);
+        assertTrue(plain.contains("Next monthly payment: November 13, 2026"), plain);
+        assertTrue(plain.contains("cancel right here"), plain);
+
+        // paid through only (no next charge known)
+        String paid = ProfileView.membershipBlurb(active,
+            Optional.of(subscription("active", "monthly", nov13, null, null, null)), null, today);
+        assertTrue(paid.contains("Paid through November 13, 2026"), paid);
+
+        // grace: access continues through paid-through while retrying
+        String grace = ProfileView.membershipBlurb(new BillingClient.Entitlement(true, "ON_GRACE_PERIOD", null),
+            Optional.of(subscription("past_due", "monthly", nov13, nov13, null, null)), null, today);
+        assertTrue(grace.contains("didn't go through"), grace);
+        assertTrue(grace.contains("access continues through November 13, 2026"), grace);
+
+        // live but details unavailable: still a sensible sentence
+        String noDetails = ProfileView.membershipBlurb(active, Optional.empty(), null, today);
+        assertEquals("Your membership is active. You can update your card or cancel right here, anytime.", noDetails);
+    }
+
+    @Test
+    void billingTab_selfPay_showsCancel_thenKeepOnceScheduled_andGiftedHidesAll() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.of(
+            new BillingClient.Subscription("active", "monthly", null, java.time.LocalDate.of(2026, 11, 13), null, null)));
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        profileView.applyBillingTabState();
+        assertTrue(profileView.billingCancelButton.isVisible());
+        assertFalse(profileView.billingKeepButton.isVisible());
+        assertTrue(profileView.billingUpdatePaymentButton.isVisible());
+
+        // cancel scheduled → Keep instead of Cancel
+        when(billing.subscription("me@x.com")).thenReturn(Optional.of(
+            new BillingClient.Subscription("active", "monthly", null, null, java.time.LocalDate.of(2026, 12, 12), null)));
+        profileView.applyBillingTabState();
+        assertFalse(profileView.billingCancelButton.isVisible());
+        assertTrue(profileView.billingKeepButton.isVisible());
+
+        // gifted → nothing of their own to manage here
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", "jerry@x.com"));
+        when(userService.getUserByEmail("jerry@x.com")).thenReturn(null);
+        profileView.applyBillingTabState();
+        assertFalse(profileView.billingCancelButton.isVisible());
+        assertFalse(profileView.billingKeepButton.isVisible());
+        assertFalse(profileView.billingUpdatePaymentButton.isVisible());
+        assertFalse(profileView.billingManageButton.isVisible());
+    }
+
+    @Test
+    void cancelOwnMembership_andKeep_callTheClient_andRefresh() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.empty());
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        when(billing.cancelOwn("me@x.com")).thenReturn(java.time.LocalDate.of(2026, 12, 12));
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        profileView.cancelOwnMembership();
+        verify(billing).cancelOwn("me@x.com");
+
+        profileView.keepMembership();
+        verify(billing).resumeOwn("me@x.com");
+
+        // failures are notifications, not exceptions
+        when(billing.cancelOwn("me@x.com")).thenThrow(new RuntimeException("x"));
+        profileView.cancelOwnMembership();
+        org.mockito.Mockito.doThrow(new RuntimeException("x")).when(billing).resumeOwn("me@x.com");
+        profileView.keepMembership();
+    }
+
+    @Test
+    void coveringRow_offersStopCovering_onlyWhileRunning_andShowsEndDate() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.stopCovering("me@x.com", "ben@x.com")).thenReturn(java.time.LocalDate.of(2026, 12, 12));
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+
+        HorizontalLayout running = profileView.coveringRow(new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null));
+        assertEquals(2, running.getComponentCount(), "text + Stop covering button");
+
+        HorizontalLayout ending = profileView.coveringRow(
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", java.time.LocalDate.of(2026, 12, 12)));
+        assertEquals(1, ending.getComponentCount(), "no button once a cancellation is scheduled");
+        assertTrue(((Paragraph) ending.getComponentAt(0)).getText().contains("ends December 12, 2026"));
+
+        HorizontalLayout pending = profileView.coveringRow(new BillingClient.CoveredMember("c@x.com", "PENDING_PAYMENT", null));
+        assertEquals(1, pending.getComponentCount(), "nothing to stop before it has started");
+
+        profileView.stopCovering("ben@x.com");
+        verify(billing).stopCovering("me@x.com", "ben@x.com");
+    }
+
+    @Test
+    void beforeEnter_tabParam_opensBillingTab_andIsIgnoredWithoutBilling() {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.empty());
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+        com.vaadin.flow.router.BeforeEnterEvent event = mock(com.vaadin.flow.router.BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(new com.vaadin.flow.router.Location("profile",
+            com.vaadin.flow.router.QueryParameters.simple(java.util.Map.of("tab", "billing"))));
+
+        profileView.beforeEnter(event);
+
+        assertEquals(profileView.billingTab, profileView.tabs.getSelectedTab());
+
+        // no param → first tab stays
+        ProfileView plain = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+        com.vaadin.flow.router.BeforeEnterEvent noParam = mock(com.vaadin.flow.router.BeforeEnterEvent.class);
+        when(noParam.getLocation()).thenReturn(new com.vaadin.flow.router.Location("profile"));
+        plain.beforeEnter(noParam);
+        assertEquals(0, plain.tabs.getSelectedIndex());
+
+        // billing off → no billing tab, param ignored, no exception
+        ProfileView off = new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.empty(), "http://localhost:8080");
+        off.beforeEnter(event);
+        assertNull(off.billingTab);
     }
 }

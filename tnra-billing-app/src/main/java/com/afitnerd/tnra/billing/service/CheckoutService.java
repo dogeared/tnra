@@ -4,6 +4,7 @@ import com.afitnerd.tnra.billing.model.BillingAccount;
 import com.afitnerd.tnra.billing.model.BillingStatus;
 import com.afitnerd.tnra.billing.repository.BillingAccountRepository;
 import com.afitnerd.tnra.billing.web.dto.CheckoutRequest;
+import com.afitnerd.tnra.billing.web.dto.SubscriptionResponse;
 import com.afitnerd.tnra.billing.web.dto.CoveringEntry;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,8 @@ import java.util.Objects;
  */
 @Service
 public class CheckoutService {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CheckoutService.class);
 
     private final BillingAccountRepository accountRepository;
     private final PaymentProviderClient paymentProviderClient;
@@ -94,8 +97,65 @@ public class CheckoutService {
     public List<CoveringEntry> covering(String groupSlug, String payerEmail) {
         String payer = normalize(payerEmail);
         return accountRepository.findByGroupSlugAndPayerEmail(groupSlug, payer).stream()
-            .map(a -> new CoveringEntry(a.getEmail(), a.getStatus().name()))
+            .map(a -> new CoveringEntry(a.getEmail(), a.getStatus().name(), scheduledCancelAt(a)))
             .toList();
+    }
+
+    /** Live from the provider; null when unknown. Only called from billing screens (lazy), never the gate. */
+    private java.time.Instant scheduledCancelAt(BillingAccount a) {
+        if (a.getLsSubscriptionId() == null) {
+            return null;
+        }
+        try {
+            PaymentProviderClient.SubscriptionDetails d = paymentProviderClient.getSubscription(a.getLsSubscriptionId());
+            return "cancel".equalsIgnoreCase(d.scheduledAction()) ? d.scheduledEffectiveAt() : null;
+        } catch (Exception e) {
+            log.warn("Couldn't read subscription {} for covering list: {}", a.getLsSubscriptionId(), e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Member cancels their OWN membership at the end of the paid period — in the app, never via the
+     * provider portal (where several identical rows make the wrong one easy to pick). A gifted membership
+     * is the payer's to cancel: 409.
+     */
+    public java.time.Instant cancelOwn(String groupSlug, String email) {
+        BillingAccount account = ownSubscription(groupSlug, email);
+        return paymentProviderClient.scheduleCancellation(account.getLsSubscriptionId());
+    }
+
+    /** Undo {@link #cancelOwn} before the period ends. */
+    public void resumeOwn(String groupSlug, String email) {
+        BillingAccount account = ownSubscription(groupSlug, email);
+        paymentProviderClient.removeScheduledCancellation(account.getLsSubscriptionId());
+    }
+
+    /**
+     * A payer stops covering one specific member at the end of the paid period. The payer is checked
+     * against the account's payer_email — only the gifter may end a gift.
+     */
+    public java.time.Instant stopCovering(String groupSlug, String payerEmail, String beneficiaryEmail) {
+        String payer = normalize(payerEmail);
+        BillingAccount account = accountRepository.findByGroupSlugAndEmail(groupSlug, normalize(beneficiaryEmail))
+            .filter(a -> a.getLsSubscriptionId() != null)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No gift subscription for that member"));
+        if (account.getPayerEmail() == null || !account.getPayerEmail().equalsIgnoreCase(payer)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not paying for that membership");
+        }
+        return paymentProviderClient.scheduleCancellation(account.getLsSubscriptionId());
+    }
+
+    private BillingAccount ownSubscription(String groupSlug, String email) {
+        String normalized = normalize(email);
+        BillingAccount account = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .filter(a -> a.getLsSubscriptionId() != null)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription"));
+        if (account.getPayerEmail() != null && !account.getPayerEmail().equalsIgnoreCase(normalized)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This membership is paid for by " + account.getPayerEmail() + ", who manages it");
+        }
+        return account;
     }
 
     /**
@@ -106,7 +166,12 @@ public class CheckoutService {
      */
     public String portalUrl(String groupSlug, String email) {
         String normalized = normalize(email);
+        // SECURITY: the customer id on a GIFTED account is the gifter's Paddle customer (the gift was
+        // bought under their email). A portal session for it would let the recipient see — and cancel —
+        // every subscription the gifter pays for, including the gifter's own. Only a self-paid account's
+        // customer is the member's own; otherwise fall back to subscriptions THEY pay for, or nothing.
         String customerId = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .filter(a -> a.getPayerEmail() == null || a.getPayerEmail().equalsIgnoreCase(normalized))
             .map(BillingAccount::getLsCustomerId)
             .filter(Objects::nonNull)
             .orElseGet(() -> firstPaidCustomerId(groupSlug, normalized));
@@ -114,6 +179,41 @@ public class CheckoutService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription to manage");
         }
         return paymentProviderClient.getCustomerPortalUrl(customerId);
+    }
+
+    /**
+     * Checkout URL to update the card on the member's OWN subscription (overlay flow). A gifted member has
+     * no card of their own on file — the gifter manages it — so that is a 409 with a message the UI can show.
+     */
+    public String paymentMethodUpdateUrl(String groupSlug, String email) {
+        String normalized = normalize(email);
+        BillingAccount account = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription to update"));
+        if (account.getLsSubscriptionId() == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription to update");
+        }
+        if (account.getPayerEmail() != null && !account.getPayerEmail().equalsIgnoreCase(normalized)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This membership is paid for by " + account.getPayerEmail() + ", who manages the payment method");
+        }
+        return paymentProviderClient.getUpdatePaymentMethodCheckoutUrl(account.getLsSubscriptionId());
+    }
+
+    /** Live dates for the member's subscription (own or gifted); 404 when they have none. */
+    public SubscriptionResponse subscriptionDetails(String groupSlug, String email) {
+        String normalized = normalize(email);
+        BillingAccount account = accountRepository.findByGroupSlugAndEmail(groupSlug, normalized)
+            .filter(a -> a.getLsSubscriptionId() != null)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No subscription"));
+        PaymentProviderClient.SubscriptionDetails d = paymentProviderClient.getSubscription(account.getLsSubscriptionId());
+        boolean cancelScheduled = "cancel".equalsIgnoreCase(d.scheduledAction()) && d.scheduledEffectiveAt() != null;
+        return new SubscriptionResponse(
+            account.getStatus() == null ? null : account.getStatus().name(),
+            d.status(), account.getLsVariant(), account.getPayerEmail(),
+            d.currentPeriodEndsAt(),
+            cancelScheduled ? null : d.nextBilledAt(),
+            cancelScheduled ? d.scheduledEffectiveAt() : null,
+            d.trialEndsAt());
     }
 
     /** The provider customer of any subscription this member pays for — to reach the portal with no own sub. */

@@ -33,7 +33,7 @@ public class EntitlementGate {
 
     /** Routes a non-entitled member may still reach. */
     private static final Set<Class<?>> ALLOWED = Set.of(
-        BillingView.class, BillingActivatingView.class, ProfileView.class, MainView.class,
+        BillingView.class, BillingActivatingView.class, BillingPortalView.class, ProfileView.class, MainView.class,
         NotFoundView.class, ErrorView.class);
 
     private final transient Optional<BillingClient> billingClient;

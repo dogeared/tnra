@@ -6,6 +6,7 @@ import com.afitnerd.tnra.service.OidcUserService;
 import com.afitnerd.tnra.service.UserService;
 import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.button.ButtonVariant;
+import com.vaadin.flow.component.icon.VaadinIcon;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
 import com.vaadin.flow.component.html.Paragraph;
@@ -15,6 +16,7 @@ import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.BeforeEnterEvent;
 import com.vaadin.flow.router.BeforeEnterObserver;
 import com.vaadin.flow.router.PageTitle;
+import com.vaadin.flow.router.QueryParameters;
 import com.vaadin.flow.router.Route;
 import jakarta.annotation.security.PermitAll;
 import org.slf4j.Logger;
@@ -22,7 +24,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.client.HttpClientErrorException;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -62,6 +67,8 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
     Button yearlyButton;
     Paragraph manageBlurb;
     Button updatePaymentButton;
+    Button manageButton;
+    Button backToProfileButton; // always present: this page must never be a dead end
     VerticalLayout coveringSection; // "Members you're covering"; visible only when paying for others
 
     public BillingView(Optional<BillingClient> billingClient, OidcUserService oidcUserService,
@@ -91,12 +98,18 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         yearlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         HorizontalLayout payButtons = new HorizontalLayout(monthlyButton, yearlyButton);
 
-        updatePaymentButton = new Button("Update payment method", e -> openPortal());
-        manageBlurb = new Paragraph("Already subscribed? Update your card or manage your subscription:");
+        updatePaymentButton = new Button("Update payment method", e -> startCardUpdate());
+        manageButton = new Button("Invoices & receipts", e -> openPortal());
+        manageBlurb = new Paragraph("Already subscribed? Update your card right here; invoices and receipts "
+            + "are in Paddle's portal. Cancel anytime from your Profile → Billing tab.");
+        HorizontalLayout manageButtons = new HorizontalLayout(updatePaymentButton, manageButton);
 
         coveringSection = buildCoveringSection();
 
-        add(title, blurb, payButtons, manageBlurb, updatePaymentButton, coveringSection);
+        backToProfileButton = new Button("Back to profile", VaadinIcon.ARROW_LEFT.create(), e -> backToProfile());
+        backToProfileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
+
+        add(title, blurb, payButtons, manageBlurb, manageButtons, coveringSection, backToProfileButton);
     }
 
     /**
@@ -108,6 +121,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         VerticalLayout section = new VerticalLayout();
         section.setPadding(false);
         section.setSpacing(false);
+        section.setAlignItems(Alignment.CENTER);
         section.setVisible(false);
         if (email == null) {
             return section;
@@ -144,8 +158,16 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         }
         List<String> gift = event.getLocation().getQueryParameters()
             .getParameters().getOrDefault("gift", List.of());
-        if (!gift.isEmpty() && !gift.get(0).isBlank()) {
+        boolean giftRequested = !gift.isEmpty() && !gift.get(0).isBlank();
+        if (giftRequested) {
             applyGiftMode(gift.get(0).trim().toLowerCase());
+            return;
+        }
+        // This page is the paywall: "pay to get in". A member who IS in has nothing to buy here — their
+        // membership (status, card, cancel, gifts) lives on the Profile's Billing tab. Showing them pay
+        // buttons was wrong and confusing.
+        if (billingClient.get().isEntitled(email)) {
+            event.forwardTo("profile", QueryParameters.simple(Map.of(ProfileView.TAB_PARAM, ProfileView.BILLING_TAB)));
         }
     }
 
@@ -175,6 +197,8 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             yearlyButton.setEnabled(false);
             manageBlurb.setVisible(false);
             updatePaymentButton.setVisible(false);
+        manageButton.setVisible(false);
+            manageButton.setVisible(false);
             coveringSection.setVisible(false);
             return;
         }
@@ -186,6 +210,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         // The manage/portal and "you're covering" sections are about the payer's own state, not this gift.
         manageBlurb.setVisible(false);
         updatePaymentButton.setVisible(false);
+        manageButton.setVisible(false);
         coveringSection.setVisible(false);
     }
 
@@ -194,11 +219,20 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             return;
         }
         try {
-            // Self-pay returns to the "activating" page (the payer's own entitlement is what flips).
-            // A gift returns to the app home — the gifter is already active, only the beneficiary changes.
-            String redirectUrl = giftMode ? baseUrl : baseUrl + "/billing/activating";
+            // After a COMPLETED checkout: self-pay goes to the "activating" page (the payer's own entitlement
+            // is what flips); a gift returns to the Profile's Billing tab, where the gift was started and
+            // where "Members you're covering" shows the result (home would bounce to Stats).
+            String redirectUrl = giftMode
+                ? baseUrl + "/profile?" + ProfileView.TAB_PARAM + "=" + ProfileView.BILLING_TAB
+                : baseUrl + "/billing/activating";
+            // If the member CLOSES the overlay without paying: back to where they started (this page, in
+            // the same mode) — never to the activating page, which would sit waiting for a payment that
+            // never happened.
+            String backUrl = giftMode
+                ? baseUrl + "/billing?gift=" + URLEncoder.encode(beneficiaryEmail, StandardCharsets.UTF_8)
+                : baseUrl + "/billing";
             String url = billingClient.get().createCheckout(beneficiaryEmail, variant, email, redirectUrl);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            getUI().ifPresent(ui -> ui.getPage().setLocation(withReturnUrls(url, redirectUrl, backUrl)));
         } catch (HttpClientErrorException.Conflict ex) {
             Notification.show(giftMode
                 ? "That member already has an active subscription."
@@ -209,17 +243,58 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         }
     }
 
-    void openPortal() {
+    /**
+     * The checkout URL Paddle hands back is the landing site's {@code /pay} page plus {@code _ptxn}. Append
+     * where to send the member afterwards — {@code done} after a completed checkout, {@code return} if they
+     * close the overlay unpaid — so that page knows the way back to THIS group (every group has its own
+     * subdomain) from the first paint, instead of depending on Paddle echoing custom data.
+     */
+    static String withReturnUrls(String checkoutUrl, String doneUrl, String backUrl) {
+        if (checkoutUrl == null) {
+            return null;
+        }
+        StringBuilder sb = new StringBuilder(checkoutUrl);
+        appendParam(sb, "done", doneUrl);
+        appendParam(sb, "return", backUrl);
+        return sb.toString();
+    }
+
+    private static void appendParam(StringBuilder url, String name, String value) {
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        url.append(url.indexOf("?") >= 0 ? '&' : '?')
+           .append(name).append('=').append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+    }
+
+    /** Card update in the same /pay overlay as a purchase; returns to the app. */
+    void startCardUpdate() {
         if (email == null || billingClient.isEmpty()) {
             return;
         }
         try {
-            String url = billingClient.get().portalUrl(email);
-            getUI().ifPresent(ui -> ui.getPage().setLocation(url));
+            String url = billingClient.get().paymentMethodUpdateUrl(email);
+            String done = baseUrl + "/billing/activating";
+            getUI().ifPresent(ui -> ui.getPage().setLocation(withReturnUrls(url, done, baseUrl + "/billing")));
+        } catch (HttpClientErrorException.NotFound ex) {
+            Notification.show("You don't have a subscription to update yet — choose a plan above.");
+        } catch (HttpClientErrorException.Conflict ex) {
+            Notification.show("Your membership is a gift — the person paying for it manages the card.");
         } catch (Exception ex) {
-            log.warn("Portal link failed for {}: {}", email, ex.getMessage());
-            Notification.show("Sorry, we couldn't open the payment portal. Please try again.");
+            log.warn("Card update link failed for {}: {}", email, ex.getMessage());
+            Notification.show("Sorry, we couldn't start the card update. Please try again.");
         }
+    }
+
+    /** Leave this page the way the member came: the Profile's Billing tab (gifting lives there). */
+    void backToProfile() {
+        getUI().ifPresent(ui -> ui.navigate("profile",
+            QueryParameters.simple(Map.of(ProfileView.TAB_PARAM, ProfileView.BILLING_TAB))));
+    }
+
+    /** Invoices / cancel / pause live in Paddle's full-page portal — go via the interstitial. */
+    void openPortal() {
+        getUI().ifPresent(ui -> ui.navigate(BillingPortalView.class));
     }
 
     private static String displayName(User user) {

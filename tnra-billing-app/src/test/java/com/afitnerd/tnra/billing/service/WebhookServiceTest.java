@@ -215,19 +215,106 @@ class WebhookServiceTest {
     }
 
     @Test
-    void mapStatus_eventTypeOverridesAndPaddleStatusMapping() {
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("transaction.payment_failed", "active"));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.past_due", "active"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.canceled", "active"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.paused", "active"));
-        assertEquals(BillingStatus.ACTIVE, service.mapStatus("transaction.completed", "past_due"));
-        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.activated", "x"));
-        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.updated", "active"));
-        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.updated", "trialing"));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", "past_due"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.updated", "canceled"));
-        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.updated", "paused"));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", null));
-        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", "weird"));
+    void mapStatus_terminalEventTypesWin() {
+        BillingStatus active = BillingStatus.ACTIVE;
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("transaction.payment_failed", "active", active));
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.past_due", "active", active));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.canceled", "active", active));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.paused", "active", active));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("transaction.completed", "past_due", BillingStatus.PENDING_PAYMENT));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.activated", "x", BillingStatus.PENDING_PAYMENT));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.resumed", null, BillingStatus.SUSPENDED));
+    }
+
+    @Test
+    void mapStatus_paddleStatusMapping_onCreateAndUpdate() {
+        BillingStatus pending = BillingStatus.PENDING_PAYMENT;
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.created", "active", pending));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.created", "trialing", pending));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.updated", "active", BillingStatus.ON_GRACE_PERIOD));
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", "past_due", BillingStatus.ACTIVE));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.updated", "canceled", BillingStatus.ACTIVE));
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.updated", "paused", BillingStatus.ACTIVE));
+    }
+
+    @Test
+    void mapStatus_dunningNeverGrants_unknownNeverChanges() {
+        // Regression: a PENDING account must not become entitled via grace or an unrecognised status.
+        BillingStatus pending = BillingStatus.PENDING_PAYMENT;
+        assertEquals(pending, service.mapStatus("transaction.payment_failed", "active", pending));
+        assertEquals(pending, service.mapStatus("subscription.past_due", "active", pending));
+        assertEquals(pending, service.mapStatus("subscription.updated", "past_due", pending));
+        assertEquals(pending, service.mapStatus("subscription.updated", null, pending));
+        assertEquals(pending, service.mapStatus("subscription.updated", "draft", pending));
+        assertEquals(pending, service.mapStatus("subscription.updated", "weird", null));
+        // ...and a SUSPENDED one stays suspended on dunning noise.
+        assertEquals(BillingStatus.SUSPENDED, service.mapStatus("subscription.past_due", "past_due", BillingStatus.SUSPENDED));
+        // ...while an ACTIVE one keeps access through dunning.
+        assertEquals(BillingStatus.ON_GRACE_PERIOD, service.mapStatus("subscription.updated", "past_due", BillingStatus.ACTIVE));
+        assertEquals(BillingStatus.ACTIVE, service.mapStatus("subscription.updated", "weird", BillingStatus.ACTIVE));
+    }
+
+    /**
+     * Regression: Paddle emits transaction.created/updated (status "draft", no subscription) the moment
+     * the checkout overlay is opened. These must be recorded and ignored — they once flipped a PENDING
+     * account to ON_GRACE_PERIOD (= entitled) for a member who closed the overlay without paying.
+     */
+    @Test
+    void transactionCreated_forOpenedCheckout_isRecordedAndIgnored() {
+        String body = "{\"event_type\":\"transaction.created\",\"data\":{\"id\":\"txn_1\",\"status\":\"draft\","
+            + "\"subscription_id\":null,\"customer_id\":null,"
+            + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"m@x.com\",\"payer_email\":\"m@x.com\"}}}";
+        when(eventRepo.existsByLsEventId(any())).thenReturn(false);
+        BillingAccount account = new BillingAccount();
+        account.setId(7L);
+        account.setGroupSlug("rome");
+        account.setEmail("m@x.com");
+        account.setStatus(BillingStatus.PENDING_PAYMENT);
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(account));
+
+        service.process(body, sign(body));
+
+        assertEquals(BillingStatus.PENDING_PAYMENT, account.getStatus());
+        verify(accountRepo, never()).save(any());
+        ArgumentCaptor<BillingWebhookEvent> ev = ArgumentCaptor.forClass(BillingWebhookEvent.class);
+        verify(eventRepo).save(ev.capture());
+        assertTrue(ev.getValue().getProcessed());
+        assertNull(ev.getValue().getMatchedAccountId());
+        assertTrue(ev.getValue().getError().contains("ignored: not an entitlement event"));
+    }
+
+    @Test
+    void catalogEvent_isRecordedAndIgnored() {
+        String body = "{\"event_type\":\"product.updated\",\"data\":{\"id\":\"pro_1\",\"status\":\"active\"}}";
+        when(eventRepo.existsByLsEventId(any())).thenReturn(false);
+
+        service.process(body, sign(body));
+
+        verify(accountRepo, never()).findByGroupSlugAndEmail(any(), any());
+        verify(accountRepo, never()).save(any());
+        ArgumentCaptor<BillingWebhookEvent> ev = ArgumentCaptor.forClass(BillingWebhookEvent.class);
+        verify(eventRepo).save(ev.capture());
+        assertTrue(ev.getValue().getProcessed());
+        assertEquals("product.updated", ev.getValue().getEventName());
+    }
+
+    @Test
+    void paymentFailed_onPendingAccount_doesNotGrantAccess() {
+        String body = "{\"event_type\":\"transaction.payment_failed\",\"data\":{\"id\":\"txn_2\",\"status\":\"past_due\","
+            + "\"subscription_id\":\"sub_9\",\"customer_id\":\"ctm_1\","
+            + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"m@x.com\",\"payer_email\":\"m@x.com\"}}}";
+        when(eventRepo.existsByLsEventId(any())).thenReturn(false);
+        when(accountRepo.findByLsSubscriptionId("sub_9")).thenReturn(Optional.empty());
+        BillingAccount account = new BillingAccount();
+        account.setId(8L);
+        account.setGroupSlug("rome");
+        account.setEmail("m@x.com");
+        account.setStatus(BillingStatus.PENDING_PAYMENT);
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.of(account));
+
+        service.process(body, sign(body));
+
+        assertEquals(BillingStatus.PENDING_PAYMENT, account.getStatus(), "a failed first payment is not access");
+        assertEquals("sub_9", account.getLsSubscriptionId(), "but the subscription is still adopted for later events");
     }
 }

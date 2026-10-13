@@ -14,17 +14,21 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,21 +96,61 @@ class BillingViewTest {
     }
 
     @Test
-    void openPortal_callsClient() {
+    void withReturnUrls_appendsEncodedDoneAndReturn_toPaddleCheckoutUrl() {
+        assertEquals("https://tnra.app/pay?_ptxn=txn_1"
+                + "&done=https%3A%2F%2Fg.tnra.app%2Fbilling%2Factivating"
+                + "&return=https%3A%2F%2Fg.tnra.app%2Fbilling",
+            BillingView.withReturnUrls("https://tnra.app/pay?_ptxn=txn_1",
+                "https://g.tnra.app/billing/activating", "https://g.tnra.app/billing"));
+        // first param gets '?', blanks are skipped, null checkout stays null
+        assertEquals("https://tnra.app/pay?return=https%3A%2F%2Fg.tnra.app",
+            BillingView.withReturnUrls("https://tnra.app/pay", " ", "https://g.tnra.app"));
+        assertEquals("https://tnra.app/pay?_ptxn=1", BillingView.withReturnUrls("https://tnra.app/pay?_ptxn=1", null, null));
+        assertNull(BillingView.withReturnUrls(null, "https://g.tnra.app", "https://g.tnra.app"));
+    }
+
+    @Test
+    void startCardUpdate_usesOverlayUrl_notThePortal() {
         BillingClient client = mock(BillingClient.class);
-        when(client.portalUrl("m@x.com")).thenReturn("https://portal/1");
+        when(client.paymentMethodUpdateUrl("m@x.com")).thenReturn("https://tnra.app/pay?_ptxn=txn_u");
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+
+        view.startCardUpdate();
+
+        verify(client).paymentMethodUpdateUrl("m@x.com");
+        verify(client, never()).portalUrl(any());
+    }
+
+    @Test
+    void startCardUpdate_notFound_conflict_andFailure_notifyWithoutThrowing() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.paymentMethodUpdateUrl("m@x.com"))
+            .thenThrow(HttpClientErrorException.create(org.springframework.http.HttpStatus.NOT_FOUND, "x", null, null, null))
+            .thenThrow(HttpClientErrorException.create(org.springframework.http.HttpStatus.CONFLICT, "x", null, null, null))
+            .thenThrow(new RuntimeException("boom"));
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+
+        view.startCardUpdate();
+        view.startCardUpdate();
+        view.startCardUpdate();
+        verify(client, org.mockito.Mockito.times(3)).paymentMethodUpdateUrl("m@x.com");
+    }
+
+    @Test
+    void openPortal_navigatesToInterstitial_withoutFetchingPortalUrl() {
+        BillingClient client = mock(BillingClient.class);
         BillingView view = view(client, mock(UserService.class), "m@x.com");
 
         view.openPortal();
 
-        verify(client).portalUrl("m@x.com");
+        verify(client, never()).portalUrl(any());
     }
 
     @Test
     void coveringSection_shownWhenPayingForOthers() {
         BillingClient client = mock(BillingClient.class);
         when(client.covering("payer@x.com")).thenReturn(List.of(
-            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
         BillingView view = view(client, mock(UserService.class), "payer@x.com");
 
         assertTrue(view.coveringSection.isVisible());
@@ -125,7 +169,7 @@ class BillingViewTest {
     void coveringSection_hiddenInGiftMode() {
         BillingClient client = mock(BillingClient.class);
         when(client.covering("payer@x.com")).thenReturn(List.of(
-            new BillingClient.CoveredMember("ben@x.com", "ACTIVE")));
+            new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
         when(client.isEntitled("payer@x.com")).thenReturn(true);
         when(client.entitlement("dana@x.com")).thenReturn(new BillingClient.Entitlement(false, "", null));
         UserService users = mock(UserService.class);
@@ -167,10 +211,10 @@ class BillingViewTest {
         assertTrue(view.giftMode);
         assertFalse(view.updatePaymentButton.isVisible()); // manage-your-own-sub hidden in gift mode
 
-        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE)).thenReturn("https://pay/9");
+        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing")).thenReturn("https://pay/9");
         view.startCheckout("monthly");
-        // payer is charged for the beneficiary; gift returns to the app home, not the activating page
-        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE);
+        // payer is charged for the beneficiary; gift returns to the Profile Billing tab, not the activating page
+        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing");
     }
 
     @Test
@@ -208,9 +252,9 @@ class BillingViewTest {
         view.beforeEnter(giftEvent("ben@x.com"));
 
         assertTrue(view.giftMode);
-        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE)).thenReturn("https://pay/r");
+        when(client.createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing")).thenReturn("https://pay/r");
         view.startCheckout("monthly");
-        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE);
+        verify(client).createCheckout("ben@x.com", "monthly", "payer@x.com", BASE + "/profile?tab=billing");
     }
 
     @Test
@@ -249,5 +293,58 @@ class BillingViewTest {
         view.beforeEnter(giftEvent("me@x.com")); // gifting to yourself — ignored
 
         assertFalse(view.giftMode);
+    }
+
+    @Test
+    void beforeEnter_entitledMember_withoutGift_isForwardedToProfileBillingTab() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("m@x.com")).thenReturn(true);
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(new Location("billing"));
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("profile", QueryParameters.simple(Map.of("tab", "billing")));
+    }
+
+    @Test
+    void beforeEnter_notEntitledMember_staysOnThePaywall() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("m@x.com")).thenReturn(false);
+        BillingView view = view(client, mock(UserService.class), "m@x.com");
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(new Location("billing"));
+
+        view.beforeEnter(event);
+
+        verify(event, never()).forwardTo(any(String.class), any(QueryParameters.class));
+        assertFalse(view.giftMode);
+    }
+
+    @Test
+    void beforeEnter_giftRequest_isNeverForwarded_evenWhenEntitled() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("payer@x.com")).thenReturn(true);
+        when(client.entitlement("ben@x.com")).thenReturn(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null));
+        UserService users = mock(UserService.class);
+        User ben = new User();
+        ben.setEmail("ben@x.com");
+        when(users.getUserByEmail("ben@x.com")).thenReturn(ben);
+        BillingView view = view(client, users, "payer@x.com");
+
+        view.beforeEnter(giftEvent("ben@x.com"));
+
+        assertTrue(view.giftMode);
+    }
+
+    @Test
+    void alwaysOffersAWayBack_toTheProfileBillingTab() {
+        BillingView view = view(mock(BillingClient.class), mock(UserService.class), "m@x.com");
+
+        assertNotNull(view.backToProfileButton);
+        assertTrue(view.backToProfileButton.isVisible());
+        assertTrue(view.getChildren().anyMatch(c -> c == view.backToProfileButton));
+        view.backToProfile(); // no UI in tests → no-op, no exception
     }
 }
