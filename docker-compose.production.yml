@@ -54,6 +54,10 @@ services:
       # Binds to tnra.notify.founder-email via Spring relaxed binding (host key stays TNRA_FOUNDER_EMAIL)
       TNRA_NOTIFY_FOUNDER_EMAIL: ${TNRA_FOUNDER_EMAIL}
       TNRA_NOTIFY_ENABLED: "true"
+      # Sender of those notifications — keep it on the Mailgun sending domain in MAILGUN_URL.
+      TNRA_NOTIFY_FROM: "${TNRA_NOTIFY_FROM:-tnra-landing@tnra.app}"
+      # Public origin, for absolute Open Graph URLs in link previews (og:url / og:image).
+      TNRA_SITE_BASE_URL: "${TNRA_SITE_BASE_URL:-https://tnra.app}"
       # Optional HTTP Basic gate for a private pre-launch review. Leave disabled
       # (default) for the public site; set all three (in .env) to password-protect.
       TNRA_BASIC_AUTH_ENABLED: "${TNRA_BASIC_AUTH_ENABLED:-false}"

@@ -42,9 +42,15 @@ vaadin:
     hostsAllowed: localhost,127.0.0.1,10.*,172.*,192.168.*
 
 tnra:
+  # Public origin of this site, used for absolute Open Graph URLs (og:url / og:image in link previews).
+  # Only override off production (e.g. https://landing.dev.dogeared.dev on the dev site).
+  site:
+    base-url: ${TNRA_SITE_BASE_URL:https://tnra.app}
   notify:
     founder-email: ${TNRA_FOUNDER_EMAIL:tnra@dogeared.dev}
     enabled: ${TNRA_NOTIFY_ENABLED:true}
+    # Sender. Keep it on the Mailgun sending domain in mailgun.url (DMARC alignment), else it lands in spam.
+    from: ${TNRA_NOTIFY_FROM:tnra-landing@tnra.app}
   # Optional HTTP Basic gate over the whole site. Default off (public). Set
   # enabled=true plus username/password to password-protect a production deploy
   # for private review before launch. Enabling without credentials fails fast.

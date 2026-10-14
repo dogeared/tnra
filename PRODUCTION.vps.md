@@ -177,9 +177,16 @@ Build and start it after the shared services (MySQL) are healthy.
 Add to `~/tnra/.env` before deploying:
 ```
 MAILGUN_KEY_PRIVATE=<your Mailgun private key>
-MAILGUN_URL=<your Mailgun messages API URL>
+MAILGUN_URL=https://api.mailgun.net/v3/<active sending domain>/messages
 TNRA_FOUNDER_EMAIL=<your email address>
+# Optional. Sender; keep it on the sending domain above so SPF/DKIM align (default tnra-landing@tnra.app).
+TNRA_NOTIFY_FROM=
 ```
+
+A submission is saved first and the email sent after, so a Mailgun failure never loses the request —
+it logs `Failed to send Mailgun notification` with Mailgun's reason (a 403 "not allowed to send" means
+the sending domain is suspended or unverified; a 401 means the key). Reproduce outside the app with
+`curl -u "api:$MAILGUN_KEY_PRIVATE" "$MAILGUN_URL" -F from=… -F to=… -F subject=x -F text=x`.
 
 Then build the JAR (requires the production Vaadin frontend bundle) and deploy:
 

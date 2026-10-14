@@ -2,6 +2,14 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.0] - 2026-10-14
+
+### Added
+- **Link previews for the landing site.** Every landing page now carries Open Graph and Twitter Card meta tags (`og:title`, `og:description`, `og:url`, `og:image` + size/alt, `twitter:card=summary_large_image`), so a `tnra.app` link pasted into Slack, LinkedIn, iMessage, X, etc. unfurls with a 1200×630 TNRA banner — the app's logo icon, wordmark and tagline in the design-system palette — instead of a bare URL. The tags are injected server-side by `LandingSeoListener` (scrapers don't run JavaScript), `og:url` reflects the page, and the absolute origin comes from `tnra.site.base-url` (default `https://tnra.app`; `TNRA_SITE_BASE_URL` to override on a dev host). The banner is served from `/images/og-banner.png`, which the landing security config now permits anonymously — Vaadin 25 denies all non-Vaadin paths by default, so static files were 403 before. The banner source (`tnra-landing-app/src/main/og-banner/og-banner.html`) documents how to regenerate it.
+
+### Changed
+- **Request-access notification sender is configurable** (`TNRA_NOTIFY_FROM`, default `tnra-landing@tnra.app`). The From was hardcoded; it must sit on the Mailgun sending domain in `MAILGUN_URL` for SPF/DKIM alignment or the notification lands in spam. Surfaced while debugging a silent notification failure: the configured Mailgun domain had been suspended for inactivity (403 "not allowed to send"), and the request was still saved. `.env.template` now documents the Mailgun URL format and the diagnostic, `TNRA_SITE_BASE_URL`, and the per-group `TNRA_BILLING_API_TOKEN_<GROUP>` convention; the landing compose service passes both new variables through.
+
 ## [10.5.1] - 2026-10-14
 
 ### Added
