@@ -63,6 +63,11 @@ services:
       # Binds to tnra.paddle.client-token / tnra.paddle.environment via Spring relaxed binding.
       TNRA_PADDLE_CLIENT_TOKEN: "${PADDLE_CLIENT_TOKEN:-}"
       TNRA_PADDLE_ENVIRONMENT: "${PADDLE_ENVIRONMENT:-sandbox}"
+      # Flyway owns the landing schema from 10.2.1 (V1__request_access, IF NOT EXISTS). A deploy whose
+      # tnra_landing already holds the table (created before Flyway) has no schema history: baseline it
+      # at 0 so V1 still runs (and is a no-op). An empty database migrates normally.
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
+      SPRING_FLYWAY_BASELINE_VERSION: "0"
       VAADIN_PRODUCTIONMODE: "true"
     ports:
       # Host port is for local/debug only — nginx/Cloudflare reach the container
