@@ -159,6 +159,21 @@ TEST config lives in `src/test/resources/application.properties` and must be `gi
   commit. Apply consistently across tnra-app + tnra-billing-app (+ any future module).
 - **Context:** Touches `.gitignore` and the two committed test `application.properties` files.
 
+### Rename `BILLING_PORT` to `TNRA_BILLING_PORT`
+The billing service's host-port override in `docker-compose.production.yml` is `BILLING_PORT`, while
+the landing site's is `TNRA_LANDING_PORT`. Rename it so every host-port override follows the same
+`TNRA_<service>_PORT` pattern.
+- **Why:** Came up during the 10.4.5 production rollout: 8082 was taken on the production host and the
+  override had to be looked up because its name doesn't match the landing one. Consistent naming makes
+  `.env` self-explanatory.
+- **Effort:** XS (human: ~15 min / CC: ~5 min)
+- **Context:** Touches `docker-compose.production.yml` (mapping + comment), `.env.template`, and the
+  billing sections of `PRODUCTION.vps.md` / `PRODUCTION.cloudflare.md` / README. Production `.env`
+  currently sets `BILLING_PORT=8086`, so keep reading the old name as a fallback
+  (`${TNRA_BILLING_PORT:-${BILLING_PORT:-8082}}`) or note the rename in the CHANGELOG so the host
+  `.env` gets updated at deploy time. Host port only — the in-network address stays
+  `http://tnra-billing:8082`.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast
