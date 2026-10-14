@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.5.1] - 2026-10-14
+
+### Added
+- **Security response headers on the billing service.** `billing.<domain>` is only called by machines but is publicly reachable, and scored a D on securityheaders.com. It now sends the same set as the two Vaadin apps — HSTS (2 years, `includeSubDomains`, forced on every response), Content-Security-Policy, Referrer-Policy and Permissions-Policy alongside the default `nosniff` / `X-Frame-Options: DENY` — on every response, permitted or denied. Being JSON-only it is stricter than the apps: the CSP allows no sources at all (`default-src 'none'`) and the referrer policy is `no-referrer`.
+
 ## [10.5.0] - 2026-10-14
 
 ### Added
