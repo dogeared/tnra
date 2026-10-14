@@ -2,6 +2,12 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.4.4] - 2026-10-14
+
+### Fixed
+- **Landing container could refuse to start on an existing database.** The landing schema is Flyway-managed since 10.2.1, but the production compose service had no baseline settings: a `tnra_landing` that already holds `request_access` (created before Flyway) has no schema-history table, which Flyway treats as an error. The landing service now sets `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` / `BASELINE_VERSION=0`, so an existing database is baselined and `V1` (which is `IF NOT EXISTS`) still runs harmlessly; an empty database migrates as before.
+- **`tnra.start.sh` (systemd) now also brings up the billing service** (`--profile billing`) when `BILLING_ADMIN_TOKEN` is set in `.env`, the same way it adds the Cloudflare tunnel profile. Without it a reboot would restart the stack without billing.
+
 ## [10.4.3] - 2026-10-14
 
 ### Added
