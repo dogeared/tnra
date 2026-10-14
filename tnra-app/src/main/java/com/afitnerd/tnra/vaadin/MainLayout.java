@@ -30,7 +30,6 @@ import com.vaadin.flow.server.auth.AnonymousAllowed;
 import com.vaadin.flow.server.VaadinRequest;
 import com.vaadin.flow.server.VaadinResponse;
 import com.vaadin.flow.server.VaadinService;
-import com.vaadin.flow.theme.lumo.LumoUtility;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -198,9 +197,8 @@ public class MainLayout extends AppLayout {
         header.setWidthFull();
         header.setJustifyContentMode(FlexComponent.JustifyContentMode.BETWEEN);
         header.setAlignItems(FlexComponent.Alignment.CENTER);
-        header.addClassNames(
-            LumoUtility.Padding.Vertical.NONE,
-            LumoUtility.Padding.Horizontal.MEDIUM);
+        // (No Lumo utility classes here: the utility stylesheet is not loaded — see TnraApplication — so
+        // header spacing comes from theme.css, exactly as it did under Vaadin 24.)
 
         addToNavbar(header);
     }
@@ -319,11 +317,6 @@ public class MainLayout extends AppLayout {
     private void createDrawer() {
         Tabs tabs = new Tabs();
         tabs.setOrientation(Tabs.Orientation.VERTICAL);
-        tabs.addClassNames(
-            LumoUtility.Gap.SMALL,
-            LumoUtility.Display.FLEX,
-            LumoUtility.FlexDirection.COLUMN,
-            LumoUtility.Height.FULL);
 
         Tab homeTab = createTab("Home", VaadinIcon.HOME, MainView.class);
         tabs.add(homeTab);

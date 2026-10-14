@@ -5,7 +5,8 @@ All notable changes to TNRA are documented in this file.
 ## [10.4.1] - 2026-10-13
 
 ### Fixed
-- **Lumo theme was not applied under Vaadin 25.** Vaadin 25 loads no theme unless the app shell declares one; the upgrade only added Lumo's *utility* stylesheet, so components rendered with their base styles — most visibly the stat reorder arrows and archive buttons on the admin Stats Config tab (black instead of the primary green / error red), and the same controls on the Profile "My Stats" tab. Both app shells now declare `@StyleSheet(Lumo.STYLESHEET)` ahead of the utility stylesheet and the app's own CSS.
+- **Lumo theme was not applied under Vaadin 25.** Vaadin 25 loads no theme unless the app shell declares one; the upgrade only added Lumo's *utility* stylesheet, so components rendered with their base styles — most visibly the stat reorder arrows and archive buttons on the admin Stats Config tab (black instead of the primary green / error red), and the same controls on the Profile "My Stats" tab. Both app shells now declare `@StyleSheet(Lumo.STYLESHEET)` ahead of the app's own CSS.
+- **Header shifted 16px right versus production.** `MainLayout` had carried Lumo utility classes (`px-m`, `py-0`, and flex/gap classes on the drawer) that never took effect under Vaadin 24 because this app never loaded the utility stylesheet; 10.4.0 added `Lumo.UTILITY_STYLESHEET` and switched them on. The utility stylesheet is no longer loaded and the dead class references are removed, so header and drawer spacing come from `theme.css` exactly as before (measured: hamburger at 8px, wordmark at 60px, matching production).
 
 ## [10.4.0] - 2026-10-13
 
