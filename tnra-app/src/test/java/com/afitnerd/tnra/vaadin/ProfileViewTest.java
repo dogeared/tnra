@@ -1699,4 +1699,74 @@ class ProfileViewTest {
         off.beforeEnter(event);
         assertNull(off.billingTab);
     }
+
+    // ---- covered (exempt) group ----
+
+    private ProfileView coveredProfile(BillingClient billing) {
+        User me = new User();
+        me.setEmail("me@x.com");
+        when(userService.getCurrentUser()).thenReturn(me);
+        when(userService.getAllActiveUsers()).thenReturn(List.of());
+        return new ProfileView(userService, fileStorageService, statDefinitionRepository,
+            personalStatDefinitionRepository, groupSettingsService, postDataExportService,
+            Optional.of(billing), "http://localhost:8080");
+    }
+
+    @Test
+    void coveredGroup_noSubscription_hidesBuyingAndGifting() {
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "PENDING_PAYMENT", null, "GROUP_EXEMPT"));
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = coveredProfile(billing);
+
+        profileView.applyBillingTabState();
+
+        assertTrue(profileView.billingBlurb.getText().startsWith("Your membership is covered by your group"));
+        assertFalse(profileView.billingPayButtons.isVisible());
+        assertFalse(profileView.giftSection.isVisible());
+        assertFalse(profileView.billingUpdatePaymentButton.isVisible(), "nothing of their own in Paddle");
+        assertFalse(profileView.billingManageButton.isVisible());
+        assertFalse(profileView.billingCancelButton.isVisible());
+        verify(billing, never()).subscription(anyString());
+    }
+
+    @Test
+    void coveredGroup_stillPaying_isToldAndCanCancel() {
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null, "GROUP_EXEMPT"));
+        when(billing.subscription("me@x.com")).thenReturn(Optional.of(
+            new BillingClient.Subscription("active", "monthly", null, java.time.LocalDate.of(2026, 11, 13), null, null)));
+        when(billing.covering("me@x.com")).thenReturn(List.of(new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
+        profileView = coveredProfile(billing);
+
+        profileView.applyBillingTabState();
+
+        String blurb = profileView.billingBlurb.getText();
+        assertTrue(blurb.contains("covered by your group"), blurb);
+        assertTrue(blurb.contains("still have a paid subscription on file — next charge November 13, 2026"), blurb);
+        assertTrue(blurb.contains("cancel it below"), blurb);
+        assertTrue(profileView.billingCancelButton.isVisible(), "they can stop paying");
+        assertTrue(profileView.billingUpdatePaymentButton.isVisible());
+        assertFalse(profileView.billingPayButtons.isVisible());
+        assertFalse(profileView.giftSection.isVisible());
+        assertTrue(profileView.coveringSection.isVisible(), "gifts they still pay for are listed so they can stop them");
+        assertTrue(profileView.coveringNote.contains("no longer needed"));
+    }
+
+    @Test
+    void coveredGroup_cancelledSub_saysWhenItEnds_andGiftedMemberNamesThePayer() {
+        BillingClient billing = mock(BillingClient.class);
+        java.time.LocalDate dec12 = java.time.LocalDate.of(2026, 12, 12);
+        String ended = ProfileView.membershipBlurb(new BillingClient.Entitlement(true, "ACTIVE", null, "GROUP_EXEMPT"),
+            Optional.of(new BillingClient.Subscription("active", "monthly", dec12, null, dec12, null)), null, dec12);
+        assertTrue(ended.contains("already cancelled, it ends December 12, 2026"), ended);
+
+        String gifted = ProfileView.membershipBlurb(new BillingClient.Entitlement(true, "ACTIVE", "jerry@x.com", "MEMBER_EXEMPT"),
+            Optional.empty(), "Jerry Seinfeld", dec12);
+        assertTrue(gifted.contains("Jerry Seinfeld is still paying for a gift membership for you"), gifted);
+
+        String plain = ProfileView.membershipBlurb(new BillingClient.Entitlement(true, "ACTIVE", null, "SUBSCRIPTION"),
+            Optional.empty(), null, dec12);
+        assertFalse(plain.contains("covered by your group"), plain);
+    }
 }
