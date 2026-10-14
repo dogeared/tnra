@@ -132,6 +132,11 @@ public class ProvisionCommand implements Callable<Integer> {
         vars.put("BILLING_ENABLED", String.valueOf(billingEnabled));
         vars.put("BILLING_API_URL", billingEnabled ? billingApiUrl : "");
         vars.put("BILLING_API_TOKEN", billingToken);
+        // The compose overlay never holds the token: it references a per-group variable in the host's
+        // .env (TNRA_BILLING_API_TOKEN_<GROUP>), so the overlay can be copied around and checked without
+        // leaking a credential. The literal token still goes to the IDE-only .env in the output dir.
+        String billingTokenEnv = billingTokenEnvName(groupName);
+        vars.put("BILLING_API_TOKEN_REF", billingEnabled ? "${" + billingTokenEnv + "}" : "");
 
         boolean smtpConfigured = smtpUser != null && !smtpUser.isBlank()
                 && smtpPassword != null && !smtpPassword.isBlank();
@@ -178,10 +183,20 @@ public class ProvisionCommand implements Callable<Integer> {
         System.out.println("  Admin:     " + adminEmail);
         System.out.println("  Password:  " + adminPassword + " (temporary — must change on first login)");
         System.out.println("  Billing:   " + (billingEnabled ? "enabled (registered centrally)" : "disabled"));
+        if (billingEnabled) {
+            System.out.println();
+            System.out.println("  Add this line to the deploy host's .env (shown once — the compose overlay references it):");
+            System.out.println("  " + billingTokenEnv + "=" + billingToken);
+        }
         System.out.println();
         System.out.println("Next: read " + outDir.resolve("INSTRUCTIONS.md"));
 
         return 0;
+    }
+
+    /** {@code the-og} → {@code TNRA_BILLING_API_TOKEN_THE_OG}: the .env variable the overlay references. */
+    static String billingTokenEnvName(String groupName) {
+        return "TNRA_BILLING_API_TOKEN_" + groupName.toUpperCase().replace('-', '_');
     }
 
     private void writeFile(Path dir, String filename, String content) throws IOException {

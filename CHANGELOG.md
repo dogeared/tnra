@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.2] - 2026-10-14
+
+### Changed
+- **Provisioning templates cleaned up** (`tnra-cli provision`). The generated compose overlay no longer embeds the per-group billing token: it references `${TNRA_BILLING_API_TOKEN_<GROUP>}` from the deploy host's `.env`, and the CLI prints that line once — so the overlay can be copied and reviewed without leaking a credential (the IDE-only `.env` in the output dir still carries it). `INSTRUCTIONS.md` is rewritten for how deploys actually work today: run compose from the directory holding `.env`, Cloudflare-tunnel route (container name vs `localhost:<port>` for a host-level `cloudflared`), Nginx marked VPS-only, the billing-token step, the admin seed, and a troubleshooting list. The realm template enables Keycloak brute-force protection (10 failures → escalating lockout, max 15 min, no permanent lockout). The Cloudflare runbook's group steps now match (billing token in `.env`; "create the first admin user by hand" replaced by `seed-admin.sql`, since the realm import already creates the Keycloak user).
+
 ## [10.6.1] - 2026-10-14
 
 ### Changed

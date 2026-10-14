@@ -717,9 +717,10 @@ docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<ro
 
 ### Step 7: Deploy the group's app container
 
-All credentials are embedded in the generated `docker-compose.yml`. The encryption master key is
-read via Docker Compose variable interpolation from `~/tnra/.env`, so the command must be run from
-`~/tnra/`:
+The DB password and Keycloak client secret are embedded in the generated `docker-compose.yml`; the
+encryption master key and the per-group billing token (`TNRA_BILLING_API_TOKEN_<GROUP>`, the line the
+CLI printed) are read via Docker Compose variable interpolation from `~/tnra/.env`, so add that line
+first and run the command from `~/tnra/`:
 
 ```bash
 cd ~/tnra
@@ -733,13 +734,19 @@ docker logs tnra-<group-name> -f
 
 Look for: `Started TnraApplication` and Flyway migration messages.
 
-### Step 8: Create the first admin user
+### Step 8: Seed the admin user
 
-1. Open `https://auth.your-domain.com/admin`
-2. Switch to the `<group-name>` realm
-3. **Users** → **Add user** (set email, first name, last name)
-4. **Credentials** → Set password (disable "Temporary")
-5. **Role Mappings** → Assign `admin` and `member` roles
+The realm import (Step 4) already created the admin user in Keycloak, with the temporary password
+the CLI printed and a forced change on first login. The app database still needs its row — run this
+after the container's first start (Flyway must have created the schema):
+
+```bash
+cd ~/tnra
+docker compose -f docker-compose.production.yml exec -T mysql mysql -uroot -p<root_password> \
+  < provision/<group-name>/seed-admin.sql
+```
+
+Skipping it shows "Not a Member" after a successful Keycloak login.
 
 ### Step 9: Verify
 
