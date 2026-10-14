@@ -20,7 +20,8 @@ public class SecurityConfig {
 
     /**
      * Content Security Policy. The landing site is pure Vaadin served from this origin with system
-     * fonts (no Google Fonts / CDNs), so everything is {@code 'self'}. Vaadin's bootstrap injects inline
+     * fonts (no Google Fonts / CDNs), so everything is {@code 'self'} — except {@code font-src}, which
+     * also needs {@code data:} because Lumo embeds its icon font as a data URL. Vaadin's bootstrap injects inline
      * scripts/styles and uses eval, so {@code script-src}/{@code style-src} keep {@code 'unsafe-inline'}
      * (and {@code 'unsafe-eval'} for scripts) — that's the cost of not breaking Vaadin, and is why this
      * earns an A (not A+; A+ needs a nonce-based policy).
@@ -30,7 +31,7 @@ public class SecurityConfig {
         "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data:",
-        "font-src 'self'",
+        "font-src 'self' data:",
         "connect-src 'self'",
         "object-src 'none'",
         "base-uri 'self'",
@@ -48,7 +49,7 @@ public class SecurityConfig {
         "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https://*.paddle.com",
-        "font-src 'self'",
+        "font-src 'self' data:",
         "connect-src 'self' https://*.paddle.com",
         "frame-src https://buy.paddle.com https://sandbox-buy.paddle.com",
         "object-src 'none'",

@@ -131,7 +131,7 @@ A normal TNRA group set up as a public demo: seeded with realistic dummy data an
 
 ## Tech debt / DevEx
 
-### Security headers on `tnra-app` (per-group apps)
+### ~~Security headers on `tnra-app` (per-group apps)~~ ✓ Completed v10.5.0
 Apply the same security response headers to `tnra-app` that `tnra-landing` got in 10.0.1 (HSTS, CSP,
 Referrer-Policy, Permissions-Policy) so the per-group subdomains (`<group>.tnra.app`) also score an A
 on securityheaders.com.

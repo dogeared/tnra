@@ -2,6 +2,19 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.5.0] - 2026-10-14
+
+### Added
+- **Security response headers on the per-group app** (`tnra-app`), completing the set the landing site has had since 10.0.1: Content-Security-Policy, Referrer-Policy (`strict-origin-when-cross-origin`), Permissions-Policy, and HSTS forced on every response (2 years, `includeSubDomains`) alongside the existing `nosniff` / `X-Frame-Options: DENY`. A group subdomain (`<group>.tnra.app`) now scores an **A** on securityheaders.com instead of a C. The CSP allows nothing external — Paddle only ever runs on the landing site's `/pay` page — except `form-action`, which also lists the Keycloak origin (derived from the login registration's authorization URI): logout is a form POST whose success handler redirects to Keycloak's end-session endpoint, and Chrome applies `form-action` to that redirect. Vaadin's bootstrap still needs `'unsafe-inline'` / `'unsafe-eval'`, which is what keeps the grade at A rather than A+.
+
+### Fixed
+- **Landing CSP blocked Lumo's icon font.** `font-src 'self'` refused the `data:` URL Lumo embeds its `lumo-icons` font as (also used by the Upload component), so the browser logged a CSP violation and icon glyphs could render blank. Both apps now allow `font-src 'self' data:`; found while verifying the group app's policy in a real browser.
+
+## [10.4.5] - 2026-10-14
+
+### Fixed
+- **Production build of both Vaadin apps failed** (`Could not resolve './generated/jar-resources/styles/theme.css?inline'`). 10.4.0 moved each app's CSS to `META-INF/frontend` (the Vaadin 25 jar-resources layout), which dev mode finds through the classloader but the Maven plugin's `build-frontend` goal only copies from `META-INF/resources/frontend`. Both production profiles now set `frontendResourcesDirectory` to `META-INF/frontend`. CI gained a `production-build` job (`-Pproduction package`) so the Vaadin bundle build is exercised on every PR — the test suite never enables that profile.
+
 ## [10.4.4] - 2026-10-14
 
 ### Fixed

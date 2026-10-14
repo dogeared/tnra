@@ -162,13 +162,18 @@ first HTTPS visit browsers auto-upgrade `http://` to `https://` on their own.
 
 ### Security response headers
 
-`tnra-landing` sets a full set of security headers (HSTS, Content-Security-Policy, Referrer-Policy,
-Permissions-Policy, plus Spring's default X-Content-Type-Options and X-Frame-Options) in
-`SecurityConfig`, for an A on securityheaders.com. They pass through the tunnel unchanged. After a
-deploy, re-scan at `https://securityheaders.com/?q=https://www.tnra.app`. The CSP keeps
-`'unsafe-inline'`/`'unsafe-eval'` because Vaadin's bootstrap needs them (that caps the grade at A, not
-A+). The per-group `tnra-app` does not set these yet — a careful follow-up (its CSP must also allow the
-Keycloak OIDC redirect and Vaadin push).
+Both Vaadin apps set a full set of security headers (HSTS, Content-Security-Policy, Referrer-Policy,
+Permissions-Policy, plus Spring's default X-Content-Type-Options and X-Frame-Options) — `tnra-landing`
+in its `SecurityConfig` (since 10.0.1) and the per-group `tnra-app` in `SpringSecurityConfig` (since
+10.5.0) — for an A on securityheaders.com. They pass through the tunnel unchanged. After a deploy,
+re-scan at `https://securityheaders.com/?q=https://www.tnra.app` and
+`https://securityheaders.com/?q=https://<group>.tnra.app`. The CSP keeps `'unsafe-inline'`/`'unsafe-eval'`
+because Vaadin's bootstrap needs them (that caps the grade at A, not A+). The group app's `form-action`
+also lists the Keycloak origin, taken from the login registration's **authorization URI** — the only
+Keycloak URL the browser is sent to — because logout is a form POST that redirects to Keycloak's
+end-session endpoint and Chrome applies `form-action` to that redirect. Keep that URI on the public
+`https://auth.<domain>` host (as the provisioning template does); the token/userinfo URIs may stay
+Docker-internal.
 
 ## Encryption at Rest
 
