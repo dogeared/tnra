@@ -414,7 +414,6 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         // Gift section: list every other active member; enabled only when the member is entitled.
         // Hidden entirely for a covered group — everyone already has access.
         giftSection.setVisible(!covered);
-        paddleInfo.setVisible(!covered);
         coveringNote = covered
             ? "Your group covers memberships now, so these gifts are no longer needed — you can stop paying for "
               + "them below. Each ends at the close of the period you've already paid for."
@@ -428,7 +427,12 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         giftContinueButton.setEnabled(false); // re-enabled by the combo listener once a member is picked
         giftDisabledNotice.setVisible(!ent.entitled());
 
-        populateCoveringSection(currentUser.getEmail());
+        boolean coveringAnyone = populateCoveringSection(currentUser.getEmail());
+
+        // "Powered by Paddle" whenever Paddle is actually in the picture for THIS member: they're expected to
+        // pay, or they still have a paid subscription on file (Update payment method / Keep / Cancel), or
+        // they're still paying for someone else's — regardless of the group's exempt setting.
+        paddleInfo.setVisible(!covered || selfPayLive || coveringAnyone);
     }
 
     /**
@@ -440,16 +444,17 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     String coveringNote = "Stopping a gift ends it at the close of the period you've already paid for — "
         + "the member keeps access until then.";
 
-    private void populateCoveringSection(String email) {
+    /** @return true when the member is paying for at least one other member's membership. */
+    private boolean populateCoveringSection(String email) {
         coveringSection.removeAll();
         coveringSection.setVisible(false);
         if (email == null) {
-            return;
+            return false;
         }
         try {
             List<BillingClient.CoveredMember> covered = billingClient.get().covering(email);
             if (covered.isEmpty()) {
-                return;
+                return false;
             }
             coveringSection.add(new H3("Members you're covering"));
             for (BillingClient.CoveredMember m : covered) {
@@ -457,8 +462,10 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
             }
             coveringSection.add(new Paragraph(coveringNote));
             coveringSection.setVisible(true);
+            return true;
         } catch (Exception e) {
             // Non-critical: if the covering list can't load, just leave it hidden.
+            return false;
         }
     }
 

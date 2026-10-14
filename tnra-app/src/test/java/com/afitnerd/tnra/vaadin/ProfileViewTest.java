@@ -1752,6 +1752,21 @@ class ProfileViewTest {
         assertFalse(profileView.giftSection.isVisible());
         assertTrue(profileView.coveringSection.isVisible(), "gifts they still pay for are listed so they can stop them");
         assertTrue(profileView.coveringNote.contains("no longer needed"));
+        assertTrue(profileView.paddleInfo.isVisible(), "Paddle is still in the picture: they still pay");
+    }
+
+    @Test
+    void coveredGroup_onlyGifting_stillShowsPaddleInfo() {
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "PENDING_PAYMENT", null, "GROUP_EXEMPT"));
+        when(billing.covering("me@x.com")).thenReturn(List.of(new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
+        profileView = coveredProfile(billing);
+
+        profileView.applyBillingTabState();
+
+        assertFalse(profileView.billingCancelButton.isVisible(), "no subscription of their own");
+        assertTrue(profileView.coveringSection.isVisible());
+        assertTrue(profileView.paddleInfo.isVisible(), "they still pay for someone — Paddle emails still apply");
     }
 
     @Test
