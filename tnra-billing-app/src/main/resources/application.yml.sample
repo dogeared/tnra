@@ -40,6 +40,14 @@ billing:
   # Shared secret guarding the provisioning/admin API (/api/admin/**). Blank = admin API disabled
   # (fail closed). The CLI sends it as X-Admin-Token when registering a group.
   admin-token: ${BILLING_ADMIN_TOKEN:}
+  # "Free period ending" reminders (daily sweep; needs the mailgun block below)
+  notify-from: ${BILLING_NOTIFY_FROM:tnra-landing@tnra.app}
+  group-url-pattern: ${BILLING_GROUP_URL_PATTERN:https://{slug}.tnra.app}
+  reminder-days-before: ${BILLING_REMINDER_DAYS_BEFORE:7}
+  reminder-cron: ${BILLING_REMINDER_CRON:0 0 9 * * *}
+mailgun:
+  key-private: ${MAILGUN_KEY_PRIVATE:}
+  url: ${MAILGUN_URL:}
 
 logging:
   level:

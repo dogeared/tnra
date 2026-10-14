@@ -113,6 +113,11 @@ services:
       PADDLE_PRICE_YEARLY: ${PADDLE_PRICE_YEARLY}
       BILLING_ADMIN_TOKEN: ${BILLING_ADMIN_TOKEN}
       TNRA_TRIAL_DAYS: "${TNRA_TRIAL_DAYS:-60}"
+      # "Free period ending" reminder emails: same Mailgun as the landing site, same sender.
+      MAILGUN_KEY_PRIVATE: "${MAILGUN_KEY_PRIVATE:-}"
+      MAILGUN_URL: "${MAILGUN_URL:-}"
+      BILLING_NOTIFY_FROM: "${TNRA_NOTIFY_FROM:-tnra-landing@tnra.app}"
+      BILLING_GROUP_URL_PATTERN: "${BILLING_GROUP_URL_PATTERN:-https://{slug}.tnra.app}"
     ports:
       # Host port for local/debug only — nginx/Cloudflare reach the container via the tnra-shared
       # network (http://tnra-billing:8082). Override the host port with TNRA_BILLING_PORT in .env

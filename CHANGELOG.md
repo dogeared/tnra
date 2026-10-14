@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.4] - 2026-10-14
+
+### Added
+- **"Free period ending" reminder emails** from the billing service. A member covered only by a time-boxed waiver — the group's trial or their own `comp_until` — has no card on file and would simply be denied at their next login when it lapses. A daily sweep (09:00 server time, `BILLING_REMINDER_CRON`) now emails them 7 days ahead (`BILLING_REMINDER_DAYS_BEFORE`) with a link to their group's Billing tab. Exempt groups/members and members who already pay (active or in dunning) are skipped, as is a member whose own waiver outlasts the group trial; one email per distinct end date (`billing_account.comp_reminder_for`, Flyway `V2`), so a later waiver gets its own and a daily run never repeats. Scope is members the billing service knows (a `billing_account` row). Sent through Mailgun with the landing site's settings — the billing container now receives `MAILGUN_KEY_PRIVATE` / `MAILGUN_URL` / `TNRA_NOTIFY_FROM` from `.env`, plus `BILLING_GROUP_URL_PATTERN` (default `https://{slug}.tnra.app`) for the link. Unconfigured Mailgun ⇒ the sweep logs and skips; a send failure is logged and retried next day.
+
 ## [10.6.3] - 2026-10-14
 
 ### Added

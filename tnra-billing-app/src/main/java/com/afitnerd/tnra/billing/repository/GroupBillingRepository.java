@@ -11,4 +11,7 @@ public interface GroupBillingRepository extends JpaRepository<GroupBilling, Stri
 
     /** Resolve an incoming per-group bearer token (already hashed) to its group. */
     Optional<GroupBilling> findByApiTokenHash(String apiTokenHash);
+
+    /** Reminder sweep — groups whose trial / promo window ends inside the window. */
+    java.util.List<GroupBilling> findByCompUntilBetween(java.time.LocalDateTime from, java.time.LocalDateTime to);
 }
