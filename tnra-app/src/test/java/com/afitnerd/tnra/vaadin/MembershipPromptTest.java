@@ -24,12 +24,16 @@ import static org.mockito.Mockito.when;
 
 class MembershipPromptTest {
 
+    /** Held in a field: Vaadin stores the current UI in a WeakReference, so a setUp() local can be
+     *  garbage-collected before the test body runs ("No currently active UI found" on CI). */
+    private UI ui;
+
     private static final String BASE = "https://g.tnra.app";
 
     @BeforeEach
     void setUp() {
         // Minimal UI so AppNotification.error(...) has somewhere to attach.
-        UI ui = new UI();
+        ui = new UI();
         VaadinSession session = mock(VaadinSession.class, Mockito.RETURNS_DEEP_STUBS);
         lenient().when(session.hasLock()).thenReturn(true);
         VaadinService service = mock(VaadinService.class);

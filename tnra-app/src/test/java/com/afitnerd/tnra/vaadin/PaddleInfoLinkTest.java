@@ -25,9 +25,13 @@ import static org.mockito.Mockito.mock;
 
 class PaddleInfoLinkTest {
 
+    /** Held in a field: Vaadin stores the current UI in a WeakReference, so a setUp() local can be
+     *  garbage-collected before the test body runs ("No currently active UI found" on CI). */
+    private UI ui;
+
     @BeforeEach
     void setUp() {
-        UI ui = new UI();
+        ui = new UI();
         VaadinSession session = mock(VaadinSession.class, Mockito.RETURNS_DEEP_STUBS);
         lenient().when(session.hasLock()).thenReturn(true);
         VaadinService service = mock(VaadinService.class);
