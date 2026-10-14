@@ -1,0 +1,36 @@
+<!--
+  Source for src/main/resources/META-INF/resources/images/og-banner.png — the Open Graph / link-preview
+  banner (1200×630) that Slack, LinkedIn, iMessage, X, etc. show for any tnra.app link.
+
+  Design: DESIGN.md tokens (paper #FDFBF7, forest green #2D6A4F, warm text #2C2418 / #6B5D4F / #9B8E80,
+  system sans). The logo is the app's PWA icon, referenced relatively from tnra-app.
+
+  Regenerate (macOS, headless Chrome + ImageMagick), from the repo root:
+
+    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new \
+      --window-size=1200,630 --force-device-scale-factor=2 --hide-scrollbars \
+      --screenshot=/tmp/og-banner@2x.png "file://$PWD/tnra-landing-app/src/main/og-banner/og-banner.html"
+    magick /tmp/og-banner@2x.png -filter Lanczos -resize 1200x630 -strip -define png:compression-level=9 \
+      tnra-landing-app/src/main/resources/META-INF/resources/images/og-banner.png
+
+  Render at 2× then downscale for crisper text. Keep the copy in sync with LandingSeoListener.OG_* .
+-->
+<!doctype html><html><head><meta charset="utf-8"><style>
+  html,body{margin:0;width:1200px;height:630px;background:#FDFBF7;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#2C2418;}
+  .wrap{position:relative;width:1200px;height:630px;display:flex;align-items:center;gap:72px;padding:0 104px;box-sizing:border-box;}
+  .wrap:before{content:'';position:absolute;left:0;top:0;bottom:0;width:14px;background:#2D6A4F;}
+  img{width:260px;height:260px;border-radius:52px;box-shadow:0 12px 40px rgba(44,36,24,.10),0 4px 12px rgba(44,36,24,.05);flex:none;}
+  .text{display:flex;flex-direction:column;gap:18px;}
+  .word{font-weight:700;font-size:96px;letter-spacing:-0.03em;color:#2D6A4F;line-height:1;}
+  .tag{font-weight:700;font-size:44px;letter-spacing:-0.015em;line-height:1.12;max-width:720px;}
+  .sub{font-weight:500;font-size:26px;color:#6B5D4F;line-height:1.35;max-width:720px;}
+  .url{position:absolute;right:104px;bottom:52px;font-weight:600;font-size:24px;color:#9B8E80;letter-spacing:.01em;}
+</style></head><body><div class="wrap">
+  <img src="../../../../tnra-app/src/main/resources/META-INF/resources/icons/icon-512.png" alt="">
+  <div class="text">
+    <div class="word">TNRA</div>
+    <div class="tag">Accountability for groups that mean it.</div>
+    <div class="sub">Weekly posts, group stats, and mutual visibility for recovery, faith, and professional circles — end-to-end encrypted.</div>
+  </div>
+  <div class="url">tnra.app</div>
+</div></body></html>

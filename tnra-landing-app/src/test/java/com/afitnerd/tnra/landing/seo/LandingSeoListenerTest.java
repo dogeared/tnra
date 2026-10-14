@@ -7,6 +7,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,7 +17,7 @@ import static org.mockito.Mockito.when;
 
 class LandingSeoListenerTest {
 
-    private final LandingSeoListener listener = new LandingSeoListener();
+    private final LandingSeoListener listener = new LandingSeoListener("https://tnra.app");
 
     private IndexHtmlResponse responseForPath(String pathInfo) {
         Document doc = Jsoup.parse("<html><head></head><body><div id=\"outlet\"></div></body></html>");
@@ -105,5 +106,63 @@ class LandingSeoListenerTest {
             assertTrue(body.contains("pricing-fallback"), "pricing summary on home path [" + home + "]");
             assertTrue(body.contains("href=\"/pricing\""), "nav on home path [" + home + "]");
         }
+    }
+
+    // ---- Open Graph / Twitter Card (link previews in Slack, LinkedIn, iMessage, X) ----
+
+    private static String meta(Document doc, String attr, String key) {
+        org.jsoup.nodes.Element el = doc.head().selectFirst("meta[" + attr + "=" + key + "]");
+        return el == null ? null : el.attr("content");
+    }
+
+    @Test
+    void everyPage_getsOpenGraphAndTwitterTags_withAbsoluteImage() {
+        IndexHtmlResponse response = responseForPath("/about-us");
+
+        listener.injectSeo(response);
+
+        Document doc = response.getDocument();
+        assertEquals("website", meta(doc, "property", "og:type"));
+        assertEquals("TNRA", meta(doc, "property", "og:site_name"));
+        assertEquals(LandingSeoListener.OG_TITLE, meta(doc, "property", "og:title"));
+        assertEquals(LandingSeoListener.OG_DESCRIPTION, meta(doc, "property", "og:description"));
+        assertEquals("https://tnra.app/about-us", meta(doc, "property", "og:url"));
+        assertEquals("https://tnra.app/images/og-banner.png", meta(doc, "property", "og:image"));
+        assertEquals("1200", meta(doc, "property", "og:image:width"));
+        assertEquals("630", meta(doc, "property", "og:image:height"));
+        assertEquals(LandingSeoListener.OG_IMAGE_ALT, meta(doc, "property", "og:image:alt"));
+
+        assertEquals("summary_large_image", meta(doc, "name", "twitter:card"));
+        assertEquals(LandingSeoListener.OG_TITLE, meta(doc, "name", "twitter:title"));
+        assertEquals("https://tnra.app/images/og-banner.png", meta(doc, "name", "twitter:image"));
+    }
+
+    @Test
+    void ogUrl_isTheApexForHome_andDropsTrailingSlashesElsewhere() {
+        for (String home : new String[] {null, "", "/"}) {
+            IndexHtmlResponse response = responseForPath(home);
+            listener.injectSeo(response);
+            assertEquals("https://tnra.app/", meta(response.getDocument(), "property", "og:url"),
+                "home path [" + home + "]");
+        }
+        IndexHtmlResponse trailing = responseForPath("/pricing/");
+        listener.injectSeo(trailing);
+        assertEquals("https://tnra.app/pricing", meta(trailing.getDocument(), "property", "og:url"));
+
+        IndexHtmlResponse bare = responseForPath("pricing");
+        listener.injectSeo(bare);
+        assertEquals("https://tnra.app/pricing", meta(bare.getDocument(), "property", "og:url"));
+    }
+
+    @Test
+    void baseUrl_trailingSlashIsNormalised_andDevOriginIsHonoured() {
+        LandingSeoListener dev = new LandingSeoListener("https://landing.dev.dogeared.dev/");
+        IndexHtmlResponse response = responseForPath("/pricing");
+
+        dev.injectSeo(response);
+
+        assertEquals("https://landing.dev.dogeared.dev/pricing", meta(response.getDocument(), "property", "og:url"));
+        assertEquals("https://landing.dev.dogeared.dev/images/og-banner.png",
+            meta(response.getDocument(), "property", "og:image"));
     }
 }
