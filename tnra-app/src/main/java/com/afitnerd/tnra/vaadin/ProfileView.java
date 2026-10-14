@@ -114,6 +114,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     TabSheet tabs;                // package-private for testing
     Tab billingTab;               // null when billing is off
     VerticalLayout giftSection;   // hidden for a covered (exempt) group — nothing to gift
+    PaddleInfoLink paddleInfo;    // \"Powered by Paddle\" — only where payment applies
     Button billingCancelButton;   // self-pay, live, no cancel scheduled
     Button billingKeepButton;     // self-pay, cancel scheduled → undo
     MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
@@ -246,9 +247,10 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         HorizontalLayout manageButtons = new HorizontalLayout(
             billingUpdatePaymentButton, billingManageButton, billingKeepButton, billingCancelButton);
         manageButtons.getStyle().set("flex-wrap", "wrap");
+        paddleInfo = new PaddleInfoLink();
 
         VerticalLayout section = new VerticalLayout(
-            billingTitle, billingBlurb, billingPayButtons, manageButtons);
+            billingTitle, billingBlurb, billingPayButtons, manageButtons, paddleInfo);
         section.setPadding(false);
         section.setSpacing(true);
         return section;
@@ -412,6 +414,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         // Gift section: list every other active member; enabled only when the member is entitled.
         // Hidden entirely for a covered group — everyone already has access.
         giftSection.setVisible(!covered);
+        paddleInfo.setVisible(!covered);
         coveringNote = covered
             ? "Your group covers memberships now, so these gifts are no longer needed — you can stop paying for "
               + "them below. Each ends at the close of the period you've already paid for."

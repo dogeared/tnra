@@ -69,6 +69,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
     Button updatePaymentButton;
     Button manageButton;
     Button backToProfileButton; // always present: this page must never be a dead end
+    PaddleInfoLink paddleInfo;
     VerticalLayout coveringSection; // "Members you're covering"; visible only when paying for others
 
     public BillingView(Optional<BillingClient> billingClient, OidcUserService oidcUserService,
@@ -109,7 +110,9 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         backToProfileButton = new Button("Back to profile", VaadinIcon.ARROW_LEFT.create(), e -> backToProfile());
         backToProfileButton.addThemeVariants(ButtonVariant.LUMO_TERTIARY);
 
-        add(title, blurb, payButtons, manageBlurb, manageButtons, coveringSection, backToProfileButton);
+        paddleInfo = new PaddleInfoLink();
+
+        add(title, blurb, payButtons, manageBlurb, manageButtons, coveringSection, paddleInfo, backToProfileButton);
     }
 
     /**

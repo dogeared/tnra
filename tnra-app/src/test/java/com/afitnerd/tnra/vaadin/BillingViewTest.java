@@ -347,4 +347,11 @@ class BillingViewTest {
         assertTrue(view.getChildren().anyMatch(c -> c == view.backToProfileButton));
         view.backToProfile(); // no UI in tests → no-op, no exception
     }
+
+    @Test
+    void poweredByPaddle_isOnThePaywall() {
+        BillingView view = view(mock(BillingClient.class), mock(UserService.class), "m@x.com");
+        assertNotNull(view.paddleInfo);
+        assertTrue(view.getChildren().anyMatch(c -> c == view.paddleInfo));
+    }
 }

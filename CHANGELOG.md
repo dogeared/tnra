@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.4.3] - 2026-10-14
+
+### Added
+- **"Powered by Paddle" link** on every surface where a member can pay — the Profile → Billing tab, the membership (paywall / gift) page and the membership prompt. It opens a short dialog explaining that Paddle is the payment partner and Merchant of Record, that TNRA never sees card details, and that receipts, cancellation confirmations and failed-payment notices come **from Paddle**, not TNRA — so a member who cancels and gets an email from an unfamiliar sender knows it's genuine. Hidden for a covered (exempt) group, where Paddle is not involved.
+
 ## [10.4.2] - 2026-10-13
 
 ### Fixed
