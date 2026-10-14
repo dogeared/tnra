@@ -2,6 +2,14 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.3] - 2026-10-14
+
+### Added
+- **Provider-side double-charge guard at checkout.** Before creating a self-pay checkout the billing service now asks Paddle whether it already bills a live subscription (active / trialing / past_due) for that member in that group, and answers the same 409 the local guard uses. This catches the case the local guard cannot: our database lagging Paddle (webhooks down while a payment completed) so the account still reads "pending" while Paddle is already charging. Paddle has no email filter on subscriptions, so the lookup is customers-by-email → subscriptions-by-customer, matched on the checkout custom data (`group_slug` + `beneficiary_email`) — a member who pays for someone else's gift is the customer on that subscription but is not covered by it, and must not be blocked from buying their own. Gifts are unaffected (the entitlement check already covers them). Fails **open**: a Paddle error or outage logs a warning and the checkout proceeds, so an outage can never block a legitimate signup.
+
+### Changed
+- **Default founder notification address is `micah@tnra.app`** (was `tnra@dogeared.dev` since 10.6.1), forwarded through Cloudflare Email Routing. Production keeps using `TNRA_FOUNDER_EMAIL` from `.env`.
+
 ## [10.6.2] - 2026-10-14
 
 ### Changed

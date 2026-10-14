@@ -113,6 +113,41 @@ class CheckoutServiceTest {
     }
 
     @Test
+    void selfPay_whenProviderReportsALiveSubscription_conflict_noCheckout_noSave() {
+        // Local DB lags (PENDING), but Paddle already bills this member: block the second charge.
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.empty());
+        when(provider.hasLiveSubscription("rome", "m@x.com")).thenReturn(true);
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+            () -> service.createCheckout("rome", new CheckoutRequest("m@x.com", "monthly", null, null)));
+
+        assertEquals(409, ex.getStatusCode().value());
+        verify(provider, never()).createCheckout(any(), any(), any(), any(), any());
+        verify(accountRepo, never()).save(any());
+    }
+
+    @Test
+    void selfPay_whenProviderLookupFails_failsOpen_andCreatesTheCheckout() {
+        when(accountRepo.findByGroupSlugAndEmail("rome", "m@x.com")).thenReturn(Optional.empty());
+        when(provider.hasLiveSubscription("rome", "m@x.com")).thenThrow(new IllegalStateException("paddle down"));
+        when(provider.createCheckout("rome", "m@x.com", "m@x.com", "monthly", null)).thenReturn("https://pay/ok");
+
+        assertEquals("https://pay/ok",
+            service.createCheckout("rome", new CheckoutRequest("m@x.com", "monthly", null, null)));
+    }
+
+    @Test
+    void gift_doesNotConsultTheProviderGuard() {
+        beneficiaryNotEntitled("rome", "ben@x.com");
+        when(accountRepo.findByGroupSlugAndEmail("rome", "ben@x.com")).thenReturn(Optional.empty());
+        when(provider.createCheckout("rome", "ben@x.com", "payer@x.com", "monthly", null)).thenReturn("https://pay/g");
+
+        service.createCheckout("rome", new CheckoutRequest("ben@x.com", "monthly", "payer@x.com", null));
+
+        verify(provider, never()).hasLiveSubscription(any(), any());
+    }
+
+    @Test
     void selfPay_whenInGraceSelfPay_conflict() {
         BillingAccount grace = new BillingAccount();
         grace.setEmail("m@x.com");

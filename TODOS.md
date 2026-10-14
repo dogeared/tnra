@@ -141,7 +141,7 @@ One-click admin action to gift-cover every not-yet-covered member at once (vs gi
   member under the payer's card. Deferred from v1 because one-at-a-time gifting already delivers the
   capability; this is pure convenience.
 
-### Billing — Paddle-side "already subscribed" check at checkout
+### ~~Billing — Paddle-side "already subscribed" check at checkout~~ ✓ Completed v10.6.3
 Before creating a self-pay checkout, ask Paddle whether the member's email already has a live subscription
 and short-circuit with the same 409 the local duplicate-charge guard in `CheckoutService` uses.
 - **Why:** The local guard reads our own DB, which is authoritative in steady state. It can't catch a case

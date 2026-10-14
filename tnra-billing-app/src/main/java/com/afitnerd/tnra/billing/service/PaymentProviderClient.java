@@ -61,4 +61,14 @@ public interface PaymentProviderClient {
 
     /** Undo a scheduled cancellation (member changed their mind before the period ended). */
     void removeScheduledCancellation(String subscriptionId);
+
+    /**
+     * Provider-side double-charge guard: does the provider already hold a LIVE subscription (active /
+     * trialing / past_due) for this beneficiary in this group? Matched on the subscription's checkout
+     * custom data ({@code group_slug} + {@code beneficiary_email}), not merely on the customer's email —
+     * a member who pays for someone else's gift is the customer on that subscription but is not covered
+     * by it. A subscription with no custom data (created outside our checkout) counts as live for its
+     * customer. Implementations throw on provider errors; the caller decides to fail open.
+     */
+    boolean hasLiveSubscription(String groupSlug, String beneficiaryEmail);
 }

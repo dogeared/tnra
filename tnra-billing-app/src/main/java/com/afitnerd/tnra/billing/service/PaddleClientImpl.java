@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -26,6 +27,8 @@ import java.util.Map;
  *       resp: data.checkout.url  (same /pay overlay as a purchase; past_due ⇒ the outstanding txn)
  *       resp: data.urls.general.overview
  *   cancelSubscription ─► POST /subscriptions/{id}/cancel  { effective_from: "immediately" }
+ *   hasLiveSubscription ─► GET /customers?email=…  then  GET /subscriptions?customer_id=…&status=…
+ *       (Paddle has no email filter on subscriptions; match on custom_data group_slug/beneficiary_email)
  * </pre>
  */
 @Service
@@ -117,6 +120,63 @@ public class PaddleClientImpl implements PaymentProviderClient {
             change.isObject() ? instant(change, "effective_at") : null,
             trial != null && trial.isObject() ? instant(trial, "ends_at") : null,
             optText(d.path("billing_cycle"), "interval"));
+    }
+
+    static final String LIVE_STATUSES = "active,trialing,past_due";
+
+    @Override
+    public boolean hasLiveSubscription(String groupSlug, String beneficiaryEmail) {
+        JsonNode customers = restClient.get()
+            .uri(b -> b.path("/customers").queryParam("email", beneficiaryEmail)
+                .queryParam("per_page", 50).build())
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .retrieve()
+            .body(JsonNode.class);
+        List<String> ids = new ArrayList<>();
+        JsonNode cdata = customers == null ? null : customers.path("data");
+        if (cdata != null && cdata.isArray()) {
+            for (JsonNode c : cdata) {
+                String id = optText(c, "id");
+                if (id != null) {
+                    ids.add(id);
+                }
+            }
+        }
+        if (ids.isEmpty()) {
+            return false; // never a Paddle customer ⇒ cannot hold a subscription
+        }
+        JsonNode subs = restClient.get()
+            .uri(b -> b.path("/subscriptions").queryParam("customer_id", String.join(",", ids))
+                .queryParam("status", LIVE_STATUSES).queryParam("per_page", 50).build())
+            .header("Authorization", "Bearer " + props.getApiKey())
+            .retrieve()
+            .body(JsonNode.class);
+        JsonNode sdata = subs == null ? null : subs.path("data");
+        if (sdata == null || !sdata.isArray()) {
+            return false;
+        }
+        for (JsonNode sub : sdata) {
+            if (coversBeneficiary(sub.path("custom_data"), groupSlug, beneficiaryEmail)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * A subscription counts for this beneficiary when its checkout custom data names the same group and
+     * beneficiary. Either field absent ⇒ not contradicted ⇒ counts (a subscription created outside our
+     * checkout has no custom data at all). An explicit mismatch ⇒ it is someone else's membership.
+     */
+    static boolean coversBeneficiary(JsonNode custom, String groupSlug, String beneficiaryEmail) {
+        if (custom == null || custom.isMissingNode() || custom.isNull()) {
+            return true;
+        }
+        String g = optText(custom, "group_slug");
+        String b = optText(custom, "beneficiary_email");
+        boolean groupOk = g == null || g.equalsIgnoreCase(groupSlug);
+        boolean beneficiaryOk = b == null || b.equalsIgnoreCase(beneficiaryEmail);
+        return groupOk && beneficiaryOk;
     }
 
     private static String optText(JsonNode node, String field) {
