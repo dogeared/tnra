@@ -34,6 +34,7 @@ class SecurityConfigTest {
         assertEquals(SecurityConfig.PERMISSIONS_POLICY, res.getHeader("Permissions-Policy"));
         assertFalse(res.getHeader("Content-Security-Policy").contains("paddle.com"));
         assertTrue(res.getHeader("Permissions-Policy").contains("payment=()"));
+        assertTrue(res.getHeader("Content-Security-Policy").contains("font-src 'self' data:"), "Lumo icon font is an embedded data: URL");
     }
 
     @Test
@@ -44,6 +45,7 @@ class SecurityConfigTest {
         assertTrue(csp.contains("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.paddle.com"));
         assertTrue(csp.contains("frame-src https://buy.paddle.com https://sandbox-buy.paddle.com"));
         assertTrue(csp.contains("connect-src 'self' https://*.paddle.com"));
+        assertTrue(csp.contains("font-src 'self' data:"));
         // Nothing else loosened.
         assertTrue(csp.contains("object-src 'none'"));
         assertTrue(csp.contains("frame-ancestors 'self'"));
