@@ -25,7 +25,8 @@ public class MailgunNotificationServiceImpl implements MailgunNotificationServic
     @Value("${mailgun.url:}")
     private String mailgunUrl;
 
-    @Value("${tnra.notify.founder-email}")
+    /** Defaulted so a missing/mis-named env var degrades to the founder's address, not a failed startup. */
+    @Value("${tnra.notify.founder-email:tnra@dogeared.dev}")
     private String founderEmail;
 
     @Value("${tnra.notify.enabled:true}")

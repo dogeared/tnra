@@ -1,5 +1,60 @@
 # TODOS
 
+## P1 — Next big features
+
+### Externalize Keycloak — use the centralized Keycloak server
+TNRA ships its own Keycloak container (dev `docker-compose.yml`, `docker-compose.production.yml`) and the
+provisioning CLI creates one realm per group in it from `realm.json.tmpl`. A centralized Keycloak server
+already exists that serves several apps, each with its own realm template. Move TNRA's identity there and
+take Keycloak out of this project entirely.
+- **Why:** One identity server to patch, back up and monitor instead of one per deployment; the per-group
+  realm template becomes just another template on the central server; the `auth.<domain>` hostname, the
+  `keycloak` compose service, its volume and its tunnel route all go away.
+- **Effort:** M (human: ~2-3 days incl. migrating the-og's realm / CC: ~1 h)
+- **Context:** The group app only needs an issuer: `KEYCLOAK_ISSUER_URI` / the
+  `SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_KEYCLOAK_*` env in `docker-compose.yml.tmpl` already point at
+  `https://auth.<domain>/realms/<realm>` for the browser-facing URI, but the token/userinfo/jwk URIs use the
+  Docker-internal `http://keycloak:8080` — those must become the central server's public URL (or a private
+  one it exposes). `realm.json.tmpl` (roles, client, admin user with `UPDATE_PASSWORD`, SMTP block, `tnra`
+  login theme) is the realm template to register centrally; the `tnra` login theme must be installed there.
+  Migrate the-og by exporting its realm (users + credentials) and importing it centrally, then flipping the
+  env and the CSP `form-action` origin follows automatically (derived from the authorization URI). Dev site:
+  point at a dev realm on the central server (or keep a throwaway Keycloak in the dev compose only). Remove
+  `KEYCLOAK_*` from `.env.template`, the `keycloak` service + `keycloak-data` volume, `KC_HOSTNAME` notes and
+  the `auth` tunnel route from the runbooks. Do this BEFORE the provisioning work below so provisioning
+  targets the central server's admin API once.
+
+### Provision a new group as automatically and easily as possible
+Today `tnra-cli provision` *generates files* (`provision/<group>/…`) and prints an `instructions.md` whose
+steps are done by hand: run `init-db.sql`, import the realm into Keycloak, add a tunnel route, `docker
+compose up` with the overlay, run `seed-admin.sql`, hand over the temporary password. Make it one command
+that *does* those steps, idempotently, and leave it callable as a service so a self-serve flow can call it.
+- **Why:** Every new group costs founder time and is error-prone (ordering, the "run from `~/tnra`" trap,
+  copying tokens by hand). Automated provisioning is the prerequisite for self-serve growth.
+- **Effort:** L (human: ~1-2 weeks / CC: ~hours)
+- **Depends on:** Externalize Keycloak (above) — so realm creation is a single admin-REST call against the
+  central server rather than a file drop + container restart.
+- **Context:** `ProvisionCommand` already renders everything and registers the group with billing (`POST
+  /api/admin/groups`); extend it to *execute*: create DB + user over JDBC (root creds from `.env`), create
+  the realm via Keycloak's admin REST API (`POST /admin/realms` with the rendered JSON), create the tunnel
+  public hostname via Cloudflare's API (tunnel config endpoint; container-name target once `cloudflared`
+  runs in Docker — see Tech debt), `docker compose … up -d` the overlay, run the admin seed, and print one
+  summary. Each step checks before it creates so a re-run after a partial failure is safe. Put the
+  per-group billing token in `.env` as `TNRA_BILLING_API_TOKEN_<GROUP>` (see `.env.template`) rather than in
+  the overlay. Then wrap the same code as a service (`tnra-billing-app` or a small `tnra-provisioner`) for
+  the self-serve end state below. `instructions.md.tmpl` shrinks to "what was done + how to verify".
+
+### Self-serve onboarding — leader signup → pay → auto-provision  *(end state of the item above)*
+Turn group creation from a CLI operation into a self-serve flow: a leader signs up on the landing site,
+pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain), no CLI step.
+- **Why:** This is the confirmed product goal (self-serve growth). The billing app is its foundation;
+  this is the next platform bet that makes groups onboard without the founder touching the CLI.
+- **Effort:** L (human: ~1-2 weeks / CC: ~hours) — mostly delivered by the automation item; what remains is
+  the landing-side flow (signup → Paddle checkout → webhook → call the provisioner) and the guardrails.
+- **Depends on:** `tnra-billing-app` shipped; provisioning callable as a service (above).
+- **Context:** See CEO plan `~/.gstack/projects/dogeared-tnra/ceo-plans/2026-06-14-billing-monetization.md`.
+  Trigger on a successful first payment, safely and idempotently.
+
 ## P1.5 — Branch 5 (Next Up)
 
 ### ~~Deploy Encryption to Active Group~~ ✓ Completed (ops)
@@ -8,7 +63,7 @@ Roll out v8.0.3 to the current active group for real-world testing before new fe
 - **Effort:** XS (human: ~1 hour / CC: n/a — ops task)
 - **Context:** Run Flyway V7–V10 migrations against the live DB. Confirm encrypted columns read/write correctly via the UI. Master key must be set in the group's `.env`. This is a gate before Slack Part 1 ships.
 
-### [NEXT] Slack Integration — Part 1: Activity-Only with Post Link
+### ~~Slack Integration — Part 1: Activity-Only with Post Link~~ ✓ Completed v8.1.1
 Admin-configurable incoming webhook for a Slack channel. When a member finishes a post, post a message to the configured channel containing: username, start time, finish time, and a deep link to the post.
 - **Why:** Gives groups immediate visibility into posting activity without exposing encrypted post content outside the DB. Deep link enforces authentication before content is visible.
 - **Effort:** S (human: ~2 days / CC: ~20 min)
@@ -29,7 +84,7 @@ Static or Vaadin public route for prospective groups. Form: group name, contact 
 - **Depends on:** Slack Part 1 shipped.
 - **Context:** Requires Spring Security rule for anonymous access without exposing other routes. Rate limiting on form (max 5/hour per IP).
 
-### Temporary Password Change Not Enforced on First Login
+### ~~Temporary Password Change Not Enforced on First Login~~ ✓ Completed (realm.json.tmpl sets `requiredActions: ["UPDATE_PASSWORD"]` on the admin user)
 When the provisioning CLI creates the initial admin user in `realm.json.tmpl` (imported into Keycloak during group setup), the password is marked temporary but Keycloak does not prompt the user to change it on first login.
 - **Why:** Temporary passwords are a security control — if Keycloak never challenges the user to change it, the provisioned credential stays active indefinitely.
 - **Effort:** XS (human: ~30 min / CC: ~10 min)
@@ -41,13 +96,13 @@ Review and tighten all templates in `cli/src/main/resources/templates/` for corr
 - **Effort:** S (human: ~1 day / CC: ~20 min)
 - **Context:** Templates to review: `realm.json.tmpl`, `docker-compose.yml.tmpl`, `env.tmpl`, `instructions.md.tmpl`, `nginx.conf.tmpl`, `init-db.sql.tmpl`, `seed-admin.sql.tmpl`. Check for: hardcoded values that should be CLI options, missing Keycloak realm settings (e.g. session timeouts, brute-force protection), INSTRUCTIONS.md accuracy against actual deployment steps, and any template vars that are set but unused (or used but not set).
 
-### Default the `founder-email` Notify Property
+### ~~Default the `founder-email` Notify Property~~ ✓ Completed v10.6.1 (the nginx sites-split sub-note remains a dev-stack nicety, not done)
 Add a default to `@Value("${tnra.notify.founder-email}")` in landing's `MailgunNotificationServiceImpl` (e.g. `${tnra.notify.founder-email:tnra@dogeared.dev}`).
 - **Why:** It's the only notify `@Value` with no default, so a missing/mis-named env var (Spring relaxed binding expects `TNRA_NOTIFY_FOUNDER_EMAIL`) takes the whole landing context down at startup instead of degrading gracefully. This bit us in local dev when docker-compose set `TNRA_FOUNDER_EMAIL` — fixed the env var name, but the brittle binding remains.
 - **Effort:** XS (CC: ~5 min)
 - **Context:** Do this on the module/parent-pom branch alongside config consolidation. Consider also splitting the nginx `include /etc/nginx/sites/*.conf` so provisioned-tenant confs (`tnra1.conf`, `tnra2.conf`) live in a separate dir from the dev stack — stray tenant upstreams currently crash the dev `proxy`. Those two confs are parked in `nginx/sites-disabled/`.
 
-### Slack Integration — Part 2: Stats and Full-Post Tiers
+### ~~Slack Integration — Part 2: Stats and Full-Post Tiers~~ ✓ Completed v8.3.0 (group master toggle + body/stats tiers, per-member opt-in)
 Extend Part 1 with two additional admin-selectable content tiers: stats-only (username + stat values, no narrative text) and full-post (all post sections, decrypted at send time). Admin selects tier per group.
 - **Why:** Groups that are comfortable with the trade-off can opt into richer Slack notifications.
 - **Effort:** S-M (human: ~2 days / CC: ~20 min)
@@ -86,33 +141,22 @@ One-click admin action to gift-cover every not-yet-covered member at once (vs gi
   member under the payer's card. Deferred from v1 because one-at-a-time gifting already delivers the
   capability; this is pure convenience.
 
-### Billing — Lemon Squeezy-side "already subscribed" check at checkout
-Before creating a checkout, query the Lemon Squeezy API for an existing active subscription for the
-member's email and warn/short-circuit if found — a second layer on top of the local duplicate-charge
-guard already in `CheckoutService`.
-- **Why:** The local guard reads our own DB, which is authoritative in steady state. It can't catch a
-  case where our DB diverged from LS (e.g. webhooks were down so the account still shows PENDING while
-  LS already has a paid subscription) — exactly the situation that let a member double-charge during
-  local testing. An LS-side lookup closes that gap.
+### Billing — Paddle-side "already subscribed" check at checkout
+Before creating a self-pay checkout, ask Paddle whether the member's email already has a live subscription
+and short-circuit with the same 409 the local duplicate-charge guard in `CheckoutService` uses.
+- **Why:** The local guard reads our own DB, which is authoritative in steady state. It can't catch a case
+  where our DB diverged from Paddle (e.g. webhooks were down so the account still shows PENDING while
+  Paddle already has a paid subscription) — exactly the situation that allowed a double charge during local
+  testing. A provider-side lookup closes that gap. (Originally written for Lemon Squeezy; billing moved to
+  Paddle in 10.1.0.)
 - **Effort:** S (human: ~half day / CC: ~20 min)
-- **Depends on:** Billing shipped. Deferred post-launch — the local guard covers normal operation, and
-  this adds an LS API call (+ latency, + failure handling) on every checkout.
-- **Context:** `LemonSqueezyClient` — add a lookup (e.g. `GET /v1/subscriptions?filter[user_email]=…&
-  filter[store_id]=…`, status active/on_trial). `CheckoutService.createCheckout` calls it for self-pay
-  and returns 409 (same shape the local guard uses) if a live subscription exists. Fail OPEN if LS is
-  unreachable so a central LS outage can't block legitimate new signups.
-
-### Self-serve onboarding — leader signup → pay → auto-provision
-Turn group creation from a CLI operation into a self-serve flow: a leader signs up on the landing site,
-pays, and a group is provisioned automatically (DB + Keycloak realm + subdomain), no CLI step.
-- **Why:** This is the confirmed product goal (self-serve growth). The billing app is its foundation;
-  this is the next platform bet that makes groups onboard without the founder touching the CLI.
-- **Effort:** L (human: ~1-2 weeks / CC: ~hours)
-- **Depends on:** `tnra-billing-app` shipped; provisioning logic (currently in tnra-cli-app) made callable
-  as a service. Likely needs a runtime group registry (the central app already introduces one).
-- **Context:** See CEO plan `~/.gstack/projects/dogeared-tnra/ceo-plans/2026-06-14-billing-monetization.md`.
-  The hard part is automating what `ProvisionCommand` does today (templating + DB/realm/nginx creation)
-  triggered by a successful first payment, safely and idempotently.
+- **Depends on:** Billing shipped. Adds one or two Paddle API calls (+ latency, + failure handling) on
+  every self-pay checkout.
+- **Context:** Paddle has no email filter on subscriptions: `GET /customers?email=<email>` → customer ids,
+  then `GET /subscriptions?customer_id=<ids>&status=active,trialing,past_due`. Add
+  `PaymentProviderClient.hasLiveSubscription(email)`; `CheckoutService.createCheckout` calls it for
+  self-pay only (gifts keep the entitlement check) and returns 409. Fail OPEN if Paddle is unreachable or
+  errors, so a Paddle outage can't block legitimate new signups; log at WARN.
 
 ### Demo site — seeded, self-resetting public sandbox
 A normal TNRA group set up as a public demo: seeded with realistic dummy data and reset on a schedule
@@ -144,7 +188,7 @@ on securityheaders.com.
   the same way (the Cloudflare tunnel hides the HTTPS scheme from the origin). Test the login flow and a
   member session after, then re-scan a group subdomain.
 
-### Revisit `.gitignore` rule for `application.properties`
+### ~~Revisit `.gitignore` rule for `application.properties`~~ ✓ Completed v10.6.1 (option a)
 `.gitignore` ignores `application.properties` (to protect runtime secrets), but every module's
 TEST config lives in `src/test/resources/application.properties` and must be `git add -f`'d to commit
 (tnra-app and tnra-billing-app both do this). Easy to forget; `git add .` silently skips it.
@@ -159,7 +203,7 @@ TEST config lives in `src/test/resources/application.properties` and must be `gi
   commit. Apply consistently across tnra-app + tnra-billing-app (+ any future module).
 - **Context:** Touches `.gitignore` and the two committed test `application.properties` files.
 
-### Rename `BILLING_PORT` to `TNRA_BILLING_PORT`
+### ~~Rename `BILLING_PORT` to `TNRA_BILLING_PORT`~~ ✓ Completed v10.6.1 (old name still read as a fallback)
 The billing service's host-port override in `docker-compose.production.yml` is `BILLING_PORT`, while
 the landing site's is `TNRA_LANDING_PORT`. Rename it so every host-port override follows the same
 `TNRA_<service>_PORT` pattern.

@@ -139,7 +139,7 @@ host needs:
 |---|---|---|
 | (blank), www | `http://localhost:8081` | `TNRA_LANDING_PORT` in `.env` (default 8081) |
 | auth | `http://localhost:8180` | fixed in `docker-compose.production.yml` |
-| billing | `http://localhost:8082` | `BILLING_PORT` in `.env` (default 8082) |
+| billing | `http://localhost:8082` | `TNRA_BILLING_PORT` in `.env` (default 8082) |
 | `<group-name>` | `http://localhost:<port>` | `ports:` in `provision/<group-name>/docker-compose.yml` |
 
 A route that names a container (`http://tnra-billing:8082`) under a host-level tunnel answers
@@ -576,9 +576,9 @@ In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** 
 | Subdomain | Domain | Service |
 |---|---|---|
 | billing | tnra.app | `http://tnra-billing:8082` (compose-managed `cloudflared`) |
-| billing | tnra.app | `http://localhost:<BILLING_PORT>` (host-level `cloudflared`, see [the tunnel section](#if-cloudflared-runs-on-the-host-instead-of-in-docker)) |
+| billing | tnra.app | `http://localhost:<TNRA_BILLING_PORT>` (host-level `cloudflared`, see [the tunnel section](#if-cloudflared-runs-on-the-host-instead-of-in-docker)) |
 
-Pick the row that matches how the tunnel runs on this host; `<BILLING_PORT>` is the host port from
+Pick the row that matches how the tunnel runs on this host; `<TNRA_BILLING_PORT>` is the host port from
 `.env` (default 8082). If a stale `billing` DNS record already exists (for example from an earlier
 provider's custom domain), delete it first or the dashboard will not create the tunnel CNAME.
 
