@@ -1727,6 +1727,7 @@ class ProfileViewTest {
         assertFalse(profileView.billingUpdatePaymentButton.isVisible(), "nothing of their own in Paddle");
         assertFalse(profileView.billingManageButton.isVisible());
         assertFalse(profileView.billingCancelButton.isVisible());
+        assertFalse(profileView.paddleInfo.isVisible(), "no Paddle involvement for a covered group");
         verify(billing, never()).subscription(anyString());
     }
 
@@ -1751,6 +1752,21 @@ class ProfileViewTest {
         assertFalse(profileView.giftSection.isVisible());
         assertTrue(profileView.coveringSection.isVisible(), "gifts they still pay for are listed so they can stop them");
         assertTrue(profileView.coveringNote.contains("no longer needed"));
+        assertTrue(profileView.paddleInfo.isVisible(), "Paddle is still in the picture: they still pay");
+    }
+
+    @Test
+    void coveredGroup_onlyGifting_stillShowsPaddleInfo() {
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(true, "PENDING_PAYMENT", null, "GROUP_EXEMPT"));
+        when(billing.covering("me@x.com")).thenReturn(List.of(new BillingClient.CoveredMember("ben@x.com", "ACTIVE", null)));
+        profileView = coveredProfile(billing);
+
+        profileView.applyBillingTabState();
+
+        assertFalse(profileView.billingCancelButton.isVisible(), "no subscription of their own");
+        assertTrue(profileView.coveringSection.isVisible());
+        assertTrue(profileView.paddleInfo.isVisible(), "they still pay for someone — Paddle emails still apply");
     }
 
     @Test
@@ -1768,5 +1784,18 @@ class ProfileViewTest {
         String plain = ProfileView.membershipBlurb(new BillingClient.Entitlement(true, "ACTIVE", null, "SUBSCRIPTION"),
             Optional.empty(), null, dec12);
         assertFalse(plain.contains("covered by your group"), plain);
+    }
+
+    @Test
+    void poweredByPaddle_shownWhenPaymentApplies() {
+        BillingClient billing = mock(BillingClient.class);
+        when(billing.entitlement("me@x.com")).thenReturn(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null, "NOT_ENTITLED"));
+        when(billing.covering("me@x.com")).thenReturn(List.of());
+        profileView = coveredProfile(billing); // same construction; the entitlement decides
+
+        profileView.applyBillingTabState();
+
+        assertTrue(profileView.paddleInfo.isVisible());
+        assertTrue(profileView.billingPayButtons.isVisible());
     }
 }

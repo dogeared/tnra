@@ -114,6 +114,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     TabSheet tabs;                // package-private for testing
     Tab billingTab;               // null when billing is off
     VerticalLayout giftSection;   // hidden for a covered (exempt) group — nothing to gift
+    PaddleInfoLink paddleInfo;    // \"Powered by Paddle\" — only where payment applies
     Button billingCancelButton;   // self-pay, live, no cancel scheduled
     Button billingKeepButton;     // self-pay, cancel scheduled → undo
     MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
@@ -246,9 +247,10 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         HorizontalLayout manageButtons = new HorizontalLayout(
             billingUpdatePaymentButton, billingManageButton, billingKeepButton, billingCancelButton);
         manageButtons.getStyle().set("flex-wrap", "wrap");
+        paddleInfo = new PaddleInfoLink();
 
         VerticalLayout section = new VerticalLayout(
-            billingTitle, billingBlurb, billingPayButtons, manageButtons);
+            billingTitle, billingBlurb, billingPayButtons, manageButtons, paddleInfo);
         section.setPadding(false);
         section.setSpacing(true);
         return section;
@@ -425,7 +427,12 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         giftContinueButton.setEnabled(false); // re-enabled by the combo listener once a member is picked
         giftDisabledNotice.setVisible(!ent.entitled());
 
-        populateCoveringSection(currentUser.getEmail());
+        boolean coveringAnyone = populateCoveringSection(currentUser.getEmail());
+
+        // "Powered by Paddle" whenever Paddle is actually in the picture for THIS member: they're expected to
+        // pay, or they still have a paid subscription on file (Update payment method / Keep / Cancel), or
+        // they're still paying for someone else's — regardless of the group's exempt setting.
+        paddleInfo.setVisible(!covered || selfPayLive || coveringAnyone);
     }
 
     /**
@@ -437,16 +444,17 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     String coveringNote = "Stopping a gift ends it at the close of the period you've already paid for — "
         + "the member keeps access until then.";
 
-    private void populateCoveringSection(String email) {
+    /** @return true when the member is paying for at least one other member's membership. */
+    private boolean populateCoveringSection(String email) {
         coveringSection.removeAll();
         coveringSection.setVisible(false);
         if (email == null) {
-            return;
+            return false;
         }
         try {
             List<BillingClient.CoveredMember> covered = billingClient.get().covering(email);
             if (covered.isEmpty()) {
-                return;
+                return false;
             }
             coveringSection.add(new H3("Members you're covering"));
             for (BillingClient.CoveredMember m : covered) {
@@ -454,8 +462,10 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
             }
             coveringSection.add(new Paragraph(coveringNote));
             coveringSection.setVisible(true);
+            return true;
         } catch (Exception e) {
             // Non-critical: if the covering list can't load, just leave it hidden.
+            return false;
         }
     }
 

@@ -42,6 +42,7 @@ public class MembershipPrompt extends VerticalLayout {
     final Button yearlyButton = new Button("Pay $60 / year", e -> startCheckout("yearly"));
     final HorizontalLayout payButtons = new HorizontalLayout(monthlyButton, yearlyButton);
     final Button manageButton = new Button("Manage subscription", e -> openPortal());
+    final PaddleInfoLink paddleInfo = new PaddleInfoLink();
 
     public MembershipPrompt(BillingClient billingClient, String email, String baseUrl) {
         this.billingClient = billingClient;
@@ -53,7 +54,7 @@ public class MembershipPrompt extends VerticalLayout {
         setSpacing(true);
         monthlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
         yearlyButton.addThemeVariants(ButtonVariant.LUMO_PRIMARY);
-        add(new Hr(), title, blurb, payButtons, manageButton);
+        add(new Hr(), title, blurb, payButtons, manageButton, paddleInfo);
         setVisible(false); // until refresh() says there's something to do
     }
 
