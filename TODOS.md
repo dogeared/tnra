@@ -174,6 +174,28 @@ the landing site's is `TNRA_LANDING_PORT`. Rename it so every host-port override
   `.env` gets updated at deploy time. Host port only — the in-network address stays
   `http://tnra-billing:8082`.
 
+### Move production `cloudflared` from the host into Docker
+Production (.104) runs `cloudflared` as a host-level systemd service (`cloudflared.service`), so every
+tunnel route must target a `127.0.0.1`-published host port (`http://localhost:8081`, `:8180`, `:8086`,
+per-group ports). Run it as the compose-managed `cloudflared` container instead, on the `tnra-shared`
+network, so routes can use container names (`http://tnra-landing:8080`, `http://keycloak:8080`,
+`http://tnra-billing:8082`, `http://tnra-<group>:8080`) and host-port juggling (see the
+`BILLING_PORT` rename above) stops mattering.
+- **Why:** The runbook, `tnra.start.sh` and `docker-compose.production.yml` all assume the container
+  tunnel; the host-level service was a one-off that is now a documented divergence
+  (`PRODUCTION.cloudflare.md`, host-level subsection). It also means every tunnel route silently
+  depends on a host port that `.env` can change. Found during the 10.4.5 billing rollout, where
+  `http://tnra-billing:8082` returned 502 until the route was pointed at `localhost:8086`.
+- **Effort:** S (human: ~1 hour, mostly a maintenance window / CC: ~10 min for docs)
+- **Context / cutover:** (1) put `CLOUDFLARE_TUNNEL_TOKEN` (the same tunnel's token, from the
+  systemd unit's command line) into `~/tnra/.env`; (2) `docker compose -f docker-compose.production.yml
+  --profile cloudflare up -d cloudflared` — the dashboard shows two connectors briefly; (3) in Zero Trust
+  → Public Hostname, change every route's service to the container form above; (4) `systemctl disable
+  --now cloudflared` and remove the unit; (5) verify apex/www, auth, every group subdomain and
+  `billing.tnra.app/actuator/health`. From then on `tnra.start.sh` restarts the tunnel on boot because
+  the token is in `.env`. Afterwards the host port mappings for landing/billing can go back to defaults
+  and the host-level subsection of the runbook can shrink to a one-line note.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast
