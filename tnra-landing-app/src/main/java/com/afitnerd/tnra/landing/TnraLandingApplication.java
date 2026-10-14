@@ -1,10 +1,14 @@
 package com.afitnerd.tnra.landing;
 
+import com.vaadin.flow.component.dependency.StyleSheet;
 import com.vaadin.flow.component.page.AppShellConfigurator;
+import com.vaadin.flow.theme.lumo.Lumo;
 import com.vaadin.flow.server.AppShellSettings;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
+// Vaadin 25 applies no theme unless asked; the landing site's styles layer on top of Lumo.
+@StyleSheet(Lumo.STYLESHEET)
 @SpringBootApplication
 public class TnraLandingApplication implements AppShellConfigurator {
 

@@ -22,8 +22,12 @@ import java.util.TimeZone;
 
 @SpringBootApplication
 @EnableAsync
-// Vaadin 25 no longer loads the Lumo utility classes (LumoUtility.*) automatically.
-@StyleSheet(Lumo.UTILITY_STYLESHEET)
+// Vaadin 25 applies NO theme unless the app shell asks for one: without Lumo.STYLESHEET components render
+// with their base styles (tertiary buttons black instead of the primary colour, error buttons not red, …).
+// Lumo first, then our own @CssImport overrides on top. Deliberately NOT Lumo.UTILITY_STYLESHEET: this app
+// never loaded the utility classes under Vaadin 24 (no theme.json), so the layout people know was built
+// without them — loading them in 10.4.0 shifted the header by 16px.
+@StyleSheet(Lumo.STYLESHEET)
 public class TnraApplication implements AppShellConfigurator {
 
     @Value("${application.timezone:UTC}")

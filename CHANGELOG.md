@@ -2,6 +2,13 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.4.1] - 2026-10-13
+
+### Fixed
+- **Lumo theme was not applied under Vaadin 25.** Vaadin 25 loads no theme unless the app shell declares one; the upgrade only added Lumo's *utility* stylesheet, so components rendered with their base styles — most visibly the stat reorder arrows and archive buttons on the admin Stats Config tab (black instead of the primary green / error red), and the same controls on the Profile "My Stats" tab. Both app shells now declare `@StyleSheet(Lumo.STYLESHEET)` ahead of the app's own CSS.
+- **Header shifted 16px right versus production.** `MainLayout` had carried Lumo utility classes (`px-m`, `py-0`, and flex/gap classes on the drawer) that never took effect under Vaadin 24 because this app never loaded the utility stylesheet; 10.4.0 added `Lumo.UTILITY_STYLESHEET` and switched them on. The utility stylesheet is no longer loaded and the dead class references are removed, so header and drawer spacing come from `theme.css` exactly as before (measured: hamburger at 8px, wordmark at 60px, matching production).
+- **Dev-mode only:** Vaadin 25 gates its dev tools on the client *address*, so through the nginx dev proxy the browser console showed "Dev tools functionality denied for this host". The config samples now allow the private ranges (`vaadin.devmode.hostsAllowed`). Don't pair it with `remoteAddressHeader` in this app: `forward-headers-strategy=native` makes Tomcat consume `X-Forwarded-For`, so a header check sees null and denies.
+
 ## [10.4.0] - 2026-10-13
 
 Platform upgrade: **Spring Boot 3.5.11 → 4.1.1** (Spring Framework 7, Spring Security 7, Hibernate 7, Jackson 3) and **Vaadin 24.9 → 25.3.2**. No functional changes intended; all 1005 tests pass and the dev site was re-verified end to end (OIDC login, uploads, Paddle checkout page + CSP, billing JSON, signed webhooks).

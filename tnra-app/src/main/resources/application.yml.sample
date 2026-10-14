@@ -58,7 +58,12 @@ vaadin:
   pnpm:
     enable: false
   devmode:
-    hostsAllowed: tnra.afitnerd.local
+    # Vaadin 25 gates the dev tools on the CLIENT address (not the Host header). Through the nginx dev
+    # proxy + Docker Desktop's NAT the client is a private-range address, so allow the private ranges.
+    # Do NOT set devmode.remoteAddressHeader here: server.forward-headers-strategy=native makes Tomcat
+    # resolve X-Forwarded-For into the remote address and strip the header, so a header check sees null
+    # and denies. Dev only — this block is not in production config.
+    hostsAllowed: localhost,127.0.0.1,10.*,172.*,192.168.*
 logging:
   level:
     org.springframework.security: WARN
