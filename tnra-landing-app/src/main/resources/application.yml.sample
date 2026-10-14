@@ -35,6 +35,11 @@ server:
 
 vaadin:
   productionMode: false
+  devmode:
+    # Vaadin 25 gates the dev tools on the CLIENT address (not the Host header). Through the nginx dev
+    # proxy + Docker Desktop's NAT the client is a private-range address, so allow the private ranges.
+    # Dev only — this block is not in production config.
+    hostsAllowed: localhost,127.0.0.1,10.*,172.*,192.168.*
 
 tnra:
   notify:
