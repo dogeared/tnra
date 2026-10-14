@@ -113,6 +113,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     Button billingManageButton;
     TabSheet tabs;                // package-private for testing
     Tab billingTab;               // null when billing is off
+    VerticalLayout giftSection;   // hidden for a covered (exempt) group — nothing to gift
     Button billingCancelButton;   // self-pay, live, no cancel scheduled
     Button billingKeepButton;     // self-pay, cancel scheduled → undo
     MembershipPrompt membershipPrompt; // package-private for testing; below the tabs, shown only when not entitled
@@ -212,8 +213,9 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         coveringSection.setSpacing(false);
         coveringSection.setVisible(false); // populated lazily in applyBillingTabState()
 
+        giftSection = createGiftSection();
         VerticalLayout tab = new VerticalLayout(
-            createMembershipSection(), new Hr(), createGiftSection(), coveringSection);
+            createMembershipSection(), new Hr(), giftSection, coveringSection);
         tab.setPadding(true);
         tab.setSpacing(true);
         return tab;
@@ -375,10 +377,14 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         }
         BillingClient.Entitlement ent = billingClient.get().entitlement(currentUser.getEmail());
 
-        // Membership options only when there's no active subscription (ACTIVE or dunning). "Update
-        // payment method" always stays visible.
+        // A covered group (exempt / comped) never needs to buy or gift anything here. The flag does NOT
+        // cancel real subscriptions, though — anyone still paying must be told and be able to stop.
+        boolean covered = ent.covered();
+
+        // Membership options only when there's no active subscription (ACTIVE or dunning) and the member
+        // isn't covered anyway.
         boolean hasLiveSubscription = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
-        billingPayButtons.setVisible(!hasLiveSubscription);
+        billingPayButtons.setVisible(!hasLiveSubscription && !covered);
 
         // Reflect the member's actual state in the blurb: active (and, if so, gifted by whom, through when,
         // next charge / scheduled cancellation — live from the provider, only when the tab is open) vs.
@@ -398,10 +404,19 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         boolean cancelScheduled = sub.map(BillingClient.Subscription::cancelScheduled).orElse(false);
         billingCancelButton.setVisible(selfPayLive && !cancelScheduled);
         billingKeepButton.setVisible(selfPayLive && cancelScheduled);
-        billingUpdatePaymentButton.setVisible(!gifted);
-        billingManageButton.setVisible(!gifted);
+        // Card / invoices only make sense with a subscription of your own; for a covered member that is
+        // only the case if they are still paying for one.
+        billingUpdatePaymentButton.setVisible(!gifted && (!covered || selfPayLive));
+        billingManageButton.setVisible(!gifted && (!covered || selfPayLive));
 
         // Gift section: list every other active member; enabled only when the member is entitled.
+        // Hidden entirely for a covered group — everyone already has access.
+        giftSection.setVisible(!covered);
+        coveringNote = covered
+            ? "Your group covers memberships now, so these gifts are no longer needed — you can stop paying for "
+              + "them below. Each ends at the close of the period you've already paid for."
+            : "Stopping a gift ends it at the close of the period you've already paid for — "
+              + "the member keeps access until then.";
         List<User> others = userService.getAllActiveUsers().stream()
             .filter(u -> u.getEmail() != null && !u.getEmail().equalsIgnoreCase(currentUser.getEmail()))
             .toList();
@@ -418,6 +433,10 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
      * no one. Rebuilt from scratch each refresh — cheap (a handful of rows), and keeps state simple.
      * Managing/cancelling a specific gift happens in the Paddle portal via "Update payment method".
      */
+    /** Set by applyBillingTabState(): a covered group changes what stopping a gift means. */
+    String coveringNote = "Stopping a gift ends it at the close of the period you've already paid for — "
+        + "the member keeps access until then.";
+
     private void populateCoveringSection(String email) {
         coveringSection.removeAll();
         coveringSection.setVisible(false);
@@ -433,9 +452,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
             for (BillingClient.CoveredMember m : covered) {
                 coveringSection.add(coveringRow(m));
             }
-            coveringSection.add(new Paragraph(
-                "Stopping a gift ends it at the close of the period you've already paid for — "
-                + "the member keeps access until then."));
+            coveringSection.add(new Paragraph(coveringNote));
             coveringSection.setVisible(true);
         } catch (Exception e) {
             // Non-critical: if the covering list can't load, just leave it hidden.
@@ -538,6 +555,27 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     static String membershipBlurb(BillingClient.Entitlement ent, Optional<BillingClient.Subscription> sub,
                                   String gifter, LocalDate today) {
         boolean live = "ACTIVE".equals(ent.status()) || "ON_GRACE_PERIOD".equals(ent.status());
+        if (ent.covered()) {
+            StringBuilder text = new StringBuilder(
+                "Your membership is covered by your group — no payment is needed.");
+            if (live && gifter != null) {
+                text.append(" (").append(gifter).append(" is still paying for a gift membership for you; "
+                    + "they can stop it from their own Billing tab.)");
+            } else if (live) {
+                text.append(" You still have a paid subscription on file");
+                sub.ifPresent(s -> {
+                    if (s.cancelScheduled()) {
+                        text.append(" — already cancelled, it ends ").append(LONG_DATE.format(s.cancelAt()));
+                    } else if (s.nextBilledAt() != null) {
+                        text.append(" — next charge ").append(LONG_DATE.format(s.nextBilledAt()));
+                    } else if (s.paidThrough() != null) {
+                        text.append(" — paid through ").append(LONG_DATE.format(s.paidThrough()));
+                    }
+                });
+                text.append(". Since your group covers memberships, you can cancel it below and keep your access.");
+            }
+            return text.toString();
+        }
         if (!live) {
             return "Activate your membership to access posts, stats, and the call chain. "
                 + "Choose monthly or yearly — you can change or cancel anytime.";

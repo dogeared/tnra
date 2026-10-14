@@ -38,7 +38,19 @@ public interface BillingClient {
      * {@code payerEmail} is who pays for this member — null for self-pay, set when their membership is a
      * gift from that person.
      */
-    record Entitlement(boolean entitled, String status, String payerEmail) {}
+    /**
+     * @param reason why (GROUP_EXEMPT, MEMBER_EXEMPT, GROUP_TRIAL, MEMBER_COMP, SUBSCRIPTION, NOT_ENTITLED);
+     *               null when unknown
+     */
+    record Entitlement(boolean entitled, String status, String payerEmail, String reason) {
+        public Entitlement(boolean entitled, String status, String payerEmail) {
+            this(entitled, status, payerEmail, null);
+        }
+        /** The group (or this member) is comped: access without paying, regardless of subscriptions. */
+        public boolean covered() {
+            return "GROUP_EXEMPT".equals(reason) || "MEMBER_EXEMPT".equals(reason);
+        }
+    }
 
     /**
      * Create a hosted checkout (self-pay when payerEmail == beneficiaryEmail, else a gift).

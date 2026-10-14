@@ -254,4 +254,18 @@ class BillingClientImplTest {
         assertEquals(java.time.Instant.parse("2026-12-12T20:03:10.560Z").atZone(java.time.ZoneId.systemDefault()).toLocalDate(), list.get(0).cancelAt());
         assertEquals(null, list.get(1).cancelAt());
     }
+
+    @Test
+    void entitlement_parsesReason_andCoveredMeansExempt() {
+        server.expect(requestTo(startsWith("https://billing.local/api/v1/entitlement")))
+            .andRespond(withSuccess("{\"entitled\":true,\"status\":\"ACTIVE\",\"reason\":\"GROUP_EXEMPT\"}", APPLICATION_JSON));
+
+        BillingClient.Entitlement e = client.entitlement("m@x.com");
+
+        assertEquals("GROUP_EXEMPT", e.reason());
+        assertTrue(e.covered());
+        assertFalse(new BillingClient.Entitlement(true, "ACTIVE", null, "SUBSCRIPTION").covered());
+        assertFalse(new BillingClient.Entitlement(true, "ACTIVE", null).covered());
+        assertTrue(new BillingClient.Entitlement(true, "ACTIVE", null, "MEMBER_EXEMPT").covered());
+    }
 }

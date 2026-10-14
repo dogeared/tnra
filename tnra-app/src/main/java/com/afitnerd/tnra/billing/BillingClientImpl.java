@@ -72,7 +72,8 @@ public class BillingClientImpl implements BillingClient {
             boolean entitled = resp != null && resp.path("entitled").asBoolean(false);
             String status = resp == null ? "" : resp.path("status").asText("");
             String payerEmail = resp == null ? null : emptyToNull(resp.path("payerEmail").asText(""));
-            return new Entitlement(entitled, status, payerEmail);
+            String reason = resp == null ? null : emptyToNull(resp.path("reason").asText(""));
+            return new Entitlement(entitled, status, payerEmail, reason);
         } catch (Exception e) {
             // Can't determine — report "not settled" so the gift can proceed; the billing service is the
             // authoritative guard (returns 409 on the actual checkout if the member is in fact covered).

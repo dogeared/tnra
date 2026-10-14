@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.4.2] - 2026-10-13
+
+### Fixed
+- **Billing tab for a covered (exempt) group.** Marking a group exempt (`group_billing.exempt`, the production "nobody pays" setting) entitles everyone, but it does not touch real Paddle subscriptions — and the Billing tab kept showing "cancelled through …", pay buttons for members without a subscription, and the gift section as if payment still mattered. The tab now leads with "Your membership is covered by your group — no payment is needed", hides buying and gifting, and, only for a member who is *still paying* (own subscription or gifts to others), says so with the next charge or end date and keeps Cancel membership / Stop covering so they can stop. A gifted member is told who is still paying for them. Entitlement responses now carry the `reason` (GROUP_EXEMPT, SUBSCRIPTION, …) in the group app's client.
+
 ## [10.4.1] - 2026-10-13
 
 ### Fixed
