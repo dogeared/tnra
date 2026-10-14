@@ -6,7 +6,7 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-cli</artifactId>
-    <version>10.6.5</version>
+    <version>10.6.6</version>
     <packaging>jar</packaging>
 
     <name>tnra-cli</name>

@@ -912,6 +912,28 @@ class AdminViewTest {
     }
 
     @Test
+    void integrationsTabHasACollapsedSlackSetupGuide_withTheRealSteps() {
+        when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
+        when(groupSettingsService.getSettings()).thenReturn(new GroupSettings());
+        AdminView view = new AdminView(vaadinAdminPresenter, callChainPresenter, statDefinitionRepository, personalStatDefinitionRepository, userService, groupSettingsService, postDataExportService);
+
+        VerticalLayout integrationsTab = view.createIntegrationsTabContent();
+
+        com.vaadin.flow.component.details.Details guide = view.slackSetupGuide;
+        assertNotNull(guide);
+        assertTrue(integrationsTab.getChildren().anyMatch(c -> c == guide), "guide sits in the Integrations tab");
+        assertFalse(guide.isOpened(), "collapsed by default — a configured group shouldn't see setup steps every visit");
+        assertEquals("How to set up the Slack webhook", guide.getSummaryText());
+        String text = guide.getContent().map(c -> c.getElement().getTextRecursively())
+            .reduce("", (a, b) -> a + " " + b);
+        assertTrue(text.contains("Incoming Webhooks"), "names Slack's feature");
+        assertTrue(text.contains("https://hooks.slack.com/services/"), "tells them what the URL looks like");
+        assertTrue(text.contains("stored encrypted"), "storage note");
+        assertTrue(text.contains("Require publishing"), "explains the toggles");
+        assertTrue(text.contains("Slack's own guide"), "links Slack's docs");
+    }
+
+    @Test
     void integrationsTabContentLoadsWithExistingSettings() {
         when(callChainPresenter.getCurrentGoToGuySet()).thenReturn(sampleSet());
         GroupSettings settings = new GroupSettings();

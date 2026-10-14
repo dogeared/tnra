@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.6] - 2026-10-14
+
+### Added
+- **Slack setup guide in the Admin panel.** Admin → Integrations now has a collapsed "How to set up the Slack webhook" section above the URL field: the four steps of Slack's Incoming Webhooks flow (create app → activate incoming webhooks → add to a channel → copy the `https://hooks.slack.com/services/…` URL), what the URL looks like, that it's stored encrypted and only `hooks.slack.com` is ever called, what the activity line contains versus what the publishing toggles add (and how "Require" overrides a member's own Profile choice), how to stop, and a link to Slack's own documentation.
+
 ## [10.6.5] - 2026-10-14
 
 ### Added

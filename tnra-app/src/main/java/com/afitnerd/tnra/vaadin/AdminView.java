@@ -18,6 +18,7 @@ import com.vaadin.flow.component.checkbox.Checkbox;
 import com.vaadin.flow.component.combobox.ComboBox;
 import com.vaadin.flow.component.datepicker.DatePicker;
 import com.vaadin.flow.component.dependency.CssImport;
+import com.vaadin.flow.component.details.Details;
 import com.vaadin.flow.component.html.Anchor;
 import com.vaadin.flow.component.dialog.Dialog;
 import com.vaadin.flow.component.formlayout.FormLayout;
@@ -25,6 +26,9 @@ import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.html.Div;
 import com.vaadin.flow.component.html.H2;
 import com.vaadin.flow.component.html.H3;
+import com.vaadin.flow.component.html.ListItem;
+import com.vaadin.flow.component.html.OrderedList;
+import com.vaadin.flow.component.html.UnorderedList;
 import com.vaadin.flow.component.html.Paragraph;
 import com.vaadin.flow.component.html.Span;
 import com.vaadin.flow.component.icon.VaadinIcon;
@@ -495,6 +499,8 @@ public class AdminView extends VerticalLayout {
         H3 slackHeader = new H3("Slack");
         slackHeader.addClassName("section-header");
 
+        slackSetupGuide = buildSlackSetupGuide();
+
         GroupSettings settings = groupSettingsService.getSettings();
 
         TextField webhookUrlField = new TextField("Incoming Webhook URL");
@@ -570,12 +576,51 @@ public class AdminView extends VerticalLayout {
         });
 
         content.add(
-            header, description, slackHeader, webhookUrlField, enabledCheckbox,
+            header, description, slackHeader, slackSetupGuide, webhookUrlField, enabledCheckbox,
             publishHeader, publishDescription, encryptionWarning,
             publishPostDataCheckbox, publishStatsCheckbox, publishPostBodyCheckbox,
             saveBtn
         );
         return content;
+    }
+
+    /** Collapsed walkthrough of Slack's "Incoming Webhooks" flow; package-private for testing. */
+    Details slackSetupGuide;
+
+    /**
+     * The webhook is created in Slack's own UI, not here — without directions admins stall or paste the
+     * wrong value. Collapsed by default so a configured group isn't shown setup steps every visit.
+     */
+    Details buildSlackSetupGuide() {
+        OrderedList steps = new OrderedList(
+            new ListItem("In Slack, open api.slack.com/apps and choose Create New App → From scratch. "
+                + "Name it (for example \"TNRA\") and pick your workspace."),
+            new ListItem("In the app's settings open Incoming Webhooks and switch Activate Incoming Webhooks on."),
+            new ListItem("Click Add New Webhook to Workspace, choose the channel your group's posts should go to, "
+                + "and click Allow."),
+            new ListItem("Copy the Webhook URL — it starts with https://hooks.slack.com/services/ — paste it into "
+                + "the field below, tick Enable Slack notifications, and save."));
+
+        UnorderedList notes = new UnorderedList(
+            new ListItem("The URL is stored encrypted in your group's database, the same way post content is, "
+                + "and only an address on hooks.slack.com will ever be called."),
+            new ListItem("With content publishing off, each finished post sends one line: who, when they started "
+                + "and finished, and a link that requires signing in. Nothing from the post itself."),
+            new ListItem("\"Publish post data\" allows content. \"Require publishing stats / post body\" then sends "
+                + "it for everyone; leave those unticked and each member decides on their own Profile."),
+            new ListItem("To stop: untick Enable Slack notifications here, or delete the webhook in Slack."));
+
+        Anchor slackDocs = new Anchor("https://api.slack.com/messaging/webhooks", "Slack's own guide to incoming webhooks");
+        slackDocs.setTarget("_blank");
+
+        Paragraph notesLead = new Paragraph("Good to know:");
+        notesLead.addClassName("admin-subtitle");
+
+        Details details = new Details("How to set up the Slack webhook",
+            new VerticalLayout(steps, notesLead, notes, slackDocs));
+        details.setOpened(false);
+        details.setWidthFull();
+        return details;
     }
 
     // ========================
