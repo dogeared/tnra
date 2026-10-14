@@ -49,6 +49,8 @@ tnra:
   notify:
     founder-email: ${TNRA_FOUNDER_EMAIL:tnra@dogeared.dev}
     enabled: ${TNRA_NOTIFY_ENABLED:true}
+    # Sender. Keep it on the Mailgun sending domain in mailgun.url (DMARC alignment), else it lands in spam.
+    from: ${TNRA_NOTIFY_FROM:tnra-landing@tnra.app}
   # Optional HTTP Basic gate over the whole site. Default off (public). Set
   # enabled=true plus username/password to password-protect a production deploy
   # for private review before launch. Enabling without credentials fails fast.

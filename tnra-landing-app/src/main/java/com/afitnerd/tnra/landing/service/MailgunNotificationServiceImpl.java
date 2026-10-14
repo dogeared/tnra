@@ -31,6 +31,14 @@ public class MailgunNotificationServiceImpl implements MailgunNotificationServic
     @Value("${tnra.notify.enabled:true}")
     private boolean notifyEnabled;
 
+    /**
+     * Sender address. Keep it on (or under) the Mailgun sending domain named in {@code mailgun.url}:
+     * SPF/DKIM are signed for that domain, and a From on a different domain fails DMARC alignment and
+     * lands in spam. Defaults to the historical value; override with {@code TNRA_NOTIFY_FROM}.
+     */
+    @Value("${tnra.notify.from:tnra-landing@tnra.app}")
+    private String fromAddress;
+
     @Override
     public void notifyFounder(RequestAccess request) {
         if (!notifyEnabled || mailgunUrl.isBlank() || mailgunPrivateKey.isBlank()) {
@@ -38,15 +46,8 @@ public class MailgunNotificationServiceImpl implements MailgunNotificationServic
             return;
         }
 
-        String body = buildBody(request);
-
         try {
-            HttpEntity entity = MultipartEntityBuilder.create()
-                .addTextBody("from", "tnra-landing@tnra.app")
-                .addTextBody("to", founderEmail)
-                .addTextBody("subject", "New TNRA access request: " + request.getGroupName())
-                .addTextBody("html", body, ContentType.create("text/html", StandardCharsets.UTF_8))
-                .build();
+            HttpEntity entity = buildEntity(request);
 
             Request.post(mailgunUrl)
                 .addHeader("Authorization", "Basic " +
@@ -58,6 +59,16 @@ public class MailgunNotificationServiceImpl implements MailgunNotificationServic
         } catch (IOException e) {
             log.error("Failed to send Mailgun notification for request from {}: {}", request.getEmail(), e.getMessage(), e);
         }
+    }
+
+    /** The multipart Mailgun message: from/to/subject + HTML body. Package-private for tests. */
+    HttpEntity buildEntity(RequestAccess request) {
+        return MultipartEntityBuilder.create()
+            .addTextBody("from", fromAddress)
+            .addTextBody("to", founderEmail)
+            .addTextBody("subject", "New TNRA access request: " + request.getGroupName())
+            .addTextBody("html", buildBody(request), ContentType.create("text/html", StandardCharsets.UTF_8))
+            .build();
     }
 
     private String buildBody(RequestAccess r) {
