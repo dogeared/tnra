@@ -53,6 +53,25 @@ jobs:
       - name: Run CLI tests
         run: cd tnra-cli-app && mvn --batch-mode test
 
+  production-build:
+    # The Vaadin production bundle (frontend build) is only exercised with -Pproduction,
+    # which the test suite never enables. Build it here so a frontend packaging regression
+    # fails the PR instead of the deploy.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build production jars (Vaadin frontend bundle)
+        run: ./mvnw --batch-mode -Pproduction -DskipTests package
+
   test:
     runs-on: ubuntu-latest
 

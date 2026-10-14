@@ -6,7 +6,7 @@
 
     <groupId>com.afitnerd</groupId>
     <artifactId>tnra-parent</artifactId>
-    <version>10.4.4</version>
+    <version>10.4.5</version>
     <packaging>pom</packaging>
 
     <name>TNRA</name>
