@@ -1798,4 +1798,37 @@ class ProfileViewTest {
         assertTrue(profileView.paddleInfo.isVisible());
         assertTrue(profileView.billingPayButtons.isVisible());
     }
+
+    // ---- "Cover everyone who isn't covered" ----
+
+    private static User member(String email) {
+        User u = new User();
+        u.setEmail(email);
+        u.setFirstName(email.substring(0, 1).toUpperCase());
+        u.setLastName("Z");
+        return u;
+    }
+
+    @Test
+    void uncoveredMembers_keepsOnlyThoseWithoutAnEntitlement() {
+        BillingClient client = org.mockito.Mockito.mock(BillingClient.class);
+        when(client.entitlement("a@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        when(client.entitlement("b@x.com")).thenReturn(new BillingClient.Entitlement(false, "PENDING_PAYMENT", null));
+        when(client.entitlement("c@x.com")).thenReturn(null); // defensive: a null answer counts as uncovered
+        when(client.entitlement("d@x.com")).thenReturn(new BillingClient.Entitlement(true, "ON_GRACE_PERIOD", null));
+
+        java.util.List<User> uncovered = ProfileView.uncoveredMembers(
+            java.util.List.of(member("a@x.com"), member("b@x.com"), member("c@x.com"), member("d@x.com")), client);
+
+        assertEquals(java.util.List.of("b@x.com", "c@x.com"), uncovered.stream().map(User::getEmail).toList());
+    }
+
+    @Test
+    void startCoverAll_withNoMembers_isANoOp_andWithMembersDoesNotThrowWithoutAUI() {
+        when(userService.getCurrentUser()).thenReturn(testUser);
+        profileView = new ProfileView(userService, fileStorageService, statDefinitionRepository, personalStatDefinitionRepository, groupSettingsService, postDataExportService, billingClient, "http://localhost:8080");
+
+        profileView.startCoverAll(java.util.List.of());
+        profileView.startCoverAll(java.util.List.of(member("b@x.com"), member("c@x.com"))); // no UI attached → navigate is skipped
+    }
 }

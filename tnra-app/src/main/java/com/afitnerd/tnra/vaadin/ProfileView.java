@@ -121,6 +121,7 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
     // Gift a membership section:
     ComboBox<User> giftRecipientCombo;
     Button giftContinueButton;
+    Button giftAllButton;         // "Cover everyone who isn't covered" — chained checkouts
     Paragraph giftDisabledNotice;
     // "Members you're covering" section (gifts you pay for):
     VerticalLayout coveringSection;
@@ -279,8 +280,17 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         giftContinueButton.setEnabled(false);
         giftContinueButton.addClickListener(e -> continueToGiftCheckout());
 
+        giftAllButton = new Button("Cover everyone who isn't covered", VaadinIcon.USERS.create());
+        giftAllButton.setEnabled(false);
+        giftAllButton.addClickListener(e -> confirmCoverAll());
+        Paragraph giftAllNote = new Paragraph(
+            "Or cover every member who doesn't have a membership yet. Each one is its own subscription "
+                + "(so you can stop any single one later), which means one quick checkout per member — "
+                + "you'll be taken from one to the next automatically.");
+        giftAllNote.addClassName("admin-subtitle");
+
         VerticalLayout section = new VerticalLayout(header, intro, giftDisabledNotice,
-            giftRecipientCombo, giftContinueButton);
+            giftRecipientCombo, giftContinueButton, giftAllNote, giftAllButton);
         section.setPadding(false);
         section.setSpacing(true);
         return section;
@@ -358,6 +368,56 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
         getUI().ifPresent(ui -> ui.navigate(BillingPortalView.class));
     }
 
+    /**
+     * "Cover everyone": find the other active members who are NOT entitled right now and, after a
+     * confirmation that names them, start the chained gift checkouts (see {@link BillingView#giftQueue}).
+     */
+    void confirmCoverAll() {
+        if (billingClient.isEmpty() || currentUser == null) {
+            return;
+        }
+        List<User> uncovered = uncoveredMembers(otherActiveMembers(), billingClient.get());
+        if (uncovered.isEmpty()) {
+            AppNotification.success("Everyone in your group already has a membership.");
+            return;
+        }
+        String names = uncovered.stream().map(ProfileView::recipientLabel)
+            .collect(java.util.stream.Collectors.joining(", "));
+        ConfirmDialog dialog = new ConfirmDialog(
+            "Cover " + uncovered.size() + (uncovered.size() == 1 ? " member?" : " members?"),
+            "You'll pay for: " + names + ". That's " + uncovered.size() + " checkout"
+                + (uncovered.size() == 1 ? "" : "s") + " in a row — pick monthly or yearly for each, and "
+                + "you'll be taken to the next one automatically. Close the checkout at any point to stop.",
+            "Start", e -> startCoverAll(uncovered), "Not now", e -> { });
+        dialog.setConfirmButtonTheme("primary");
+        dialog.open();
+    }
+
+    /** First member → {@code /billing?gift=…&queue=<the rest>}; the billing view walks the chain. */
+    void startCoverAll(List<User> uncovered) {
+        if (uncovered.isEmpty()) {
+            return;
+        }
+        List<String> emails = uncovered.stream().map(User::getEmail).toList();
+        getUI().ifPresent(ui -> ui.navigate("billing",
+            BillingView.giftParams(emails.get(0), emails.subList(1, emails.size()))));
+    }
+
+    /** Active members other than the current one — the gift candidates. */
+    List<User> otherActiveMembers() {
+        return userService.getAllActiveUsers().stream()
+            .filter(u -> u.getEmail() != null && !u.getEmail().equalsIgnoreCase(currentUser.getEmail()))
+            .toList();
+    }
+
+    /** Those of {@code members} who are not entitled right now (one entitlement call each; cached 60s). */
+    static List<User> uncoveredMembers(List<User> members, BillingClient client) {
+        return members.stream().filter(u -> {
+            BillingClient.Entitlement ent = client.entitlement(u.getEmail());
+            return ent == null || !ent.entitled();
+        }).toList();
+    }
+
     /** Navigate to the billing view in gift mode for the selected member. */
     void continueToGiftCheckout() {
         User recipient = giftRecipientCombo == null ? null : giftRecipientCombo.getValue();
@@ -419,11 +479,10 @@ public class ProfileView extends VerticalLayout implements BeforeEnterObserver {
               + "them below. Each ends at the close of the period you've already paid for."
             : "Stopping a gift ends it at the close of the period you've already paid for — "
               + "the member keeps access until then.";
-        List<User> others = userService.getAllActiveUsers().stream()
-            .filter(u -> u.getEmail() != null && !u.getEmail().equalsIgnoreCase(currentUser.getEmail()))
-            .toList();
+        List<User> others = otherActiveMembers();
         giftRecipientCombo.setItems(others);
         giftRecipientCombo.setEnabled(ent.entitled());
+        giftAllButton.setEnabled(ent.entitled());
         giftContinueButton.setEnabled(false); // re-enabled by the combo listener once a member is picked
         giftDisabledNotice.setVisible(!ent.entitled());
 

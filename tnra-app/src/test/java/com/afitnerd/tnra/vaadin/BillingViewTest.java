@@ -73,6 +73,21 @@ class BillingViewTest {
         return event;
     }
 
+    private BeforeEnterEvent giftEvent(String giftEmail, String queue) {
+        BeforeEnterEvent event = mock(BeforeEnterEvent.class);
+        when(event.getLocation()).thenReturn(
+            new Location("billing", QueryParameters.simple(Map.of("gift", giftEmail, "queue", queue))));
+        return event;
+    }
+
+    private User member(String email, String first) {
+        User u = new User();
+        u.setEmail(email);
+        u.setFirstName(first);
+        u.setLastName("Z");
+        return u;
+    }
+
     @Test
     void buildsPayAndUpdateButtonsWhenBillingEnabled() {
         BillingView view = view(mock(BillingClient.class), mock(UserService.class), "m@x.com");
@@ -353,5 +368,97 @@ class BillingViewTest {
         BillingView view = view(mock(BillingClient.class), mock(UserService.class), "m@x.com");
         assertNotNull(view.paddleInfo);
         assertTrue(view.getChildren().anyMatch(c -> c == view.paddleInfo));
+    }
+
+    // ---- "Cover everyone": chained gift checkouts ----
+
+    @Test
+    void giftChain_doneUrlIsTheNextMembersCheckout_withTheRemainingQueue() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("payer@x.com")).thenReturn(true);
+        UserService users = mock(UserService.class);
+        when(users.getUserByEmail("ben@x.com")).thenReturn(member("ben@x.com", "Ben"));
+        when(client.entitlement("ben@x.com")).thenReturn(new BillingClient.Entitlement(false, "", null));
+        BillingView view = view(client, users, "payer@x.com");
+
+        view.beforeEnter(giftEvent("ben@x.com", "Carl@x.com,dana@x.com"));
+
+        assertTrue(view.giftMode);
+        assertEquals(List.of("carl@x.com", "dana@x.com"), view.giftQueue);
+        assertTrue(view.blurb.getText().contains("2 more to go"));
+
+        String nextCheckout = BASE + "/billing?gift=carl%40x.com&queue=dana%40x.com";
+        when(client.createCheckout("ben@x.com", "yearly", "payer@x.com", nextCheckout)).thenReturn("https://pay/1");
+        view.startCheckout("yearly");
+        verify(client).createCheckout("ben@x.com", "yearly", "payer@x.com", nextCheckout);
+    }
+
+    @Test
+    void giftChain_lastMemberReturnsToTheProfileBillingTab() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("payer@x.com")).thenReturn(true);
+        UserService users = mock(UserService.class);
+        when(users.getUserByEmail("dana@x.com")).thenReturn(member("dana@x.com", "Dana"));
+        when(client.entitlement("dana@x.com")).thenReturn(new BillingClient.Entitlement(false, "", null));
+        BillingView view = view(client, users, "payer@x.com");
+
+        view.beforeEnter(giftEvent("dana@x.com", ""));
+
+        assertTrue(view.giftQueue.isEmpty());
+        assertFalse(view.blurb.getText().contains("more to go"));
+        String done = BASE + "/profile?tab=billing";
+        when(client.createCheckout("dana@x.com", "monthly", "payer@x.com", done)).thenReturn("https://pay/2");
+        view.startCheckout("monthly");
+        verify(client).createCheckout("dana@x.com", "monthly", "payer@x.com", done);
+    }
+
+    @Test
+    void giftChain_skipsAMemberWhoGotCoveredMeanwhile_byForwardingToTheNext() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("payer@x.com")).thenReturn(true);
+        UserService users = mock(UserService.class);
+        when(users.getUserByEmail("ben@x.com")).thenReturn(member("ben@x.com", "Ben"));
+        when(client.entitlement("ben@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        BillingView view = view(client, users, "payer@x.com");
+        BeforeEnterEvent event = giftEvent("ben@x.com", "carl@x.com,dana@x.com");
+
+        view.beforeEnter(event);
+
+        verify(event).forwardTo("billing", BillingView.giftParams("carl@x.com", List.of("dana@x.com")));
+        assertFalse(view.giftMode);
+    }
+
+    @Test
+    void giftChain_withoutAQueue_alreadyCoveredMemberStillShowsTheNoGiftNeededState() {
+        BillingClient client = mock(BillingClient.class);
+        when(client.isEntitled("payer@x.com")).thenReturn(true);
+        UserService users = mock(UserService.class);
+        when(users.getUserByEmail("ben@x.com")).thenReturn(member("ben@x.com", "Ben"));
+        when(client.entitlement("ben@x.com")).thenReturn(new BillingClient.Entitlement(true, "ACTIVE", null));
+        BillingView view = view(client, users, "payer@x.com");
+        BeforeEnterEvent event = giftEvent("ben@x.com");
+
+        view.beforeEnter(event);
+
+        verify(event, never()).forwardTo(any(String.class), any(QueryParameters.class));
+        assertFalse(view.monthlyButton.isEnabled());
+    }
+
+    @Test
+    void queueHelpers_normalise_dedupe_encode_andRoundTrip() {
+        assertEquals(List.of("a@x.com", "b@x.com"), BillingView.parseQueue(" A@x.com, b@x.com,,a@x.com "));
+        assertTrue(BillingView.parseQueue(null).isEmpty());
+        assertTrue(BillingView.parseQueue("  ").isEmpty());
+        assertEquals("a@x.com,b@x.com", BillingView.queueParam(List.of(" A@x.com", "b@x.com", "")));
+        assertEquals("", BillingView.queueParam(List.of()));
+
+        assertEquals(BASE + "/billing?gift=b%40x.com", BillingView.giftUrl(BASE, "b@x.com", List.of()));
+        assertEquals(BASE + "/billing?gift=b%40x.com&queue=c%40x.com%2Cd%40x.com",
+            BillingView.giftUrl(BASE, "b@x.com", List.of("c@x.com", "d@x.com")));
+
+        QueryParameters withRest = BillingView.giftParams("b@x.com", List.of("c@x.com"));
+        assertEquals(List.of("b@x.com"), withRest.getParameters().get("gift"));
+        assertEquals(List.of("c@x.com"), withRest.getParameters().get("queue"));
+        assertFalse(BillingView.giftParams("b@x.com", List.of()).getParameters().containsKey("queue"));
     }
 }
