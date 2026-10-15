@@ -7,6 +7,11 @@ All notable changes to TNRA are documented in this file.
 ### Changed
 - minor changes to docker-compose.production.yml in prep for moving to centralized keycloak
 
+## [10.6.8] - 2026-10-15
+
+### Fixed
+- **Landing site had no favicon.** tnra.app now declares the same icon set as the group app — `/icons/icon-192.png` as the favicon, the 180×180 Apple touch icon, and the `#2D6A4F` theme colour — so a tab, bookmark or iOS home-screen shortcut for the landing site looks like TNRA instead of a blank globe. The icon files are copies of the group app's; `/icons/**` is now permitted anonymously (Vaadin 25 denies static paths by default, which is why the files alone would have 403'd).
+
 ## [10.6.6] - 2026-10-14
 
 ### Added

@@ -92,8 +92,8 @@ public class SecurityConfig {
 
         // Vaadin 25 denies every non-Vaadin path by default, which includes plain static files. The
         // Open Graph banner (META-INF/resources/images/) must be fetchable anonymously by Slack,
-        // LinkedIn & co. requestMatchers() before the Vaadin configurer is fine; only anyRequest() is not.
-        http.authorizeHttpRequests(auth -> auth.requestMatchers("/images/**").permitAll());
+        // LinkedIn & co., and the favicon / apple-touch-icon (icons/) by every browser. requestMatchers() before the Vaadin configurer is fine; only anyRequest() is not.
+        http.authorizeHttpRequests(auth -> auth.requestMatchers("/images/**", "/icons/**").permitAll());
 
         // VaadinSecurityConfigurer reads @AnonymousAllowed on each view to grant
         // anonymous access. LandingView is annotated, so nothing extra is needed.
