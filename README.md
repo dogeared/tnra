@@ -422,7 +422,8 @@ java -jar tnra-cli-app/target/tnra-cli.jar provision tnra1 \
 Save the temporary admin password shown in the output. The admin must change it on first login.
 
 This generates 7 files in `provision/tnra1/`:
-- `docker-compose.yml` — app container on the shared `tnra-shared` network
+- `docker-compose.yml` — app container on the shared `tnra-shared` network (the billing token, if any,
+  is referenced as `${TNRA_BILLING_API_TOKEN_<GROUP>}` from the host's `.env` — the CLI prints the line)
 - `tnra1-realm.json` — Keycloak realm with client, roles, and admin user
 - `tnra1.conf` — Nginx subdomain routing
 - `init-db.sql` — MySQL database and user creation

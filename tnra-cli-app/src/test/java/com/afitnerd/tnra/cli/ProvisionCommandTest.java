@@ -57,6 +57,7 @@ class ProvisionCommandTest {
         assertTrue(realm.contains("\"temporary\": true"), "admin password should be temporary");
         assertTrue(realm.contains("\"UPDATE_PASSWORD\""), "admin user should have UPDATE_PASSWORD required action so Keycloak forces a change on first login");
         assertTrue(realm.contains("\"resetPasswordAllowed\": false"), "realm should disable forgot password when no SMTP configured");
+        assertTrue(realm.contains("\"bruteForceProtected\": true"), "realm should enable brute-force protection");
         assertFalse(realm.contains("smtpServer"), "realm should not include smtpServer block when no SMTP configured");
 
         // Verify docker-compose embeds all per-group vars in environment block (no env_file)
@@ -167,6 +168,7 @@ class ProvisionCommandTest {
         assertTrue(env.contains("TNRA_BILLING_ENABLED=false"), "billing off when no --billing-api-url");
         String compose = Files.readString(groupDir.resolve("docker-compose.yml"));
         assertTrue(compose.contains("TNRA_BILLING_ENABLED: \"false\""));
+        assertTrue(compose.contains("TNRA_BILLING_API_TOKEN: \"\""), "no token reference when billing is off");
     }
 
     @Test
@@ -182,6 +184,9 @@ class ProvisionCommandTest {
         });
         server.start();
         String url = "http://localhost:" + server.getAddress().getPort();
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        java.io.PrintStream originalOut = System.out;
+        System.setOut(new java.io.PrintStream(out, true));
         try {
             Path registry = tempDir.resolve("groups.json");
             Path output = tempDir.resolve("output");
@@ -201,9 +206,23 @@ class ProvisionCommandTest {
             assertTrue(env.contains("TNRA_BILLING_ENABLED=true"));
             assertTrue(env.contains("TNRA_BILLING_API_TOKEN=tok-abc"), "should write the minted token");
             assertTrue(env.contains("TNRA_BILLING_API_URL=" + url));
+
+            // The compose overlay must reference the host .env variable, never embed the token.
+            String compose = Files.readString(output.resolve("paid-group").resolve("docker-compose.yml"));
+            assertTrue(compose.contains("TNRA_BILLING_API_TOKEN: \"${TNRA_BILLING_API_TOKEN_PAID_GROUP}\""));
+            assertFalse(compose.contains("tok-abc"), "token must not be embedded in the overlay");
+            assertTrue(out.toString().contains("TNRA_BILLING_API_TOKEN_PAID_GROUP=tok-abc"),
+                "CLI must print the .env line once");
         } finally {
+            System.setOut(originalOut);
             server.stop(0);
         }
+    }
+
+    @Test
+    void billingTokenEnvName_upperCasesAndUnderscores() {
+        assertEquals("TNRA_BILLING_API_TOKEN_THE_OG", ProvisionCommand.billingTokenEnvName("the-og"));
+        assertEquals("TNRA_BILLING_API_TOKEN_RECOVERY_GUYS_2", ProvisionCommand.billingTokenEnvName("recovery-guys-2"));
     }
 
     @Test
