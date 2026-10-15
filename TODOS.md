@@ -30,6 +30,8 @@ take Keycloak out of this project entirely.
   targets the central server's admin API once.
 
 ### Provision a new group as automatically and easily as possible
+**Plan:** see `PROVISIONING_PLAN.md` (steps, barriers with fixes, delivery order). Status: planned 2026-10-15.
+
 Today `tnra-cli provision` *generates files* (`provision/<group>/…`) and prints an `instructions.md` whose
 steps are done by hand: run `init-db.sql`, import the realm into Keycloak, add a tunnel route, `docker
 compose up` with the overlay, run `seed-admin.sql`, hand over the temporary password. Make it one command
