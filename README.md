@@ -616,6 +616,66 @@ Notifications fire asynchronously and never block the member's post submission. 
 
 To disable notifications without losing the URL, uncheck **Slack notifications enabled** and save.
 
+## Email
+
+Three different things send or receive mail, and they are set up independently.
+
+### Outbound: the apps send through Mailgun
+
+The landing site's "Request Access" notification and the billing service's "free period ending"
+reminders (10.6.4+) both go out through Mailgun, configured by `MAILGUN_KEY_PRIVATE` and `MAILGUN_URL`
+in `.env`. `MAILGUN_URL` must be the full messages endpoint of an **active, verified** sending domain:
+
+```
+MAILGUN_URL=https://api.mailgun.net/v3/mail.tnra.app/messages
+```
+
+Production sends through `mail.tnra.app`. A Mailgun domain that has been suspended (e.g. for account
+inactivity) answers `403 Domain … is not allowed to send` — the app logs
+`Failed to send Mailgun notification` with that text, and the request itself is still saved. Reproduce
+outside the app with:
+
+```bash
+curl -s -i -u "api:$MAILGUN_KEY_PRIVATE" "$MAILGUN_URL" \
+  -F from=tnra-landing@tnra.app -F to=you@example.com -F subject=check -F text=check
+```
+
+The sender is `TNRA_NOTIFY_FROM` (default `tnra-landing@tnra.app`). Keep it on, or under, the Mailgun
+sending domain so SPF/DKIM align with the From domain; a mismatch lands the mail in spam.
+
+### Inbound: the founder address
+
+Notifications go to `TNRA_FOUNDER_EMAIL` (default `micah@tnra.app`). That mailbox is not hosted
+anywhere: **Cloudflare Email Routing** on the `tnra.app` zone forwards `micah@tnra.app` to a Gmail
+account (Email → Email Routing → destination address + custom address; Cloudflare adds the apex MX and
+SPF records itself). Replies are sent *as* `micah@tnra.app` from Gmail via Settings → Accounts and
+Import → "Send mail as", using an SMTP relay with its own credentials (Mailgun `smtp.mailgun.org:587`
+with an SMTP login on `mail.tnra.app`, or Mailjet `in-v3.mailjet.com:587`) — not `smtp.gmail.com`, which
+would sign the mail for gmail.com and fail alignment for `tnra.app`. Only one SPF TXT may exist on the
+apex, so a second relay's `include:` is merged into Cloudflare's record rather than added beside it.
+
+### Keycloak password-reset mail
+
+Separate again: the per-group Keycloak realm's SMTP block (`--smtp-*` options to `tnra-cli provision`)
+is what sends "forgot password" mail. It is optional and off unless those options were given.
+
+## Deploying: `.env` gotchas
+
+Docker Compose resolves every `${VAR}` in `docker-compose.production.yml` and the group overlays from
+the `.env` **in the directory it runs in** — nowhere else. Two ways this goes wrong:
+
+- **Wrong directory.** Running `docker compose` from the build checkout instead of the deploy
+  directory (`~/tnra` in production) interpolates every variable to blank: the landing container then
+  connects to MySQL as `root` with no password, `TNRA_ENCRYPTION_MASTER_KEY` is empty, and the group's
+  billing token is blank. Build anywhere; run compose from the directory that holds `.env`.
+- **Shell variables win over `.env`.** `set -a; source .env; set +a` (handy for `curl`ing the admin or
+  Mailgun APIs) exports every value into that shell session. From then on compose uses the *shell's*
+  value, so a later edit to `.env` is silently ignored in that terminal — `docker exec <container> env`
+  shows the old value even after `--force-recreate`. Open a fresh shell, or `unset` the variable, before
+  bringing a container up.
+
+Check what a container actually received with `docker exec tnra-landing env | grep TNRA_`.
+
 ## Database Migrations (Flyway)
 
 Migration files: `tnra-app/src/main/resources/db/migration/`
