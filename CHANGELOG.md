@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.2] - 2026-10-15
+
+### Changed
+- TODO: describe this release.
+
 ## [10.7.1] - 2026-10-15
 
 ### Changed
