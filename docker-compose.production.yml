@@ -115,8 +115,9 @@ services:
       TNRA_TRIAL_DAYS: "${TNRA_TRIAL_DAYS:-60}"
     ports:
       # Host port for local/debug only — nginx/Cloudflare reach the container via the tnra-shared
-      # network (http://tnra-billing:8082). Override the host port with BILLING_PORT in .env.
-      - '127.0.0.1:${BILLING_PORT:-8082}:8082'
+      # network (http://tnra-billing:8082). Override the host port with TNRA_BILLING_PORT in .env
+      # (the pre-10.6.1 name BILLING_PORT is still honoured as a fallback).
+      - '127.0.0.1:${TNRA_BILLING_PORT:-${BILLING_PORT:-8082}}:8082'
     networks:
       - tnra-shared
     depends_on:

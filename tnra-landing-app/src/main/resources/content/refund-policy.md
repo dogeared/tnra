@@ -1,6 +1,6 @@
 # Refund Policy
 
-*Last updated: June 21, 2026*
+*Last updated: October 14, 2026*
 
 We want TNRA to be worth it. This policy explains how cancellations and refunds work for memberships.
 

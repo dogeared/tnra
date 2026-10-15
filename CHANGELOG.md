@@ -2,6 +2,15 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.1] - 2026-10-14
+
+### Changed
+- **`BILLING_PORT` → `TNRA_BILLING_PORT`.** The billing container's host-port override now follows the same `TNRA_<service>_PORT` pattern as `TNRA_LANDING_PORT`. The old name is still read as a fallback (`${TNRA_BILLING_PORT:-${BILLING_PORT:-8082}}`), so an existing `.env` keeps working; rename it at your convenience.
+- **`.gitignore` no longer fights test configs.** The ignore for `application.properties` is scoped to `**/src/main/resources/`, so `src/test/resources/application.properties` in every module is tracked normally instead of needing `git add -f`.
+- **Legal pages' "Last updated" is October 14, 2026** (Privacy Policy, Terms of Service, Refund Policy) — they still showed June 21, 2026 although their wording changed with the move to Paddle.
+- **Landing `tnra.notify.founder-email` has a default** (`tnra@dogeared.dev`), so a missing or mis-named env var degrades instead of failing the landing context at startup.
+- **TODOS.md:** added the two next big features (externalize Keycloak to the centralized server; fully automated group provisioning, with self-serve onboarding as its end state); marked Slack Part 1/Part 2 and the temporary-password enforcement as shipped; rewrote the Lemon Squeezy "already subscribed" check for Paddle.
+
 ## [10.6.0] - 2026-10-14
 
 ### Added

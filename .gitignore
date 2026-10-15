@@ -26,7 +26,9 @@ nbdist/
 *.yml
 !.github/workflows/*.yml
 !docker-compose.production.yml
-application.properties
+# Runtime config may hold secrets — ignore it under src/main only. Test configs
+# (src/test/resources/application.properties) are non-secret and tracked normally.
+**/src/main/resources/application.properties
 
 .DS_Store
 node_modules

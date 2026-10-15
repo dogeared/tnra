@@ -1,6 +1,6 @@
 # Terms of Service
 
-*Last updated: June 21, 2026*
+*Last updated: October 14, 2026*
 
 These Terms of Service ("Terms") govern your use of the *Taking the Next Right Action* ("TNRA")
 website and application. By creating an account or using the service, you agree to these Terms. If you

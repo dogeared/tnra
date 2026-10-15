@@ -1,6 +1,6 @@
 # Privacy Policy
 
-*Last updated: June 21, 2026*
+*Last updated: October 14, 2026*
 
 This Privacy Policy explains what information *Taking the Next Right Action* ("TNRA", "we", "us")
 collects, how we use it, and the choices you have. It applies to the TNRA web application and the
