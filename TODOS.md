@@ -132,7 +132,7 @@ waiver (e.g. "first 3 months free" promo) expires, so they're nudged to add a ca
 - **Context:** See `BILLING_PLAN.md`. Add a `@Scheduled` sweep over `billing_account.comp_until`
   within 7 days and not yet reminded; send via the existing mail path. Mark reminded to avoid repeats.
 
-### Billing — bulk "cover all uncovered members" gift
+### ~~Billing — bulk "cover all uncovered members" gift~~ ✓ Completed v10.6.5 (chained checkouts — Paddle needs one per subscription)
 One-click admin action to gift-cover every not-yet-covered member at once (vs gifting one at a time).
 - **Why:** Convenience for a founder/ministry leader sponsoring a whole group; reduces N clicks to 1.
 - **Effort:** S (human: ~half day / CC: ~10 min)

@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.5] - 2026-10-14
+
+### Added
+- **"Cover everyone who isn't covered"** on the Profile → Billing tab. One button finds every other active member without a membership, names them in a confirmation, and then walks the gifter through one checkout per member: each completed Paddle checkout returns straight to the next member's gift checkout (`/billing?gift=<next>&queue=<rest>`), and the last one to the Billing tab. Closing a checkout stops the chain where it is; a member who gets covered mid-chain (someone else gifted them) is skipped automatically. One checkout per member is deliberate — every gift is its own Paddle subscription, so any single one can be stopped later without touching the others.
+
 ## [10.6.4] - 2026-10-14
 
 ### Added

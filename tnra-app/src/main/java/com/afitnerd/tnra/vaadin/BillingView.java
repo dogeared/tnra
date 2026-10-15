@@ -60,6 +60,15 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
     /** Who the subscription is for: the current member (self-pay) or, in gift mode, another member. */
     private String beneficiaryEmail;
     boolean giftMode; // package-private for testing
+    /**
+     * "Cover everyone" chain: the members still to gift AFTER the current one. Paddle makes each gift its
+     * own subscription (so any one can be stopped later), hence one checkout per member; a completed
+     * checkout returns straight to the next member's, and the last one to the Profile Billing tab.
+     */
+    List<String> giftQueue = List.of(); // package-private for testing
+
+    static final String GIFT_PARAM = "gift";
+    static final String QUEUE_PARAM = "queue";
 
     H2 title;               // package-private for testing
     Paragraph blurb;
@@ -159,11 +168,13 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         if (billingClient.isEmpty() || email == null) {
             return;
         }
-        List<String> gift = event.getLocation().getQueryParameters()
-            .getParameters().getOrDefault("gift", List.of());
+        Map<String, List<String>> params = event.getLocation().getQueryParameters().getParameters();
+        List<String> gift = params.getOrDefault(GIFT_PARAM, List.of());
         boolean giftRequested = !gift.isEmpty() && !gift.get(0).isBlank();
         if (giftRequested) {
-            applyGiftMode(gift.get(0).trim().toLowerCase());
+            List<String> queue = params.getOrDefault(QUEUE_PARAM, List.of());
+            giftQueue = parseQueue(queue.isEmpty() ? null : queue.get(0));
+            applyGiftMode(gift.get(0).trim().toLowerCase(), event);
             return;
         }
         // This page is the paywall: "pay to get in". A member who IS in has nothing to buy here — their
@@ -174,7 +185,7 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         }
     }
 
-    private void applyGiftMode(String giftEmail) {
+    private void applyGiftMode(String giftEmail, BeforeEnterEvent event) {
         if (giftEmail.equalsIgnoreCase(email)) {
             return; // gifting to yourself is just self-pay — ignore the param
         }
@@ -193,6 +204,12 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         // still giftable as a rescue, so only block when entitled AND not in grace.
         BillingClient.Entitlement ben = billingClient.get().entitlement(giftEmail);
         if (ben.entitled() && !GRACE_PERIOD.equals(ben.status())) {
+            if (!giftQueue.isEmpty()) {
+                // Mid-chain and this member got covered in the meantime (someone else gifted them, or a
+                // trial kicked in): skip straight to the next one rather than dead-ending the chain.
+                event.forwardTo("billing", giftParams(giftQueue.get(0), giftQueue.subList(1, giftQueue.size())));
+                return;
+            }
             title.setText("Gift a membership");
             blurb.setText(displayName(recipient) + " (" + giftEmail + ") already has an active "
                 + "membership — no gift needed.");
@@ -209,7 +226,9 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         beneficiaryEmail = giftEmail;
         title.setText("Gift a membership");
         blurb.setText("You're paying for " + displayName(recipient) + " (" + giftEmail + "). "
-            + "Choose monthly or yearly — their membership activates once payment completes.");
+            + "Choose monthly or yearly — their membership activates once payment completes."
+            + (giftQueue.isEmpty() ? "" : " " + giftQueue.size() + " more to go after this one — each "
+                + "completed checkout continues to the next member automatically."));
         // The manage/portal and "you're covering" sections are about the payer's own state, not this gift.
         manageBlurb.setVisible(false);
         updatePaymentButton.setVisible(false);
@@ -225,14 +244,17 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
             // After a COMPLETED checkout: self-pay goes to the "activating" page (the payer's own entitlement
             // is what flips); a gift returns to the Profile's Billing tab, where the gift was started and
             // where "Members you're covering" shows the result (home would bounce to Stats).
+            // In a "cover everyone" chain the done URL is the NEXT member's gift checkout.
             String redirectUrl = giftMode
-                ? baseUrl + "/profile?" + ProfileView.TAB_PARAM + "=" + ProfileView.BILLING_TAB
+                ? (giftQueue.isEmpty()
+                    ? baseUrl + "/profile?" + ProfileView.TAB_PARAM + "=" + ProfileView.BILLING_TAB
+                    : giftUrl(baseUrl, giftQueue.get(0), giftQueue.subList(1, giftQueue.size())))
                 : baseUrl + "/billing/activating";
             // If the member CLOSES the overlay without paying: back to where they started (this page, in
-            // the same mode) — never to the activating page, which would sit waiting for a payment that
-            // never happened.
+            // the same mode, same remaining chain) — never to the activating page, which would sit waiting
+            // for a payment that never happened.
             String backUrl = giftMode
-                ? baseUrl + "/billing?gift=" + URLEncoder.encode(beneficiaryEmail, StandardCharsets.UTF_8)
+                ? giftUrl(baseUrl, beneficiaryEmail, giftQueue)
                 : baseUrl + "/billing";
             String url = billingClient.get().createCheckout(beneficiaryEmail, variant, email, redirectUrl);
             getUI().ifPresent(ui -> ui.getPage().setLocation(withReturnUrls(url, redirectUrl, backUrl)));
@@ -260,6 +282,38 @@ public class BillingView extends VerticalLayout implements BeforeEnterObserver {
         appendParam(sb, "done", doneUrl);
         appendParam(sb, "return", backUrl);
         return sb.toString();
+    }
+
+    /** {@code /billing?gift=<next>&queue=<rest>} as an absolute URL (Paddle's done/return targets). */
+    static String giftUrl(String baseUrl, String next, List<String> rest) {
+        StringBuilder sb = new StringBuilder(baseUrl).append("/billing");
+        appendParam(sb, GIFT_PARAM, next);
+        appendParam(sb, QUEUE_PARAM, queueParam(rest));
+        return sb.toString();
+    }
+
+    /** The same target as router query parameters (in-app forwards). */
+    static QueryParameters giftParams(String next, List<String> rest) {
+        Map<String, String> p = new java.util.LinkedHashMap<>();
+        p.put(GIFT_PARAM, next);
+        if (!rest.isEmpty()) {
+            p.put(QUEUE_PARAM, queueParam(rest));
+        }
+        return QueryParameters.simple(p);
+    }
+
+    /** Comma-joined, lower-cased emails; empty string for an empty list. */
+    static String queueParam(List<String> emails) {
+        return emails.stream().map(e -> e.trim().toLowerCase()).filter(e -> !e.isEmpty())
+            .collect(java.util.stream.Collectors.joining(","));
+    }
+
+    static List<String> parseQueue(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(raw.split(",")).map(String::trim).map(String::toLowerCase)
+            .filter(e -> !e.isEmpty()).distinct().toList();
     }
 
     private static void appendParam(StringBuilder url, String name, String value) {
