@@ -57,6 +57,10 @@ public class BillingAccount {
     @Column(name = "comp_until")
     private LocalDateTime compUntil;
 
+    /** Coverage-end date of the last "free period ending" reminder sent, or null. One email per end date. */
+    @Column(name = "comp_reminder_for")
+    private LocalDateTime compReminderFor;
+
     @Column(name = "ls_customer_id", length = 64)
     private String lsCustomerId;
 
@@ -191,5 +195,13 @@ public class BillingAccount {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public LocalDateTime getCompReminderFor() {
+        return compReminderFor;
+    }
+
+    public void setCompReminderFor(LocalDateTime compReminderFor) {
+        this.compReminderFor = compReminderFor;
     }
 }

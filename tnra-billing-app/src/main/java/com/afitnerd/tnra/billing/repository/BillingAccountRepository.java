@@ -3,6 +3,7 @@ package com.afitnerd.tnra.billing.repository;
 import com.afitnerd.tnra.billing.model.BillingAccount;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -18,4 +19,10 @@ public interface BillingAccountRepository extends JpaRepository<BillingAccount, 
 
     /** "Subscriptions I'm covering" — a payer's gift list within a group. */
     List<BillingAccount> findByGroupSlugAndPayerEmail(String groupSlug, String payerEmail);
+
+    /** Reminder sweep — members whose own waiver ends inside the window. */
+    List<BillingAccount> findByCompUntilBetween(LocalDateTime from, LocalDateTime to);
+
+    /** Reminder sweep — every known member of a group whose trial ends inside the window. */
+    List<BillingAccount> findByGroupSlug(String groupSlug);
 }

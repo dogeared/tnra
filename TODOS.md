@@ -121,7 +121,7 @@ webhook: where to create it in Slack, what URL to paste, and how the per-group p
   that the URL is stored encrypted, and what each publish toggle (activity / stats / full-post) sends.
   Could be a collapsible help section or a dialog. Read DESIGN.md before styling.
 
-### Billing — "comp_until expiring soon" reminder
+### ~~Billing — "comp_until expiring soon" reminder~~ ✓ Completed v10.6.4 (covers group-trial end too, for members with a billing row)
 Scheduled job in `tnra-billing-app` that emails a member ~7 days before their local `comp_until`
 waiver (e.g. "first 3 months free" promo) expires, so they're nudged to add a card before access flips.
 - **Why:** With local time-boxed waivers (not Lemon Squeezy trials), there's no card on file, so at
