@@ -3,7 +3,7 @@
 ## P1 — Next big features
 
 ### Externalize Keycloak — use the centralized Keycloak server  *(in progress)*
-**Status:** the central project exists — **dogeared/keycloak** (compose, phase-2 Postgres compose,
+**Status:** the central project exists — **dogeared/dogeared-central-infra** (renamed from dogeared/keycloak; `keycloak/` + `cloudflare/` components; also owns the tunnel and the shared network since 10.7.2) (compose, phase-2 Postgres compose,
 migrate/backup scripts, systemd unit, runbook). TNRA 10.7.0 removed the `keycloak` service and volume
 from `docker-compose.production.yml`. Remaining: run the Phase 1 cutover on .104 (that repo's README),
 then Phase 2 (production mode on Postgres), then strike this entry.

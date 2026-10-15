@@ -316,7 +316,7 @@ systemctl start tnra.service
 ```
 
 The service runs `tnra.start.sh`, which sources `.env`, brings up the shared infrastructure
-(adding `--profile cloudflare` automatically when `CLOUDFLARE_TUNNEL_TOKEN` is set), then starts
+(adding `--profile billing` when `BILLING_ADMIN_TOKEN` is set), then starts
 every group under `provision/`. `tnra.stop.sh` stops them all.
 
 ```bash

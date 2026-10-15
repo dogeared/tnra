@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # bootstrap.sh — Interactive production setup for TNRA shared infrastructure
-# Sets up .env, starts MySQL and the landing site (and optionally cloudflared).
+# Sets up .env and starts MySQL (the landing site is built + started afterwards).
+# The Cloudflare tunnel is NOT part of this stack — it runs in dogeared-central-infra.
 # Keycloak is NOT part of this stack — it is the central instance in the dogeared/keycloak repo.
 set -euo pipefail
 
@@ -41,7 +42,6 @@ info "This script sets up the shared production infrastructure:"
 info "  • Writes a .env file with all required secrets"
 info "  • Starts MySQL and tnra-landing via docker-compose.production.yml"
 info "    (Keycloak is separate: see the dogeared/keycloak repo)"
-info "  • Optionally starts cloudflared (Cloudflare Tunnel mode)"
 printf "\n"
 
 # ---------------------------------------------------------------------------
@@ -122,18 +122,10 @@ else
   ENCRYPTION_KEY_LABEL="(set)"
 fi
 
-# Cloudflare Tunnel token (optional)
-printf "\n"
-info "Cloudflare Tunnel token — leave blank to use VPS/Nginx mode."
-_cf_token=$(prompt_secret "Cloudflare Tunnel token [blank = skip]: ")
-CLOUDFLARE_TUNNEL_TOKEN="${_cf_token:-}"
-if [[ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]]; then
-  CF_LABEL="(set)"
-  USE_CLOUDFLARE=true
-else
-  CF_LABEL="(skipped — VPS/Nginx mode)"
-  USE_CLOUDFLARE=false
-fi
+# Front door: Cloudflare Tunnel (the connector runs in dogeared-central-infra) or VPS/Nginx.
+printf "Front door — Cloudflare Tunnel via dogeared-central-infra? [Y/n]: " >&2
+read -r _fd < /dev/tty
+if [[ "$_fd" =~ ^[Nn]$ ]]; then USE_CLOUDFLARE=false; CF_LABEL="VPS/Nginx"; else USE_CLOUDFLARE=true; CF_LABEL="Cloudflare Tunnel (dogeared-central-infra)"; fi
 
 # ---------------------------------------------------------------------------
 # Summary table
@@ -144,7 +136,7 @@ printf "────────────────────────
 printf "  %-35s %s\n" "Domain:"                  "$DOMAIN"
 printf "  %-35s %s\n" "MySQL root password:"      "$MYSQL_ROOT_PASSWORD_LABEL"
 printf "  %-35s %s\n" "Encryption master key:"    "$ENCRYPTION_KEY_LABEL"
-printf "  %-35s %s\n" "Cloudflare Tunnel token:"  "$CF_LABEL"
+printf "  %-35s %s\n" "Front door:"              "$CF_LABEL"
 printf "\n"
 
 # ---------------------------------------------------------------------------
@@ -169,8 +161,7 @@ cat > .env <<ENVEOF
 
 # --- Infrastructure ---
 MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
-# Cloudflare Tunnels only — leave blank for VPS/Nginx setup
-CLOUDFLARE_TUNNEL_TOKEN=$CLOUDFLARE_TUNNEL_TOKEN
+# The Cloudflare tunnel token lives in dogeared-central-infra's .env, not here.
 
 # --- Keycloak ---
 # Not in this stack: the central Keycloak (dogeared/keycloak repo) serves https://auth.$DOMAIN.
@@ -216,13 +207,10 @@ printf "\n"
 # ---------------------------------------------------------------------------
 info "Starting shared infrastructure..."
 
-if [[ "$USE_CLOUDFLARE" == true ]]; then
-  info "Starting mysql and cloudflared (--profile cloudflare)..."
-  $COMPOSE -f docker-compose.production.yml --profile cloudflare up -d mysql cloudflared
-else
-  info "Starting mysql (VPS/Nginx mode)..."
-  $COMPOSE -f docker-compose.production.yml up -d mysql
-fi
+# The tnra-shared network is dogeared-central-infra's; create it if that project isn't up yet.
+docker network inspect tnra-shared >/dev/null 2>&1 || docker network create tnra-shared
+info "Starting mysql..."
+$COMPOSE -f docker-compose.production.yml up -d mysql
 
 # ---------------------------------------------------------------------------
 # Wait for MySQL
@@ -249,9 +237,6 @@ printf "  %-35s %s\n" "Domain:"                  "$DOMAIN"
 printf "  %-35s %s\n" "Keycloak:"                "central instance — https://auth.$DOMAIN/admin (dogeared/keycloak repo)"
 printf "  %-35s %s\n" "MySQL root password:"      "$MYSQL_ROOT_PASSWORD"
 printf "  %-35s %s\n" "Encryption master key:"    "$TNRA_ENCRYPTION_MASTER_KEY"
-if [[ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]]; then
-  printf "  %-35s %s\n" "Cloudflare Tunnel token:"  "$CLOUDFLARE_TUNNEL_TOKEN"
-fi
 printf "\n"
 warn "Store these values in a password manager or secrets vault before proceeding."
 printf "\n"
