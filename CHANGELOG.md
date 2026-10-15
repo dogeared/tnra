@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.6.7] - 2026-10-15
+
+### Changed
+- minor changes to docker-compose.production.yml in prep for moving to centralized keycloak
+
 ## [10.6.6] - 2026-10-14
 
 ### Added
