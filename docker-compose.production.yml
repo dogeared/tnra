@@ -113,11 +113,18 @@ services:
       mysql:
         condition: service_healthy
 
+  # The Cloudflare tunnel connector for EVERY public hostname on this host. On tnra-shared it reaches
+  # this stack and the central Keycloak by container name (http://tnra-landing:8080, http://keycloak:8080,
+  # http://tnra-billing:8082, http://tnra-<group>:8080). Apps that are NOT on tnra-shared (other compose
+  # projects on this box) are reached through the host instead: route them to
+  # http://host.docker.internal:<their host port>.
   cloudflared:
     profiles: [cloudflare]
     image: cloudflare/cloudflared:latest
     command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - tnra-shared
 
