@@ -86,6 +86,16 @@ public class CheckoutService {
                     + "Use \"Update payment method\" to manage it.");
         }
 
+        // Second layer, provider-side: our DB can lag Paddle (webhooks down while a payment completed),
+        // leaving the account PENDING although Paddle already bills a live subscription for this member.
+        // Ask Paddle directly for self-pay. Gifts keep the entitlement check above (a gift to a member
+        // whose own payment is failing is a legitimate rescue). Fails OPEN — see providerSaysLive.
+        if (!gift && providerSaysLive(groupSlug, beneficiary)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                "This member already has an active subscription. "
+                    + "Use \"Update payment method\" to manage it.");
+        }
+
         account.setPayerEmail(gift ? payer : null);
         account.setLsVariant(variant);
         accountRepository.save(account);
@@ -223,6 +233,20 @@ public class CheckoutService {
             .filter(Objects::nonNull)
             .findFirst()
             .orElse(null);
+    }
+
+    /**
+     * Provider-side lookup, failing OPEN: a Paddle outage or API error must never block a legitimate new
+     * signup — the local guard still applies, and the webhook reconciles any duplicate later.
+     */
+    private boolean providerSaysLive(String groupSlug, String email) {
+        try {
+            return paymentProviderClient.hasLiveSubscription(groupSlug, email);
+        } catch (RuntimeException e) {
+            log.warn("Provider subscription lookup failed for {}/{}: {} — proceeding with checkout (fail open)",
+                groupSlug, email, e.getMessage());
+            return false;
+        }
     }
 
     /** A member already paying for themselves: a real LS subscription, self-pay, and not lapsed. */

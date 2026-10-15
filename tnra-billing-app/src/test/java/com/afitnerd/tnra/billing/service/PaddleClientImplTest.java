@@ -10,7 +10,11 @@ import org.springframework.web.client.RestClient;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.queryParam;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -194,5 +198,94 @@ class PaddleClientImplTest {
 
         client.removeScheduledCancellation("sub_1");
         server.verify();
+    }
+
+    // ---- hasLiveSubscription: provider-side double-charge guard ----
+
+    private static final String CUSTOMER = "{\"data\":[{\"id\":\"ctm_1\",\"email\":\"m@x.com\"}]}";
+
+    private void expectCustomerLookup(String body) {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/customers?")))
+            .andExpect(method(GET))
+            .andExpect(header("Authorization", "Bearer test-key"))
+            .andExpect(queryParam("email", "m@x.com"))
+            .andRespond(withSuccess(body, JSON));
+    }
+
+    private void expectSubscriptionLookup(String body) {
+        server.expect(requestTo(org.hamcrest.Matchers.startsWith(BASE + "/subscriptions?")))
+            .andExpect(method(GET))
+            .andExpect(queryParam("customer_id", "ctm_1"))
+            .andExpect(queryParam("status", PaddleClientImpl.LIVE_STATUSES))
+            .andRespond(withSuccess(body, JSON));
+    }
+
+    @Test
+    void hasLiveSubscription_true_whenPaddleHoldsALiveSubForThisGroupAndBeneficiary() {
+        expectCustomerLookup(CUSTOMER);
+        expectSubscriptionLookup("{\"data\":[{\"id\":\"sub_1\",\"status\":\"active\","
+            + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"M@x.com\",\"payer_email\":\"m@x.com\"}}]}");
+
+        assertTrue(client.hasLiveSubscription("rome", "m@x.com"));
+        server.verify();
+    }
+
+    @Test
+    void hasLiveSubscription_false_whenNotAPaddleCustomer_andSkipsTheSubscriptionCall() {
+        expectCustomerLookup("{\"data\":[]}");
+
+        assertFalse(client.hasLiveSubscription("rome", "m@x.com"));
+        server.verify(); // no /subscriptions request was expected, and none may be made
+    }
+
+    @Test
+    void hasLiveSubscription_false_whenTheOnlyLiveSubIsAGiftThisMemberPaysForSomeoneElse() {
+        expectCustomerLookup(CUSTOMER);
+        expectSubscriptionLookup("{\"data\":[{\"id\":\"sub_gift\",\"status\":\"active\","
+            + "\"custom_data\":{\"group_slug\":\"rome\",\"beneficiary_email\":\"friend@x.com\",\"payer_email\":\"m@x.com\"}}]}");
+
+        assertFalse(client.hasLiveSubscription("rome", "m@x.com"));
+    }
+
+    @Test
+    void hasLiveSubscription_false_whenTheLiveSubBelongsToAnotherGroup() {
+        expectCustomerLookup(CUSTOMER);
+        expectSubscriptionLookup("{\"data\":[{\"id\":\"sub_other\",\"status\":\"trialing\","
+            + "\"custom_data\":{\"group_slug\":\"athens\",\"beneficiary_email\":\"m@x.com\"}}]}");
+
+        assertFalse(client.hasLiveSubscription("rome", "m@x.com"));
+    }
+
+    @Test
+    void hasLiveSubscription_true_whenASubHasNoCustomData_createdOutsideOurCheckout() {
+        expectCustomerLookup(CUSTOMER);
+        expectSubscriptionLookup("{\"data\":[{\"id\":\"sub_manual\",\"status\":\"active\"}]}");
+
+        assertTrue(client.hasLiveSubscription("rome", "m@x.com"));
+    }
+
+    @Test
+    void hasLiveSubscription_false_onEmptySubscriptionList() {
+        expectCustomerLookup(CUSTOMER);
+        expectSubscriptionLookup("{\"data\":[]}");
+        assertFalse(client.hasLiveSubscription("rome", "m@x.com"));
+    }
+
+    @Test
+    void hasLiveSubscription_false_onMalformedSubscriptionList() {
+        expectCustomerLookup(CUSTOMER);
+        expectSubscriptionLookup("{\"meta\":{}}");
+        assertFalse(client.hasLiveSubscription("rome", "m@x.com"));
+    }
+
+    @Test
+    void coversBeneficiary_treatsAbsentFieldsAsNotContradicting_andNullCustomDataAsCovering() {
+        tools.jackson.databind.ObjectMapper om = new tools.jackson.databind.ObjectMapper();
+        assertTrue(PaddleClientImpl.coversBeneficiary(null, "rome", "m@x.com"));
+        assertTrue(PaddleClientImpl.coversBeneficiary(om.nullNode(), "rome", "m@x.com"));
+        assertTrue(PaddleClientImpl.coversBeneficiary(om.readTree("{\"group_slug\":\"rome\"}"), "rome", "m@x.com"));
+        assertTrue(PaddleClientImpl.coversBeneficiary(om.readTree("{\"beneficiary_email\":\"m@x.com\"}"), "rome", "m@x.com"));
+        assertFalse(PaddleClientImpl.coversBeneficiary(om.readTree("{\"beneficiary_email\":\"o@x.com\"}"), "rome", "m@x.com"));
+        assertFalse(PaddleClientImpl.coversBeneficiary(om.readTree("{\"group_slug\":\"athens\"}"), "rome", "m@x.com"));
     }
 }
