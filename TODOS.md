@@ -247,6 +247,22 @@ network, so routes can use container names (`http://tnra-landing:8080`, `http://
   the token is in `.env`. Afterwards the host port mappings for landing/billing can go back to defaults
   and the host-level subsection of the runbook can shrink to a one-line note.
 
+### CI: skip the test / production-build jobs for docs-only changes
+Every PR runs the full suite (`test`, `cli-test`, `production-build` ≈ 3–5 min of runners) even when
+only `*.md`, `TODOS.md`, `CHANGELOG.md` or `.env.template` changed — most of the last twenty PRs were
+docs-only.
+- **Why:** Wasted runner minutes and a slower merge loop for pure docs; also tempting to skip CI entirely.
+- **Effort:** XS (human: ~30 min / CC: ~10 min)
+- **Context:** Two gotchas decide the shape. (1) `paths-ignore:` on the workflow triggers is the obvious
+  fix but makes the required checks *missing* (not passing) on docs-only PRs, which blocks merge if the
+  checks are required — use a "changes" job (`dorny/paths-filter` or `git diff --name-only` against the
+  base) and `if: needs.changes.outputs.code == 'true'` on the heavy jobs, with a trailing always-run
+  `ci-ok` job that required-status rules point at. (2) The `test` job on `main` also pushes the badges
+  and tags the release from `VERSION`; keep `version-check` unconditional and make the tag step run
+  from a job that doesn't depend on the suite having run — or keep tagging only on code pushes and
+  accept that docs-only bumps (none so far) go untagged. Docs-only = everything under `**/*.md`,
+  `TODOS.md`, `CHANGELOG.md`, `.env.template`, `PROVISIONING_PLAN.md`, `DESIGN.md`; anything else counts as code.
+
 ## P2 — After MVP Ships
 
 ### Completed Post View — Improve Read-Only Contrast
