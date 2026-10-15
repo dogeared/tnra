@@ -109,7 +109,7 @@ Extend Part 1 with two additional admin-selectable content tiers: stats-only (us
 - **Depends on:** Slack Part 1 shipped, landing page shipped, at least one group providing feedback on Part 1.
 - **Context:** Tier selection stored in `group_settings`. Full-post tier decrypts content in-memory before sending to Slack — clear security warning in the admin UI that post content will leave the encrypted DB. Stats-only tier sends stat names + values only (no narrative). Slack message layout adapts per tier.
 
-### Slack integration guide in the admin panel
+### ~~Slack integration guide in the admin panel~~ ✓ Completed v10.6.6
 In-app guidance (an Admin panel tab/section) that walks an admin through setting up the Slack incoming
 webhook: where to create it in Slack, what URL to paste, and how the per-group publish toggles behave.
 - **Why:** The webhook is created in Slack's own UI, not ours — without guidance admins get stuck or
