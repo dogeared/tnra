@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.0] - 2026-10-15
+
+### Changed
+- **Keycloak moved out of this project.** `docker-compose.production.yml` no longer defines the `keycloak` service or the `keycloak-data` volume. Identity for every app on the host is now the central instance in the **dogeared/keycloak** repo — its own compose project that joins `tnra-shared` under the alias `keycloak`, so group containers keep using `http://keycloak:8080` and the `auth.<domain>` tunnel route keeps targeting `localhost:8180`; the move preserves the existing data volume (lift-and-shift, documented there). `bootstrap.sh` no longer prompts for Keycloak admin credentials or a Keycloak hostname; `.env.template`'s `KEYCLOAK_*` keys are dev-only (the disposable Keycloak in `docker-compose.yml` is unchanged). Runbooks point at the new repo. Deploy note: the old container keeps running until the cutover in that repo's README is performed — do that before or right after deploying this version, since `tnra.start.sh` will no longer start it on reboot.
+
 ## [10.6.7] - 2026-10-15
 
 ### Changed

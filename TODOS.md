@@ -2,7 +2,12 @@
 
 ## P1 — Next big features
 
-### Externalize Keycloak — use the centralized Keycloak server
+### Externalize Keycloak — use the centralized Keycloak server  *(in progress)*
+**Status:** the central project exists — **dogeared/keycloak** (compose, phase-2 Postgres compose,
+migrate/backup scripts, systemd unit, runbook). TNRA 10.7.0 removed the `keycloak` service and volume
+from `docker-compose.production.yml`. Remaining: run the Phase 1 cutover on .104 (that repo's README),
+then Phase 2 (production mode on Postgres), then strike this entry.
+
 TNRA ships its own Keycloak container (dev `docker-compose.yml`, `docker-compose.production.yml`) and the
 provisioning CLI creates one realm per group in it from `realm.json.tmpl`. A centralized Keycloak server
 already exists that serves several apps, each with its own realm template. Move TNRA's identity there and
