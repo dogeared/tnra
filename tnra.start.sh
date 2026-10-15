@@ -4,21 +4,23 @@
 
 cd ~/tnra
 
-# Export everything in .env so CLOUDFLARE_TUNNEL_TOKEN (and friends) are visible here and
-# available for docker-compose variable interpolation.
+# Export everything in .env so BILLING_ADMIN_TOKEN (and friends) are visible here and available for
+# docker-compose variable interpolation.
 set -a
 source ./.env
 set +a
 
-# Shared infrastructure (mysql, tnra-landing; Keycloak lives in the dogeared/keycloak project, which
-# starts after this one — see its keycloak.service). Add the Cloudflare tunnel when a
-# token is present (otherwise this is VPS/Nginx mode), and the central billing service when a
-# billing admin token is set — both are opt-in compose profiles that a bare `up` would skip,
-# so without this a reboot would bring the stack back WITHOUT them.
+# The shared Docker network and the tunnel/Keycloak are dogeared-central-infra's (its
+# central-infra.service runs before this one). Wait for the network rather than fail the boot.
+for i in $(seq 1 60); do
+  docker network inspect tnra-shared >/dev/null 2>&1 && break
+  sleep 2
+done
+
+# Shared infrastructure (mysql, tnra-landing), plus the central billing service when a billing admin
+# token is set — an opt-in compose profile that a bare `up` would skip, so without this a reboot would
+# bring the stack back WITHOUT it.
 PROFILES=()
-if [ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]; then
-  PROFILES+=(--profile cloudflare)
-fi
 if [ -n "${BILLING_ADMIN_TOKEN:-}" ]; then
   PROFILES+=(--profile billing)
 fi

@@ -28,12 +28,13 @@ Browser
 Cloudflare Edge
   │  Encrypted tunnel (outbound from VPS, no open ports)
   ▼
-cloudflared  (Docker container on VPS, tnra-shared network)
+cloudflared  (container from the dogeared-central-infra project, tnra-shared network)
   │  HTTP (plain, internal Docker network)
+  ├──► tnra-landing:8080     (apex + www)
+  ├──► tnra-billing:8082     (billing.your-domain.com)
   ├──► tnra-group-a:8080
   ├──► tnra-group-b:8080
-  └──► keycloak:8080        (auth.your-domain.com route — the central Keycloak, a separate
-                             compose project from the dogeared/keycloak repo, on the same network)
+  └──► keycloak:8080        (auth.your-domain.com — the central Keycloak, same project as the tunnel)
 ```
 
 `cloudflared` maintains a persistent outbound connection to Cloudflare's edge. No inbound ports beyond SSH are required.
@@ -76,7 +77,7 @@ cd tnra
 
 ### 5. Bootstrap
 
-Run the interactive setup script. When prompted for the Cloudflare Tunnel token, paste the token you created in the Cloudflare dashboard — the script will start `cloudflared` automatically using `--profile cloudflare`:
+Run the interactive setup script (the tunnel itself is set up in dogeared-central-infra, before or after this):
 
 ```bash
 bash bootstrap.sh
@@ -85,7 +86,7 @@ bash bootstrap.sh
 The script will:
 - Prompt for your domain, MySQL root password, Keycloak admin credentials, encryption master key, and Cloudflare Tunnel token (auto-generating secrets you leave blank)
 - Write a complete `.env` file
-- Start MySQL and cloudflared via `docker-compose.production.yml` (Keycloak is the separate dogeared/keycloak project)
+- Start MySQL via `docker-compose.production.yml` (the tunnel and Keycloak are the dogeared-central-infra project)
 - Wait for MySQL to be healthy
 - Print all generated credentials — **save them in a password manager before continuing**
 
@@ -95,48 +96,25 @@ After first boot, rotate the Keycloak client secret for each group via the admin
 3. Update `SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET` in `provision/<group-name>/docker-compose.yml` on the VPS.
 4. Restart: `docker compose -f docker-compose.production.yml -f provision/<group-name>/docker-compose.yml up -d`
 
-## Create a Cloudflare Tunnel
+## The Cloudflare Tunnel (dogeared-central-infra)
 
-### 1. Create the tunnel and get the token
+The tunnel connector, its token, and the routes for **every** public hostname on the host are owned
+by the **dogeared-central-infra** repo (`cloudflare/`), together with the central Keycloak. Its
+`central-infra.service` creates the `tnra-shared` network and starts the connector before
+`tnra.service`; this stack joins that network as a tenant and is reached by container name.
 
-1. Log in to the [Cloudflare dashboard](https://dash.cloudflare.com).
-2. Go to **Zero Trust** → **Networks** → **Tunnels**.
-3. Click **Add a tunnel** → choose **Cloudflared** → name it (e.g., `tnra-production`).
-4. On the next screen, select **Docker** as the connector environment and copy the full
-   `docker run` command — you only need the `--token <TOKEN>` value from it.
-5. Paste the token when `bootstrap.sh` prompts for the Cloudflare Tunnel token. The script
-   starts `cloudflared` automatically via the `--profile cloudflare` flag.
-
-The `cloudflared` service is already defined in `docker-compose.production.yml`. No manual
-edits to any compose file are needed. Click **Next** in the Cloudflare dashboard — you'll
-configure routes in step 2.
-
-### 2. Configure public hostname routes
-
-Back in the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** → your tunnel
-→ **Public Hostnames** tab, add routes for each service:
+TNRA's routes, configured in the Cloudflare dashboard under the tunnel's **Public Hostname** tab
+(Cloudflare creates each proxied CNAME):
 
 | Subdomain | Domain | Service |
 |---|---|---|
-| (blank) | tnra.app | `http://tnra-landing:8080` |
-| www | tnra.app | `http://tnra-landing:8080` |
-| auth | tnra.app | `http://keycloak:8080` (the central Keycloak, dogeared/keycloak, on the same network) |
+| (blank), www | tnra.app | `http://tnra-landing:8080` |
+| auth | tnra.app | `http://keycloak:8080` |
 | billing | tnra.app | `http://tnra-billing:8082` |
 | `<group-name>` | tnra.app | `http://tnra-<group-name>:8080` |
-| *(apps from other compose projects on this host)* | *their domain* | `http://host.docker.internal:<their host port>` |
 
-The apex and `www` routes point to the `tnra-landing` container (public landing page). Each group gets its own subdomain route pointing to its app container. Replace `tnra.app` with your actual domain.
-
-Cloudflare automatically creates CNAME DNS records for each route. No manual DNS setup required.
-
-#### Apps outside `tnra-shared`
-
-The `cloudflared` container can resolve names only on `tnra-shared`. Other compose projects on the same
-host (e.g. findmygame.parts, open-raffle) stay untouched: route them to
-`http://host.docker.internal:<port>` — the port they publish on the host — which the service maps to the
-host via `extra_hosts`. (Until 10.7.1 the production tunnel was a host-level `cloudflared` service and
-every route used `localhost:<host port>`; that mode is retired — a host-level connector cannot reach
-container names, and two connectors on one tunnel split traffic between them.)
+Adding a group = adding its route (the provisioning CLI will do this via the API — `PROVISIONING_PLAN.md`).
+The full table including non-TNRA hostnames, and the DNS notes for `tnra.app`, are in that repo.
 
 ### 3. Force HTTPS (Cloudflare setting, not app code)
 
@@ -261,18 +239,17 @@ edits are needed.
 
 The deployment is **two layers**: one set of **global shared services** defined in
 `docker-compose.production.yml`, and **one container per group** under `provision/<group>/`.
-Bring the shared layer up first — it creates the `tnra-shared` Docker network that
-every group container (and the `cloudflared` tunnel) attaches to.
+The `tnra-shared` Docker network, the tunnel and Keycloak belong to the dogeared-central-infra
+project, which must be up first (its systemd unit orders itself before `tnra.service`).
 
 ### Global / shared infrastructure (one-liner)
 
 ```bash
 cd ~/tnra
-docker compose -f docker-compose.production.yml --profile cloudflare up -d
+docker compose -f docker-compose.production.yml up -d
 ```
 
-Starts MySQL, Keycloak, the `tnra-landing` site, and the `cloudflared` tunnel. The landing
-image isn't built at `up` time — build it once first:
+Starts MySQL and the `tnra-landing` site. The landing image isn't built at `up` time — build it once first:
 
 ```bash
 ./mvnw -pl tnra-landing-app -am clean package -Pproduction -DskipTests
@@ -282,17 +259,17 @@ docker build -t tnra-landing:latest tnra-landing-app/
 The landing app's `application.yml` is for local dev only — production runs on env from
 `docker-compose.production.yml` plus Spring defaults (so `server.port` = 8080).
 
-To start only the data plane (no landing, no tunnel), scope it:
+To start only the database, scope it:
 
 ```bash
-docker compose -f docker-compose.production.yml up -d mysql keycloak
+docker compose -f docker-compose.production.yml up -d mysql
 ```
 
 The **central billing service** (`tnra-billing`) is opt-in behind the `billing` profile, so even this
 one-liner doesn't start it unless you add `--profile billing`. To run everything including billing:
 
 ```bash
-docker compose -f docker-compose.production.yml --profile billing --profile cloudflare up -d
+docker compose -f docker-compose.production.yml --profile billing up -d
 ```
 
 See [Central Billing Service](#central-billing-service-paddle) for setup and for running it
@@ -335,9 +312,10 @@ systemctl enable tnra.service
 systemctl start tnra.service
 ```
 
-The service runs `tnra.start.sh`, which sources `.env`, brings up the shared infrastructure
-(adding `--profile cloudflare` automatically when `CLOUDFLARE_TUNNEL_TOKEN` is set), then starts
-every group under `provision/`. `tnra.stop.sh` stops them all.
+The service runs `tnra.start.sh`, which sources `.env`, waits for the `tnra-shared` network
+(created by dogeared-central-infra's `central-infra.service`, which `tnra.service` orders itself
+after), brings up the shared infrastructure (adding `--profile billing` when `BILLING_ADMIN_TOKEN`
+is set), then starts every group under `provision/`. `tnra.stop.sh` stops them all.
 
 ```bash
 # Check status
@@ -346,7 +324,7 @@ systemctl status tnra.service
 # View a group's logs (replace <group-name>)
 docker logs tnra-<group-name> -f
 
-# View shared-infra logs (including the tunnel)
+# View shared-infra logs (the tunnel's are in dogeared-central-infra: docker logs cloudflared)
 docker compose -f docker-compose.production.yml logs -f
 
 # Stop
@@ -512,7 +490,7 @@ docker logs tnra-billing -f   # look for "Started TnraBillingApplication" + Flyw
 >
 > ```bash
 > # Everything (shared infra + landing + billing + the tunnel):
-> docker compose -f docker-compose.production.yml --profile billing --profile cloudflare up -d
+> docker compose -f docker-compose.production.yml --profile billing up -d
 > # Just billing (+ its MySQL dependency):
 > docker compose -f docker-compose.production.yml up -d tnra-billing
 > # Just the landing site:

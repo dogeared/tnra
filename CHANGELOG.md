@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.2] - 2026-10-15
+
+### Changed
+- **The Cloudflare tunnel and the shared Docker network move to dogeared-central-infra.** That repo (renamed from dogeared/keycloak; one compose project with `keycloak/` and `cloudflare/` components) now runs the connector and creates `tnra-shared`; this stack references the network as external and no longer defines `cloudflared` or the `cloudflare` profile. `tnra.start.sh` waits for the network instead of starting the tunnel; `tnra.service` orders itself after `central-infra.service`; `bootstrap.sh` no longer asks for the tunnel token; `CLOUDFLARE_TUNNEL_TOKEN` leaves `.env.template`. Routes are unchanged (container names). Cutover order is in that repo's README.
+
 ## [10.7.1] - 2026-10-15
 
 ### Changed
