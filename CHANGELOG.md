@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.1] - 2026-10-15
+
+### Changed
+- **`cloudflared` runs in Docker.** The production tunnel connector is the compose service (`--profile cloudflare`, started by `tnra.start.sh` whenever `CLOUDFLARE_TUNNEL_TOKEN` is set) instead of a host-level systemd service. On `tnra-shared` it reaches this stack and the central Keycloak by container name, so tunnel routes are `http://tnra-landing:8080`, `http://keycloak:8080`, `http://tnra-billing:8082`, `http://tnra-<group>:8080` — host-port juggling is gone. Apps from other compose projects on the host are routed via `http://host.docker.internal:<port>` (`extra_hosts` on the service). Cutover (brief outage while routes are repointed): put the tunnel token in `.env`, `systemctl disable --now cloudflared`, `docker compose -f docker-compose.production.yml --profile cloudflare up -d cloudflared`, then change every public hostname's service in Zero Trust to the container form.
+
 ## [10.7.0] - 2026-10-15
 
 ### Changed

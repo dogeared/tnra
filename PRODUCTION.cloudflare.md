@@ -120,35 +120,23 @@ Back in the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunne
 |---|---|---|
 | (blank) | tnra.app | `http://tnra-landing:8080` |
 | www | tnra.app | `http://tnra-landing:8080` |
-| auth | tnra.app | `http://keycloak:8080` |
+| auth | tnra.app | `http://keycloak:8080` (the central Keycloak, dogeared/keycloak, on the same network) |
+| billing | tnra.app | `http://tnra-billing:8082` |
 | `<group-name>` | tnra.app | `http://tnra-<group-name>:8080` |
+| *(apps from other compose projects on this host)* | *their domain* | `http://host.docker.internal:<their host port>` |
 
 The apex and `www` routes point to the `tnra-landing` container (public landing page). Each group gets its own subdomain route pointing to its app container. Replace `tnra.app` with your actual domain.
 
 Cloudflare automatically creates CNAME DNS records for each route. No manual DNS setup required.
 
-#### If `cloudflared` runs on the host instead of in Docker
+#### Apps outside `tnra-shared`
 
-The table above assumes the compose-managed `cloudflared` container, which sits on the
-`tnra-shared` network and can resolve container names. If the tunnel runs as a **host-level
-systemd service** (`cloudflared service install`, as the current production box does), it cannot
-resolve Docker names at all, and every route must target the port each container publishes on the
-host instead. Those are all bound to `127.0.0.1`, which is exactly what a tunnel process on the same
-host needs:
-
-| Subdomain | Service (host-level tunnel) | Host port comes from |
-|---|---|---|
-| (blank), www | `http://localhost:8081` | `TNRA_LANDING_PORT` in `.env` (default 8081) |
-| auth | `http://localhost:8180` | fixed in `docker-compose.production.yml` |
-| billing | `http://localhost:8082` | `TNRA_BILLING_PORT` in `.env` (default 8082) |
-| `<group-name>` | `http://localhost:<port>` | `ports:` in `provision/<group-name>/docker-compose.yml` |
-
-A route that names a container (`http://tnra-billing:8082`) under a host-level tunnel answers
-`error code: 502` from Cloudflare even though the container is healthy. Check with
-`pgrep -a cloudflared` / `systemctl status cloudflared`: if that shows a process, the tunnel is
-host-level. In that mode keep `CLOUDFLARE_TUNNEL_TOKEN` **out** of `~/tnra/.env`, otherwise
-`tnra.start.sh` also starts the container tunnel on every boot and you end up with two connectors
-for the same tunnel.
+The `cloudflared` container can resolve names only on `tnra-shared`. Other compose projects on the same
+host (e.g. findmygame.parts, open-raffle) stay untouched: route them to
+`http://host.docker.internal:<port>` — the port they publish on the host — which the service maps to the
+host via `extra_hosts`. (Until 10.7.1 the production tunnel was a host-level `cloudflared` service and
+every route used `localhost:<host port>`; that mode is retired — a host-level connector cannot reach
+container names, and two connectors on one tunnel split traffic between them.)
 
 ### 3. Force HTTPS (Cloudflare setting, not app code)
 
@@ -545,11 +533,9 @@ In the Cloudflare dashboard → **Zero Trust** → **Networks** → **Tunnels** 
 
 | Subdomain | Domain | Service |
 |---|---|---|
-| billing | tnra.app | `http://tnra-billing:8082` (compose-managed `cloudflared`) |
-| billing | tnra.app | `http://localhost:<TNRA_BILLING_PORT>` (host-level `cloudflared`, see [the tunnel section](#if-cloudflared-runs-on-the-host-instead-of-in-docker)) |
+| billing | tnra.app | `http://tnra-billing:8082` |
 
-Pick the row that matches how the tunnel runs on this host; `<TNRA_BILLING_PORT>` is the host port from
-`.env` (default 8082). If a stale `billing` DNS record already exists (for example from an earlier
+If a stale `billing` DNS record already exists (for example from an earlier
 provider's custom domain), delete it first or the dashboard will not create the tunnel CNAME.
 
 Cloudflare creates the CNAME automatically. The per-group API and the webhook are both

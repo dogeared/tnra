@@ -223,7 +223,7 @@ the landing site's is `TNRA_LANDING_PORT`. Rename it so every host-port override
   `.env` gets updated at deploy time. Host port only — the in-network address stays
   `http://tnra-billing:8082`.
 
-### Move production `cloudflared` from the host into Docker
+### ~~Move production `cloudflared` from the host into Docker~~ ✓ Completed v10.7.1 (compose service + host.docker.internal for other projects; cutover per CHANGELOG)
 Production (.104) runs `cloudflared` as a host-level systemd service (`cloudflared.service`), so every
 tunnel route must target a `127.0.0.1`-published host port (`http://localhost:8081`, `:8180`, `:8086`,
 per-group ports). Run it as the compose-managed `cloudflared` container instead, on the `tnra-shared`
