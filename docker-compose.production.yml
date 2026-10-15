@@ -18,7 +18,6 @@ services:
       - 'mysql-db:/var/lib/mysql'
     networks:
       - tnra-shared
-    env_file: .env
 
   # Keycloak is no longer part of this stack. Identity for every app on the host is the central
   # instance in the dogeared/keycloak repo (its own compose project), which joins the tnra-shared

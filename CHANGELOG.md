@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.3] - 2026-10-15
+
+### Changed
+- **`.env` hygiene.** `.env.template` lists only keys something still reads: the single-app-era `SPRING_*` / `VAADIN_PRODUCTIONMODE` / `TNRA_NOTIFY_SCHEDULE` block, `MAILGUN_KEY_PUBLIC`, the Datadog and logging keys are gone (the Keycloak keys stay, marked dev-only). The `mysql` service no longer has `env_file: .env` — it only needs the root password, which it gets explicitly, and the line was injecting every secret in the file into the MySQL container. Prune the production `.env` to match: `CLOUDFLARE_TUNNEL_TOKEN` (central infra), all `KEYCLOAK_*`, the `SPRING_*` block, `MAILGUN_KEY_PUBLIC`, `DD_*`, `LOGGING_LEVEL_*`; rename `BILLING_PORT` to `TNRA_BILLING_PORT`.
+
 ## [10.7.2] - 2026-10-15
 
 ### Changed
