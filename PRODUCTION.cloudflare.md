@@ -32,7 +32,8 @@ cloudflared  (Docker container on VPS, tnra-shared network)
   │  HTTP (plain, internal Docker network)
   ├──► tnra-group-a:8080
   ├──► tnra-group-b:8080
-  └──► keycloak:8080        (auth.your-domain.com route)
+  └──► keycloak:8080        (auth.your-domain.com route — the central Keycloak, a separate
+                             compose project from the dogeared/keycloak repo, on the same network)
 ```
 
 `cloudflared` maintains a persistent outbound connection to Cloudflare's edge. No inbound ports beyond SSH are required.
@@ -84,7 +85,7 @@ bash bootstrap.sh
 The script will:
 - Prompt for your domain, MySQL root password, Keycloak admin credentials, encryption master key, and Cloudflare Tunnel token (auto-generating secrets you leave blank)
 - Write a complete `.env` file
-- Start MySQL, Keycloak, and cloudflared via `docker-compose.production.yml`
+- Start MySQL and cloudflared via `docker-compose.production.yml` (Keycloak is the separate dogeared/keycloak project)
 - Wait for MySQL to be healthy
 - Print all generated credentials — **save them in a password manager before continuing**
 
@@ -403,47 +404,16 @@ host. Access the MySQL shell via:
 docker compose exec mysql mysql -utnra -p<app_password> tnra
 ```
 
-## Hardening Keycloak
+## Keycloak (central, separate repo)
 
-Admin credential setup and client secret rotation are covered in steps 7 and
-[Create a Cloudflare Tunnel](#create-a-cloudflare-tunnel) above.
-
-### Restrict Keycloak admin access with Cloudflare Access
-
-The Keycloak admin console is exposed at `https://auth.your-domain.com/admin` through the
-tunnel. Restrict access to trusted IPs or email addresses using Cloudflare Access:
-
-1. Cloudflare dashboard → **Zero Trust** → **Access** → **Applications** → **Add an application**.
-2. Choose **Self-hosted**, set the application domain to `auth.your-domain.com`.
-3. Add a policy: allow only your IP range or require email OTP for your address.
-
-This prevents anyone without Cloudflare Access approval from reaching the admin console,
-even though the URL is technically public.
-
-### Run in production mode
-
-The default `docker-compose.yml` uses `start-dev` for simplicity. For production, switch
-the Keycloak command to `start`, which enforces HTTPS and optimizes caching:
-
-```yaml
-keycloak:
-  command: >
-    start
-    --import-realm
-    --hostname=https://auth.your-domain.com
-    --proxy-headers=xforwarded
-    --http-enabled=true
-```
-
-### Keycloak data persistence
-
-Keycloak data is stored in the `keycloak-data` Docker volume. Realms are imported via the
-admin UI during group provisioning (not on startup). Back up the volume regularly:
-
-```bash
-docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
-  alpine tar czf /backup/keycloak-data-$(date +%Y%m%d).tar.gz -C /data .
-```
+Since 10.7.0 Keycloak is **not** part of this stack. The one instance that serves every app on the
+host — TNRA groups at `auth.tnra.app`, and the other apps at their own `auth.*` hostnames — lives in
+the **dogeared/keycloak** repo as its own compose project (`keycloak-central`). It joins this stack's
+`tnra-shared` network under the alias `keycloak`, so nothing here changed: group containers use
+`http://keycloak:8080` for tokens/userinfo/keys and the tunnel route for `auth.<domain>` still targets
+`localhost:8180`. Admin console, backups, themes, the move itself (Phase 1) and the later switch to
+production mode on Postgres (Phase 2) are all documented in that repo's README. A TNRA group's realm
+is still rendered by `tnra-cli provision` and imported there via the admin console.
 
 ## Central Billing Service (Paddle)
 

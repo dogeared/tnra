@@ -371,61 +371,11 @@ reachable from outside the host. Keep it this way. Access the MySQL shell via:
 docker compose exec mysql mysql -utnra -p<app_password> tnra
 ```
 
-## Hardening Keycloak
+## Keycloak (central, separate repo)
 
-Admin credential setup and client secret rotation are covered in step 7 of
-[Initial Server Setup](#initial-server-setup). The items below cover ongoing hardening.
-
-### Run in production mode
-
-The default `docker-compose.yml` uses `start-dev` for simplicity. For production, switch
-the Keycloak command to `start`, which enforces HTTPS and optimizes caching:
-
-```yaml
-keycloak:
-  command: >
-    start
-    --import-realm
-    --hostname=https://your-domain.com
-    --proxy-headers=xforwarded
-    --http-enabled=true
-```
-
-### Restrict Keycloak admin access
-
-Keycloak is bound to `127.0.0.1:8180` in `docker-compose.yml` and is not reachable from
-outside the host. Always access the admin console via SSH tunnel:
-
-```bash
-ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>
-# Then open http://localhost:8180/admin in your browser
-```
-
-### Keycloak data persistence
-
-Keycloak data is stored in the `keycloak-data` Docker volume. Realms are imported via the
-admin UI during group provisioning (not on startup). Back up the volume regularly:
-
-```bash
-docker run --rm -v tnra_keycloak-data:/data -v ~/backups:/backup \
-  alpine tar czf /backup/keycloak-data-$(date +%Y%m%d).tar.gz -C /data .
-```
-
-### Extending SSO session lifetime on existing realms
-
-`tnra-realm.json` and `realm.json.tmpl` now set 30-day SSO sessions (`ssoSessionIdleTimeout`
-and `ssoSessionMaxLifespan` = 2592000 seconds). New groups inherit these via the CLI
-template; the dev realm picks them up on a fresh import. **Existing production realms
-must be updated manually** — Keycloak only imports realm JSON on first startup.
-
-For each existing realm:
-
-1. SSH tunnel to the Keycloak admin: `ssh -L 8180:127.0.0.1:8180 tnra@<VPS_IP>`
-2. Open `http://localhost:8180/admin` and log in as the Keycloak admin.
-3. Switch to the target realm → **Realm settings** → **Sessions** tab.
-4. Set **SSO Session Idle** and **SSO Session Max** to `30 Days`.
-5. Click **Save**. Existing logged-in sessions retain their original expiry; new logins
-   get the 30-day window.
+Since 10.7.0 Keycloak is not part of this stack: it is the central instance in the **dogeared/keycloak**
+repo (compose project `keycloak-central`, bound to `127.0.0.1:8180`, joined to `tnra-shared` under the
+alias `keycloak`). Admin access, hardening, backups and production mode are documented there.
 
 ## Central Billing Service (Paddle)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # bootstrap.sh — Interactive production setup for TNRA shared infrastructure
-# Sets up .env, starts MySQL and Keycloak (and optionally cloudflared).
+# Sets up .env, starts MySQL and the landing site (and optionally cloudflared).
+# Keycloak is NOT part of this stack — it is the central instance in the dogeared/keycloak repo.
 set -euo pipefail
 
 # ---------------------------------------------------------------------------
@@ -38,7 +39,8 @@ printf "${BOLD}${CYAN}╚══════════════════�
 printf "\n"
 info "This script sets up the shared production infrastructure:"
 info "  • Writes a .env file with all required secrets"
-info "  • Starts MySQL and Keycloak via docker-compose.production.yml"
+info "  • Starts MySQL and tnra-landing via docker-compose.production.yml"
+info "    (Keycloak is separate: see the dogeared/keycloak repo)"
 info "  • Optionally starts cloudflared (Cloudflare Tunnel mode)"
 printf "\n"
 
@@ -95,8 +97,6 @@ while true; do
   warn "Domain is required."
 done
 
-KEYCLOAK_HOSTNAME="https://auth.${DOMAIN}"
-
 # MySQL root password
 MYSQL_ROOT_PASSWORD_LABEL="(generated)"
 _mysql_pw=$(prompt_secret "MySQL root password [blank = auto-generate]: ")
@@ -105,21 +105,6 @@ if [[ -z "$_mysql_pw" ]]; then
 else
   MYSQL_ROOT_PASSWORD="$_mysql_pw"
   MYSQL_ROOT_PASSWORD_LABEL="(set)"
-fi
-
-# Keycloak admin username
-printf "Keycloak admin username [admin]: " >&2
-read -r _kc_user < /dev/tty
-KEYCLOAK_ADMIN="${_kc_user:-admin}"
-
-# Keycloak admin password
-KEYCLOAK_ADMIN_PASSWORD_LABEL="(generated)"
-_kc_pw=$(prompt_secret "Keycloak admin password [blank = auto-generate]: ")
-if [[ -z "$_kc_pw" ]]; then
-  KEYCLOAK_ADMIN_PASSWORD=$(openssl rand -base64 32)
-else
-  KEYCLOAK_ADMIN_PASSWORD="$_kc_pw"
-  KEYCLOAK_ADMIN_PASSWORD_LABEL="(set)"
 fi
 
 # Encryption master key
@@ -157,10 +142,7 @@ printf "\n"
 printf "${BOLD}Summary${RESET}\n"
 printf "─────────────────────────────────────────────────────────────\n"
 printf "  %-35s %s\n" "Domain:"                  "$DOMAIN"
-printf "  %-35s %s\n" "Keycloak hostname:"        "$KEYCLOAK_HOSTNAME"
 printf "  %-35s %s\n" "MySQL root password:"      "$MYSQL_ROOT_PASSWORD_LABEL"
-printf "  %-35s %s\n" "Keycloak admin username:"  "$KEYCLOAK_ADMIN"
-printf "  %-35s %s\n" "Keycloak admin password:"  "$KEYCLOAK_ADMIN_PASSWORD_LABEL"
 printf "  %-35s %s\n" "Encryption master key:"    "$ENCRYPTION_KEY_LABEL"
 printf "  %-35s %s\n" "Cloudflare Tunnel token:"  "$CF_LABEL"
 printf "\n"
@@ -191,14 +173,8 @@ MYSQL_ROOT_PASSWORD=$MYSQL_ROOT_PASSWORD
 CLOUDFLARE_TUNNEL_TOKEN=$CLOUDFLARE_TUNNEL_TOKEN
 
 # --- Keycloak ---
-KEYCLOAK_HOSTNAME=$KEYCLOAK_HOSTNAME
-# Set to https://auth.<domain> in production
-KEYCLOAK_ADMIN=$KEYCLOAK_ADMIN
-KEYCLOAK_ADMIN_PASSWORD=$KEYCLOAK_ADMIN_PASSWORD
-# Per-group values — filled in after provisioning each group
-KEYCLOAK_CLIENT_ID=
-KEYCLOAK_CLIENT_SECRET=
-KEYCLOAK_ISSUER_URI=
+# Not in this stack: the central Keycloak (dogeared/keycloak repo) serves https://auth.$DOMAIN.
+# Per-group OIDC settings live in each provision/<group>/docker-compose.yml.
 
 # --- App (filled in after provisioning each group) ---
 SPRING_DATASOURCE_USERNAME=
@@ -241,11 +217,11 @@ printf "\n"
 info "Starting shared infrastructure..."
 
 if [[ "$USE_CLOUDFLARE" == true ]]; then
-  info "Starting mysql, keycloak, and cloudflared (--profile cloudflare)..."
-  $COMPOSE -f docker-compose.production.yml --profile cloudflare up -d mysql keycloak cloudflared
+  info "Starting mysql and cloudflared (--profile cloudflare)..."
+  $COMPOSE -f docker-compose.production.yml --profile cloudflare up -d mysql cloudflared
 else
-  info "Starting mysql and keycloak (VPS/Nginx mode)..."
-  $COMPOSE -f docker-compose.production.yml up -d mysql keycloak
+  info "Starting mysql (VPS/Nginx mode)..."
+  $COMPOSE -f docker-compose.production.yml up -d mysql
 fi
 
 # ---------------------------------------------------------------------------
@@ -270,9 +246,7 @@ printf "\n"
 printf "${BOLD}${GREEN}Bootstrap complete! Save these credentials now.${RESET}\n"
 printf "─────────────────────────────────────────────────────────────\n"
 printf "  %-35s %s\n" "Domain:"                  "$DOMAIN"
-printf "  %-35s %s\n" "Keycloak admin URL:"       "$KEYCLOAK_HOSTNAME/admin"
-printf "  %-35s %s\n" "Keycloak admin username:"  "$KEYCLOAK_ADMIN"
-printf "  %-35s %s\n" "Keycloak admin password:"  "$KEYCLOAK_ADMIN_PASSWORD"
+printf "  %-35s %s\n" "Keycloak:"                "central instance — https://auth.$DOMAIN/admin (dogeared/keycloak repo)"
 printf "  %-35s %s\n" "MySQL root password:"      "$MYSQL_ROOT_PASSWORD"
 printf "  %-35s %s\n" "Encryption master key:"    "$TNRA_ENCRYPTION_MASTER_KEY"
 if [[ -n "$CLOUDFLARE_TUNNEL_TOKEN" ]]; then

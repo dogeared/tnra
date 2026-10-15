@@ -10,7 +10,8 @@ set -a
 source ./.env
 set +a
 
-# Shared infrastructure (mysql, keycloak, tnra-landing). Add the Cloudflare tunnel when a
+# Shared infrastructure (mysql, tnra-landing; Keycloak lives in the dogeared/keycloak project, which
+# starts after this one — see its keycloak.service). Add the Cloudflare tunnel when a
 # token is present (otherwise this is VPS/Nginx mode), and the central billing service when a
 # billing admin token is set — both are opt-in compose profiles that a bare `up` would skip,
 # so without this a reboot would bring the stack back WITHOUT them.
