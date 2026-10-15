@@ -1,5 +1,6 @@
 [![Build](https://github.com/dogeared/tnra/actions/workflows/tests.yml/badge.svg)](https://github.com/dogeared/tnra/actions/workflows/tests.yml)
 [![Test Coverage](https://raw.githubusercontent.com/dogeared/tnra/badges/jacoco.svg)](https://github.com/dogeared/tnra/actions/workflows/tests.yml)
+[![Version](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fraw.githubusercontent.com%2Fdogeared%2Ftnra%2Fmain%2FVERSION&search=%5B0-9.%5D%2B&label=version&color=2D6A4F)](https://github.com/dogeared/tnra/blob/main/CHANGELOG.md)
 
 # TNRA - Structured Accountability for Groups
 
