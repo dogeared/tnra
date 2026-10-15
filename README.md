@@ -550,6 +550,19 @@ Provisioned groups are tracked in `groups.json` (gitignored). Copy `groups.json.
 to `groups.json` before first use. The CLI auto-assigns ports (8081, 8082,
 etc.) and prevents duplicate group names.
 
+## Bumping the Version
+
+The version lives in every `pom.xml` and in `VERSION` (which CI reads to tag `main`), and CI fails if
+they disagree. Bump them all at once:
+
+```bash
+./bump-version.sh patch      # 10.6.6 -> 10.6.7   (or: minor, major, or an explicit 10.8.2)
+```
+
+It runs the versions-maven-plugin (`versions:set … -DprocessAllModules`) for the poms, writes `VERSION`,
+and starts a `## [x.y.z] - <today>` section at the top of `CHANGELOG.md` with a TODO line for you to
+replace (`--no-changelog` skips that). It doesn't commit — review the diff, write the entry, commit.
+
 ## Running Tests
 
 ```bash
