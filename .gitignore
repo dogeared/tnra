@@ -69,3 +69,6 @@ tnra-landing-app/src/main/frontend/index.html
 **/package.json
 **/package-lock.json
 **/tsconfig.json
+
+# backup-to-gdrive.sh's local copies of the database dumps
+/backups/
