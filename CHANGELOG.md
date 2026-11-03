@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.4] - 2026-11-03
+
+### Added
+- **`backup-to-gdrive.sh` is in the repo.** It dumps a group's MySQL database (`tnra_the_og` by default), gzips it and uploads it to the `tnra-backups` folder of a Google Drive Shared Drive with a service account, keeping the last 5 dumps locally in `backups/`. Settings come from `.env` next to the script: `GDRIVE_SHARED_DRIVE_ID`, `GDRIVE_FOLDER_NAME` and `MYSQL_ROOT_PASSWORD` (now listed in `.env.template`), plus optionally `DB_CONTAINER` (default `mysql-prod`) for a host where the group's database runs in another container. The key file `service-account.json` stays out of git (`*.json`), and so do the dumps (`/backups/` is now ignored). It runs nightly as a DSM Task Scheduler task on the NAS, where the-og now lives (dogeared-central-infra runbook, Part E).
+
 ## [10.7.3] - 2026-10-15
 
 ### Changed
