@@ -48,4 +48,29 @@ class BuildInfoServiceTest {
         assertEquals("N/A", serviceNoProps.getGitBranch());
         assertEquals("N/A", serviceNoProps.getBuildTime());
     }
+
+    @Test
+    void fallsBackToBuildVersionWhenNoTagExists() {
+        Properties git = new Properties();
+        git.setProperty("tags", "");
+        git.setProperty("tag", "");
+        git.setProperty("closest.tag.name", "");
+
+        Properties build = new Properties();
+        build.setProperty("version", "10.7.5");
+
+        BuildInfoService service = new BuildInfoService(new GitProperties(git), new BuildProperties(build));
+
+        assertEquals("10.7.5", service.getGitTag());
+    }
+
+    @Test
+    void usesSingularTagWhenTagsListIsEmpty() {
+        Properties git = new Properties();
+        git.setProperty("tag", "10.7.5");
+
+        BuildInfoService service = new BuildInfoService(new GitProperties(git), null);
+
+        assertEquals("10.7.5", service.getGitTag());
+    }
 }

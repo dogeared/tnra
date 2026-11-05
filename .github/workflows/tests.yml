@@ -172,7 +172,13 @@ jobs:
       contents: read
       packages: write
     steps:
+      # Full history and tags: git-commit-id writes git.properties from the local
+      # checkout, and a shallow checkout would leave git.tags empty and the admin
+      # page's "Git Tag" as N/A.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4

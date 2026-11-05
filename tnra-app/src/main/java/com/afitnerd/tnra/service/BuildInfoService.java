@@ -22,12 +22,26 @@ public class BuildInfoService {
     }
 
     public String getGitTag() {
-        if (gitProperties == null) return "N/A";
-        String tag = gitProperties.get("tags");
-        if (tag == null || tag.isBlank()) {
-            tag = gitProperties.get("closest.tag.name");
+        if (gitProperties != null) {
+            String tag = gitProperties.get("tags");
+            if (tag == null || tag.isBlank()) {
+                tag = gitProperties.get("tag");
+            }
+            if (tag == null || tag.isBlank()) {
+                tag = gitProperties.get("closest.tag.name");
+            }
+            if (tag != null && !tag.isBlank()) {
+                return tag;
+            }
         }
-        return tag != null && !tag.isBlank() ? tag : "N/A";
+        // A CI-only commit on top of a release has no tag at HEAD, and these
+        // release tags are lightweight, so git.closest.tag.name stays empty.
+        // VERSION and the Maven build version are kept in sync with the release
+        // tag, so use that rather than showing N/A.
+        if (buildProperties != null && buildProperties.getVersion() != null) {
+            return buildProperties.getVersion();
+        }
+        return "N/A";
     }
 
     public String getGitCommitId() {
