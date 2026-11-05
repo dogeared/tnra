@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.7.5] - 2026-11-05
+
+### Changed
+- **.github/workflows/tests.yml** - added sections to publish image to ghcr and to autodeploy to the nas
+
 ## [10.7.4] - 2026-11-03
 
 ### Added
