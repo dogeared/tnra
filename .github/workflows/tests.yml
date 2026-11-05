@@ -295,7 +295,7 @@ jobs:
   deploy-the-og:
     name: Deploy The OG TNRA  components to NAS
     runs-on: ubuntu-latest
-    needs: publish
+    needs: deploy-production
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Ask the NAS to deploy
