@@ -161,7 +161,7 @@ jobs:
             fi
           fi
 
-  # Publishes the NAS's three TNRA images. The Synology pulls `:latest` on a timer;
+  # Publishes the NAS's three TNRA images. The Synology pulls `:latest` over the deploy webhook;
   # `:sha-<short>` and the version tag are there for pinning a rollback.
   publish:
     name: Publish images
@@ -276,8 +276,8 @@ jobs:
           PROJECT: tnra-production
         run: |
           if [ -z "$DEPLOY_WEBHOOK_URL" ] || [ -z "$DEPLOY_WEBHOOK_SECRET" ]; then
-            echo "::notice::deploy webhook not configured; the NAS timer will pick this up"
-            exit 0
+            echo "::error::DEPLOY_WEBHOOK_URL / DEPLOY_WEBHOOK_SECRET are not set"
+            exit 1
           fi
           BODY=$(printf '{"project":"%s","sha":"%s"}' "$PROJECT" "$GITHUB_SHA")
           TS=$(date +%s)
@@ -311,8 +311,8 @@ jobs:
           PROJECT: tnra-the-og
         run: |
           if [ -z "$DEPLOY_WEBHOOK_URL" ] || [ -z "$DEPLOY_WEBHOOK_SECRET" ]; then
-            echo "::notice::deploy webhook not configured; the NAS timer will pick this up"
-            exit 0
+            echo "::error::DEPLOY_WEBHOOK_URL / DEPLOY_WEBHOOK_SECRET are not set"
+            exit 1
           fi
           BODY=$(printf '{"project":"%s","sha":"%s"}' "$PROJECT" "$GITHUB_SHA")
           TS=$(date +%s)
