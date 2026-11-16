@@ -57,20 +57,20 @@ class BuildInfoServiceTest {
         git.setProperty("closest.tag.name", "");
 
         Properties build = new Properties();
-        build.setProperty("version", "10.7.5");
+        build.setProperty("version", "10.8.0");
 
         BuildInfoService service = new BuildInfoService(new GitProperties(git), new BuildProperties(build));
 
-        assertEquals("10.7.5", service.getGitTag());
+        assertEquals("10.8.0", service.getGitTag());
     }
 
     @Test
     void usesSingularTagWhenTagsListIsEmpty() {
         Properties git = new Properties();
-        git.setProperty("tag", "10.7.5");
+        git.setProperty("tag", "10.8.0");
 
         BuildInfoService service = new BuildInfoService(new GitProperties(git), null);
 
-        assertEquals("10.7.5", service.getGitTag());
+        assertEquals("10.8.0", service.getGitTag());
     }
 }

@@ -2,6 +2,11 @@
 
 All notable changes to TNRA are documented in this file.
 
+## [10.8.0] - 2026-11-16
+
+### Added
+- **Offline-capable mobile PWA.** TNRA now registers a service worker that retains the app shell and provides an offline post-draft page. Post changes and a queued finish action are stored locally while disconnected, restored after a reload, and synchronized automatically when the device reconnects, regains focus, or returns to the Posts route.
+
 ## [10.7.5] - 2026-11-05
 
 ### Changed
