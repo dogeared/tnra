@@ -405,6 +405,15 @@
     });
   }
 
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      return;
+    }
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {
+      // Offline draft capture and sync still work when service workers are unavailable.
+    });
+  }
+
   function queueFinishAfterReconnect() {
     const nextActions = { ...getStoredActions(), finishAfterSync: true };
     saveActions(nextActions);
@@ -447,6 +456,7 @@
       return;
     }
     initialized = true;
+    registerServiceWorker();
     installRouteObserver();
     initSyncLoop();
     ensurePostRouteFeatures();

@@ -12,7 +12,7 @@ class OfflinePageTest {
 
     @Test
     void offlinePageContainsDraftAndSyncUi() throws Exception {
-        try (InputStream stream = getClass().getResourceAsStream("/META-INF/offline.html")) {
+        try (InputStream stream = getClass().getResourceAsStream("/META-INF/resources/offline.html")) {
             assertNotNull(stream, "offline.html should be packaged as a static resource");
 
             String html = new String(stream.readAllBytes(), StandardCharsets.UTF_8);

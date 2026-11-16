@@ -29,6 +29,7 @@ class OfflineSyncScriptTest {
         assertTrue(script.contains("window.history.replaceState = function (...args)"));
         assertTrue(script.contains("window.addEventListener(\"tnra-locationchange\""));
         assertTrue(script.contains("ensurePostRouteFeatures();"));
+        assertTrue(script.contains("navigator.serviceWorker.register('/service-worker.js')"));
         assertFalse(script.contains("if (!window.location.pathname.startsWith(\"/posts\")) {"));
     }
 }
